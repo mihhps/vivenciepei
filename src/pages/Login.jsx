@@ -1,33 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-
+import BotaoVoltar from "../components/BotaoVoltar";
 
 function Login() {
   const [login, setLogin] = useState("");
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState(false);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const usuarioLogado = JSON.parse(localStorage.getItem("usuarioLogado"));
-    const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
-
-    const usuarioValido = usuarios.find(
-      (u) =>
-        u.login === usuarioLogado?.login &&
-        u.senha === usuarioLogado?.senha
-    );
-
-    if (usuarioValido) {
-      if (usuarioValido.tipo === "professor") {
-        navigate("/painel-professor");
-      } else {
-        navigate("/");
-      }
-    } else {
-      localStorage.removeItem("usuarioLogado"); // limpa login inválido
-    }
-  }, [navigate]);
 
   const handleLogin = (e) => {
     e.preventDefault();
