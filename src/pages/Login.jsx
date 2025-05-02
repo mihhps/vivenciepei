@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import BotaoVoltar from "../components/BotaoVoltar";
+
 
 function Login() {
   const [login, setLogin] = useState("");
@@ -10,12 +10,22 @@ function Login() {
 
   useEffect(() => {
     const usuarioLogado = JSON.parse(localStorage.getItem("usuarioLogado"));
-    if (usuarioLogado) {
-      if (usuarioLogado.tipo === "professor") {
+    const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
+
+    const usuarioValido = usuarios.find(
+      (u) =>
+        u.login === usuarioLogado?.login &&
+        u.senha === usuarioLogado?.senha
+    );
+
+    if (usuarioValido) {
+      if (usuarioValido.tipo === "professor") {
         navigate("/painel-professor");
       } else {
         navigate("/");
       }
+    } else {
+      localStorage.removeItem("usuarioLogado"); // limpa login inválido
     }
   }, [navigate]);
 
@@ -34,7 +44,6 @@ function Login() {
 
     if (usuario) {
       localStorage.setItem("usuarioLogado", JSON.stringify(usuario));
-
       if (usuario.tipo === "professor") {
         navigate("/painel-professor");
       } else {
@@ -48,7 +57,6 @@ function Login() {
   return (
     <div style={estilos.fundo}>
       <form onSubmit={handleLogin} style={estilos.card}>
-        <BotaoVoltar />
         <img src="/logo-vivencie.png" alt="Logo Vivencie PEI" style={estilos.logo} />
         <h2 style={estilos.titulo}>Vivencie PEI</h2>
 
