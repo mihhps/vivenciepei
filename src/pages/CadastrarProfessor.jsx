@@ -1,58 +1,60 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { collection, addDoc } from "firebase/firestore";
 import { auth, db } from "../firebase";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { collection, getDocs } from "firebase/firestore";
+import { useNavigate } from "react-router-dom";
+import BotaoVoltar from "../components/BotaoVoltar";
 
-export default function Login() {
+export default function CadastrarProfessor() {
+  const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+  const [cargo, setCargo] = useState("");
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = async () => {
-    if (!email || !senha) {
-      alert("Preencha e-mail e senha.");
+  const handleCadastro = async () => {
+    if (!nome || !email || !senha || !cargo) {
+      alert("Preencha todos os campos.");
       return;
     }
 
     try {
-      const cred = await signInWithEmailAndPassword(auth, email.trim(), senha);
-
-      const usuariosSnapshot = await getDocs(collection(db, "usuarios"));
-      const usuarios = usuariosSnapshot.docs.map(doc => doc.data());
-      const usuario = usuarios.find(u => u.email === email.trim());
-
-      if (!usuario) {
-        alert("Usuário autenticado, mas não cadastrado no sistema.");
-        return;
-      }
-
-      const usuarioCompleto = {
-        ...usuario,
+      const cred = await createUserWithEmailAndPassword(auth, email.trim(), senha);
+      await addDoc(collection(db, "usuarios"), {
         uid: cred.user.uid,
-        email: cred.user.email,
-      };
+        nome,
+        email: email.trim(),
+        cargo,
+        perfil: "professor"
+      });
 
-      console.log("Usuário logado:", usuarioCompleto);
-
-      localStorage.setItem("usuarioLogado", JSON.stringify(usuarioCompleto));
-
-      if (usuarioCompleto.perfil === "gestao") navigate("/painel-gestao");
-      else if (usuarioCompleto.perfil === "aee") navigate("/painel-aee");
-      else if (usuarioCompleto.perfil === "professor") navigate("/painel-professor");
-      else navigate("/");
+      alert("Professor cadastrado com sucesso!");
+      navigate("/login");
     } catch (error) {
-      console.error("Erro no login:", error);
-      alert("E-mail ou senha incorretos.");
+      console.error("Erro ao cadastrar professor:", error);
+      alert("Erro ao cadastrar. Tente novamente.");
     }
   };
 
   return (
     <div style={estilos.container}>
+      {/* Botão Voltar no canto superior esquerdo */}
+      <div style={{ position: "absolute", top: "30px", left: "30px" }}>
+        <BotaoVoltar />
+      </div>
+
       <div style={estilos.card}>
         <img src="/logo-vivencie.png" alt="Logo Vivencie PEI" style={estilos.logo} />
-        <h2 style={estilos.titulo}>Login</h2>
+        <h2 style={estilos.titulo}>Cadastro de Professor</h2>
+
+        <input
+          type="text"
+          placeholder="Nome completo"
+          value={nome}
+          onChange={(e) => setNome(e.target.value)}
+          style={estilos.input}
+        />
 
         <input
           type="email"
@@ -79,19 +81,17 @@ export default function Login() {
           </button>
         </div>
 
-        <button style={estilos.botao} onClick={handleLogin}>
-          Entrar
-        </button>
+        <input
+          type="text"
+          placeholder="Cargo"
+          value={cargo}
+          onChange={(e) => setCargo(e.target.value)}
+          style={estilos.input}
+        />
 
-        <p style={{ marginTop: 20 }}>
-          Ainda não tem conta?{" "}
-          <span
-            style={{ color: "#1d3557", cursor: "pointer", fontWeight: "bold" }}
-            onClick={() => navigate("/cadastro-professor")}
-          >
-            Cadastre-se como professor
-          </span>
-        </p>
+        <button style={estilos.botao} onClick={handleCadastro}>
+          Cadastrar
+        </button>
       </div>
     </div>
   );
@@ -105,7 +105,8 @@ const estilos = {
     height: "100vh",
     width: "100vw",
     background: "linear-gradient(to bottom, #00264d, #005b96)",
-    fontFamily: "'Segoe UI', sans-serif"
+    fontFamily: "'Segoe UI', sans-serif",
+    position: "relative"
   },
   card: {
     backgroundColor: "#fff",
@@ -117,11 +118,11 @@ const estilos = {
     textAlign: "center"
   },
   logo: {
-    width: "120px",
+    width: "100px",
     marginBottom: "20px"
   },
   titulo: {
-    fontSize: "24px",
+    fontSize: "22px",
     marginBottom: "30px",
     color: "#1d3557"
   },

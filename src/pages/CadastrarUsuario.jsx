@@ -1,123 +1,144 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import BotaoVoltar from "../components/BotaoVoltar";
+import { auth, db } from "../firebase";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { collection, addDoc } from "firebase/firestore";
 
-function CadastrarUsuario() {
-  const [nomeCompleto, setNomeCompleto] = useState("");
-  const [cargo, setCargo] = useState("");
-  const [login, setLogin] = useState("");
+export default function CadastroProfessor() {
+  const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
-  const [tipo, setTipo] = useState("");
-
+  const [confirmarSenha, setConfirmarSenha] = useState("");
+  const [carregando, setCarregando] = useState(false);
   const navigate = useNavigate();
 
-  const handleSalvar = () => {
-    if (!nomeCompleto || !cargo || !login || !senha || !tipo) {
+  const handleCadastro = async () => {
+    if (!nome || !email || !senha || !confirmarSenha) {
       alert("Preencha todos os campos.");
       return;
     }
+    if (senha !== confirmarSenha) {
+      alert("As senhas não coincidem.");
+      return;
+    }
 
-    const novoUsuario = {
-      nome: nomeCompleto,
-      cargo,
-      login: login.trim().toLowerCase(),
-      senha: senha.trim(),
-      tipo: tipo.toLowerCase()
-    };
+    try {
+      setCarregando(true);
+      await createUserWithEmailAndPassword(auth, email.trim(), senha);
 
-    const usuariosSalvos = JSON.parse(localStorage.getItem("usuarios")) || [];
-    usuariosSalvos.push(novoUsuario);
-    localStorage.setItem("usuarios", JSON.stringify(usuariosSalvos));
+      await addDoc(collection(db, "usuarios"), {
+        nome: nome.trim(),
+        email: email.trim(),
+        login: email.trim(),
+        cargo: "Professor(a)",
+        perfil: "professor"
+      });
 
-    alert("Usuário cadastrado com sucesso!");
-    navigate("/");
+      alert("Cadastro realizado com sucesso!");
+      navigate("/login");
+    } catch (erro) {
+      console.error(erro);
+      alert("Erro ao cadastrar. Verifique se o e-mail já está em uso.");
+    } finally {
+      setCarregando(false);
+    }
   };
 
   return (
-    <div style={estilos.fundo}>
-      <div style={estilos.container}>
-        <BotaoVoltar />
-        <h2 style={estilos.titulo}>Cadastrar Usuário</h2>
+    <div style={estilos.container}>
+      <div style={estilos.card}>
+        <h2 style={estilos.titulo}>Cadastro de Professor</h2>
 
-        <Campo label="Nome completo" value={nomeCompleto} setValue={setNomeCompleto} placeholder="Ex: Michelle Pollheim" />
-        <Campo label="Cargo" value={cargo} setValue={setCargo} placeholder="Ex: Professora" />
-        <Campo label="Login" value={login} setValue={setLogin} placeholder="Ex: michelle" />
-        <Campo label="Senha" value={senha} setValue={setSenha} type="password" placeholder="******" />
+        <input
+          type="text"
+          placeholder="Nome completo"
+          value={nome}
+          onChange={(e) => setNome(e.target.value)}
+          style={estilos.input}
+        />
+        <input
+          type="email"
+          placeholder="E-mail"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          style={estilos.input}
+        />
+        <input
+          type="password"
+          placeholder="Senha"
+          value={senha}
+          onChange={(e) => setSenha(e.target.value)}
+          style={estilos.input}
+        />
+        <input
+          type="password"
+          placeholder="Confirmar senha"
+          value={confirmarSenha}
+          onChange={(e) => setConfirmarSenha(e.target.value)}
+          style={estilos.input}
+        />
 
-        <div style={{ marginBottom: "25px" }}>
-          <label><strong>Tipo de Acesso:</strong></label>
-          <select value={tipo} onChange={(e) => setTipo(e.target.value)} style={estilos.input}>
-            <option value="">Selecione o tipo</option>
-            <option value="gestao">Gestão</option>
-            <option value="aee">AEE</option>
-            <option value="professor">Professor</option>
-            <option value="administrador">Administrador</option>
-          </select>
-        </div>
+        <button
+          style={estilos.botao}
+          onClick={handleCadastro}
+          disabled={carregando}
+        >
+          {carregando ? "Cadastrando..." : "Cadastrar"}
+        </button>
 
-        <button style={estilos.botao} onClick={handleSalvar}>Salvar</button>
+        <p style={{ marginTop: 15 }}>
+          Já tem uma conta?{" "}
+          <span
+            style={{ color: "#1d3557", cursor: "pointer" }}
+            onClick={() => navigate("/login")}
+          >
+            Voltar ao login
+          </span>
+        </p>
       </div>
     </div>
   );
 }
 
-function Campo({ label, value, setValue, placeholder, type = "text" }) {
-  return (
-    <div style={{ marginBottom: "20px" }}>
-      <label><strong>{label}:</strong></label>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        style={estilos.input}
-        placeholder={placeholder}
-      />
-    </div>
-  );
-}
-
 const estilos = {
-  fundo: {
-    minHeight: "100vh",
-    width: "100vw",
-    background: "#1d3557",
+  container: {
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    padding: "30px"
+    height: "100vh",
+    background: "linear-gradient(to bottom, #00264d, #005b96)",
+    fontFamily: "'Segoe UI', sans-serif",
   },
-  container: {
+  card: {
     backgroundColor: "#fff",
     padding: "40px",
-    borderRadius: "16px",
+    borderRadius: "20px",
     boxShadow: "0 0 30px rgba(0,0,0,0.2)",
-    maxWidth: "500px",
-    width: "100%"
+    width: "100%",
+    maxWidth: "400px",
+    textAlign: "center",
   },
   titulo: {
-    textAlign: "center",
-    marginBottom: "25px",
-    color: "#1d3557"
+    fontSize: "24px",
+    marginBottom: "20px",
+    color: "#1d3557",
   },
   input: {
     width: "100%",
-    padding: "10px",
-    marginTop: "8px",
-    borderRadius: "8px",
+    padding: "12px",
+    marginBottom: "15px",
+    borderRadius: "6px",
     border: "1px solid #ccc",
-    fontSize: "14px"
+    fontSize: "16px",
   },
   botao: {
     width: "100%",
     padding: "12px",
     backgroundColor: "#1d3557",
     color: "#fff",
-    border: "none",
-    borderRadius: "8px",
     fontSize: "16px",
-    fontWeight: "bold",
-    cursor: "pointer"
-  }
+    borderRadius: "6px",
+    border: "none",
+    cursor: "pointer",
+  },
 };
-
-export default CadastrarUsuario;

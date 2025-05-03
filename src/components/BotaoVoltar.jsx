@@ -1,45 +1,38 @@
-import { useNavigate, useLocation } from "react-router-dom";
-import { useEffect, useState } from "react";
+import React from "react";
+import { useNavigate } from "react-router-dom";
 
-function BotaoVoltar() {
+export default function BotaoVoltar() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const [usuarioLogado, setUsuarioLogado] = useState(null);
 
-  useEffect(() => {
-    const dados = JSON.parse(localStorage.getItem("usuarioLogado"));
-    setUsuarioLogado(dados);
-  }, [location.pathname]); // Atualiza ao mudar de rota
+  const handleVoltar = () => {
+    const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
+    const tipo = usuario?.perfil;
 
-  if (location.pathname === "/" || location.pathname === "/painel-professor") return null;
-
-  const voltarParaPainel = () => {
-    if (!usuarioLogado) {
-      navigate("/login");
-    } else if (usuarioLogado.tipo === "professor") {
+    if (tipo === "professor") {
       navigate("/painel-professor");
+    } else if (tipo === "gestao") {
+      navigate("/painel-gestao");
+    } else if (tipo === "aee") {
+      navigate("/painel-aee");
     } else {
-      navigate("/"); // gestão e AEE usam a rota principal
+      navigate("/"); // fallback: tela institucional
     }
   };
 
   return (
-    <div style={{ marginBottom: "20px", textAlign: "left" }}>
-      <button onClick={voltarParaPainel} style={botaoStyle}>
-        ← Voltar ao Painel
-      </button>
-    </div>
+    <button
+      onClick={handleVoltar}
+      style={{
+        padding: "10px 20px",
+        backgroundColor: "#1d3557",
+        color: "white",
+        border: "none",
+        borderRadius: "8px",
+        cursor: "pointer",
+        fontWeight: "bold"
+      }}
+    >
+      ← Voltar
+    </button>
   );
 }
-
-const botaoStyle = {
-  padding: "8px 16px",
-  fontSize: "14px",
-  backgroundColor: "#1d3557",
-  color: "#ffffff",
-  border: "none",
-  borderRadius: "4px",
-  cursor: "pointer",
-};
-
-export default BotaoVoltar;

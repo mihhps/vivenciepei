@@ -74,7 +74,7 @@ export default function CriarPEI() {
       proximaAvaliacao: new Date(proximaAvaliacao).toISOString(),
       resumoPEI: pei,
       criadoEm: new Date().toLocaleDateString("pt-BR"),
-      criador: usuarioLogado.login,
+      criador: usuarioLogado.login,        // <-- ESSENCIAL
       nomeCriador: usuarioLogado.nome
     };
 

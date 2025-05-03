@@ -1,18 +1,29 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import BotaoVoltar from "../components/BotaoVoltar";
 
 function VerAvaliacao() {
   const { aluno } = useParams();
   const navigate = useNavigate();
+  const [avaliacao, setAvaliacao] = useState(null);
 
-  const avaliacoes = JSON.parse(localStorage.getItem("avaliacoesIniciais")) || [];
-  const avaliacao = avaliacoes.find((a) => a.aluno === aluno);
+  useEffect(() => {
+    const avaliacoes = JSON.parse(localStorage.getItem("avaliacoesIniciais")) || [];
+    const encontrada = avaliacoes.find(
+      (a) => a.aluno.toLowerCase().trim() === aluno.toLowerCase().trim()
+    );
+    setAvaliacao(encontrada);
+  }, [aluno]);
 
-  if (!avaliacao) {
+  const formatarData = (dataISO) => {
+    if (!dataISO) return "-";
+    const data = new Date(dataISO);
+    return data.toLocaleDateString("pt-BR");
+  };
+
+  if (!avaliacao || !avaliacao.respostas || !avaliacao.observacoes) {
     return (
       <div style={{ padding: "30px", textAlign: "center", color: "#e63946" }}>
-        Avaliação não encontrada.
+        Avaliação incompleta ou não encontrada.
       </div>
     );
   }
@@ -35,8 +46,7 @@ function VerAvaliacao() {
         padding: "40px",
         boxShadow: "0 4px 15px rgba(0, 0, 0, 0.1)"
       }}>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "30px" }}>
-          <BotaoVoltar />
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "30px" }}>
           <button
             onClick={() => navigate("/ver-avaliacoes")}
             style={{
@@ -49,7 +59,7 @@ function VerAvaliacao() {
               cursor: "pointer"
             }}
           >
-            Voltar
+            Voltar à Lista
           </button>
         </div>
 
@@ -61,7 +71,7 @@ function VerAvaliacao() {
           <p><strong>Aluno:</strong> {avaliacao.aluno}</p>
           <p><strong>Idade:</strong> {avaliacao.idade} anos</p>
           <p><strong>Faixa Etária:</strong> {avaliacao.faixaEtaria}</p>
-          <p><strong>Data da Avaliação:</strong> {avaliacao.data}</p>
+          <p><strong>Data da Avaliação:</strong> {formatarData(avaliacao.data)}</p>
         </div>
 
         {Object.keys(avaliacao.respostas).map((area, i) => (

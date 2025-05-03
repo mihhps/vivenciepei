@@ -1,6 +1,5 @@
-// VerPEIs.jsx
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import BotaoVoltar from "../components/BotaoVoltar";
 import { gerarPDFCompleto } from "../utils/gerarPDFCompleto";
 
@@ -26,6 +25,9 @@ function formatarData(dataISO) {
 
 function VerPEIs() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const alunoDoState = location.state?.alunoAberto;
+
   const usuarioLogado = JSON.parse(localStorage.getItem("usuarioLogado"));
   const tipo = usuarioLogado?.tipo;
 
@@ -42,7 +44,12 @@ function VerPEIs() {
 
     setUsuarios(usuariosSalvos);
     setAlunos(alunosSalvos);
-    if (alunosSalvos.length > 0) setAbaAtiva(alunosSalvos[0].nome);
+
+    if (alunoDoState) {
+      setAbaAtiva(alunoDoState);
+    } else if (alunosSalvos.length > 0) {
+      setAbaAtiva(alunosSalvos[0].nome);
+    }
 
     const peisFiltrados = tipo === "professor"
       ? todosPeis.filter(p => p.criador === usuarioLogado.login)
@@ -56,7 +63,7 @@ function VerPEIs() {
     });
 
     setPeisPorAluno(agrupados);
-  }, [filtroUsuario]);
+  }, [filtroUsuario, alunoDoState]);
 
   const editarPei = (pei) => navigate(`/editar-pei/${pei.aluno}`);
 
@@ -120,11 +127,23 @@ function VerPEIs() {
                         <p><strong>Início:</strong> {formatarData(pei.inicio)}</p>
                         <p><strong>Próxima Avaliação:</strong> {formatarData(pei.proximaAvaliacao)}</p>
                         <p><strong>Criado por:</strong> {pei.nomeCriador || "-"}</p>
+
                         <div style={estilos.botoes}>
                           {(tipo === "gestao" || tipo === "aee" || usuarioLogado.login === pei.criador) && (
                             <button style={estilos.editar} onClick={() => editarPei(pei)}>Editar</button>
                           )}
-                          <button style={estilos.gerar} onClick={() => navigate(`/avaliacao/${pei.aluno}`)}>Visualizar</button>
+
+                          <button
+                            style={estilos.gerar}
+                            onClick={() =>
+                              navigate("/visualizar-pei", {
+                                state: { pei, voltarPara: pei.aluno }
+                              })
+                            }
+                          >
+                            Visualizar
+                          </button>
+
                           <button
                             style={estilos.gerar}
                             onClick={() => {
@@ -141,9 +160,10 @@ function VerPEIs() {
                           >
                             Gerar PDF
                           </button>
-                          {(tipo === "gestao" || tipo === "aee" || usuarioLogado.login === pei.criador) && (
-                            <button style={estilos.excluir} onClick={() => excluirPei(pei)}>Excluir</button>
-                          )}
+
+                          {(usuarioLogado.login === pei.criador || tipo === "gestao") && (
+<button style={estilos.excluir} onClick={() => excluirPei(pei)}>Excluir</button>
+)}
                         </div>
                       </div>
                     ))
@@ -160,22 +180,21 @@ function VerPEIs() {
 
 const estilos = {
   fundo: {
-    minHeight: "100vh",
-    width: "100vw",
-    background: "linear-gradient(to bottom right, #00264d, #005b96)",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    padding: "40px",
+    padding: "150px",
     fontFamily: "'Segoe UI', sans-serif",
+
+    
   },
   card: {
     backgroundColor: "#fff",
     borderRadius: "26px",
-    padding: "40px",
+    padding: "50px",
     width: "100%",
     maxWidth: "1000px",
-    boxShadow: "0 0 25px rgba(0,0,0,0.2)",
+    boxShadow: "0 0 25px rgba(22, 1, 114, 0.2)",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",

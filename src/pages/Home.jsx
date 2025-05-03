@@ -1,96 +1,91 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import BotaoSair from "../components/BotaoSair";
 
-function Home() {
+export default function Home() {
   const navigate = useNavigate();
 
-  // Recupera o usuário logado e o tipo de perfil
-  const usuarioLogado = JSON.parse(localStorage.getItem("usuarioLogado"));
-  const tipo = usuarioLogado?.perfil; // deve ser 'gestao', 'aee' ou 'professor'
+  const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
+  const nome = usuario?.nome || "Usuário";
+  const perfil = usuario?.perfil || "";
 
   return (
-    <div style={styles.fullPage}>
-      <div style={styles.card}>
-        <img src="/logo-vivencie.png" alt="Logo Vivencie PEI" style={styles.logo} />
-        <h1 style={styles.title}>Vivencie PEI</h1>
-        <p style={styles.subtitle}>Vivencie o crescimento, vivencie o PEI.</p>
+    <div style={estilos.container}>
+      <div style={estilos.card}>
+        <img src="/logo-vivencie.png" alt="Logo Vivencie PEI" style={estilos.logo} />
 
-        <div style={styles.buttonGroup}>
-          <button style={styles.button} onClick={() => navigate("/criar-pei")}>Criar PEI</button>
-          <button style={styles.button} onClick={() => navigate("/ver-alunos")}>Ver Alunos</button>
-          <button style={styles.button} onClick={() => navigate("/ver-peis")}>Ver PEIs</button>
-          <button style={styles.button} onClick={() => navigate("/avaliacao-inicial")}>Avaliação Inicial</button>
+        <h1 style={estilos.titulo}>Vivencie PEI</h1>
+        <p style={estilos.subtitulo}>Vivencie o crescimento, vivencie o PEI.</p>
 
-          {(tipo === "gestao" || tipo === "aee") && (
-            <button style={styles.button} onClick={() => navigate("/cadastro-usuario")}>
-              Cadastrar Professor
-            </button>
-          )}
+        <p style={estilos.usuarioInfo}>
+          Bem-vindo(a), <strong>{nome}</strong> — Perfil: <strong>{perfil}</strong>
+        </p>
 
-          <button
-            style={{ ...styles.button, backgroundColor: "crimson" }}
-            onClick={() => {
-              localStorage.removeItem("usuarioLogado");
-              navigate("/login");
-            }}
-          >
-            Sair
-          </button>
+        <div style={estilos.botoes}>
+          <button style={estilos.botao} onClick={() => navigate("/criar-pei")}>Criar PEI</button>
+          <button style={estilos.botao} onClick={() => navigate("/ver-alunos")}>Ver Alunos</button>
+          <button style={estilos.botao} onClick={() => navigate("/ver-peis")}>Ver PEIs</button>
+          <button style={estilos.botao} onClick={() => navigate("/avaliacao-inicial")}>Avaliação Inicial</button>
+          <button style={estilos.botao} onClick={() => navigate("/cadastro-professor")}>Cadastrar Professor</button>
         </div>
+
+        <BotaoSair />
       </div>
     </div>
   );
 }
 
-const styles = {
-  fullPage: {
+const estilos = {
+  container: {
+    background: "linear-gradient(to bottom, #00264d, #005b96)",
     minHeight: "100vh",
     width: "100vw",
-    background: "linear-gradient(to bottom, #1d3557, #457b9d)",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-    color: "#333"
+    padding: "30px"
   },
   card: {
-    backgroundColor: "#fff",
+    background: "#fff",
+    borderRadius: "20px",
     padding: "40px",
-    borderRadius: "16px",
-    boxShadow: "0 0 30px rgba(0,0,0,0.3)",
     width: "100%",
     maxWidth: "500px",
-    textAlign: "center"
+    textAlign: "center",
+    boxShadow: "0 0 30px rgba(0,0,0,0.2)"
   },
   logo: {
     width: "100px",
-    marginBottom: "15px"
+    marginBottom: "20px"
   },
-  title: {
-    fontSize: "28px",
-    marginBottom: "10px",
-    color: "#1d3557"
+  titulo: {
+    fontSize: "26px",
+    color: "#1d3557",
+    marginBottom: "5px"
   },
-  subtitle: {
+  subtitulo: {
     fontSize: "16px",
-    marginBottom: "25px",
-    color: "#444"
+    color: "#333",
+    marginBottom: "20px"
   },
-  buttonGroup: {
+  usuarioInfo: {
+    fontSize: "16px",
+    color: "#1d3557",
+    marginBottom: "25px"
+  },
+  botoes: {
     display: "flex",
     flexDirection: "column",
-    gap: "12px"
+    gap: "12px",
+    marginBottom: "20px"
   },
-  button: {
+  botao: {
+    padding: "12px",
     backgroundColor: "#1d3557",
     color: "#fff",
-    border: "none",
-    padding: "12px",
-    borderRadius: "6px",
     fontSize: "16px",
-    cursor: "pointer",
-    transition: "0.3s"
+    borderRadius: "8px",
+    border: "none",
+    cursor: "pointer"
   }
 };
-
-export default Home;

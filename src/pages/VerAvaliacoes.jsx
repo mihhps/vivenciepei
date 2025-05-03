@@ -1,140 +1,133 @@
 import React, { useEffect, useState } from "react";
-import BotaoVoltar from "../components/BotaoVoltar";
 import { useNavigate } from "react-router-dom";
+import BotaoVoltar from "../components/BotaoVoltar";
 
-function VerAvaliacoes() {
+export default function VerAvaliacoes() {
   const [avaliacoes, setAvaliacoes] = useState([]);
   const navigate = useNavigate();
+
+  const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
+  const tipo = usuario?.perfil;
 
   useEffect(() => {
     const dadosSalvos = JSON.parse(localStorage.getItem("avaliacoesIniciais")) || [];
     setAvaliacoes(dadosSalvos);
   }, []);
 
-  const excluirAvaliacao = (aluno) => {
-    const confirmar = window.confirm(`Deseja realmente excluir a avaliação de ${aluno}?`);
-    if (!confirmar) return;
-
-    const atualizadas = avaliacoes.filter((av) => av.aluno !== aluno);
-    localStorage.setItem("avaliacoesIniciais", JSON.stringify(atualizadas));
-    setAvaliacoes(atualizadas);
-  };
-
-  const editarAvaliacao = (avaliacao) => {
-    localStorage.setItem("avaliacaoEmEdicao", JSON.stringify(avaliacao));
-    navigate("/avaliacao-inicial");
+  const estilos = {
+    container: {
+      minHeight: "100vh",
+      backgroundColor: "#f0f4f8",
+      padding: "40px",
+      fontFamily: "Arial, sans-serif",
+    },
+    card: {
+      maxWidth: "1000px",
+      margin: "0 auto",
+      backgroundColor: "#fff",
+      padding: "30px",
+      borderRadius: "10px",
+      boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
+    },
+    titulo: {
+      fontSize: "24px",
+      fontWeight: "bold",
+      marginBottom: "20px",
+      textAlign: "center",
+    },
+    tabela: {
+      width: "100%",
+      borderCollapse: "collapse",
+      marginTop: "20px",
+    },
+    th: {
+      backgroundColor: "#1976d2",
+      color: "white",
+      padding: "10px",
+      textAlign: "left",
+    },
+    td: {
+      border: "1px solid #ccc",
+      padding: "10px",
+    },
+    botoes: {
+      display: "flex",
+      gap: "10px",
+    },
+    botao: {
+      padding: "6px 12px",
+      border: "none",
+      borderRadius: "4px",
+      cursor: "pointer",
+      fontWeight: "bold",
+    },
+    visualizar: {
+      backgroundColor: "#0288d1",
+      color: "white",
+    },
+    editar: {
+      backgroundColor: "#388e3c",
+      color: "white",
+    },
   };
 
   return (
-    <div style={{
-      minHeight: "100vh",
-      width: "100vw",
-      background: "#1d3557",
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "flex-start",
-      padding: "30px"
-    }}>
-      <div style={{
-        background: "#fff",
-        width: "100%",
-        maxWidth: "1000px",
-        borderRadius: "16px",
-        padding: "30px",
-        boxShadow: "0 4px 15px rgba(0, 0, 0, 0.1)"
-      }}>
+    <div style={estilos.container}>
+      <div style={estilos.card}>
         <BotaoVoltar />
-        <h2 style={{
-          textAlign: "center",
-          color: "#1d3557",
-          marginBottom: "25px"
-        }}>
-          Avaliações Iniciais
-        </h2>
+        <h2 style={estilos.titulo}>Avaliações Iniciais</h2>
 
         {avaliacoes.length === 0 ? (
-          <p style={{ textAlign: "center", color: "#777" }}>Nenhuma avaliação encontrada.</p>
+          <p>Nenhuma avaliação registrada.</p>
         ) : (
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "600px" }}>
-              <thead>
-                <tr style={{ backgroundColor: "#1d3557", color: "#fff" }}>
-                  <th style={thStyle}>Aluno</th>
-                  <th style={thStyle}>Idade</th>
-                  <th style={thStyle}>Faixa Etária</th>
-                  <th style={thStyle}>Data</th>
-                  <th style={thStyle}>Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {avaliacoes.map((av, index) => (
-                  <tr key={index} style={{ backgroundColor: index % 2 === 0 ? "#f9f9f9" : "#fff" }}>
-                    <td style={tdStyle}>{av.aluno}</td>
-                    <td style={tdStyle}>{av.idade}</td>
-                    <td style={tdStyle}>{av.faixaEtaria}</td>
-                    <td style={tdStyle}>{av.data}</td>
-                    <td style={{ ...tdStyle, whiteSpace: "nowrap" }}>
-                      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          <table style={estilos.tabela}>
+            <thead>
+              <tr>
+                <th style={estilos.th}>Aluno</th>
+                <th style={estilos.th}>Turma</th>
+                <th style={estilos.th}>Data</th>
+                <th style={estilos.th}>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {avaliacoes.map((avaliacao, index) => (
+                <tr key={index}>
+                  <td style={estilos.td}>{avaliacao.aluno}</td>
+                  <td style={estilos.td}>{avaliacao.turma || "-"}</td>
+                  <td style={estilos.td}>
+                    {avaliacao.data
+                      ? new Date(avaliacao.data).toLocaleDateString("pt-BR")
+                      : "-"}
+                  </td>
+                  <td style={{ ...estilos.td }}>
+                    <div style={estilos.botoes}>
+                      <button
+                        style={{ ...estilos.botao, ...estilos.visualizar }}
+                        onClick={() =>
+                          navigate(`/avaliacao/${encodeURIComponent(avaliacao.aluno)}`)
+                        }
+                      >
+                        Visualizar
+                      </button>
+
+                      {(tipo === "gestao" || tipo === "aee") && (
                         <button
-                          onClick={() => navigate(`/avaliacao/${encodeURIComponent(av.aluno)}`)}
-                          style={botaoVisualizar}
+                          style={{ ...estilos.botao, ...estilos.editar }}
+                          onClick={() =>
+                            navigate(`/editar-avaliacao/${encodeURIComponent(avaliacao.aluno)}`)
+                          }
                         >
-                          Visualizar
+                          Editar
                         </button>
-                        <button onClick={() => editarAvaliacao(av)} style={botaoEditar}>Editar</button>
-                        <button onClick={() => excluirAvaliacao(av.aluno)} style={botaoExcluir}>Excluir</button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
     </div>
   );
 }
-
-const thStyle = {
-  padding: "12px",
-  textAlign: "left"
-};
-
-const tdStyle = {
-  padding: "12px",
-  borderBottom: "1px solid #ddd",
-  textAlign: "left"
-};
-
-const botaoVisualizar = {
-  padding: "6px 12px",
-  backgroundColor: "#1d3557",
-  color: "white",
-  border: "none",
-  borderRadius: "6px",
-  cursor: "pointer",
-  fontSize: "14px"
-};
-
-const botaoEditar = {
-  padding: "6px 12px",
-  backgroundColor: "#457b9d",
-  color: "white",
-  border: "none",
-  borderRadius: "6px",
-  cursor: "pointer",
-  fontSize: "14px"
-};
-
-const botaoExcluir = {
-  padding: "6px 12px",
-  backgroundColor: "#e63946",
-  color: "white",
-  border: "none",
-  borderRadius: "6px",
-  cursor: "pointer",
-  fontSize: "14px"
-};
-
-export default VerAvaliacoes;

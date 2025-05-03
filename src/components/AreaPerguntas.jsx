@@ -29,7 +29,7 @@ function AreaPerguntas({ area, faixaEtaria, dados, respostas, observacoes, onRes
         ))}
       </ul>
 
-      <h4 style={{ color: "#457b9d", marginTop: "25px" }}>Checklist:</h4>
+      
       <ul style={{ listStyleType: "none", paddingLeft: 0 }}>
         {dados?.checklist?.map((item, i) => (
           <li key={i} style={{

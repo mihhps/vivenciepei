@@ -1,47 +1,62 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
-function BotaoSalvar({ aluno, idade, faixa, respostas, observacoes, editando }) {
+export default function BotaoSalvar({
+  aluno,
+  idade,
+  faixa,
+  turma, // novo campo adicionado
+  respostas,
+  observacoes,
+  editando,
+}) {
   const navigate = useNavigate();
 
-  const salvar = () => {
-    if (!aluno || !faixa || !idade) {
-      alert("Preencha todas as informações antes de salvar.");
+  const handleSalvar = () => {
+    if (!aluno || !faixa || !idade || !respostas) {
+      alert("Preencha todos os campos antes de salvar.");
       return;
     }
 
     const novaAvaliacao = {
       aluno,
       idade,
-      faixaEtaria: faixa,
+      faixa,
+      turma, // turma será salva junto
       respostas,
       observacoes,
-      data: new Date().toLocaleDateString("pt-BR"),
+      data: new Date().toISOString(),
     };
 
-    let avaliacoes = JSON.parse(localStorage.getItem("avaliacoesIniciais")) || [];
-    avaliacoes = avaliacoes.filter((a) => a.aluno !== aluno);
-    avaliacoes.push(novaAvaliacao);
-    localStorage.setItem("avaliacoesIniciais", JSON.stringify(avaliacoes));
+    const dadosSalvos = JSON.parse(localStorage.getItem("avaliacoesIniciais")) || [];
 
-    alert(editando ? "Avaliação atualizada!" : "Avaliação salva!");
+    let atualizados;
+    if (editando) {
+      atualizados = dadosSalvos.map((item) =>
+        item.aluno === aluno ? novaAvaliacao : item
+      );
+    } else {
+      atualizados = [...dadosSalvos, novaAvaliacao];
+    }
+
+    localStorage.setItem("avaliacoesIniciais", JSON.stringify(atualizados));
+    alert("Avaliação salva com sucesso!");
     navigate("/ver-avaliacoes");
   };
 
   return (
-    <div style={{ marginTop: "50px", textAlign: "center" }}>
+    <div style={{ marginTop: "30px", textAlign: "center" }}>
       <button
-        onClick={salvar}
+        onClick={handleSalvar}
         style={{
-          padding: "16px 32px",
-          borderRadius: "8px",
+          padding: "12px 28px",
           backgroundColor: "#1d3557",
-          color: "#fff",
+          color: "white",
+          fontSize: "16px",
           fontWeight: "bold",
-          fontSize: "17px",
           border: "none",
+          borderRadius: "8px",
           cursor: "pointer",
-          boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.2)"
         }}
       >
         Salvar Avaliação
@@ -49,5 +64,3 @@ function BotaoSalvar({ aluno, idade, faixa, respostas, observacoes, editando }) 
     </div>
   );
 }
-
-export default BotaoSalvar;

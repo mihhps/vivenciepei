@@ -1,90 +1,75 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import BotaoSair from "../components/BotaoSair";
 
-function PainelProfessor() {
+export default function PainelProfessor() {
   const navigate = useNavigate();
 
-  const sair = () => {
-    localStorage.removeItem("usuarioLogado");
-    navigate("/login");
-  };
-
   return (
-    <div style={styles.fullPage}>
-      <button onClick={sair} style={styles.logout}>Sair</button>
+    <div style={estilos.fundo}>
+      <div style={estilos.card}>
+        <img src="/logo-vivencie.png" alt="Logo Vivencie PEI" style={estilos.logo} />
+        <h2 style={estilos.titulo}>Painel do Professor</h2>
 
-      <div style={styles.card}>
-        <img src="/logo-vivencie.png" alt="Logo Vivencie PEI" style={styles.logo} />
-        <h1 style={styles.title}>Painel do Professor</h1>
-
-        <div style={styles.buttonGroup}>
-          <button style={styles.button} onClick={() => navigate("/ver-alunos")}>Ver Alunos</button>
-          <button style={styles.button} onClick={() => navigate("/criar-pei")}>Gerar PEI</button>
-          <button style={styles.button} onClick={() => navigate("/ver-peis")}>Ver PEIs</button>
+        <div style={estilos.botoes}>
+          <button style={estilos.botao} onClick={() => navigate("/criar-pei")}>
+            Criar PEI
+          </button>
+          <button style={estilos.botao} onClick={() => navigate("/ver-peis")}>
+            Ver PEIs
+          </button>
+          <button style={estilos.botao} onClick={() => navigate("/ver-avaliacoes")}>
+            Ver Avaliações Iniciais
+          </button>
         </div>
+
+        <BotaoSair />
       </div>
     </div>
   );
 }
 
-const styles = {
-  fullPage: {
+const estilos = {
+  fundo: {
     minHeight: "100vh",
     width: "100vw",
-    background: "linear-gradient(to bottom, #1d3557, #457b9d)",
+    background: "linear-gradient(to bottom, #00264d, #005b96)",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-    color: "#333",
-    position: "relative"
-  },
-  logout: {
-    position: "absolute",
-    top: 20,
-    right: 20,
-    backgroundColor: "crimson",
-    color: "#fff",
-    border: "none",
-    padding: "10px 18px",
-    borderRadius: "6px",
-    fontWeight: "bold",
-    cursor: "pointer",
-    fontSize: "14px"
+    fontFamily: "'Segoe UI', sans-serif"
   },
   card: {
     backgroundColor: "#fff",
+    borderRadius: "20px",
     padding: "40px",
-    borderRadius: "16px",
-    boxShadow: "0 0 30px rgba(0,0,0,0.3)",
+    boxShadow: "0 0 20px rgba(0,0,0,0.2)",
+    textAlign: "center",
     width: "100%",
-    maxWidth: "500px",
-    textAlign: "center"
+    maxWidth: "500px"
   },
   logo: {
-    width: "100px",
-    marginBottom: "15px"
+    width: "120px",
+    marginBottom: "20px"
   },
-  title: {
-    fontSize: "28px",
-    marginBottom: "25px",
-    color: "#1d3557"
+  titulo: {
+    color: "#003366",
+    marginBottom: "30px"
   },
-  buttonGroup: {
+  botoes: {
     display: "flex",
     flexDirection: "column",
-    gap: "12px"
+    gap: "15px",
+    marginBottom: "30px"
   },
-  button: {
-    backgroundColor: "#1d3557",
+  botao: {
+    backgroundColor: "#00264d",
     color: "#fff",
-    border: "none",
     padding: "12px",
+    border: "none",
     borderRadius: "6px",
     fontSize: "16px",
-    cursor: "pointer",
-    transition: "0.3s"
+    fontWeight: "bold",
+    cursor: "pointer"
   }
 };
-
-export default PainelProfessor;

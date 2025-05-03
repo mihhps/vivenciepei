@@ -11,6 +11,7 @@ function AvaliacaoInicial() {
   const [alunoSelecionado, setAlunoSelecionado] = useState("");
   const [idade, setIdade] = useState(null);
   const [faixaEtaria, setFaixaEtaria] = useState("");
+  const [turma, setTurma] = useState(""); // novo estado
   const [observacoes, setObservacoes] = useState({});
   const [respostas, setRespostas] = useState({});
   const [areaSelecionada, setAreaSelecionada] = useState("");
@@ -28,6 +29,7 @@ function AvaliacaoInicial() {
       setAlunoSelecionado(edicao.aluno);
       setIdade(edicao.idade);
       setFaixaEtaria(edicao.faixaEtaria);
+      setTurma(edicao.turma || ""); // recupera turma na edição
       setRespostas(edicao.respostas);
       setObservacoes(edicao.observacoes);
       setEditando(true);
@@ -60,6 +62,7 @@ function AvaliacaoInicial() {
     const [idadeCalculada, faixa] = calcularIdadeEFaixa(aluno?.nascimento);
     setIdade(idadeCalculada);
     setFaixaEtaria(faixa);
+    setTurma(aluno?.turma || "-"); // define turma ao selecionar
     setAreaSelecionada("");
     setRespostas({});
     setObservacoes({});
@@ -127,7 +130,8 @@ function AvaliacaoInicial() {
         {faixaEtaria && (
           <>
             <p style={{ marginBottom: "15px", fontSize: "16px" }}>
-              <strong>Idade:</strong> {idade} anos — <strong>Faixa Etária:</strong> {faixaEtaria}
+              <strong>Idade:</strong> {idade} anos — <strong>Faixa Etária:</strong> {faixaEtaria}<br />
+              <strong>Turma:</strong> {turma}
             </p>
 
             <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "30px" }}>
@@ -170,6 +174,7 @@ function AvaliacaoInicial() {
           aluno={alunoSelecionado}
           idade={idade}
           faixa={faixaEtaria}
+          turma={turma} // turma sendo passada aqui
           respostas={respostas}
           observacoes={observacoes}
           editando={editando}
