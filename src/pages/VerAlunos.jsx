@@ -2,6 +2,15 @@ import React, { useState, useEffect } from 'react';
 import Modal from 'react-modal';
 import BotaoVoltar from "../components/BotaoVoltar";
 import { FaPencilAlt } from "react-icons/fa";
+import { db } from "../firebase";
+import {
+  collection,
+  getDocs,
+  doc,
+  updateDoc,
+  deleteDoc,
+  addDoc
+} from "firebase/firestore";
 
 if (document.getElementById('root')) {
   Modal.setAppElement('#root');
@@ -38,41 +47,69 @@ function VerAlunos() {
   const [dadosEditados, setDadosEditados] = useState({});
 
   useEffect(() => {
-    const salvos = JSON.parse(localStorage.getItem('alunos')) || [];
-    setAlunos(salvos);
+    const carregarAlunos = async () => {
+      try {
+        const snapshot = await getDocs(collection(db, "alunos"));
+        const lista = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setAlunos(lista);
+      } catch (error) {
+        console.error("Erro ao carregar alunos:", error);
+        alert("Erro ao carregar alunos.");
+      }
+    };
+
+    carregarAlunos();
   }, []);
 
-  const salvarAluno = () => {
+  const salvarAluno = async () => {
     if (!novoAluno.nome || !novoAluno.nascimento || !novoAluno.diagnostico || !novoAluno.turma) {
       alert("Preencha todos os campos!");
       return;
     }
-    const alunoComId = { ...novoAluno, id: Date.now() };
-    const atualizados = [...alunos, alunoComId];
-    setAlunos(atualizados);
-    localStorage.setItem('alunos', JSON.stringify(atualizados));
-    setModalAberto(false);
-    setNovoAluno({ nome: '', nascimento: '', diagnostico: '', turma: '' });
+
+    try {
+      const docRef = await addDoc(collection(db, "alunos"), novoAluno);
+      const novo = { ...novoAluno, id: docRef.id };
+      setAlunos([...alunos, novo]);
+      setModalAberto(false);
+      setNovoAluno({ nome: '', nascimento: '', diagnostico: '', turma: '' });
+    } catch (error) {
+      console.error("Erro ao salvar aluno:", error);
+      alert("Erro ao salvar aluno.");
+    }
   };
 
-  const salvarEdicao = () => {
-    const atualizados = alunos.map(aluno =>
-      aluno.id === alunoEditando.id ? { ...aluno, ...dadosEditados } : aluno
-    );
-    setAlunos(atualizados);
-    localStorage.setItem('alunos', JSON.stringify(atualizados));
-    setAlunoEditando(null);
+  const salvarEdicao = async () => {
+    try {
+      const ref = doc(db, "alunos", alunoEditando.id);
+      await updateDoc(ref, dadosEditados);
+
+      const atualizados = alunos.map(aluno =>
+        aluno.id === alunoEditando.id ? { ...aluno, ...dadosEditados } : aluno
+      );
+      setAlunos(atualizados);
+      setAlunoEditando(null);
+    } catch (error) {
+      console.error("Erro ao editar aluno:", error);
+      alert("Erro ao salvar edição.");
+    }
   };
 
-  const excluirAluno = (id) => {
+  const excluirAluno = async (id) => {
     if (!window.confirm("Tem certeza que deseja excluir este aluno?")) return;
-    const atualizados = alunos.filter(aluno => aluno.id !== id);
-    setAlunos(atualizados);
-    localStorage.setItem('alunos', JSON.stringify(atualizados));
+
+    try {
+      await deleteDoc(doc(db, "alunos", id));
+      const atualizados = alunos.filter(aluno => aluno.id !== id);
+      setAlunos(atualizados);
+    } catch (error) {
+      console.error("Erro ao excluir aluno:", error);
+      alert("Erro ao excluir aluno.");
+    }
   };
 
   return (
-    <div style={{ padding: "40px", backgroundColor: "#f7f9fb", minHeight: "100vh" }}>
+    <div style={{ padding: "10px", backgroundColor: "#f7f9fb", width: "100vw", minHeight: "100vh" }}>
       <BotaoVoltar />
       <h2 style={{ textAlign: "center", marginBottom: "20px", color: "#1d3557" }}>Alunos Cadastrados</h2>
       <button style={botaoAbrir} onClick={() => setModalAberto(true)}>+ Novo Aluno</button>

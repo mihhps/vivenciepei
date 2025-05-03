@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import BotaoVoltar from "../components/BotaoVoltar";
+import { db } from "../firebase";
+import { collection, addDoc } from "firebase/firestore";
 
 function CadastroAluno() {
   const [nome, setNome] = useState("");
@@ -25,7 +27,7 @@ function CadastroAluno() {
     setIdade(calcularIdade(data));
   };
 
-  const handleSalvar = (e) => {
+  const handleSalvar = async (e) => {
     e.preventDefault();
 
     if (!nome || !nascimento || !diagnostico || !turma) {
@@ -33,16 +35,25 @@ function CadastroAluno() {
       return;
     }
 
-    const novoAluno = { nome, nascimento, diagnostico, turma };
-    const alunosSalvos = JSON.parse(localStorage.getItem("alunos")) || [];
-    localStorage.setItem("alunos", JSON.stringify([...alunosSalvos, novoAluno]));
+    try {
+      await addDoc(collection(db, "alunos"), {
+        nome,
+        nascimento,
+        diagnostico,
+        turma
+      });
 
-    alert("Aluno cadastrado com sucesso!");
-    setNome("");
-    setNascimento("");
-    setDiagnostico("");
-    setTurma("");
-    setIdade("");
+      alert("Aluno cadastrado com sucesso!");
+
+      setNome("");
+      setNascimento("");
+      setDiagnostico("");
+      setTurma("");
+      setIdade("");
+    } catch (error) {
+      console.error("Erro ao salvar no Firestore:", error);
+      alert("Erro ao salvar aluno. Tente novamente.");
+    }
   };
 
   return (
@@ -91,7 +102,7 @@ function CadastroAluno() {
 // Estilos
 const containerStyle = {
   backgroundColor: "#ffffff",
-  padding: "30px",
+  padding: "100px",
   borderRadius: "10px",
   maxWidth: "600px",
   margin: "0 auto",

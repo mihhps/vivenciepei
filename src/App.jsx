@@ -24,6 +24,7 @@ import CadastrarProfessor from "./pages/CadastrarProfessor";
 import EditarAvaliacao from "./pages/EditarAvaliacao";
 import TelaInicial from "./pages/TelaInicial";
 
+
 export default function App() {
   // Proteção contra localStorage mal formatado
   let usuarioLogado = null;
