@@ -18,8 +18,17 @@ function AvaliacaoInicial() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const listaAlunos = JSON.parse(localStorage.getItem("alunos")) || [];
-    setAlunos(listaAlunos);
+    const buscarAlunos = async () => {
+      try {
+        const snapshot = await getDocs(collection(db, "alunos"));
+        const alunosFirestore = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setAlunos(alunosFirestore);
+      } catch (erro) {
+        console.error("Erro ao carregar alunos do Firestore:", erro);
+      }
+    };
+  
+    buscarAlunos();
   }, []);
 
   const calcularIdadeEFaixa = (nascimento) => {
