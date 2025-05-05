@@ -308,8 +308,10 @@ const estilos = {
     cursor: "pointer",
     whiteSpace: "nowrap",
     transition: "all 0.2s ease",
-    minWidth: "100px",
+    minWidth: "200px",
     textAlign: "center",
+    fontSize: "10px",
+    boxShadow: "0 0 6px rgba(23, 11, 190, 0.2)",
   },
   abaAtiva: {
     backgroundColor: "#1d3557",
