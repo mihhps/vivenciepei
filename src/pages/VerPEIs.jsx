@@ -16,6 +16,15 @@ const calcularIdadeEFaixa = (nascimento) => {
   return [idade, faixa];
 };
 
+function formatarData(data) {
+  if (!data) return "-";
+  const dataObj = new Date(data);
+  const dia = String(dataObj.getDate()).padStart(2, '0');
+  const mes = String(dataObj.getMonth() + 1).padStart(2, '0');
+  const ano = dataObj.getFullYear();
+  return `${dia}/${mes}/${ano}`;
+}
+
 export default function VerPEIs() {
   const navigate = useNavigate();
   const usuarioLogado = JSON.parse(localStorage.getItem("usuarioLogado")) || {};
@@ -168,17 +177,32 @@ export default function VerPEIs() {
           <p style={estilos.semDados}>Nenhum aluno cadastrado.</p>
         ) : (
           <>
-            <div style={estilos.abas}>
-              {alunos.map((aluno, i) => (
-                <button
-                  key={i}
-                  style={{ ...estilos.botaoAba, ...(abaAtiva === aluno.nome ? estilos.abaAtiva : {}) }}
-                  onClick={() => setAbaAtiva(aluno.nome)}
-                >
-                  {aluno.nome}
-                </button>
-              ))}
-            </div>
+            <div style={{ width: "100%", maxWidth: "400px", marginBottom: "30px" }}>
+  <label htmlFor="alunoSelect" style={{ fontWeight: "bold", display: "block", marginBottom: "8px" }}>
+    Selecione o Aluno:
+  </label>
+  <select
+    id="alunoSelect"
+    value={abaAtiva}
+    onChange={(e) => setAbaAtiva(e.target.value)}
+    style={{
+      padding: "12px",
+      width: "100%",
+      borderRadius: "6px",
+      border: "1px solid #ccc",
+      backgroundColor: "#f8f9fa",
+      fontSize: "16px"
+    }}
+  >
+    <option value="">Selecione o Aluno</option>
+    {alunos.map((aluno) => (
+      <option key={aluno.id} value={aluno.nome}>
+        {aluno.nome}
+      </option>
+    ))}
+  </select>
+</div>
+            {/* Conteúdo da aba ativa */}
 
             <div style={estilos.conteudoAba}>
               {abaAtiva && (() => {
@@ -222,12 +246,6 @@ export default function VerPEIs() {
                               Visualizar
                             </button>
 
-                            <button
-                              style={estilos.gerar}
-                              onClick={() => handleGerarPDF(pei)}
-                            >
-                              Gerar PDF
-                            </button>
 
                             {(usuarioLogado.email === pei.criadorId || tipo === "gestao") && (
                               <button style={estilos.excluir} onClick={() => excluirPei(pei)}>Excluir</button>
@@ -236,6 +254,19 @@ export default function VerPEIs() {
                         </div>
                       ))
                     )}
+                    <button
+  style={estilos.gerar}
+  onClick={async () => {
+    try {
+      await gerarPDFCompleto(aluno, usuarioLogado);
+    } catch (erro) {
+      console.error("Erro ao gerar PDF:", erro);
+      alert("Erro ao gerar PDF. Verifique se há Avaliação Inicial e PEIs cadastrados.");
+    }
+  }}
+>
+  Gerar PDF
+</button>
                   </>
                 );
               })()}
@@ -258,6 +289,26 @@ const estilos = {
     width: "100vw",
     minHeight: "100vh",
   },
+
+  listaAlunos: {
+  display: "flex",
+  flexDirection: "column",
+  width: "100%",
+  maxWidth: "400px",
+  marginBottom: "20px",
+  borderRight: "2px solid #ccc",
+  paddingRight: "10px",
+},
+
+itemAluno: {
+  padding: "12px",
+  cursor: "pointer",
+  fontWeight: "500",
+  borderRadius: "6px",
+  marginBottom: "5px",
+  boxShadow: "0 0 4px rgba(0,0,0,0.1)",
+  transition: "background-color 0.2s",
+},
   card: {
     backgroundColor: "#fff",
     borderRadius: "16px",
@@ -292,34 +343,6 @@ const estilos = {
     border: "1px solid #ccc",
     backgroundColor: "#f8f9fa",
     width: "100%",
-  },
-  abas: {
-    display: "flex",
-    overflowX: "auto",
-    gap: "10px",
-    marginBottom: "20px",
-    width: "100%",
-    paddingBottom: "5px",
-    borderBottom: "2px solid #f1f1f1",
-    scrollbarWidth: "thin",
-  },
-  botaoAba: {
-    backgroundColor: "#f1f1f1",
-    border: "none",
-    padding: "8px 16px",
-    borderRadius: "8px",
-    cursor: "pointer",
-    whiteSpace: "nowrap",
-    transition: "all 0.2s ease",
-    minWidth: "200px",
-    textAlign: "center",
-    fontSize: "10px",
-    boxShadow: "0 0 6px rgba(23, 11, 190, 0.2)",
-  },
-  abaAtiva: {
-    backgroundColor: "#1d3557",
-    color: "#fff",
-    fontWeight: "bold",
   },
   conteudoAba: {
     width: "100%",

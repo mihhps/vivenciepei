@@ -1,5 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { db } from "../firebase";
 
 function formatarData(dataIso) {
   if (!dataIso) return "-";
@@ -13,12 +15,13 @@ const coresPorNivel = {
   AL: [0, 0, 255],
   AG: [0, 100, 0],
   AV: [200, 200, 200],
-  I:  [255, 0, 255],
+  I: [255, 0, 255],
 };
 
-export function gerarPDFCompleto(pei, avaliacao, usuario, historicoPEIs = []) {
+export async function gerarPDFCompleto(aluno, usuarioLogado) {
   const doc = new jsPDF();
 
+  // Cabeçalho e título
   doc.addImage("/logo.jpg", "JPEG", 10, 10, 190, 25);
   let y = 45;
 
@@ -27,14 +30,55 @@ export function gerarPDFCompleto(pei, avaliacao, usuario, historicoPEIs = []) {
   doc.text("PLANO EDUCACIONAL INDIVIDUALIZADO (PEI)", 105, y, { align: "center" });
   y += 10;
 
+  // Validar aluno
+  if (!aluno?.id || !aluno?.nome) {
+    console.error("ID ou nome do aluno não definido!");
+    return;
+  }
+
+  // Buscar Avaliação Inicial
+  const queryAvaliacao = query(
+    collection(db, "avaliacoesIniciais"),
+    where("aluno", "==", aluno.nome)
+  );
+  const snapAvaliacao = await getDocs(queryAvaliacao);
+  const avaliacao = snapAvaliacao.empty ? {} : snapAvaliacao.docs[0].data();
+
+  // Buscar PEIs do aluno
+  const queryPeis = query(collection(db, "peis"), where("aluno", "==", aluno.nome));
+  const snapPeis = await getDocs(queryPeis);
+  const todosPeis = snapPeis.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
+  // Filtrar PEIs conforme perfil
+  const isGestao = usuarioLogado?.perfil === "gestao" || usuarioLogado?.perfil === "aee";
+
+  const peisFiltrados = isGestao
+    ? todosPeis.sort((a, b) => {
+        const dataA = a.dataCriacao?.toDate?.() || new Date(0);
+        const dataB = b.dataCriacao?.toDate?.() || new Date(0);
+        return dataA - dataB;
+      })
+    : todosPeis.filter((p) => p.criadorId === usuarioLogado.email);
+
+  const peiAtual = isGestao
+    ? peisFiltrados[peisFiltrados.length - 1]
+    : peisFiltrados[0];
+
+  const historicoPEIs = isGestao ? peisFiltrados.slice(0, -1) : [];
+
+  if (!peiAtual) {
+    console.error("Nenhum PEI encontrado para esse aluno.");
+    return;
+  }
+
   // Dados do Aluno
   doc.setFont("times", "normal");
   doc.setFontSize(12);
-  doc.text(`Nome: ${avaliacao.aluno}`, 20, y); y += 6;
-  doc.text(`Idade: ${avaliacao.idade ? `${avaliacao.idade} anos` : "-"}`, 20, y); y += 6;
-  doc.text(`Turma: ${pei.turma || "-"}`, 20, y); y += 6;
-  doc.text(`Data de Início: ${formatarData(pei.inicio)}`, 20, y); y += 6;
-  doc.text(`Próxima Avaliação: ${formatarData(pei.proximaAvaliacao)}`, 20, y); y += 10;
+  doc.text(`Nome: ${aluno.nome}`, 20, y); y += 6;
+  doc.text(`Idade: ${aluno.idade ? `${aluno.idade} anos` : "-"}`, 20, y); y += 6;
+  doc.text(`Turma: ${peiAtual.turma || aluno.turma || "-"}`, 20, y); y += 6;
+  doc.text(`Data de Início: ${formatarData(peiAtual.inicio)}`, 20, y); y += 6;
+  doc.text(`Próxima Avaliação: ${formatarData(peiAtual.proximaAvaliacao)}`, 20, y); y += 10;
 
   // Avaliação Inicial
   doc.setFont("times", "bold");
@@ -72,7 +116,7 @@ export function gerarPDFCompleto(pei, avaliacao, usuario, historicoPEIs = []) {
   doc.setFont("times", "bold");
   doc.text("Plano Educacional Individualizado (PEI)", 20, y); y += 5;
 
-  const resumo = pei.resumoPEI || pei.areas || [];
+  const resumo = peiAtual.resumoPEI || peiAtual.areas || [];
   const linhasPEI = resumo.map(item => [
     item.area,
     item.subarea,
@@ -108,9 +152,9 @@ export function gerarPDFCompleto(pei, avaliacao, usuario, historicoPEIs = []) {
     }
   });
 
-  let yHist = doc.lastAutoTable.finalY + 10;
+  // Histórico
+  let yHist = doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 10 : y + 10;
 
-  // Histórico de PEIs
   if (historicoPEIs.length > 0) {
     doc.setFont("times", "bold");
     doc.setFontSize(12);
@@ -119,8 +163,20 @@ export function gerarPDFCompleto(pei, avaliacao, usuario, historicoPEIs = []) {
 
     historicoPEIs.forEach((peiAntigo, index) => {
       doc.setFont("times", "bolditalic");
-      doc.text(`PEI ${index + 1} — Início: ${formatarData(peiAntigo.inicio)} | Próxima Avaliação: ${formatarData(peiAntigo.proximaAvaliacao)}`, 20, yHist);
+      doc.text(
+        `PEI ${index + 1} — Início: ${formatarData(peiAntigo.inicio)} | Próxima Avaliação: ${formatarData(peiAntigo.proximaAvaliacao)}`,
+        20,
+        yHist
+      );
       yHist += 6;
+
+      doc.setFont("times", "italic");
+      doc.text(
+        `Elaborado por: ${peiAntigo.nomeCriador || "Desconhecido"} — Cargo: Professor(a)`,
+        20,
+        yHist
+      );
+      yHist += 8;
 
       const linhasAntigas = (peiAntigo.resumoPEI || peiAntigo.areas || []).map(item => [
         item.area,
@@ -162,7 +218,7 @@ export function gerarPDFCompleto(pei, avaliacao, usuario, historicoPEIs = []) {
   }
 
   // Legenda
-  let y3 = doc.lastAutoTable.finalY + 10;
+  let y3 = doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 10 : y + 10;
   doc.setFont("times", "bold");
   doc.text("Legenda dos Níveis:", 20, y3); y3 += 6;
   doc.setFont("times", "normal");
@@ -183,16 +239,20 @@ export function gerarPDFCompleto(pei, avaliacao, usuario, historicoPEIs = []) {
     y3 += 7;
   });
 
+  // Assinatura
   y3 += 10;
+  doc.text(`Elaborado por: ${peiAtual.nomeCriador || "Desconhecido"}`, 20, y3); y3 += 8;
+  
+  if (y3 > 260) {
+    doc.addPage();
+    y3 = 20;
+  }
 
-  doc.text(`Elaborado por: ${pei.nomeCriador || "Desconhecido"}`, 20, y3);
-y3 += 8;
   const dataHoje = new Date().toLocaleDateString("pt-BR");
   doc.text(`Guabiruba, ${dataHoje}`, 20, y3); y3 += 20;
   doc.line(20, y3, 100, y3); y3 += 6;
-  doc.text(`Assinatura: ${usuario?.nome || "__________________"}`, 20, y3);
-  y3 += 6;
-  doc.text(`Cargo: ${usuario?.cargo || ""}`, 20, y3);
+  doc.text(`Assinatura: ${usuarioLogado?.nome || "__________________"}`, 20, y3); y3 += 6;
+  doc.text(`Cargo: ${usuarioLogado?.cargo || ""}`, 20, y3);
 
-  doc.save(`PEI_${avaliacao.aluno}.pdf`);
+  doc.save(`PEI_${aluno.nome.replace(/\s+/g, "_")}.pdf`);
 }
