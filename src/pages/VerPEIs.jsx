@@ -34,11 +34,14 @@ export default function VerPEIs() {
       setCarregando(true);
       setErro(null);
 
-      const [peisSnapshot, alunosSalvos, usuariosSalvos] = await Promise.all([
+      const [peisSnapshot, alunosSnapshot, usuariosSnapshot] = await Promise.all([
         getDocs(collection(db, "peis")),
-        JSON.parse(localStorage.getItem("alunos")) || [],
-        JSON.parse(localStorage.getItem("usuarios")) || []
+        getDocs(collection(db, "alunos")),
+        getDocs(collection(db, "usuarios"))
       ]);
+      
+      const alunosSalvos = alunosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const usuariosSalvos = usuariosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
       const todosPeis = peisSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 

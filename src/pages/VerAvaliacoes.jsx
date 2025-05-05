@@ -7,30 +7,43 @@ import BotaoVoltar from "../components/BotaoVoltar";
 
 function VerAvaliacoes() {
   const [avaliacoes, setAvaliacoes] = useState([]);
+  const [alunos, setAlunos] = useState([]);
+  const [usuarios, setUsuarios] = useState([]);
   const navigate = useNavigate();
 
   const usuarioLogado = JSON.parse(localStorage.getItem("usuarioLogado"));
   const perfil = usuarioLogado?.perfil;
 
   useEffect(() => {
-    const carregarAvaliacoes = async () => {
+    const carregarDados = async () => {
       try {
-        const snapshot = await getDocs(collection(db, "avaliacoesIniciais"));
-        const lista = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-        setAvaliacoes(lista);
+        const [avaliacoesSnap, alunosSnap, usuariosSnap] = await Promise.all([
+          getDocs(collection(db, "avaliacoesIniciais")),
+          getDocs(collection(db, "alunos")),
+          getDocs(collection(db, "usuarios")),
+        ]);
+
+        const listaAvaliacoes = avaliacoesSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        const listaAlunos = alunosSnap.docs.map((doc) => doc.data());
+        const listaUsuarios = usuariosSnap.docs.map((doc) => doc.data());
+
+        setAvaliacoes(listaAvaliacoes);
+        setAlunos(listaAlunos);
+        setUsuarios(listaUsuarios);
       } catch (erro) {
-        console.error("Erro ao carregar avaliações:", erro);
+        console.error("Erro ao carregar dados:", erro);
         alert("Erro ao carregar avaliações.");
       }
     };
-    carregarAvaliacoes();
+
+    carregarDados();
   }, []);
 
   const excluirAvaliacao = async (id) => {
     if (!window.confirm("Tem certeza que deseja excluir esta avaliação?")) return;
     try {
       await deleteDoc(doc(db, "avaliacoesIniciais", id));
-      setAvaliacoes(avaliacoes.filter((a) => a.id !== id));
+      setAvaliacoes((prev) => prev.filter((a) => a.id !== id));
     } catch (erro) {
       console.error("Erro ao excluir:", erro);
       alert("Erro ao excluir.");
