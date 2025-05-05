@@ -1,5 +1,7 @@
-import React from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../firebase";
 import BotaoVoltar from "../components/BotaoVoltar";
 
 const coresPorNivel = {
@@ -8,7 +10,7 @@ const coresPorNivel = {
   AL: "#cce5ff",
   AG: "#d0f0c0",
   AV: "#eeeeee",
-  I:  "#f0ccff"
+  I: "#f0ccff"
 };
 
 function calcularIdadeEFaixa(nascimento) {
@@ -32,15 +34,38 @@ function formatarData(dataISO) {
 }
 
 export default function VisualizarPei() {
-  const { state } = useLocation();
+  const { id } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
+  const queryParams = new URLSearchParams(location.search);
+  const aba = queryParams.get("aba");
+
+  const [pei, setPei] = useState(null);
   const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
   const alunos = JSON.parse(localStorage.getItem("alunos")) || [];
-  const pei = state?.pei;
-  const voltarPara = state?.voltarPara;
+
+  useEffect(() => {
+    const carregarPei = async () => {
+      try {
+        const ref = doc(db, "peis", id);
+        const docSnap = await getDoc(ref);
+        if (docSnap.exists()) {
+          setPei({ id, ...docSnap.data() });
+        } else {
+          alert("PEI não encontrado.");
+          navigate("/ver-peis");
+        }
+      } catch (error) {
+        console.error("Erro ao carregar PEI:", error);
+        alert("Erro ao buscar dados do PEI.");
+      }
+    };
+
+    carregarPei();
+  }, [id, navigate]);
 
   if (!pei) {
-    return <div style={{ padding: "40px" }}>PEI não encontrado.</div>;
+    return <div style={{ padding: "40px" }}>Carregando PEI...</div>;
   }
 
   const aluno = alunos.find(a => a.nome === pei.aluno);
@@ -56,7 +81,7 @@ export default function VisualizarPei() {
   return (
     <div style={estilos.container}>
       <div style={estilos.card}>
-        <BotaoVoltar onClick={() => navigate("/ver-peis", { state: { alunoAberto: voltarPara } })} />
+        <BotaoVoltar onClick={() => navigate(`/ver-peis?aba=${aba}`)} />
         <h2 style={estilos.titulo}>Plano Educacional Individualizado (PEI)</h2>
 
         <div style={estilos.infoAluno}>
@@ -90,8 +115,8 @@ export default function VisualizarPei() {
                   <tbody>
                     {metas.map((meta, k) => (
                       <tr key={k} style={{ backgroundColor: coresPorNivel[meta.nivel] || "#ffffff" }}>
-                        <td style={estilos.cell}>{(meta.objetivos || []).join("\n")}</td>
-                        <td style={estilos.cell}>{(meta.estrategias || []).join("\n")}</td>
+                        <td style={estilos.cell}>{meta.objetivos}</td>
+                        <td style={estilos.cell}>{meta.estrategias}</td>
                         <td style={estilos.cell}>{meta.nivel}</td>
                       </tr>
                     ))}

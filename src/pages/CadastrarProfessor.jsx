@@ -1,9 +1,9 @@
+// src/pages/CadastrarProfessor.jsx
 import React, { useState } from "react";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { collection, addDoc } from "firebase/firestore";
 import { auth, db } from "../firebase";
 import { useNavigate } from "react-router-dom";
-import BotaoVoltar from "../components/BotaoVoltar";
 
 export default function CadastrarProfessor() {
   const [nome, setNome] = useState("");
@@ -20,32 +20,28 @@ export default function CadastrarProfessor() {
     }
 
     try {
-      const cred = await createUserWithEmailAndPassword(auth, email.trim(), senha);
+      const cred = await createUserWithEmailAndPassword(auth, email, senha);
+
       await addDoc(collection(db, "usuarios"), {
-        uid: cred.user.uid,
         nome,
-        email: email.trim(),
+        email,
         cargo,
-        perfil: "professor"
+        perfil: "professor",
+        uid: cred.user.uid,
       });
 
       alert("Professor cadastrado com sucesso!");
       navigate("/login");
     } catch (error) {
-      console.error("Erro ao cadastrar professor:", error);
-      alert("Erro ao cadastrar. Tente novamente.");
+      console.error("Erro ao cadastrar:", error);
+      alert("Erro ao cadastrar. Verifique os dados e tente novamente.");
     }
   };
 
   return (
     <div style={estilos.container}>
-      {/* Botão Voltar no canto superior esquerdo */}
-      <div style={{ position: "absolute", top: "30px", left: "30px" }}>
-        <BotaoVoltar />
-      </div>
-
       <div style={estilos.card}>
-        <img src="/logo-vivencie.png" alt="Logo Vivencie PEI" style={estilos.logo} />
+        <img src="/logo-vivencie.png" alt="Logo" style={estilos.logo} />
         <h2 style={estilos.titulo}>Cadastro de Professor</h2>
 
         <input
@@ -55,7 +51,13 @@ export default function CadastrarProfessor() {
           onChange={(e) => setNome(e.target.value)}
           style={estilos.input}
         />
-
+        <input
+          type="text"
+          placeholder="Cargo"
+          value={cargo}
+          onChange={(e) => setCargo(e.target.value)}
+          style={estilos.input}
+        />
         <input
           type="email"
           placeholder="E-mail"
@@ -70,7 +72,7 @@ export default function CadastrarProfessor() {
             placeholder="Senha"
             value={senha}
             onChange={(e) => setSenha(e.target.value)}
-            style={{ ...estilos.input, marginBottom: 0 }}
+            style={estilos.input}
           />
           <button
             type="button"
@@ -81,16 +83,12 @@ export default function CadastrarProfessor() {
           </button>
         </div>
 
-        <input
-          type="text"
-          placeholder="Cargo"
-          value={cargo}
-          onChange={(e) => setCargo(e.target.value)}
-          style={estilos.input}
-        />
-
-        <button style={estilos.botao} onClick={handleCadastro}>
+        <button onClick={handleCadastro} style={estilos.botao}>
           Cadastrar
+        </button>
+
+        <button onClick={() => navigate("/login")} style={estilos.voltar}>
+          Voltar
         </button>
       </div>
     </div>
@@ -104,17 +102,17 @@ const estilos = {
     alignItems: "center",
     height: "100vh",
     width: "100vw",
-    background: "linear-gradient(to bottom, #00264d, #005b96)",
+    background: "linear-gradient(to right, #1d3557, #457b9d)",
     fontFamily: "'Segoe UI', sans-serif",
-    position: "relative"
   },
   card: {
     backgroundColor: "#fff",
     padding: "40px",
-    borderRadius: "20px",
-    boxShadow: "0 0 30px rgba(0,0,0,0.2)",
+    borderRadius: "16px",
+    boxShadow: "0 0 30px rgba(0,0,0,0.1)",
     width: "100%",
-    maxWidth: "400px",
+    maxWidth: "450px",
+    position: "relative",
     textAlign: "center"
   },
   logo: {
@@ -122,21 +120,20 @@ const estilos = {
     marginBottom: "20px"
   },
   titulo: {
-    fontSize: "22px",
-    marginBottom: "30px",
+    fontSize: "24px",
+    marginBottom: "20px",
     color: "#1d3557"
   },
   input: {
     width: "100%",
     padding: "12px",
-    marginBottom: "20px",
+    marginBottom: "16px",
     borderRadius: "6px",
     border: "1px solid #ccc",
     fontSize: "16px"
   },
   senhaWrapper: {
-    position: "relative",
-    marginBottom: "20px"
+    position: "relative"
   },
   botaoMostrar: {
     position: "absolute",
@@ -145,9 +142,9 @@ const estilos = {
     transform: "translateY(-50%)",
     background: "none",
     border: "none",
-    color: "#1976d2",
-    cursor: "pointer",
-    fontSize: "14px"
+    color: "#1d3557",
+    fontWeight: "bold",
+    cursor: "pointer"
   },
   botao: {
     width: "100%",
@@ -157,6 +154,15 @@ const estilos = {
     fontSize: "16px",
     borderRadius: "6px",
     border: "none",
-    cursor: "pointer"
+    cursor: "pointer",
+    marginTop: "20px"
+  },
+  voltar: {
+    marginTop: "10px",
+    background: "none",
+    border: "none",
+    color: "#1d3557",
+    cursor: "pointer",
+    textDecoration: "underline"
   }
 };

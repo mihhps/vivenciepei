@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import Modal from "react-modal";
 import BotaoVoltar from "../components/BotaoVoltar";
 import sugestoesIA from "../utils/sugestoesIA";
+import { db } from "../firebase";
+import { collection, addDoc, Timestamp, getDocs } from "firebase/firestore";
 
 Modal.setAppElement("#root");
 
@@ -50,17 +52,40 @@ export default function CriarPEI() {
   const [entrada, setEntrada] = useState({
     objetivos: [], estrategias: [], nivel: "", objetivosManual: "", estrategiasManual: ""
   });
-
   useEffect(() => {
-    const lista = JSON.parse(localStorage.getItem("alunos")) || [];
-    const peis = JSON.parse(localStorage.getItem("peis")) || [];
-    const alunosSemPEI = lista.filter(
-      (aluno) => !peis.some((p) => p.aluno === aluno.nome)
-    );
-    setAlunos(alunosSemPEI);
+    async function carregarAlunosSemPEI() {
+      try {
+        const usuarioLogado = JSON.parse(localStorage.getItem("usuarioLogado"));
+        if (!usuarioLogado) return;
+  
+        const alunosSnap = await getDocs(collection(db, "alunos"));
+        const peisSnap = await getDocs(collection(db, "peis"));
+  
+        const todosAlunos = alunosSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const todosPeis = peisSnap.docs.map(doc => doc.data());
+  
+        let nomesComPei = [];
+  
+        if (usuarioLogado.perfil === "professor") {
+          nomesComPei = todosPeis
+            .filter(p => p.criadorId === usuarioLogado.email)
+            .map(p => p.aluno);
+        } else {
+          nomesComPei = todosPeis.map(p => p.aluno);
+        }
+  
+        const semPEI = todosAlunos.filter(aluno => !nomesComPei.includes(aluno.nome));
+        setAlunos(semPEI);
+      } catch (erro) {
+        console.error("Erro ao buscar dados no Firestore:", erro);
+        alert("Erro ao buscar dados no Firestore.");
+      }
+    }
+  
+    carregarAlunosSemPEI();
   }, []);
 
-  const salvarPEI = () => {
+  const salvarPEI = async () => {
     if (!alunoSelecionado || !inicio || !periodo || !proximaAvaliacao) {
       alert("Preencha todos os campos!");
       return;
@@ -74,18 +99,24 @@ export default function CriarPEI() {
       proximaAvaliacao: new Date(proximaAvaliacao).toISOString(),
       resumoPEI: pei,
       criadoEm: new Date().toLocaleDateString("pt-BR"),
-      criador: usuarioLogado.login,        // <-- ESSENCIAL
-      nomeCriador: usuarioLogado.nome
+      nomeCriador: usuarioLogado?.nome || "Desconhecido",
+      criadorId: usuarioLogado?.email || "",
+      cargoCriador: usuarioLogado?.cargo || "Desconhecido",
+      dataCriacao: Timestamp.now()
     };
 
-    const antigos = JSON.parse(localStorage.getItem("peis")) || [];
-    localStorage.setItem("peis", JSON.stringify([...antigos, novoPei]));
-    alert("PEI salvo com sucesso!");
-    setPei([]);
-    setAlunoSelecionado(null);
-    setInicio("");
-    setPeriodo("");
-    setProximaAvaliacao("");
+    try {
+      await addDoc(collection(db, "peis"), novoPei);
+      alert("PEI salvo com sucesso no Firestore!");
+      setPei([]);
+      setAlunoSelecionado(null);
+      setInicio("");
+      setPeriodo("");
+      setProximaAvaliacao("");
+    } catch (erro) {
+      console.error("Erro ao salvar PEI:", erro);
+      alert("Erro ao salvar PEI.");
+    }
   };
 
   return (

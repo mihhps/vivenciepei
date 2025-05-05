@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
+import { collection, addDoc, getDocs, updateDoc, doc, query, where } from "firebase/firestore";
+import { db } from "../firebase";
 import { avaliacaoInicial } from "../data/avaliacaoInicialData";
 import BotaoVoltar from "../components/BotaoVoltar";
 import SelecaoAluno from "../components/SelecaoAluno";
 import AreaPerguntas from "../components/AreaPerguntas";
-import BotaoSalvar from "../components/BotaoSalvar";
 import { useNavigate } from "react-router-dom";
 
 function AvaliacaoInicial() {
@@ -11,30 +12,14 @@ function AvaliacaoInicial() {
   const [alunoSelecionado, setAlunoSelecionado] = useState("");
   const [idade, setIdade] = useState(null);
   const [faixaEtaria, setFaixaEtaria] = useState("");
-  const [turma, setTurma] = useState(""); // novo estado
   const [observacoes, setObservacoes] = useState({});
   const [respostas, setRespostas] = useState({});
   const [areaSelecionada, setAreaSelecionada] = useState("");
-  const [editando, setEditando] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     const listaAlunos = JSON.parse(localStorage.getItem("alunos")) || [];
     setAlunos(listaAlunos);
-  }, []);
-
-  useEffect(() => {
-    const edicao = JSON.parse(localStorage.getItem("avaliacaoEmEdicao"));
-    if (edicao) {
-      setAlunoSelecionado(edicao.aluno);
-      setIdade(edicao.idade);
-      setFaixaEtaria(edicao.faixaEtaria);
-      setTurma(edicao.turma || ""); // recupera turma na edição
-      setRespostas(edicao.respostas);
-      setObservacoes(edicao.observacoes);
-      setEditando(true);
-      localStorage.removeItem("avaliacaoEmEdicao");
-    }
   }, []);
 
   const calcularIdadeEFaixa = (nascimento) => {
@@ -62,7 +47,6 @@ function AvaliacaoInicial() {
     const [idadeCalculada, faixa] = calcularIdadeEFaixa(aluno?.nascimento);
     setIdade(idadeCalculada);
     setFaixaEtaria(faixa);
-    setTurma(aluno?.turma || "-"); // define turma ao selecionar
     setAreaSelecionada("");
     setRespostas({});
     setObservacoes({});
@@ -83,6 +67,44 @@ function AvaliacaoInicial() {
       ...prev,
       [area]: texto,
     }));
+  };
+
+  const handleSalvar = async () => {
+    if (!alunoSelecionado || !idade || !faixaEtaria) {
+      alert("Preencha todos os campos da avaliação.");
+      return;
+    }
+
+    const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
+    const novaAvaliacao = {
+      aluno: alunoSelecionado,
+      idade,
+      faixaEtaria,
+      respostas,
+      observacoes,
+      criadoPor: usuario?.nome || "Desconhecido",
+      dataCriacao: new Date().toISOString()
+    };
+
+    try {
+      const ref = collection(db, "avaliacoesIniciais");
+      const q = query(ref, where("aluno", "==", alunoSelecionado));
+      const snapshot = await getDocs(q);
+
+      if (!snapshot.empty) {
+        const docRef = snapshot.docs[0].ref;
+        await updateDoc(docRef, novaAvaliacao);
+        alert("Avaliação atualizada com sucesso!");
+      } else {
+        await addDoc(ref, novaAvaliacao);
+        alert("Avaliação salva com sucesso!");
+      }
+
+      navigate("/ver-avaliacoes");
+    } catch (error) {
+      console.error("Erro ao salvar avaliação:", error);
+      alert("Erro ao salvar. Tente novamente.");
+    }
   };
 
   const areas = faixaEtaria && avaliacaoInicial[faixaEtaria]
@@ -124,14 +146,12 @@ function AvaliacaoInicial() {
           alunos={alunos}
           alunoSelecionado={alunoSelecionado}
           onSelecionar={handleSelecionarAluno}
-          editando={editando}
         />
 
         {faixaEtaria && (
           <>
             <p style={{ marginBottom: "15px", fontSize: "16px" }}>
-              <strong>Idade:</strong> {idade} anos — <strong>Faixa Etária:</strong> {faixaEtaria}<br />
-              <strong>Turma:</strong> {turma}
+              <strong>Idade:</strong> {idade} anos — <strong>Faixa Etária:</strong> {faixaEtaria}
             </p>
 
             <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "30px" }}>
@@ -167,19 +187,29 @@ function AvaliacaoInicial() {
             onObservar={handleObservacao}
           />
         )}
-      </div>
 
-      {alunoSelecionado && (
-        <BotaoSalvar
-          aluno={alunoSelecionado}
-          idade={idade}
-          faixa={faixaEtaria}
-          turma={turma} // turma sendo passada aqui
-          respostas={respostas}
-          observacoes={observacoes}
-          editando={editando}
-        />
-      )}
+        {alunoSelecionado && (
+          <button
+            onClick={handleSalvar}
+            style={{
+              marginTop: "30px",
+              backgroundColor: "#1d3557",
+              color: "white",
+              padding: "14px 24px",
+              border: "none",
+              borderRadius: "8px",
+              fontWeight: "bold",
+              fontSize: "16px",
+              cursor: "pointer",
+              display: "block",
+              marginLeft: "auto",
+              marginRight: "auto"
+            }}
+          >
+            Salvar Avaliação
+          </button>
+        )}
+      </div>
     </div>
   );
 }

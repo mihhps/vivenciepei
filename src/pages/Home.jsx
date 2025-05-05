@@ -1,91 +1,62 @@
+// src/pages/Home.jsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import BotaoSair from "../components/BotaoSair";
 
 export default function Home() {
   const navigate = useNavigate();
+  const usuarioLogado = JSON.parse(localStorage.getItem("usuarioLogado"));
 
-  const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
-  const nome = usuario?.nome || "Usuário";
-  const perfil = usuario?.perfil || "";
+  const estiloBotao = {
+    padding: "12px 24px",
+    margin: "2px 0",
+    backgroundColor: "#1d3557",
+    color: "white",
+    border: "none",
+    borderRadius: "8px",
+    fontSize: "16px",
+    fontWeight: "bold",
+    width: "100%",
+    cursor: "pointer"
+  };
 
   return (
-    <div style={estilos.container}>
-      <div style={estilos.card}>
-        <img src="/logo-vivencie.png" alt="Logo Vivencie PEI" style={estilos.logo} />
-
-        <h1 style={estilos.titulo}>Vivencie PEI</h1>
-        <p style={estilos.subtitulo}>Vivencie o crescimento, vivencie o PEI.</p>
-
-        <p style={estilos.usuarioInfo}>
-          Bem-vindo(a), <strong>{nome}</strong> — Perfil: <strong>{perfil}</strong>
+    <div style={{
+      height: "100vh",
+      width: "100vw",
+      background: "linear-gradient(to bottom, #00264d, #005b96)",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      overflow: "auto",
+      fontFamily: "'Segoe UI', sans-serif"
+    }}>
+      <div style={{
+        backgroundColor: "white",
+        padding: "40px",
+        borderRadius: "20px",
+        boxShadow: "0 0 30px rgba(0,0,0,0.2)",
+        width: "100%",
+        maxWidth: "420px",
+        textAlign: "center"
+      }}>
+        <img src="/logo-vivencie.png" alt="Logo Vivencie PEI" style={{ width: "150px", marginBottom: "1px" }} />
+        <h1 style={{ marginBottom: "1px", color: "#1d3557" }}>Vivencie PEI</h1>
+        <p style={{ marginBottom: "1px" }}>
+          Vivencie o crescimento, vivencie o PEI.<br />
+          <strong>{usuarioLogado?.nome}</strong> — Perfil: <strong>{usuarioLogado?.perfil}</strong>
         </p>
 
-        <div style={estilos.botoes}>
-          <button style={estilos.botao} onClick={() => navigate("/criar-pei")}>Criar PEI</button>
-          <button style={estilos.botao} onClick={() => navigate("/ver-alunos")}>Ver Alunos</button>
-          <button style={estilos.botao} onClick={() => navigate("/ver-peis")}>Ver PEIs</button>
-          <button style={estilos.botao} onClick={() => navigate("/avaliacao-inicial")}>Avaliação Inicial</button>
-          <button style={estilos.botao} onClick={() => navigate("/cadastro-professor")}>Cadastrar Professor</button>
-        </div>
+        <button style={estiloBotao} onClick={() => navigate("/criar-pei")}>Criar PEI</button>
+        <button style={estiloBotao} onClick={() => navigate("/ver-alunos")}>Ver Alunos</button>
+        <button style={estiloBotao} onClick={() => navigate("/ver-peis")}>Ver PEIs</button>
+        <button style={estiloBotao} onClick={() => navigate("/avaliacao-inicial")}>Avaliação Inicial</button>
 
+        {(usuarioLogado.perfil === "gestao" || usuarioLogado.perfil === "aee") && (
+          <button style={estiloBotao} onClick={() => navigate("/cadastro-usuario")}>Cadastrar Usuário</button>
+        )}
         <BotaoSair />
       </div>
     </div>
   );
 }
-
-const estilos = {
-  container: {
-    background: "linear-gradient(to bottom, #00264d, #005b96)",
-    minHeight: "100vh",
-    width: "100vw",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: "30px"
-  },
-  card: {
-    background: "#fff",
-    borderRadius: "20px",
-    padding: "40px",
-    width: "100%",
-    maxWidth: "500px",
-    textAlign: "center",
-    boxShadow: "0 0 30px rgba(0,0,0,0.2)"
-  },
-  logo: {
-    width: "100px",
-    marginBottom: "20px"
-  },
-  titulo: {
-    fontSize: "26px",
-    color: "#1d3557",
-    marginBottom: "5px"
-  },
-  subtitulo: {
-    fontSize: "16px",
-    color: "#333",
-    marginBottom: "20px"
-  },
-  usuarioInfo: {
-    fontSize: "16px",
-    color: "#1d3557",
-    marginBottom: "25px"
-  },
-  botoes: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "12px",
-    marginBottom: "20px"
-  },
-  botao: {
-    padding: "12px",
-    backgroundColor: "#1d3557",
-    color: "#fff",
-    fontSize: "16px",
-    borderRadius: "8px",
-    border: "none",
-    cursor: "pointer"
-  }
-};

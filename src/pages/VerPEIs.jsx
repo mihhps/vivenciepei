@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import React, { useEffect, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import BotaoVoltar from "../components/BotaoVoltar";
 import { gerarPDFCompleto } from "../utils/gerarPDFCompleto";
+import { db } from "../firebase";
+import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
 
-function calcularIdadeEFaixa(nascimento) {
+const calcularIdadeEFaixa = (nascimento) => {
   if (!nascimento) return ["-", "-"];
   const hoje = new Date();
   const nasc = new Date(nascimento);
@@ -12,70 +14,129 @@ function calcularIdadeEFaixa(nascimento) {
   if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) idade--;
   let faixa = idade <= 3 ? "0-3 anos" : idade <= 5 ? "4-5 anos" : idade <= 8 ? "6-8 anos" : idade <= 11 ? "9-11 anos" : "12+ anos";
   return [idade, faixa];
-}
+};
 
-function formatarData(dataISO) {
-  if (!dataISO) return "-";
-  const data = new Date(dataISO);
-  const dia = String(data.getDate()).padStart(2, '0');
-  const mes = String(data.getMonth() + 1).padStart(2, '0');
-  const ano = data.getFullYear();
-  return `${dia}-${mes}-${ano}`;
-}
-
-function VerPEIs() {
+export default function VerPEIs() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const alunoDoState = location.state?.alunoAberto;
+  const usuarioLogado = JSON.parse(localStorage.getItem("usuarioLogado")) || {};
+  const tipo = usuarioLogado?.perfil;
 
-  const usuarioLogado = JSON.parse(localStorage.getItem("usuarioLogado"));
-  const tipo = usuarioLogado?.tipo;
-
+  const [peisPorAluno, setPeisPorAluno] = useState({});
+  const [alunos, setAlunos] = useState([]);
+  const [abaAtiva, setAbaAtiva] = useState("");
   const [filtroUsuario, setFiltroUsuario] = useState("");
   const [usuarios, setUsuarios] = useState([]);
-  const [alunos, setAlunos] = useState([]);
-  const [peisPorAluno, setPeisPorAluno] = useState({});
-  const [abaAtiva, setAbaAtiva] = useState("");
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState(null);
+
+  const carregarDados = useCallback(async () => {
+    try {
+      setCarregando(true);
+      setErro(null);
+
+      const [peisSnapshot, alunosSalvos, usuariosSalvos] = await Promise.all([
+        getDocs(collection(db, "peis")),
+        JSON.parse(localStorage.getItem("alunos")) || [],
+        JSON.parse(localStorage.getItem("usuarios")) || []
+      ]);
+
+      const todosPeis = peisSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      setUsuarios(usuariosSalvos);
+      setAlunos(alunosSalvos);
+
+      if (alunosSalvos.length > 0 && !abaAtiva) {
+        setAbaAtiva(alunosSalvos[0]?.nome || "");
+      }
+
+      const peisFiltrados = tipo === "professor"
+        ? todosPeis.filter(p => p.criadorId === usuarioLogado.email)
+        : filtroUsuario
+          ? todosPeis.filter(p => p.criadorId === filtroUsuario)
+          : todosPeis;
+
+      const agrupados = {};
+      alunosSalvos.forEach(aluno => {
+        agrupados[aluno.nome] = peisFiltrados
+          .filter(p => p.aluno === aluno.nome)
+          .sort((a, b) => new Date(b.inicio) - new Date(a.inicio));
+      });
+
+      setPeisPorAluno(agrupados);
+    } catch (erro) {
+      console.error("Erro ao carregar dados:", erro);
+      setErro("Erro ao carregar dados. Tente recarregar a página.");
+    } finally {
+      setCarregando(false);
+    }
+  }, [filtroUsuario, tipo, usuarioLogado.email, abaAtiva]);
 
   useEffect(() => {
-    const todosPeis = JSON.parse(localStorage.getItem("peis")) || [];
-    const usuariosSalvos = JSON.parse(localStorage.getItem("usuarios")) || [];
-    const alunosSalvos = JSON.parse(localStorage.getItem("alunos")) || [];
+    carregarDados();
+  }, [carregarDados]);
 
-    setUsuarios(usuariosSalvos);
-    setAlunos(alunosSalvos);
+  const excluirPei = async (pei) => {
+    if (!window.confirm(`Tem certeza que deseja excluir o PEI de ${pei.aluno}?`)) return;
 
-    if (alunoDoState) {
-      setAbaAtiva(alunoDoState);
-    } else if (alunosSalvos.length > 0) {
-      setAbaAtiva(alunosSalvos[0].nome);
+    try {
+      await deleteDoc(doc(db, "peis", pei.id));
+      const atualizados = { ...peisPorAluno };
+      atualizados[pei.aluno] = atualizados[pei.aluno].filter(p => p.id !== pei.id);
+      setPeisPorAluno(atualizados);
+    } catch (error) {
+      console.error("Erro ao excluir PEI:", error);
+      alert("Erro ao excluir PEI. Por favor, tente novamente.");
     }
-
-    const peisFiltrados = tipo === "professor"
-      ? todosPeis.filter(p => p.criador === usuarioLogado.login)
-      : filtroUsuario
-        ? todosPeis.filter(p => p.criador === filtroUsuario)
-        : todosPeis;
-
-    const agrupados = {};
-    alunosSalvos.forEach(aluno => {
-      agrupados[aluno.nome] = peisFiltrados.filter(p => p.aluno === aluno.nome);
-    });
-
-    setPeisPorAluno(agrupados);
-  }, [filtroUsuario, alunoDoState]);
-
-  const editarPei = (pei) => navigate(`/editar-pei/${pei.aluno}`);
-
-  const excluirPei = (peiParaExcluir) => {
-    if (!window.confirm("Tem certeza que deseja excluir este PEI?")) return;
-    const todos = JSON.parse(localStorage.getItem("peis")) || [];
-    const atualizados = todos.filter(
-      p => !(p.aluno === peiParaExcluir.aluno && p.nomeCriador === peiParaExcluir.nomeCriador && p.inicio === peiParaExcluir.inicio)
-    );
-    localStorage.setItem("peis", JSON.stringify(atualizados));
-    window.location.reload();
   };
+
+  const handleGerarPDF = async (pei) => {
+    try {
+      const snapshot = await getDocs(collection(db, "avaliacoesIniciais"));
+      const avaliacoes = snapshot.docs.map(doc => doc.data());
+
+      const removerAcentos = (str) =>
+        str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+
+      const nomePEI = removerAcentos(pei.aluno);
+
+      const avaliacao = avaliacoes.find(a =>
+        removerAcentos(a.aluno) === nomePEI
+      );
+
+      if (!avaliacao) {
+        alert(`Avaliação Inicial não encontrada para ${pei.aluno}`);
+        return;
+      }
+
+      gerarPDFCompleto(pei, avaliacao, usuarioLogado);
+    } catch (error) {
+      console.error("Erro ao gerar PDF:", error);
+      alert("Erro ao gerar PDF. Por favor, tente novamente.");
+    }
+  };
+
+  if (carregando) {
+    return (
+      <div style={estilos.fundo}>
+        <div style={estilos.card}>
+          <BotaoVoltar />
+          <p>Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (erro) {
+    return (
+      <div style={estilos.fundo}>
+        <div style={estilos.card}>
+          <BotaoVoltar />
+          <p style={{ color: "#e63946" }}>{erro}</p>
+          <button style={estilos.recarregar} onClick={carregarDados}>Tentar novamente</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={estilos.fundo}>
@@ -84,95 +145,100 @@ function VerPEIs() {
         <h2 style={estilos.titulo}>PEIs por Aluno</h2>
 
         {(tipo === "gestao" || tipo === "aee") && (
-          <select
-            onChange={(e) => setFiltroUsuario(e.target.value)}
-            value={filtroUsuario}
-            style={{ marginBottom: 20, padding: 10, borderRadius: 6 }}
-          >
-            <option value="">Todos os usuários</option>
-            {usuarios.map((u, i) => (
-              <option key={i} value={u.usuario}>{u.usuario}</option>
-            ))}
-          </select>
+          <div style={estilos.filtroContainer}>
+            <label htmlFor="filtroUsuario" style={estilos.filtroLabel}>Filtrar por professor:</label>
+            <select
+              id="filtroUsuario"
+              onChange={(e) => setFiltroUsuario(e.target.value)}
+              value={filtroUsuario}
+              style={estilos.filtroSelect}
+            >
+              <option value="">Todos os professores</option>
+              {usuarios.filter(u => u.perfil === "professor").map((u, i) => (
+                <option key={i} value={u.email}>{u.nome}</option>
+              ))}
+            </select>
+          </div>
         )}
 
-        <div style={estilos.abas}>
-          {alunos.map((aluno, i) => (
-            <button
-              key={i}
-              style={{ ...estilos.botaoAba, ...(abaAtiva === aluno.nome ? estilos.abaAtiva : {}) }}
-              onClick={() => setAbaAtiva(aluno.nome)}
-            >
-              {aluno.nome}
-            </button>
-          ))}
-        </div>
+        {alunos.length === 0 ? (
+          <p style={estilos.semDados}>Nenhum aluno cadastrado.</p>
+        ) : (
+          <>
+            <div style={estilos.abas}>
+              {alunos.map((aluno, i) => (
+                <button
+                  key={i}
+                  style={{ ...estilos.botaoAba, ...(abaAtiva === aluno.nome ? estilos.abaAtiva : {}) }}
+                  onClick={() => setAbaAtiva(aluno.nome)}
+                >
+                  {aluno.nome}
+                </button>
+              ))}
+            </div>
 
-        <div style={estilos.conteudoAba}>
-          {abaAtiva && alunos.length > 0 && (
-            (() => {
-              const aluno = alunos.find(a => a.nome === abaAtiva);
-              const [idade, faixa] = aluno ? calcularIdadeEFaixa(aluno.nascimento) : ["-", "-"];
-              const peis = peisPorAluno[abaAtiva] || [];
+            <div style={estilos.conteudoAba}>
+              {abaAtiva && (() => {
+                const aluno = alunos.find(a => a.nome === abaAtiva);
+                const [idade, faixa] = aluno ? calcularIdadeEFaixa(aluno.nascimento) : ["-", "-"];
+                const peis = peisPorAluno[abaAtiva] || [];
 
-              return (
-                <>
-                  <p><strong>Idade:</strong> {idade} anos ({faixa})</p>
-                  {peis.length === 0 ? (
-                    <p>Nenhum PEI registrado.</p>
-                  ) : (
-                    peis.map((pei, idx) => (
-                      <div key={idx} style={estilos.cardInterno}>
-                        <p><strong>Turma:</strong> {pei.turma}</p>
-                        <p><strong>Início:</strong> {formatarData(pei.inicio)}</p>
-                        <p><strong>Próxima Avaliação:</strong> {formatarData(pei.proximaAvaliacao)}</p>
-                        <p><strong>Criado por:</strong> {pei.nomeCriador || "-"}</p>
+                return (
+                  <>
+                    <div style={estilos.infoAluno}>
+                      <p><strong>Idade:</strong> {idade} anos ({faixa})</p>
+                      {aluno?.turma && <p><strong>Turma:</strong> {aluno.turma}</p>}
+                    </div>
 
-                        <div style={estilos.botoes}>
-                          {(tipo === "gestao" || tipo === "aee" || usuarioLogado.login === pei.criador) && (
-                            <button style={estilos.editar} onClick={() => editarPei(pei)}>Editar</button>
-                          )}
+                    {peis.length === 0 ? (
+                      <p style={estilos.semDados}>Nenhum PEI registrado para este aluno.</p>
+                    ) : (
+                      peis.map((pei, idx) => (
+                        <div key={idx} style={estilos.cardInterno}>
+                          <div style={estilos.infoPei}>
+                            <p><strong>Turma no PEI:</strong> {pei.turma}</p>
+                            <p><strong>Início:</strong> {new Date(pei.inicio).toLocaleDateString("pt-BR")}</p>
+                            <p><strong>Próxima Avaliação:</strong> {new Date(pei.proximaAvaliacao).toLocaleDateString("pt-BR")}</p>
+                            <p><strong>Criado por:</strong> {pei.nomeCriador || "-"}</p>
+                          </div>
 
-                          <button
-                            style={estilos.gerar}
-                            onClick={() =>
-                              navigate("/visualizar-pei", {
-                                state: { pei, voltarPara: pei.aluno }
-                              })
-                            }
-                          >
-                            Visualizar
-                          </button>
+                          <div style={estilos.botoes}>
+                            {(tipo === "gestao" || tipo === "aee" || usuarioLogado.email === pei.criadorId) && (
+                              <button
+                                style={estilos.editar}
+                                onClick={() => navigate("/editar-pei/" + pei.id, { state: { voltarPara: abaAtiva } })}
+                              >
+                                Editar
+                              </button>
+                            )}
 
-                          <button
-                            style={estilos.gerar}
-                            onClick={() => {
-                              const avaliacoes = JSON.parse(localStorage.getItem("avaliacoesIniciais")) || [];
-                              const avaliacao = avaliacoes.find(a =>
-                                a.aluno?.trim().toLowerCase() === pei.aluno?.trim().toLowerCase()
-                              );
-                              if (!avaliacao) {
-                                alert(`Avaliação Inicial não encontrada para ${pei.aluno}`);
-                                return;
-                              }
-                              gerarPDFCompleto(pei, avaliacao, usuarioLogado);
-                            }}
-                          >
-                            Gerar PDF
-                          </button>
+                            <button
+                              style={estilos.visualizar}
+                              onClick={() => navigate("/visualizar-pei/" + pei.id, { state: { pei, voltarPara: abaAtiva } })}
+                            >
+                              Visualizar
+                            </button>
 
-                          {(usuarioLogado.login === pei.criador || tipo === "gestao") && (
-<button style={estilos.excluir} onClick={() => excluirPei(pei)}>Excluir</button>
-)}
+                            <button
+                              style={estilos.gerar}
+                              onClick={() => handleGerarPDF(pei)}
+                            >
+                              Gerar PDF
+                            </button>
+
+                            {(usuarioLogado.email === pei.criadorId || tipo === "gestao") && (
+                              <button style={estilos.excluir} onClick={() => excluirPei(pei)}>Excluir</button>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))
-                  )}
-                </>
-              );
-            })()
-          )}
-        </div>
+                      ))
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -183,15 +249,16 @@ const estilos = {
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    padding: "150px",
+    padding: "20px",
     fontFamily: "'Segoe UI', sans-serif",
-
-    
+    background: "linear-gradient(135deg, #457b9d, #1d3557)",
+    width: "100vw",
+    minHeight: "100vh",
   },
   card: {
     backgroundColor: "#fff",
-    borderRadius: "26px",
-    padding: "50px",
+    borderRadius: "16px",
+    padding: "30px",
     width: "100%",
     maxWidth: "1000px",
     boxShadow: "0 0 25px rgba(22, 1, 114, 0.2)",
@@ -203,7 +270,25 @@ const estilos = {
     textAlign: "center",
     fontSize: "26px",
     color: "#1d3557",
-    marginBottom: "30px",
+    marginBottom: "20px",
+  },
+  filtroContainer: {
+    width: "100%",
+    marginBottom: "20px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+  },
+  filtroLabel: {
+    fontWeight: "500",
+    color: "#1d3557",
+  },
+  filtroSelect: {
+    padding: "10px",
+    borderRadius: "6px",
+    border: "1px solid #ccc",
+    backgroundColor: "#f8f9fa",
+    width: "100%",
   },
   abas: {
     display: "flex",
@@ -212,15 +297,19 @@ const estilos = {
     marginBottom: "20px",
     width: "100%",
     paddingBottom: "5px",
-    borderBottom: "2px solid #ccc"
+    borderBottom: "2px solid #f1f1f1",
+    scrollbarWidth: "thin",
   },
   botaoAba: {
     backgroundColor: "#f1f1f1",
-    border: "1px solid #ccc",
+    border: "none",
     padding: "8px 16px",
     borderRadius: "8px",
     cursor: "pointer",
     whiteSpace: "nowrap",
+    transition: "all 0.2s ease",
+    minWidth: "100px",
+    textAlign: "center",
   },
   abaAtiva: {
     backgroundColor: "#1d3557",
@@ -230,16 +319,26 @@ const estilos = {
   conteudoAba: {
     width: "100%",
   },
+  infoAluno: {
+    marginBottom: "20px",
+    padding: "10px",
+    backgroundColor: "#f8f9fa",
+    borderRadius: "8px",
+  },
   cardInterno: {
     backgroundColor: "#ffffff",
     padding: "20px",
     marginBottom: "20px",
-    border: "1px solid #ccc",
+    border: "1px solid #e0e0e0",
     borderRadius: "12px",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+  },
+  infoPei: {
+    marginBottom: "15px",
   },
   botoes: {
     display: "flex",
-    gap: "15px",
+    gap: "10px",
     marginTop: "15px",
     flexWrap: "wrap",
   },
@@ -247,15 +346,23 @@ const estilos = {
     backgroundColor: "#1d3557",
     color: "#fff",
     border: "none",
-    padding: "8px 14px",
+    padding: "8px 16px",
+    borderRadius: "6px",
+    cursor: "pointer",
+  },
+  visualizar: {
+    backgroundColor: "#457b9d",
+    color: "#fff",
+    border: "none",
+    padding: "8px 16px",
     borderRadius: "6px",
     cursor: "pointer",
   },
   gerar: {
-    backgroundColor: "#457b9d",
+    backgroundColor: "#2a9d8f",
     color: "#fff",
     border: "none",
-    padding: "8px 14px",
+    padding: "8px 16px",
     borderRadius: "6px",
     cursor: "pointer",
   },
@@ -263,10 +370,22 @@ const estilos = {
     backgroundColor: "#e63946",
     color: "#fff",
     border: "none",
-    padding: "8px 14px",
+    padding: "8px 16px",
     borderRadius: "6px",
     cursor: "pointer",
   },
+  semDados: {
+    textAlign: "center",
+    color: "#666",
+    padding: "20px",
+  },
+  recarregar: {
+    backgroundColor: "#1d3557",
+    color: "#fff",
+    border: "none",
+    padding: "10px 20px",
+    borderRadius: "6px",
+    cursor: "pointer",
+    marginTop: "10px",
+  },
 };
-
-export default VerPEIs;

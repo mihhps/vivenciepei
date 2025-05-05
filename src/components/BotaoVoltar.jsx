@@ -1,21 +1,26 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 export default function BotaoVoltar() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
+  const tipo = usuario?.perfil;
 
   const handleVoltar = () => {
-    const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
-    const tipo = usuario?.perfil;
-
-    if (tipo === "professor") {
-      navigate("/painel-professor");
-    } else if (tipo === "gestao") {
-      navigate("/painel-gestao");
-    } else if (tipo === "aee") {
-      navigate("/painel-aee");
+    if (location.state?.voltarPara) {
+      // Voltar para VerPEIs com aba do aluno ativa
+      navigate("/ver-peis", { state: { aba: location.state.voltarPara } });
     } else {
-      navigate("/"); // fallback: tela institucional
+      if (tipo === "professor") {
+        navigate("/painel-professor");
+      } else if (tipo === "gestao") {
+        navigate("/painel-gestao");
+      } else if (tipo === "aee") {
+        navigate("/painel-aee");
+      } else {
+        navigate("/"); // fallback
+      }
     }
   };
 

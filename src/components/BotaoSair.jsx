@@ -21,7 +21,7 @@ export default function BotaoSair() {
     <button
       onClick={handleSair}
       style={{
-        marginTop: "30px",
+        marginTop: "2px",
         padding: "10px 20px",
         backgroundColor: "#e63946",
         color: "white",

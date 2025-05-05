@@ -1,53 +1,48 @@
+// src/pages/CadastrarUsuario.jsx
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { auth, db } from "../firebase";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { collection, addDoc } from "firebase/firestore";
+import { auth, db } from "../firebase";
+import { useNavigate } from "react-router-dom";
+import BotaoVoltar from "../components/BotaoVoltar";
 
-export default function CadastroProfessor() {
+export default function CadastrarUsuario() {
   const [nome, setNome] = useState("");
+  const [cargo, setCargo] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
-  const [confirmarSenha, setConfirmarSenha] = useState("");
-  const [carregando, setCarregando] = useState(false);
+  const [mostrarSenha, setMostrarSenha] = useState(false);
+  const [perfil, setPerfil] = useState("");
   const navigate = useNavigate();
 
   const handleCadastro = async () => {
-    if (!nome || !email || !senha || !confirmarSenha) {
+    if (!nome || !email || !senha || !cargo || !perfil) {
       alert("Preencha todos os campos.");
-      return;
-    }
-    if (senha !== confirmarSenha) {
-      alert("As senhas não coincidem.");
       return;
     }
 
     try {
-      setCarregando(true);
-      await createUserWithEmailAndPassword(auth, email.trim(), senha);
-
+      const cred = await createUserWithEmailAndPassword(auth, email.trim(), senha);
       await addDoc(collection(db, "usuarios"), {
         nome: nome.trim(),
         email: email.trim(),
-        login: email.trim(),
-        cargo: "Professor(a)",
-        perfil: "professor"
+        cargo: cargo.trim(),
+        perfil: perfil
       });
-
-      alert("Cadastro realizado com sucesso!");
-      navigate("/login");
-    } catch (erro) {
-      console.error(erro);
-      alert("Erro ao cadastrar. Verifique se o e-mail já está em uso.");
-    } finally {
-      setCarregando(false);
+      alert("Usuário cadastrado com sucesso!");
+      navigate(-1); // Volta para a tela anterior
+    } catch (error) {
+      console.error("Erro ao cadastrar usuário:", error);
+      alert("Erro ao cadastrar. Verifique os dados.");
     }
   };
 
   return (
     <div style={estilos.container}>
       <div style={estilos.card}>
-        <h2 style={estilos.titulo}>Cadastro de Professor</h2>
+        <BotaoVoltar />
+        <img src="/logo-vivencie.png" alt="Logo Vivencie PEI" style={estilos.logo} />
+        <h2 style={estilos.titulo}>Cadastro de Usuário</h2>
 
         <input
           type="text"
@@ -57,44 +52,50 @@ export default function CadastroProfessor() {
           style={estilos.input}
         />
         <input
+          type="text"
+          placeholder="Cargo"
+          value={cargo}
+          onChange={(e) => setCargo(e.target.value)}
+          style={estilos.input}
+        />
+        <input
           type="email"
           placeholder="E-mail"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           style={estilos.input}
         />
-        <input
-          type="password"
-          placeholder="Senha"
-          value={senha}
-          onChange={(e) => setSenha(e.target.value)}
-          style={estilos.input}
-        />
-        <input
-          type="password"
-          placeholder="Confirmar senha"
-          value={confirmarSenha}
-          onChange={(e) => setConfirmarSenha(e.target.value)}
-          style={estilos.input}
-        />
-
-        <button
-          style={estilos.botao}
-          onClick={handleCadastro}
-          disabled={carregando}
-        >
-          {carregando ? "Cadastrando..." : "Cadastrar"}
-        </button>
-
-        <p style={{ marginTop: 15 }}>
-          Já tem uma conta?{" "}
-          <span
-            style={{ color: "#1d3557", cursor: "pointer" }}
-            onClick={() => navigate("/login")}
+        <div style={estilos.senhaWrapper}>
+          <input
+            type={mostrarSenha ? "text" : "password"}
+            placeholder="Senha"
+            value={senha}
+            onChange={(e) => setSenha(e.target.value)}
+            style={{ ...estilos.input, marginBottom: 0 }}
+          />
+          <button
+            type="button"
+            onClick={() => setMostrarSenha(!mostrarSenha)}
+            style={estilos.botaoMostrar}
           >
-            Voltar ao login
-          </span>
-        </p>
+            {mostrarSenha ? "Ocultar" : "Mostrar"}
+          </button>
+        </div>
+
+        <select
+          value={perfil}
+          onChange={(e) => setPerfil(e.target.value)}
+          style={estilos.select}
+        >
+          <option value="">Selecione o tipo de perfil</option>
+          <option value="gestao">Gestão</option>
+          <option value="aee">AEE</option>
+          <option value="professor">Professor</option>
+        </select>
+
+        <button style={estilos.botao} onClick={handleCadastro}>
+          Cadastrar
+        </button>
       </div>
     </div>
   );
@@ -106,8 +107,9 @@ const estilos = {
     justifyContent: "center",
     alignItems: "center",
     height: "100vh",
+    width: "100vw",
     background: "linear-gradient(to bottom, #00264d, #005b96)",
-    fontFamily: "'Segoe UI', sans-serif",
+    fontFamily: "'Segoe UI', sans-serif"
   },
   card: {
     backgroundColor: "#fff",
@@ -116,20 +118,47 @@ const estilos = {
     boxShadow: "0 0 30px rgba(0,0,0,0.2)",
     width: "100%",
     maxWidth: "400px",
-    textAlign: "center",
+    textAlign: "center"
+  },
+  logo: {
+    width: "100px",
+    marginBottom: "20px"
   },
   titulo: {
     fontSize: "24px",
-    marginBottom: "20px",
-    color: "#1d3557",
+    marginBottom: "30px",
+    color: "#1d3557"
   },
   input: {
     width: "100%",
     padding: "12px",
-    marginBottom: "15px",
+    marginBottom: "20px",
     borderRadius: "6px",
     border: "1px solid #ccc",
-    fontSize: "16px",
+    fontSize: "16px"
+  },
+  senhaWrapper: {
+    position: "relative",
+    marginBottom: "20px"
+  },
+  botaoMostrar: {
+    position: "absolute",
+    top: "50%",
+    right: "10px",
+    transform: "translateY(-50%)",
+    background: "none",
+    border: "none",
+    color: "#1976d2",
+    cursor: "pointer",
+    fontSize: "14px"
+  },
+  select: {
+    width: "100%",
+    padding: "12px",
+    marginBottom: "20px",
+    borderRadius: "6px",
+    border: "1px solid #ccc",
+    fontSize: "16px"
   },
   botao: {
     width: "100%",
@@ -139,6 +168,6 @@ const estilos = {
     fontSize: "16px",
     borderRadius: "6px",
     border: "none",
-    cursor: "pointer",
-  },
+    cursor: "pointer"
+  }
 };

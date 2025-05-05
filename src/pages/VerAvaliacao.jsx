@@ -1,18 +1,32 @@
+// src/pages/VerAvaliacao.jsx
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../firebase";
 
 function VerAvaliacao() {
-  const { aluno } = useParams();
+  const { id } = useParams();
   const navigate = useNavigate();
   const [avaliacao, setAvaliacao] = useState(null);
 
   useEffect(() => {
-    const avaliacoes = JSON.parse(localStorage.getItem("avaliacoesIniciais")) || [];
-    const encontrada = avaliacoes.find(
-      (a) => a.aluno.toLowerCase().trim() === aluno.toLowerCase().trim()
-    );
-    setAvaliacao(encontrada);
-  }, [aluno]);
+    const carregarAvaliacao = async () => {
+      try {
+        const docRef = doc(db, "avaliacoesIniciais", id);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setAvaliacao(docSnap.data());
+        } else {
+          setAvaliacao(null);
+        }
+      } catch (error) {
+        console.error("Erro ao buscar avaliação:", error);
+        setAvaliacao(null);
+      }
+    };
+
+    carregarAvaliacao();
+  }, [id]);
 
   const formatarData = (dataISO) => {
     if (!dataISO) return "-";
@@ -69,9 +83,7 @@ function VerAvaliacao() {
 
         <div style={{ marginBottom: "30px", lineHeight: "1.8", fontSize: "16px", color: "#333" }}>
           <p><strong>Aluno:</strong> {avaliacao.aluno}</p>
-          <p><strong>Idade:</strong> {avaliacao.idade} anos</p>
-          <p><strong>Faixa Etária:</strong> {avaliacao.faixaEtaria}</p>
-          <p><strong>Data da Avaliação:</strong> {formatarData(avaliacao.data)}</p>
+          <p><strong>Data da Avaliação:</strong> {formatarData(avaliacao.dataCriacao)}</p>
         </div>
 
         {Object.keys(avaliacao.respostas).map((area, i) => (

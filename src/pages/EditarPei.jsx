@@ -1,11 +1,15 @@
+// src/pages/EditarPei.jsx
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import BotaoVoltar from "../components/BotaoVoltar";
 import sugestoesIA from "../utils/sugestoesIA";
+import { db } from "../firebase";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 
 function EditarPei() {
-  const { aluno } = useParams();
+  const { id } = useParams();
   const navigate = useNavigate();
+  const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
 
   const [pei, setPei] = useState(null);
   const [areaAtual, setAreaAtual] = useState("");
@@ -14,47 +18,83 @@ function EditarPei() {
   const [resumoPEI, setResumoPEI] = useState([]);
 
   useEffect(() => {
-    const peisSalvos = JSON.parse(localStorage.getItem("peis")) || [];
-    const existente = peisSalvos.find(p => p.aluno === aluno);
-    if (!existente) {
-      alert("PEI não encontrado.");
-      navigate("/ver-peis");
-    } else {
-      setPei(existente);
-      setResumoPEI(existente.resumoPEI || []);
-    }
-  }, [aluno, navigate]);
+    const carregarPei = async () => {
+      try {
+        const ref = doc(db, "peis", id);
+        const docSnap = await getDoc(ref);
 
-  const handleAdicionar = () => {
-    if (!areaAtual || !subareaAtual || !novaMeta.objetivos || !novaMeta.estrategias || !novaMeta.nivel) {
-      alert("Preencha todos os campos");
+        if (docSnap.exists()) {
+          const dados = docSnap.data();
+
+          // Proteção de acesso: apenas criador, gestão ou AEE podem editar
+          if (
+            usuario.perfil !== "gestao" &&
+            usuario.perfil !== "aee" &&
+            usuario.id !== dados.idCriador
+          ) {
+            alert("Você não tem permissão para editar este PEI.");
+            return navigate("/ver-peis");
+          }
+
+          setPei({ id, ...dados });
+          setResumoPEI(dados.resumoPEI || []);
+        } else {
+          alert("PEI não encontrado.");
+          navigate("/ver-peis");
+        }
+      } catch (error) {
+        console.error("Erro ao carregar PEI:", error);
+      }
+    };
+
+    carregarPei();
+  }, [id, navigate, usuario]);
+
+  const handleAdicionar = async () => {
+    if (!areaAtual || !subareaAtual) {
+      alert("Selecione uma área e subárea.");
+      return;
+    }
+    if (!novaMeta.objetivos || !novaMeta.estrategias) {
+      alert("Preencha os campos de objetivos e estratégias.");
+      return;
+    }
+    if (!novaMeta.nivel) {
+      alert("Selecione o nível de desempenho.");
       return;
     }
 
     const nova = {
       area: areaAtual,
       subarea: subareaAtual,
-      objetivos: novaMeta.objetivos,
-      estrategias: novaMeta.estrategias,
+      objetivos: novaMeta.objetivos.trim(),
+      estrategias: novaMeta.estrategias.trim(),
       nivel: novaMeta.nivel,
     };
 
     const novoResumo = [...resumoPEI, nova];
-    const peisSalvos = JSON.parse(localStorage.getItem("peis")) || [];
-    const indice = peisSalvos.findIndex(p => p.aluno === aluno);
-    if (indice !== -1) {
-      peisSalvos[indice].resumoPEI = novoResumo;
-      localStorage.setItem("peis", JSON.stringify(peisSalvos));
+
+    try {
+      const ref = doc(db, "peis", id);
+      await updateDoc(ref, { resumoPEI: novoResumo });
       setResumoPEI(novoResumo);
       setNovaMeta({});
+      setAreaAtual("");
+      setSubareaAtual("");
+      alert("Meta salva com sucesso!");
+    } catch (error) {
+      console.error("Erro ao atualizar PEI:", error);
+      alert("Erro ao salvar nova meta.");
     }
   };
+
+  if (!pei) return null;
 
   return (
     <div style={estilos.fundo}>
       <div style={estilos.card}>
         <BotaoVoltar />
-        <h2 style={estilos.titulo}>Editar PEI: {aluno}</h2>
+        <h2 style={estilos.titulo}>Editar PEI: {pei.aluno}</h2>
 
         <div style={estilos.areaContainer}>
           {Object.keys(sugestoesIA).map((area) => (
@@ -89,22 +129,20 @@ function EditarPei() {
           <div>
             <h3>{areaAtual} — {subareaAtual}</h3>
 
-            {/* Metas anteriores */}
             {resumoPEI
-  .filter(
-    (m) =>
-      m.area?.toLowerCase() === areaAtual?.toLowerCase() &&
-      m.subarea?.toLowerCase() === subareaAtual?.toLowerCase()
-  )
-  .map((meta, i) => (
-    <div key={i} style={estilos.metaAntiga}>
-      <p><strong>Objetivos:</strong> {meta.objetivos}</p>
-      <p><strong>Estratégias:</strong> {meta.estrategias}</p>
-      <p><strong>Nível:</strong> {meta.nivel}</p>
-    </div>
-))}
+              .filter(
+                (m) =>
+                  m.area?.toLowerCase() === areaAtual?.toLowerCase() &&
+                  m.subarea?.toLowerCase() === subareaAtual?.toLowerCase()
+              )
+              .map((meta, i) => (
+                <div key={i} style={estilos.metaAntiga}>
+                  <p><strong>Objetivos:</strong> {meta.objetivos}</p>
+                  <p><strong>Estratégias:</strong> {meta.estrategias}</p>
+                  <p><strong>Nível:</strong> {meta.nivel}</p>
+                </div>
+              ))}
 
-            {/* Sugestões e Formulário */}
             <div>
               <p><strong>Objetivos sugeridos:</strong></p>
               {sugestoesIA[areaAtual][subareaAtual]?.objetivos?.map((obj, i) => (
@@ -113,9 +151,11 @@ function EditarPei() {
                     type="checkbox"
                     onChange={(e) => {
                       if (e.target.checked) {
+                        const atuais = new Set((novaMeta.objetivos || "").split("\n"));
+                        atuais.add(obj);
                         setNovaMeta((prev) => ({
                           ...prev,
-                          objetivos: (prev.objetivos || "") + obj + "\n",
+                          objetivos: Array.from(atuais).filter(Boolean).join("\n"),
                         }));
                       }
                     }}
@@ -140,9 +180,11 @@ function EditarPei() {
                     type="checkbox"
                     onChange={(e) => {
                       if (e.target.checked) {
+                        const atuais = new Set((novaMeta.estrategias || "").split("\n"));
+                        atuais.add(est);
                         setNovaMeta((prev) => ({
                           ...prev,
-                          estrategias: (prev.estrategias || "") + est + "\n",
+                          estrategias: Array.from(atuais).filter(Boolean).join("\n"),
                         }));
                       }
                     }}
@@ -194,6 +236,7 @@ function EditarPei() {
 const estilos = {
   fundo: {
     minHeight: "100vh",
+    width: "100vw",
     background: "linear-gradient(to right, #1d3557, #457b9d)",
     padding: "40px",
     display: "flex",
@@ -267,7 +310,7 @@ const estilos = {
     borderRadius: "6px",
     border: "1px solid #ccc",
     marginBottom: "10px",
-    fontSize: "16px"
+    fontSize: "16px",
   },
   radios: {
     display: "flex",
