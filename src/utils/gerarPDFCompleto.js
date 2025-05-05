@@ -21,7 +21,6 @@ const coresPorNivel = {
 export async function gerarPDFCompleto(aluno, usuarioLogado) {
   const doc = new jsPDF();
 
-  // Cabeçalho e título
   doc.addImage("/logo.jpg", "JPEG", 10, 10, 190, 25);
   let y = 45;
 
@@ -30,13 +29,11 @@ export async function gerarPDFCompleto(aluno, usuarioLogado) {
   doc.text("PLANO EDUCACIONAL INDIVIDUALIZADO (PEI)", 105, y, { align: "center" });
   y += 10;
 
-  // Validar aluno
   if (!aluno?.id || !aluno?.nome) {
     console.error("ID ou nome do aluno não definido!");
     return;
   }
 
-  // Buscar Avaliação Inicial
   const queryAvaliacao = query(
     collection(db, "avaliacoesIniciais"),
     where("aluno", "==", aluno.nome)
@@ -44,12 +41,10 @@ export async function gerarPDFCompleto(aluno, usuarioLogado) {
   const snapAvaliacao = await getDocs(queryAvaliacao);
   const avaliacao = snapAvaliacao.empty ? {} : snapAvaliacao.docs[0].data();
 
-  // Buscar PEIs do aluno
   const queryPeis = query(collection(db, "peis"), where("aluno", "==", aluno.nome));
   const snapPeis = await getDocs(queryPeis);
   const todosPeis = snapPeis.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 
-  // Filtrar PEIs conforme perfil
   const isGestao = usuarioLogado?.perfil === "gestao" || usuarioLogado?.perfil === "aee";
 
   const peisFiltrados = isGestao
@@ -71,7 +66,6 @@ export async function gerarPDFCompleto(aluno, usuarioLogado) {
     return;
   }
 
-  // Dados do Aluno
   doc.setFont("times", "normal");
   doc.setFontSize(12);
   doc.text(`Nome: ${aluno.nome}`, 20, y); y += 6;
@@ -80,7 +74,6 @@ export async function gerarPDFCompleto(aluno, usuarioLogado) {
   doc.text(`Data de Início: ${formatarData(peiAtual.inicio)}`, 20, y); y += 6;
   doc.text(`Próxima Avaliação: ${formatarData(peiAtual.proximaAvaliacao)}`, 20, y); y += 10;
 
-  // Avaliação Inicial
   doc.setFont("times", "bold");
   doc.text("Avaliação Inicial", 20, y); y += 8;
   doc.setFont("times", "normal");
@@ -111,7 +104,6 @@ export async function gerarPDFCompleto(aluno, usuarioLogado) {
     doc.text("Sem dados preenchidos na Avaliação Inicial.", 25, y); y += 10;
   }
 
-  // PEI Atual
   y += 5;
   doc.setFont("times", "bold");
   doc.text("Plano Educacional Individualizado (PEI)", 20, y); y += 5;
@@ -129,16 +121,10 @@ export async function gerarPDFCompleto(aluno, usuarioLogado) {
     startY: y,
     head: [["Área", "Habilidade", "Objetivos", "Estratégias", "Nível"]],
     body: linhasPEI,
-    styles: {
-      font: "times",
-      fontSize: 10,
-      fillColor: [230, 230, 230]
-    },
+    styles: { font: "times", fontSize: 10, fillColor: [230, 230, 230] },
     columnStyles: {
-      0: { cellWidth: 30 },
-      1: { cellWidth: 40 },
-      2: { cellWidth: 45 },
-      3: { cellWidth: 45 },
+      0: { cellWidth: 30 }, 1: { cellWidth: 40 },
+      2: { cellWidth: 45 }, 3: { cellWidth: 45 },
       4: { halign: "center" }
     },
     didParseCell: (data) => {
@@ -152,7 +138,6 @@ export async function gerarPDFCompleto(aluno, usuarioLogado) {
     }
   });
 
-  // Histórico
   let yHist = doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 10 : y + 10;
 
   if (historicoPEIs.length > 0) {
@@ -190,16 +175,10 @@ export async function gerarPDFCompleto(aluno, usuarioLogado) {
         startY: yHist,
         head: [["Área", "Habilidade", "Objetivos", "Estratégias", "Nível"]],
         body: linhasAntigas,
-        styles: {
-          font: "times",
-          fontSize: 10,
-          fillColor: [250, 250, 250]
-        },
+        styles: { font: "times", fontSize: 10, fillColor: [250, 250, 250] },
         columnStyles: {
-          0: { cellWidth: 30 },
-          1: { cellWidth: 40 },
-          2: { cellWidth: 45 },
-          3: { cellWidth: 45 },
+          0: { cellWidth: 30 }, 1: { cellWidth: 40 },
+          2: { cellWidth: 45 }, 3: { cellWidth: 45 },
           4: { halign: "center" }
         },
         didParseCell: (data) => {
@@ -217,20 +196,20 @@ export async function gerarPDFCompleto(aluno, usuarioLogado) {
     });
   }
 
-  // Legenda
   let y3 = doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 10 : y + 10;
+  doc.text(`Elaborado por: ${peiAtual.nomeCriador || "Desconhecido"}`, 20, y3); 
+  y3 += 10;
+
+  // Legenda logo após o "Elaborado por:"
+  if (y3 > 250) { doc.addPage(); y3 = 20; }
   doc.setFont("times", "bold");
   doc.text("Legenda dos Níveis:", 20, y3); y3 += 6;
   doc.setFont("times", "normal");
 
   Object.entries(coresPorNivel).forEach(([sigla, cor]) => {
     const descricao = {
-      NR: "Não realizou",
-      AF: "Apoio físico",
-      AL: "Apoio leve",
-      AG: "Apoio gestual",
-      AV: "Apoio verbal",
-      I:  "Independente"
+      NR: "Não realizou", AF: "Apoio físico", AL: "Apoio leve",
+      AG: "Apoio gestual", AV: "Apoio verbal", I: "Independente"
     }[sigla];
 
     doc.setFillColor(...cor);
@@ -241,13 +220,7 @@ export async function gerarPDFCompleto(aluno, usuarioLogado) {
 
   // Assinatura
   y3 += 10;
-  doc.text(`Elaborado por: ${peiAtual.nomeCriador || "Desconhecido"}`, 20, y3); y3 += 8;
-  
-  if (y3 > 260) {
-    doc.addPage();
-    y3 = 20;
-  }
-
+  if (y3 > 260) { doc.addPage(); y3 = 20; }
   const dataHoje = new Date().toLocaleDateString("pt-BR");
   doc.text(`Guabiruba, ${dataHoje}`, 20, y3); y3 += 20;
   doc.line(20, y3, 100, y3); y3 += 6;
