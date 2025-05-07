@@ -170,18 +170,22 @@ export default function CriarPEI() {
                 <p><strong>Nível:</strong> {item.nivel} ({legenda[item.nivel]})</p>
 
                 <p><strong>Objetivos:</strong></p>
-                <ul>
-                  {item.objetivos.map((objetivo, i) => (
-                    <li key={i}>{objetivo}</li>
-                  ))}
-                </ul>
+<ul>
+  {(item.objetivos || [])
+    .filter((o) => o && o.trim() !== "")
+    .map((objetivo, i) => (
+      <li key={i}>{objetivo}</li>
+    ))}
+</ul>
 
-                <p><strong>Estratégias:</strong></p>
-                <ul>
-                  {item.estrategias.map((estrategia, i) => (
-                    <li key={i}>{estrategia}</li>
-                  ))}
-                </ul>
+<p><strong>Estratégias:</strong></p>
+<ul>
+  {(item.estrategias || [])
+    .filter((e) => e && e.trim() !== "")
+    .map((estrategia, i) => (
+      <li key={i}>{estrategia}</li>
+    ))}
+</ul>
               </div>
             ))}
 
