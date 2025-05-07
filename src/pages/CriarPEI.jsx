@@ -262,8 +262,14 @@ export default function CriarPEI() {
               const nova = {
                 area: areaAtual,
                 subarea: subareaSelecionada,
-                objetivos: [...entrada.objetivos, ...(entrada.objetivosManual?.split("\n") || [])],
-                estrategias: [...entrada.estrategias, ...(entrada.estrategiasManual?.split("\n") || [])],
+                objetivos: [
+                  ...entrada.objetivos,
+                  ...((entrada.objetivosManual?.split("\n") || []).filter((o) => o.trim() !== ""))
+                ],
+                estrategias: [
+                  ...entrada.estrategias,
+                  ...((entrada.estrategiasManual?.split("\n") || []).filter((e) => e.trim() !== ""))
+                ],
                 nivel: entrada.nivel
               };
               setPei([...pei, nova]);

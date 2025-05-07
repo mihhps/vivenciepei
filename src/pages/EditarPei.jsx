@@ -67,8 +67,14 @@ function EditarPei() {
     const nova = {
       area: areaAtual,
       subarea: subareaAtual,
-      objetivos: novaMeta.objetivos.trim(),
-      estrategias: novaMeta.estrategias.trim(),
+      objetivos: novaMeta.objetivos
+  .split("\n")
+  .map(o => o.trim())
+  .filter(o => o !== ""),
+estrategias: novaMeta.estrategias
+  .split("\n")
+  .map(e => e.trim())
+  .filter(e => e !== ""),
       nivel: novaMeta.nivel,
     };
 

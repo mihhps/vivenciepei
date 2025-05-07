@@ -1,40 +1,57 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { db } from "../firebase";
 import BotaoVoltar from "../components/BotaoVoltar";
 
 function EditarAluno() {
-  const { id } = useParams();
+  const { id } = useParams(); // id do documento do Firestore
   const navigate = useNavigate();
-  const [aluno, setAluno] = useState(null);
   const [dados, setDados] = useState({
     nome: "",
     nascimento: "",
     diagnostico: "",
     turma: ""
   });
+  const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
-    const alunos = JSON.parse(localStorage.getItem("alunos")) || [];
-    const alunoSelecionado = alunos[parseInt(id)];
-    if (!alunoSelecionado) {
-      alert("Aluno não encontrado.");
-      navigate("/ver-alunos");
-      return;
+    async function buscarAluno() {
+      try {
+        const docRef = doc(db, "alunos", id);
+        const docSnap = await getDoc(docRef);
+
+        if (!docSnap.exists()) {
+          alert("Aluno não encontrado.");
+          navigate("/ver-alunos");
+          return;
+        }
+
+        setDados(docSnap.data());
+        setCarregando(false);
+      } catch (erro) {
+        console.error("Erro ao buscar aluno:", erro);
+        alert("Erro ao carregar dados do aluno.");
+        navigate("/ver-alunos");
+      }
     }
 
-    setAluno(alunoSelecionado);
-    setDados({ ...alunoSelecionado });
+    buscarAluno();
   }, [id, navigate]);
 
-  const salvar = () => {
-    const alunos = JSON.parse(localStorage.getItem("alunos")) || [];
-    alunos[parseInt(id)] = dados;
-    localStorage.setItem("alunos", JSON.stringify(alunos));
-    alert("Dados atualizados com sucesso!");
-    navigate("/ver-alunos");
+  const salvar = async () => {
+    try {
+      const docRef = doc(db, "alunos", id);
+      await updateDoc(docRef, dados);
+      alert("Dados atualizados com sucesso!");
+      navigate("/ver-alunos");
+    } catch (erro) {
+      console.error("Erro ao salvar:", erro);
+      alert("Erro ao salvar dados.");
+    }
   };
 
-  if (!aluno) return null;
+  if (carregando) return <p style={{ textAlign: "center", marginTop: 40 }}>Carregando...</p>;
 
   return (
     <div style={{ padding: "40px", backgroundColor: "#f7f7f7", minHeight: "100vh" }}>
