@@ -22,3 +22,5 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+src/chave-firebase.json
+script/chave-firebase.json

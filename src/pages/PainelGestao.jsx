@@ -1,8 +1,8 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import BotaoVoltar from "../components/BotaoVoltar"; // Importando o botão voltar
+import BotaoVoltar from "../components/BotaoVoltar";
 
-function PainelGestao() {
+export default function PainelGestao() {
   const navigate = useNavigate();
 
   const sair = () => {
@@ -12,20 +12,31 @@ function PainelGestao() {
 
   return (
     <div style={containerStyle}>
-      <BotaoVoltar /> {/* Botão Voltar no topo */}
+      <BotaoVoltar />
 
-      <h1 style={{ marginBottom: "30px" }}>Painel da Gestão</h1>
+      <h1 style={tituloStyle}>Painel da Gestão</h1>
 
       <div style={buttonContainerStyle}>
         <button style={buttonStyle} onClick={() => navigate("/cadastrar-aluno")}>
           Cadastrar Alunos
         </button>
+
         <button style={buttonStyle} onClick={() => navigate("/cadastrar-usuario")}>
           Cadastrar Usuários
         </button>
+
+        <button style={buttonStyle} onClick={() => navigate("/vincular-escolas")}>
+          Vincular Escolas a Professores
+        </button>
+
         <button style={buttonStyle} onClick={() => navigate("/gerar-relatorios")}>
           Visualizar Relatórios
         </button>
+
+          <button style={estiloBotao} onClick={() => navigate("/acompanhamento")}>
+    Acompanhamento Escolar
+  </button>
+
         <button style={logoutButtonStyle} onClick={sair}>
           Sair
         </button>
@@ -34,11 +45,19 @@ function PainelGestao() {
   );
 }
 
+// Estilos
 const containerStyle = {
   minHeight: "100vh",
   backgroundColor: "#e0f7fa",
   padding: "30px",
   textAlign: "center",
+  fontFamily: "'Segoe UI', sans-serif",
+};
+
+const tituloStyle = {
+  marginBottom: "30px",
+  fontSize: "28px",
+  color: "#1d3557",
 };
 
 const buttonContainerStyle = {
@@ -50,7 +69,7 @@ const buttonContainerStyle = {
 };
 
 const buttonStyle = {
-  width: "250px",
+  width: "260px",
   padding: "15px",
   fontSize: "16px",
   borderRadius: "5px",
@@ -64,5 +83,3 @@ const logoutButtonStyle = {
   ...buttonStyle,
   backgroundColor: "#e63946",
 };
-
-export default PainelGestao;

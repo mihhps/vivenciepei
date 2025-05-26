@@ -5,6 +5,7 @@ import { gerarPDFCompleto } from "../utils/gerarPDFCompleto";
 import { db } from "../firebase";
 import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
 
+
 const calcularIdadeEFaixa = (nascimento) => {
   if (!nascimento) return ["-", "-"];
   const hoje = new Date();
@@ -16,13 +17,14 @@ const calcularIdadeEFaixa = (nascimento) => {
   return [idade, faixa];
 };
 
-function formatarData(data) {
+function formatarDataSegura(data) {
   if (!data) return "-";
-  const dataObj = new Date(data);
-  const dia = String(dataObj.getDate()).padStart(2, '0');
-  const mes = String(dataObj.getMonth() + 1).padStart(2, '0');
-  const ano = dataObj.getFullYear();
-  return `${dia}/${mes}/${ano}`;
+  try {
+    const dataObj = typeof data === "string" ? new Date(data) : data?.toDate?.() || new Date(data);
+    return isNaN(dataObj) ? "-" : dataObj.toLocaleDateString("pt-BR");
+  } catch {
+    return "-";
+  }
 }
 
 export default function VerPEIs() {
@@ -37,6 +39,7 @@ export default function VerPEIs() {
   const [usuarios, setUsuarios] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState(null);
+  const [avaliacoesIniciais, setAvaliacoesIniciais] = useState({});
 
   const carregarDados = useCallback(async () => {
     try {
@@ -48,6 +51,13 @@ export default function VerPEIs() {
         getDocs(collection(db, "alunos")),
         getDocs(collection(db, "usuarios"))
       ]);
+          const avaliacoesSnapshot = await getDocs(collection(db, "avaliacoesIniciais"));
+    const avaliacoes = {};
+    avaliacoesSnapshot.docs.forEach(doc => {
+      const data = doc.data();
+      avaliacoes[data.aluno] = data;
+    });
+    setAvaliacoesIniciais(avaliacoes);
       
       const alunosSalvos = alunosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       const usuariosSalvos = usuariosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -167,7 +177,7 @@ export default function VerPEIs() {
             >
               <option value="">Todos os professores</option>
               {usuarios.filter(u => u.perfil === "professor").map((u, i) => (
-                <option key={i} value={u.email}>{u.nome}</option>
+                <option key={u.email} value={u.email}>{u.nome}</option>
               ))}
             </select>
           </div>
@@ -224,8 +234,8 @@ export default function VerPEIs() {
                         <div key={idx} style={estilos.cardInterno}>
                           <div style={estilos.infoPei}>
                             <p><strong>Turma no PEI:</strong> {pei.turma}</p>
-                            <p><strong>Início:</strong> {new Date(pei.inicio).toLocaleDateString("pt-BR")}</p>
-                            <p><strong>Próxima Avaliação:</strong> {new Date(pei.proximaAvaliacao).toLocaleDateString("pt-BR")}</p>
+                            <p><strong>Início:</strong> {formatarDataSegura(pei.inicio)}</p>
+                            <p><strong>Próxima Avaliação:</strong> {formatarDataSegura(pei.proximaAvaliacao)}</p>
                             <p><strong>Criado por:</strong> {pei.nomeCriador || "-"}</p>
                           </div>
 
@@ -245,6 +255,12 @@ export default function VerPEIs() {
                             >
                               Visualizar
                             </button>
+                            <button
+  className="botao-secundario"
+  onClick={() => navigate(`/acompanhamento/${pei.id}`)}
+>
+  Acompanhar Metas
+</button>
 
 
                             {(usuarioLogado.email === pei.criadorId || tipo === "gestao") && (

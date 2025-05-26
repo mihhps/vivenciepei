@@ -2,20 +2,26 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import BotaoVoltar from "../components/BotaoVoltar";
-import sugestoesIA from "../utils/sugestoesIA";
 import { db } from "../firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
+
+const LEGENDA_NIVEIS = {
+  NR: "Não realizou",
+  AF: "Apoio físico",
+  AG: "Apoio gestual",
+  AV: "Apoio verbal",
+  AVi: "Apoio visual",
+  I: "Independente"
+};
 
 function EditarPei() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
 
   const [pei, setPei] = useState(null);
-  const [areaAtual, setAreaAtual] = useState("");
-  const [subareaAtual, setSubareaAtual] = useState("");
-  const [novaMeta, setNovaMeta] = useState({});
-  const [resumoPEI, setResumoPEI] = useState([]);
+  const [entradaManual, setEntradaManual] = useState({});
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState(null);
 
   useEffect(() => {
     const carregarPei = async () => {
@@ -23,291 +29,191 @@ function EditarPei() {
         const ref = doc(db, "peis", id);
         const docSnap = await getDoc(ref);
 
-        if (docSnap.exists()) {
-          const dados = docSnap.data();
-
-          // Proteção de acesso: apenas criador, gestão ou AEE podem editar
-          if (
-            usuario.perfil !== "gestao" &&
-            usuario.perfil !== "aee" &&
-            usuario.id !== dados.idCriador
-          ) {
-            alert("Você não tem permissão para editar este PEI.");
-            return navigate("/ver-peis");
-          }
-
-          setPei({ id, ...dados });
-          setResumoPEI(dados.resumoPEI || []);
-        } else {
+        if (!docSnap.exists()) {
           alert("PEI não encontrado.");
-          navigate("/ver-peis");
+          return navigate("/ver-peis");
         }
+
+        const dados = docSnap.data();
+        setPei({ id, ...dados });
+
+        const entradaInicial = {};
+        (dados.resumoPEI || []).forEach((meta) => {
+          entradaInicial[meta.habilidade] = {
+            estrategias: meta.estrategias || [],
+            estrategiasManuais: ""
+          };
+        });
+        setEntradaManual(entradaInicial);
       } catch (error) {
         console.error("Erro ao carregar PEI:", error);
+        setErro("Erro ao carregar dados.");
+      } finally {
+        setCarregando(false);
       }
     };
 
     carregarPei();
-  }, [id, navigate, usuario]);
+  }, [id, navigate]);
 
-  const handleAdicionar = async () => {
-    if (!areaAtual || !subareaAtual) {
-      alert("Selecione uma área e subárea.");
-      return;
-    }
-    if (!novaMeta.objetivos || !novaMeta.estrategias) {
-      alert("Preencha os campos de objetivos e estratégias.");
-      return;
-    }
-    if (!novaMeta.nivel) {
-      alert("Selecione o nível de desempenho.");
-      return;
-    }
-
-    const nova = {
-      area: areaAtual,
-      subarea: subareaAtual,
-      objetivos: novaMeta.objetivos
-  .split("\n")
-  .map(o => o.trim())
-  .filter(o => o !== ""),
-estrategias: novaMeta.estrategias
-  .split("\n")
-  .map(e => e.trim())
-  .filter(e => e !== ""),
-      nivel: novaMeta.nivel,
-    };
-
-    const novoResumo = [...resumoPEI, nova];
-
+  const handleSalvar = async () => {
     try {
-      const ref = doc(db, "peis", id);
-      await updateDoc(ref, { resumoPEI: novoResumo });
-      setResumoPEI(novoResumo);
-      setNovaMeta({});
-      setAreaAtual("");
-      setSubareaAtual("");
-      alert("Meta salva com sucesso!");
+      setCarregando(true);
+
+      const resumoAtualizado = (pei.resumoPEI || []).map((meta) => {
+        const entrada = entradaManual[meta.habilidade] || {};
+        const estrategiasSelecionadas = entrada.estrategias || [];
+        const estrategiasManuais = entrada.estrategiasManuais
+          .split("\n")
+          .filter((e) => e.trim());
+
+        return {
+          ...meta,
+          estrategias: [...estrategiasSelecionadas, ...estrategiasManuais]
+        };
+      });
+
+      await updateDoc(doc(db, "peis", id), {
+        resumoPEI: resumoAtualizado
+      });
+
+      alert("PEI atualizado com sucesso!");
     } catch (error) {
-      console.error("Erro ao atualizar PEI:", error);
-      alert("Erro ao salvar nova meta.");
+      console.error("Erro ao salvar PEI:", error);
+      alert("Erro ao salvar PEI.");
+    } finally {
+      setCarregando(false);
     }
   };
 
+  const handleRemoverMeta = (idxRemover, habilidade) => {
+    const novaLista = pei.resumoPEI.filter((_, i) => i !== idxRemover);
+    const novaEntradaManual = { ...entradaManual };
+    delete novaEntradaManual[habilidade];
+
+    setPei((prev) => ({ ...prev, resumoPEI: novaLista }));
+    setEntradaManual(novaEntradaManual);
+  };
+
+  if (carregando) return <p>Carregando...</p>;
   if (!pei) return null;
 
   return (
-    <div style={estilos.fundo}>
+    <div style={estilos.container}>
       <div style={estilos.card}>
         <BotaoVoltar />
         <h2 style={estilos.titulo}>Editar PEI: {pei.aluno}</h2>
 
-        <div style={estilos.areaContainer}>
-          {Object.keys(sugestoesIA).map((area) => (
-            <button
-              key={area}
-              style={area === areaAtual ? estilos.botaoAtivo : estilos.botao}
-              onClick={() => {
-                setAreaAtual(area);
-                setSubareaAtual("");
-              }}
-            >
-              {area}
-            </button>
-          ))}
-        </div>
+        {(pei.resumoPEI || []).map((meta, idx) => {
+          const entrada = entradaManual[meta.habilidade] || {};
 
-        {areaAtual && (
-          <div style={estilos.subareaContainer}>
-            {Object.keys(sugestoesIA[areaAtual]).map((subarea) => (
+          const estrategiasOriginais = Array.isArray(meta.estrategias)
+            ? meta.estrategias
+            : typeof meta.estrategias === "string"
+            ? [meta.estrategias]
+            : [];
+
+          const selecionadas = entrada.estrategias || [];
+
+          return (
+            <article key={idx} style={estilos.metaCard}>
+              <h3>{meta.habilidade}</h3>
+              <p><strong>Nível atual:</strong> {meta.nivel} — {LEGENDA_NIVEIS[meta.nivel]}</p>
+              <p><strong>Nível almejado:</strong> {meta.nivelAlmejado}</p>
+              <p><strong>Objetivo:</strong> {meta.objetivo}</p>
+
               <button
-                key={subarea}
-                style={subarea === subareaAtual ? estilos.subbotaoAtivo : estilos.subbotao}
-                onClick={() => setSubareaAtual(subarea)}
+                onClick={() => handleRemoverMeta(idx, meta.habilidade)}
+                style={estilos.botaoRemover}
               >
-                {subarea}
+                Remover
               </button>
-            ))}
-          </div>
-        )}
 
-        {subareaAtual && (
-          <div>
-            <h3>{areaAtual} — {subareaAtual}</h3>
+              <fieldset>
+                <legend style={{ fontWeight: "bold" }}>Estratégias:</legend>
 
-            {resumoPEI
-              .filter(
-                (m) =>
-                  m.area?.toLowerCase() === areaAtual?.toLowerCase() &&
-                  m.subarea?.toLowerCase() === subareaAtual?.toLowerCase()
-              )
-              .map((meta, i) => (
-                <div key={i} style={estilos.metaAntiga}>
-                  <p><strong>Objetivos:</strong> {meta.objetivos}</p>
-                  <p><strong>Estratégias:</strong> {meta.estrategias}</p>
-                  <p><strong>Nível:</strong> {meta.nivel}</p>
-                </div>
-              ))}
+                {estrategiasOriginais.map((estrategia, i) => (
+                  <div key={i}>
+                    <input
+                      type="checkbox"
+                      id={`estrategia-${idx}-${i}`}
+                      checked={selecionadas.includes(estrategia)}
+                      onChange={(e) => {
+                        const atual = [...selecionadas];
+                        const atualizadas = e.target.checked
+                          ? [...atual, estrategia]
+                          : atual.filter((e) => e !== estrategia);
 
-            <div>
-              <p><strong>Objetivos sugeridos:</strong></p>
-              {sugestoesIA[areaAtual][subareaAtual]?.objetivos?.map((obj, i) => (
-                <label key={i} style={{ display: "block" }}>
-                  <input
-                    type="checkbox"
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        const atuais = new Set((novaMeta.objetivos || "").split("\n"));
-                        atuais.add(obj);
-                        setNovaMeta((prev) => ({
+                        setEntradaManual((prev) => ({
                           ...prev,
-                          objetivos: Array.from(atuais).filter(Boolean).join("\n"),
+                          [meta.habilidade]: {
+                            ...prev[meta.habilidade],
+                            estrategias: atualizadas
+                          }
                         }));
-                      }
-                    }}
-                  />
-                  {obj}
-                </label>
-              ))}
-
-              <textarea
-                style={estilos.textarea}
-                placeholder="Escreva seus próprios objetivos (um por linha)"
-                value={novaMeta.objetivos || ""}
-                onChange={(e) =>
-                  setNovaMeta({ ...novaMeta, objetivos: e.target.value })
-                }
-              />
-
-              <p><strong>Estratégias sugeridas:</strong></p>
-              {sugestoesIA[areaAtual][subareaAtual]?.estrategias?.map((est, i) => (
-                <label key={i} style={{ display: "block" }}>
-                  <input
-                    type="checkbox"
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        const atuais = new Set((novaMeta.estrategias || "").split("\n"));
-                        atuais.add(est);
-                        setNovaMeta((prev) => ({
-                          ...prev,
-                          estrategias: Array.from(atuais).filter(Boolean).join("\n"),
-                        }));
-                      }
-                    }}
-                  />
-                  {est}
-                </label>
-              ))}
-
-              <textarea
-                style={estilos.textarea}
-                placeholder="Escreva suas próprias estratégias (uma por linha)"
-                value={novaMeta.estrategias || ""}
-                onChange={(e) =>
-                  setNovaMeta({ ...novaMeta, estrategias: e.target.value })
-                }
-              />
-
-              <div style={{ marginTop: 10 }}>
-                <label><strong>Nível de desempenho:</strong></label>
-                <div style={estilos.radios}>
-                  {["NR", "AF", "AL", "AG", "AV", "I"].map((n) => (
-                    <label key={n}>
-                      <input
-                        type="radio"
-                        name="nivel"
-                        value={n}
-                        checked={novaMeta.nivel === n}
-                        onChange={(e) =>
-                          setNovaMeta({ ...novaMeta, nivel: e.target.value })
-                        }
-                      />{" "}
-                      {n}
+                      }}
+                    />
+                    <label htmlFor={`estrategia-${idx}-${i}`} style={{ marginLeft: "8px" }}>
+                      {estrategia}
                     </label>
-                  ))}
-                </div>
-              </div>
+                  </div>
+                ))}
 
-              <button style={estilos.botaoSalvar} onClick={handleAdicionar}>
-                Salvar Nova Meta
-              </button>
-            </div>
-          </div>
-        )}
+                <label style={{ display: "block", marginTop: "10px" }}>
+                  Estratégias personalizadas (uma por linha):
+                </label>
+                <textarea
+                  value={entrada.estrategiasManuais || ""}
+                  onChange={(e) =>
+                    setEntradaManual((prev) => ({
+                      ...prev,
+                      [meta.habilidade]: {
+                        ...prev[meta.habilidade],
+                        estrategiasManuais: e.target.value
+                      }
+                    }))
+                  }
+                  style={estilos.textarea}
+                />
+              </fieldset>
+            </article>
+          );
+        })}
+
+        <button style={estilos.botaoSalvar} onClick={handleSalvar} disabled={carregando}>
+          {carregando ? "Salvando..." : "Salvar Alterações"}
+        </button>
       </div>
     </div>
   );
 }
 
 const estilos = {
-  fundo: {
+  container: {
+    background: "#1d3557",
     minHeight: "100vh",
     width: "100vw",
-    background: "linear-gradient(to right, #1d3557, #457b9d)",
-    padding: "40px",
-    display: "flex",
-    justifyContent: "center",
+    padding: "30px"
   },
   card: {
-    backgroundColor: "#fff",
+    background: "#fff",
+    maxWidth: "1000px",
+    margin: "0 auto",
     padding: "30px",
     borderRadius: "16px",
-    maxWidth: "900px",
-    width: "100%",
-    fontFamily: "'Segoe UI', sans-serif",
+    boxShadow: "0 4px 15px rgba(0,0,0,0.1)"
   },
   titulo: {
-    fontSize: "24px",
+    textAlign: "center",
     color: "#1d3557",
-    marginBottom: "20px",
+    marginBottom: "25px"
   },
-  areaContainer: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: "10px",
-    marginBottom: "20px",
-  },
-  subareaContainer: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: "8px",
-    marginBottom: "20px",
-  },
-  botao: {
-    backgroundColor: "#a8dadc",
-    border: "none",
-    padding: "10px 15px",
-    borderRadius: "6px",
-    cursor: "pointer",
-  },
-  botaoAtivo: {
-    backgroundColor: "#1d3557",
-    color: "#fff",
-    border: "none",
-    padding: "10px 15px",
-    borderRadius: "6px",
-    cursor: "pointer",
-  },
-  subbotao: {
-    backgroundColor: "#f1faee",
-    border: "1px solid #ccc",
-    padding: "8px 12px",
-    borderRadius: "6px",
-    cursor: "pointer",
-  },
-  subbotaoAtivo: {
-    backgroundColor: "#457b9d",
-    color: "#fff",
-    padding: "8px 12px",
-    borderRadius: "6px",
-    border: "none",
-    cursor: "pointer",
-  },
-  metaAntiga: {
-    backgroundColor: "#eee",
-    padding: "10px",
-    marginBottom: "10px",
-    borderRadius: "8px",
+  metaCard: {
+    background: "#f9f9f9",
+    border: "1px solid #ddd",
+    borderRadius: "12px",
+    padding: "15px",
+    marginBottom: "15px"
   },
   textarea: {
     width: "100%",
@@ -315,23 +221,31 @@ const estilos = {
     padding: "10px",
     borderRadius: "6px",
     border: "1px solid #ccc",
-    marginBottom: "10px",
-    fontSize: "16px",
-  },
-  radios: {
-    display: "flex",
-    gap: "10px",
-    marginTop: "5px",
-    marginBottom: "20px",
+    fontSize: "14px"
   },
   botaoSalvar: {
     backgroundColor: "#2a9d8f",
     color: "#fff",
-    padding: "10px 15px",
+    padding: "14px 24px",
+    border: "none",
+    borderRadius: "8px",
+    fontSize: "16px",
+    fontWeight: "bold",
+    display: "block",
+    margin: "30px auto 0",
+    cursor: "pointer"
+  },
+  botaoRemover: {
+    backgroundColor: "#e63946",
+    color: "#fff",
+    padding: "6px 14px",
     border: "none",
     borderRadius: "6px",
+    fontSize: "14px",
+    fontWeight: "bold",
     cursor: "pointer",
-  },
+    marginBottom: "10px"
+  }
 };
 
 export default EditarPei;

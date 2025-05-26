@@ -8,6 +8,7 @@ function CadastroAluno() {
   const [nascimento, setNascimento] = useState("");
   const [diagnostico, setDiagnostico] = useState("");
   const [turma, setTurma] = useState("");
+  const [turno, setTurno] = useState("");
   const [idade, setIdade] = useState("");
 
   const calcularIdade = (data) => {
@@ -30,7 +31,7 @@ function CadastroAluno() {
   const handleSalvar = async (e) => {
     e.preventDefault();
 
-    if (!nome || !nascimento || !diagnostico || !turma) {
+    if (!nome || !nascimento || !diagnostico || !turma || !turno) {
       alert("Preencha todos os campos!");
       return;
     }
@@ -40,7 +41,8 @@ function CadastroAluno() {
         nome,
         nascimento,
         diagnostico,
-        turma
+        turma,
+        turno
       });
 
       alert("Aluno cadastrado com sucesso!");
@@ -49,6 +51,7 @@ function CadastroAluno() {
       setNascimento("");
       setDiagnostico("");
       setTurma("");
+      setTurno("");
       setIdade("");
     } catch (error) {
       console.error("Erro ao salvar no Firestore:", error);
@@ -93,6 +96,16 @@ function CadastroAluno() {
           onChange={(e) => setTurma(e.target.value)}
         />
 
+        <select
+          style={inputStyle}
+          value={turno}
+          onChange={(e) => setTurno(e.target.value)}
+        >
+          <option value="">Selecione o turno</option>
+          <option value="matutino">Matutino</option>
+          <option value="vespertino">Vespertino</option>
+        </select>
+
         <button type="submit" style={botaoSalvar}>Salvar</button>
       </form>
     </div>
@@ -105,6 +118,7 @@ const containerStyle = {
   padding: "100px",
   borderRadius: "10px",
   maxWidth: "600px",
+  width: "100vw",
   margin: "0 auto",
   boxShadow: "0 0 10px rgba(0,0,0,0.1)"
 };

@@ -1,7 +1,6 @@
-// src/pages/CadastrarProfessor.jsx
 import React, { useState } from "react";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { collection, addDoc } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 import { auth, db } from "../firebase";
 import { useNavigate } from "react-router-dom";
 
@@ -20,21 +19,34 @@ export default function CadastrarProfessor() {
     }
 
     try {
-      const cred = await createUserWithEmailAndPassword(auth, email, senha);
+      const cred = await createUserWithEmailAndPassword(auth, email.trim(), senha);
 
-      await addDoc(collection(db, "usuarios"), {
+      await setDoc(doc(db, "usuarios", cred.user.uid), {
         nome,
-        email,
+        email: email.trim(),
         cargo,
         perfil: "professor",
         uid: cred.user.uid,
+        escolas: []
       });
 
       alert("Professor cadastrado com sucesso!");
       navigate("/login");
     } catch (error) {
       console.error("Erro ao cadastrar:", error);
-      alert("Erro ao cadastrar. Verifique os dados e tente novamente.");
+
+      let mensagem = "Erro ao cadastrar. Verifique os dados e tente novamente.";
+      if (error.code === "auth/email-already-in-use") {
+        mensagem = "Este e-mail já está cadastrado.";
+      } else if (error.code === "auth/invalid-email") {
+        mensagem = "O e-mail digitado é inválido.";
+      } else if (error.code === "auth/weak-password") {
+        mensagem = "A senha precisa ter pelo menos 6 caracteres.";
+      } else if (error.code === "permission-denied") {
+        mensagem = "Sem permissão para salvar no Firestore. Verifique as regras.";
+      }
+
+      alert(mensagem);
     }
   };
 
@@ -51,13 +63,28 @@ export default function CadastrarProfessor() {
           onChange={(e) => setNome(e.target.value)}
           style={estilos.input}
         />
-        <input
-          type="text"
-          placeholder="Cargo"
+
+        <select
           value={cargo}
           onChange={(e) => setCargo(e.target.value)}
-          style={estilos.input}
-        />
+          style={estilos.select}
+        >
+          <option value="">Selecione a disciplina</option>
+          <option value="PROFESSOR REGENTE">PROFESSOR REGENTE</option>
+          <option value="PROFESSOR DE SUPORTE">PROFESSOR DE SUPORTE</option>
+          <option value="ARTE">ARTE</option>
+          <option value="EDUCAÇÃO FÍSICA">EDUCAÇÃO FÍSICA</option>
+          <option value="CONTAÇÃO DE HISTÓRIAS">CONTAÇÃO DE HISTÓRIAS</option>
+          <option value="PORTUGUÊS">PORTUGUÊS</option>
+          <option value="MATEMÁTICA">MATEMÁTICA</option>
+          <option value="HISTÓRIA">HISTÓRIA</option>
+          <option value="GEOGRAFIA">GEOGRAFIA</option>
+          <option value="CIÊNCIAS">CIÊNCIAS</option>
+          <option value="INGLÊS">INGLÊS</option>
+          <option value="ENSINO RELIGIOSO">ENSINO RELIGIOSO</option>
+          <option value="COMUNICAÇÃO E LINGUAGEM">COMUNICAÇÃO E LINGUAGEM</option>
+        </select>
+
         <input
           type="email"
           placeholder="E-mail"
@@ -131,6 +158,25 @@ const estilos = {
     borderRadius: "6px",
     border: "1px solid #ccc",
     fontSize: "16px"
+  },
+  select: {
+    width: "100%",
+    padding: "12px",
+    marginBottom: "16px",
+    borderRadius: "6px",
+    border: "1px solid #ccc",
+    fontSize: "16px",
+    fontFamily: "'Segoe UI', sans-serif",
+    backgroundColor: "#fff",
+    color: "#333",
+    appearance: "none",
+    WebkitAppearance: "none",
+    MozAppearance: "none",
+    backgroundImage: `url("data:image/svg+xml;utf8,<svg fill='gray' height='20' viewBox='0 0 24 24' width='20' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>")`,
+    backgroundRepeat: "no-repeat",
+    backgroundPosition: "right 10px center",
+    backgroundSize: "20px",
+    cursor: "pointer"
   },
   senhaWrapper: {
     position: "relative"

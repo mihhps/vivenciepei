@@ -1,108 +1,146 @@
-import React, { useState, useEffect } from "react";
-import { collection, addDoc, getDocs, updateDoc, doc, query, where } from "firebase/firestore";
+import React, { useState, useEffect, useCallback } from "react";
+import { collection, addDoc, getDocs, updateDoc, query, where } from "firebase/firestore";
 import { db } from "../firebase";
 import { avaliacaoInicial } from "../data/avaliacaoInicialData";
 import BotaoVoltar from "../components/BotaoVoltar";
 import SelecaoAluno from "../components/SelecaoAluno";
 import AreaPerguntas from "../components/AreaPerguntas";
 import { useNavigate } from "react-router-dom";
+import "../styles/AvaliacaoInicial.css";
+import { Timestamp } from "firebase/firestore";
+
 
 function AvaliacaoInicial() {
   const [alunos, setAlunos] = useState([]);
   const [alunoSelecionado, setAlunoSelecionado] = useState("");
   const [idade, setIdade] = useState(null);
-  const [faixaEtaria, setFaixaEtaria] = useState("");
   const [observacoes, setObservacoes] = useState({});
   const [respostas, setRespostas] = useState({});
   const [areaSelecionada, setAreaSelecionada] = useState("");
+  const [carregando, setCarregando] = useState(false);
+  const [erro, setErro] = useState(null);
   const navigate = useNavigate();
+  const [inicio, setInicio] = useState("");
+const [proximaAvaliacao, setProximaAvaliacao] = useState("");
 
-  useEffect(() => {
-    const buscarAlunos = async () => {
-      try {
-        const snapshot = await getDocs(collection(db, "alunos"));
-        const alunosFirestore = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setAlunos(alunosFirestore);
-      } catch (erro) {
-        console.error("Erro ao carregar alunos do Firestore:", erro);
-      }
-    };
-  
-    buscarAlunos();
+  const areas = Object.keys(avaliacaoInicial);
+
+  const buscarAlunos = useCallback(async () => {
+    try {
+      setCarregando(true);
+      setErro(null);
+
+      const snapshot = await getDocs(collection(db, "alunos"));
+      const alunosFirestore = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+
+      setAlunos(alunosFirestore);
+    } catch (erro) {
+      console.error("Erro ao carregar alunos:", erro);
+      setErro("Falha ao carregar alunos. Tente recarregar a página.");
+    } finally {
+      setCarregando(false);
+    }
   }, []);
 
-  const calcularIdadeEFaixa = (nascimento) => {
-    if (!nascimento) return [null, ""];
-    const hoje = new Date();
-    const nasc = new Date(nascimento);
-    let idadeAtual = hoje.getFullYear() - nasc.getFullYear();
-    const m = hoje.getMonth() - nasc.getMonth();
-    if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) idadeAtual--;
+  useEffect(() => {
+    buscarAlunos();
+  }, [buscarAlunos]);
 
-    let faixa =
-      idadeAtual <= 3 ? null :
-      idadeAtual <= 5 ? "4-5" :
-      idadeAtual <= 10 ? "6-10" :
-      idadeAtual <= 14 ? "11-14" :
-      idadeAtual === 15 ? "15" : null;
+  const calcularIdade = useCallback((nascimento) => {
+    if (!nascimento) return null;
 
-    return faixa ? [idadeAtual, faixa] : [idadeAtual, ""];
-  };
+    try {
+      const hoje = new Date();
+      const nasc = new Date(nascimento);
+      if (isNaN(nasc)) return null;
 
-  const handleSelecionarAluno = (e) => {
+      let idadeAtual = hoje.getFullYear() - nasc.getFullYear();
+      const m = hoje.getMonth() - nasc.getMonth();
+
+      if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) {
+        idadeAtual--;
+      }
+
+      return idadeAtual;
+    } catch (error) {
+      console.error("Erro ao calcular idade:", error);
+      return null;
+    }
+  }, []);
+
+  const handleSelecionarAluno = useCallback((e) => {
     const nome = e.target.value;
     setAlunoSelecionado(nome);
+    setErro(null);
+
     const aluno = alunos.find((a) => a.nome === nome);
-    const [idadeCalculada, faixa] = calcularIdadeEFaixa(aluno?.nascimento);
+    if (!aluno) {
+      setErro("Aluno não encontrado.");
+      return;
+    }
+
+    const idadeCalculada = calcularIdade(aluno.nascimento);
     setIdade(idadeCalculada);
-    setFaixaEtaria(faixa);
     setAreaSelecionada("");
     setRespostas({});
     setObservacoes({});
-  };
+  }, [alunos, calcularIdade]);
 
-  const handleResposta = (area, item, valor) => {
-    setRespostas((prev) => ({
-      ...prev,
-      [area]: {
-        ...prev[area],
-        [item]: valor,
-      },
-    }));
-  };
-
-  const handleObservacao = (area, texto) => {
+ const handleResposta = useCallback((area, habilidade, nivel) => {
+  setRespostas((prev) => ({
+    ...prev,
+    [area]: {
+      ...prev[area],
+      [habilidade]: nivel, // nível como valor!
+    },
+  }));
+}, []);
+  
+  const handleObservacao = useCallback((area, texto) => {
     setObservacoes((prev) => ({
       ...prev,
       [area]: texto,
     }));
-  };
+  }, []);
 
   const handleSalvar = async () => {
-    if (!alunoSelecionado || !idade || !faixaEtaria) {
-      alert("Preencha todos os campos da avaliação.");
+    if (!alunoSelecionado) {
+      setErro("Selecione um aluno antes de salvar.");
       return;
     }
 
-    const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
-    const novaAvaliacao = {
-      aluno: alunoSelecionado,
-      idade,
-      faixaEtaria,
-      respostas,
-      observacoes,
-      criadoPor: usuario?.nome || "Desconhecido",
-      dataCriacao: new Date().toISOString()
-    };
+    if (!idade) {
+      setErro("Não foi possível determinar a idade do aluno.");
+      return;
+    }
 
     try {
+      setCarregando(true);
+      setErro(null);
+
+      const usuario = JSON.parse(localStorage.getItem("usuarioLogado")) || {};
+      const novaAvaliacao = {
+  aluno: alunoSelecionado,
+  idade,
+  respostas,
+  observacoes,
+  inicio,
+  proximaAvaliacao,
+        criadoPor: usuario.nome || "Desconhecido",
+        cargoCriador: usuario.cargo || "Desconhecido",
+        criadorId: usuario.email || "",
+        dataCriacao: Timestamp.now()
+      };
+
       const ref = collection(db, "avaliacoesIniciais");
       const q = query(ref, where("aluno", "==", alunoSelecionado));
       const snapshot = await getDocs(q);
 
       if (!snapshot.empty) {
-        const docRef = snapshot.docs[0].ref;
-        await updateDoc(docRef, novaAvaliacao);
+        await updateDoc(snapshot.docs[0].ref, novaAvaliacao);
         alert("Avaliação atualizada com sucesso!");
       } else {
         await addDoc(ref, novaAvaliacao);
@@ -112,110 +150,124 @@ function AvaliacaoInicial() {
       navigate("/ver-avaliacoes");
     } catch (error) {
       console.error("Erro ao salvar avaliação:", error);
-      alert("Erro ao salvar. Tente novamente.");
+      setErro("Erro ao salvar avaliação. Tente novamente.");
+    } finally {
+      setCarregando(false);
     }
   };
 
-  const areas = faixaEtaria && avaliacaoInicial[faixaEtaria]
-    ? Object.keys(avaliacaoInicial[faixaEtaria])
-    : [];
-
   return (
-    <div style={{ minHeight: "100vh", width: "100vw", background: "#1d3557", padding: "30px" }}>
-      <div style={{
-        background: "#fff",
-        maxWidth: "900px",
-        margin: "0 auto",
-        padding: "30px",
-        borderRadius: "16px",
-        boxShadow: "0 4px 15px rgba(0,0,0,0.1)"
-      }}>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
+    <div className="avaliacao-container" aria-busy={carregando}>
+      <div className="avaliacao-card">
+        <div className="avaliacao-header">
           <BotaoVoltar />
           <button
             onClick={() => navigate("/ver-avaliacoes")}
-            style={{
-              padding: "10px 20px",
-              backgroundColor: "#457b9d",
-              color: "white",
-              border: "none",
-              borderRadius: "8px",
-              cursor: "pointer",
-              fontWeight: "bold",
-              fontSize: "14px"
-            }}
+            className="botao-ver-avaliacoes"
+            disabled={carregando}
           >
             Ver Avaliações
           </button>
         </div>
 
-        <h2 style={{ textAlign: "center", color: "#1d3557", marginBottom: "25px" }}>Avaliação Inicial</h2>
+        <h1 className="avaliacao-titulo">Avaliação Inicial Modular Completa</h1>
+
+        {erro && <div className="mensagem-erro" role="alert">{erro}</div>}
 
         <SelecaoAluno
           alunos={alunos}
           alunoSelecionado={alunoSelecionado}
           onSelecionar={handleSelecionarAluno}
+          carregando={carregando}
         />
 
-        {faixaEtaria && (
-          <>
-            <p style={{ marginBottom: "15px", fontSize: "16px" }}>
-              <strong>Idade:</strong> {idade} anos — <strong>Faixa Etária:</strong> {faixaEtaria}
-            </p>
+        {idade && (
+          <p style={{ marginBottom: "15px", fontSize: "16px" }}>
+            <strong>Idade:</strong> {idade} anos
+          </p>
+        )}
+        <div style={{
+  display: "flex",
+  gap: "30px",
+  marginBottom: "30px",
+  alignItems: "flex-end",
+  flexWrap: "wrap"
+}}>
+  <div style={{ flex: "1" }}>
+    <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>
+      Data de Início:
+    </label>
+    <input
+      type="date"
+      value={inicio}
+      onChange={(e) => setInicio(e.target.value)}
+      style={{
+        width: "100%",
+        padding: "8px",
+        fontSize: "14px",
+        borderRadius: "4px",
+        border: "1px solid #ccc"
+      }}
+    />
+  </div>
 
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "30px" }}>
-              {areas.map((area) => (
-                <button
-                  key={area}
-                  onClick={() => setAreaSelecionada(area)}
-                  style={{
-                    padding: "10px 18px",
-                    borderRadius: "20px",
-                    border: "none",
-                    backgroundColor: areaSelecionada === area ? "#1d3557" : "#f0f0f0",
-                    color: areaSelecionada === area ? "#fff" : "#333",
-                    cursor: "pointer",
-                    fontWeight: areaSelecionada === area ? "bold" : "normal"
-                  }}
-                >
-                  {area.replaceAll("_", " ")}
-                </button>
-              ))}
-            </div>
-          </>
+  <div style={{ flex: "1" }}>
+    <label style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>
+      Próxima Avaliação:
+    </label>
+    <input
+      type="date"
+      value={proximaAvaliacao}
+      onChange={(e) => setProximaAvaliacao(e.target.value)}
+      style={{
+        width: "100%",
+        padding: "8px",
+        fontSize: "14px",
+        borderRadius: "4px",
+        border: "1px solid #ccc"
+      }}
+    />
+  </div>
+</div>
+
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "30px" }}>
+          {areas.map((area) => (
+            <button
+              key={area}
+              onClick={() => setAreaSelecionada(area)}
+              className={`area-botao ${areaSelecionada === area ? "ativo" : ""}`}
+              disabled={!alunoSelecionado || carregando}
+              aria-current={areaSelecionada === area ? "true" : "false"}
+            >
+              {area}
+            </button>
+          ))}
+        </div>
+
+        {carregando && !areaSelecionada && (
+          <div className="loading">Carregando...</div>
         )}
 
         {areaSelecionada && (
           <AreaPerguntas
             area={areaSelecionada}
-            faixaEtaria={faixaEtaria}
-            dados={avaliacaoInicial[faixaEtaria][areaSelecionada]}
-            respostas={respostas}
-            observacoes={observacoes}
+            dados={avaliacaoInicial[areaSelecionada]}
+            respostas={respostas[areaSelecionada] || {}}
+            observacoes={observacoes[areaSelecionada] || ""}
             onResponder={handleResposta}
             onObservar={handleObservacao}
+            disabled={carregando}
           />
         )}
 
         {alunoSelecionado && (
           <button
             onClick={handleSalvar}
-            style={{
-              marginTop: "30px",
-              backgroundColor: "#1d3557",
-              color: "white",
-              padding: "14px 24px",
-              border: "none",
-              borderRadius: "8px",
-              fontWeight: "bold",
-              fontSize: "16px",
-              cursor: "pointer",
-              display: "block",
-              marginLeft: "auto",
-              marginRight: "auto"
-            }}
+            className="botao-salvar"
+            disabled={carregando}
+            aria-busy={carregando}
           >
-            Salvar Avaliação
+            {carregando ? "Salvando..." : "Salvar Avaliação"}
           </button>
         )}
       </div>
