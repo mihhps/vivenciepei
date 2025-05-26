@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db } from "../firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { collection, getDocs } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -18,30 +18,52 @@ export default function Login() {
 
     try {
       const cred = await signInWithEmailAndPassword(auth, email.trim(), senha);
+      const usuarioRef = doc(db, "usuarios", cred.user.uid);
+      const usuarioSnap = await getDoc(usuarioRef);
 
-      const usuariosSnapshot = await getDocs(collection(db, "usuarios"));
-      const usuarios = usuariosSnapshot.docs.map(doc => doc.data());
-      const usuario = usuarios.find(u => u.email === email.trim());
-
-      if (!usuario) {
-        alert("Usuário autenticado, mas não cadastrado no sistema.");
+      if (!usuarioSnap.exists()) {
+        alert("Usuário autenticado, mas não encontrado na lista de usuários.");
         return;
       }
 
+      const usuario = usuarioSnap.data();
       const usuarioCompleto = {
         ...usuario,
         uid: cred.user.uid,
-        email: cred.user.email,
+        email: cred.user.email
       };
 
-      console.log("Usuário logado:", usuarioCompleto);
+      // Verificação de perfil
+      if (!usuarioCompleto.perfil) {
+        alert("Perfil do usuário não definido. Verifique o cadastro.");
+        return;
+      }
 
       localStorage.setItem("usuarioLogado", JSON.stringify(usuarioCompleto));
+      console.log(">> localStorage salvo com:", localStorage.getItem("usuarioLogado"));
 
-      if (usuarioCompleto.perfil === "gestao") navigate("/painel-gestao");
-      else if (usuarioCompleto.perfil === "aee") navigate("/painel-aee");
-      else if (usuarioCompleto.perfil === "professor") navigate("/painel-professor");
-      else navigate("/");
+      // Redirecionamento por perfil
+      if (usuarioCompleto.perfil === "gestao") {
+        navigate("/painel-gestao");
+      } else if (usuarioCompleto.perfil === "aee") {
+        navigate("/painel-aee");
+      } else if (usuarioCompleto.perfil === "professor") {
+        const escolasObj = usuario.escolas || {};
+        const escolaIds = Object.keys(escolasObj);
+
+        if (escolaIds.length === 0) {
+          alert("Este professor não está vinculado a nenhuma escola.");
+          return;
+        } else if (escolaIds.length === 1) {
+          localStorage.setItem("escolaAtiva", escolaIds[0]);
+          navigate("/painel-professor");
+        } else {
+          localStorage.setItem("escolasDisponiveis", JSON.stringify(escolaIds));
+          navigate("/selecionar-escola");
+        }
+      } else {
+        navigate("/");
+      }
     } catch (error) {
       console.error("Erro no login:", error);
       alert("E-mail ou senha incorretos.");
@@ -82,6 +104,13 @@ export default function Login() {
         <button style={estilos.botao} onClick={handleLogin}>
           Entrar
         </button>
+
+        <p
+          style={{ marginTop: "10px", color: "#1d3557", cursor: "pointer" }}
+          onClick={() => navigate("/recuperar-senha")}
+        >
+          Esqueceu a senha?
+        </p>
 
         <p style={{ marginTop: 20 }}>
           Ainda não tem conta?{" "}

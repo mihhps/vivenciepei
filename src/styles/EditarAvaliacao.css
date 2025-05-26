@@ -1,0 +1,93 @@
+.editar-container {
+  padding: 20px;
+  max-width: 900px;
+  margin: 0 auto;
+  font-family: "Segoe UI", sans-serif;
+}
+
+.editar-titulo {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+.linha-habilidade {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #ddd;
+  padding: 10px 0;
+  flex-wrap: wrap;
+}
+
+.texto-habilidade {
+  flex: 1;
+  font-size: 15px;
+}
+
+.niveis-habilidade {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 5px;
+}
+
+.circulo-nivel {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: bold;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.5;
+  cursor: pointer;
+  transition: 0.2s;
+  user-select: none;
+}
+
+.circulo-nivel.ativo {
+  opacity: 1;
+  outline: 2px solid #00000033;
+}
+
+.circulo-nivel.NR { background-color: #e63946; }
+.circulo-nivel.AF { background-color: #f4a261; }
+.circulo-nivel.AG { background-color: #e9c46a; }
+.circulo-nivel.AV { background-color: #2a9d8f; }
+.circulo-nivel.AVi { background-color: #8ecae6; }
+.circulo-nivel.I  { background-color: #4caf50; }
+.circulo-nivel.NA { background-color: #adb5bd; }
+
+.botao-salvar {
+  margin-top: 20px;
+  padding: 12px 24px;
+  background-color: #1976d2;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-weight: bold;
+  cursor: pointer;
+}
+body {
+  margin: 0;
+  padding: 0;
+  background: linear-gradient(to bottom right, #1d3557, #457b9d);
+  min-height: 100vh;
+  font-family: 'Segoe UI', sans-serif;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.editar-container {
+  max-width: 960px;
+  margin: 40px auto;
+  padding: 30px;
+  border-radius: 16px;
+  background-color: white;
+  color: black;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}

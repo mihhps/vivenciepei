@@ -40,8 +40,13 @@ export default function CadastrarUsuario() {
   return (
     <div style={estilos.container}>
       <div style={estilos.card}>
-        <BotaoVoltar />
-        <img src="/logo-vivencie.png" alt="Logo Vivencie PEI" style={estilos.logo} />
+       <div style={{ position: "absolute", top: 20, left: 20 }}>
+  <BotaoVoltar />
+</div>
+
+<div style={{ display: "flex", justifyContent: "center" }}>
+  <img src="/logo-vivencie.png" alt="Logo Vivencie PEI" style={estilos.logo} />
+</div>
         <h2 style={estilos.titulo}>Cadastro de Usuário</h2>
 
         <input
@@ -91,6 +96,7 @@ export default function CadastrarUsuario() {
           <option value="gestao">Gestão</option>
           <option value="aee">AEE</option>
           <option value="professor">Professor</option>
+          <option value="seme">SEME</option>
         </select>
 
         <button style={estilos.botao} onClick={handleCadastro}>
@@ -112,13 +118,14 @@ const estilos = {
     fontFamily: "'Segoe UI', sans-serif"
   },
   card: {
-    backgroundColor: "#fff",
-    padding: "40px",
-    borderRadius: "20px",
-    boxShadow: "0 0 30px rgba(0,0,0,0.2)",
-    width: "100%",
-    maxWidth: "400px",
-    textAlign: "center"
+  position: "relative", // necessário para o botão voltar
+  backgroundColor: "#fff",
+  padding: "40px",
+  borderRadius: "20px",
+  boxShadow: "0 0 30px rgba(0,0,0,0.2)",
+  width: "100%",
+  maxWidth: "400px",
+  textAlign: "center"
   },
   logo: {
     width: "100px",
