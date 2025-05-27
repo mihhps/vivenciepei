@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import PropTypes from 'prop-types';
 import { db } from "../firebase";
-import { getDocs, collection } from "firebase/firestore"; // garanta que isso esteja no topo
+import { getDocs, collection, addDoc, doc, updateDoc } from "firebase/firestore";
 import estruturaPEI from "../data/estruturaPEI";
 import BotaoVoltar from "../components/BotaoVoltar";
 import { useNavigate } from "react-router-dom";
