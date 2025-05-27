@@ -20,8 +20,11 @@ const calcularIdadeEFaixa = (nascimento) => {
 function formatarDataSegura(data) {
   if (!data) return "-";
   try {
-    const dataObj = typeof data === "string" ? new Date(data) : data?.toDate?.() || new Date(data);
-    return isNaN(dataObj) ? "-" : dataObj.toLocaleDateString("pt-BR");
+    const dataStr = typeof data === "string" ? data : data.toDate?.().toISOString();
+    if (!dataStr) return "-";
+
+    const [ano, mes, dia] = dataStr.split("T")[0].split("-");
+    return `${dia}/${mes}/${ano}`;
   } catch {
     return "-";
   }
@@ -231,13 +234,26 @@ export default function VerPEIs() {
                       <p style={estilos.semDados}>Nenhum PEI registrado para este aluno.</p>
                     ) : (
                       peis.map((pei, idx) => (
-                        <div key={idx} style={estilos.cardInterno}>
-                          <div style={estilos.infoPei}>
-                            <p><strong>Turma no PEI:</strong> {pei.turma}</p>
-                            <p><strong>Início:</strong> {formatarDataSegura(pei.inicio)}</p>
-                            <p><strong>Próxima Avaliação:</strong> {formatarDataSegura(pei.proximaAvaliacao)}</p>
-                            <p><strong>Criado por:</strong> {pei.nomeCriador || "-"}</p>
-                          </div>
+  <div key={idx} style={estilos.cardInterno}>
+    <div style={estilos.infoPei}>
+      <p><strong>Turma no PEI:</strong> {pei.turma}</p>
+
+      {/* Substituição aqui: */}
+      {(() => {
+        const avaliacao = avaliacoesIniciais[pei.aluno];
+        const dataInicial = formatarDataSegura(avaliacao?.inicio);
+        const proxima = formatarDataSegura(avaliacao?.proximaAvaliacao);
+
+        return (
+          <>
+            <p><strong>Data da Avaliação Inicial:</strong> {dataInicial}</p>
+            <p><strong>Próxima Avaliação:</strong> {proxima}</p>
+          </>
+        );
+      })()}
+
+      <p><strong>Criado por:</strong> {pei.nomeCriador || "-"}</p>
+    </div>
 
                           <div style={estilos.botoes}>
                             {(tipo === "gestao" || tipo === "aee" || usuarioLogado.email === pei.criadorId) && (

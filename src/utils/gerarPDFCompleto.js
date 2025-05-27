@@ -2,6 +2,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
+import { doc as docRef, getDoc } from "firebase/firestore";
 
 function formatarData(dataIso) {
   if (!dataIso) return "-";
@@ -13,7 +14,6 @@ const coresPorNivel = {
   NR: [255, 0, 0],
   AF: [255, 255, 0],
   AL: [0, 0, 255],
-  AG: [0, 100, 0],
   AV: [200, 200, 200],
   I: [255, 0, 255],
 };
@@ -29,11 +29,25 @@ export async function gerarPDFCompleto(aluno, usuarioLogado) {
   doc.text("PLANO EDUCACIONAL INDIVIDUALIZADO (PEI)", 105, y, { align: "center" });
   y += 10;
 
+  // Buscar nome da escola com base no aluno.escolaId
+  let nomeEscola = "-";
+  if (aluno.escolaId) {
+    try {
+      const escolaSnap = await getDoc(docRef(db, "escolas", aluno.escolaId));
+      if (escolaSnap.exists()) {
+        nomeEscola = escolaSnap.data().nome || "-";
+      }
+    } catch (err) {
+      console.error("Erro ao buscar nome da escola:", err);
+    }
+  }
+
   if (!aluno?.id || !aluno?.nome) {
     console.error("ID ou nome do aluno não definido!");
     return;
   }
 
+  // Buscar dados da avaliação inicial
   const queryAvaliacao = query(
     collection(db, "avaliacoesIniciais"),
     where("aluno", "==", aluno.nome)
@@ -41,6 +55,7 @@ export async function gerarPDFCompleto(aluno, usuarioLogado) {
   const snapAvaliacao = await getDocs(queryAvaliacao);
   const avaliacao = snapAvaliacao.empty ? {} : snapAvaliacao.docs[0].data();
 
+  // Buscar PEIs
   const queryPeis = query(collection(db, "peis"), where("aluno", "==", aluno.nome));
   const snapPeis = await getDocs(queryPeis);
   const todosPeis = snapPeis.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
@@ -65,74 +80,96 @@ export async function gerarPDFCompleto(aluno, usuarioLogado) {
     console.error("Nenhum PEI encontrado para esse aluno.");
     return;
   }
-doc.setFont("times", "normal");
-doc.setFontSize(12);
-doc.text(`Nome: ${aluno.nome}`, 20, y); y += 6;
 
-let idadeTexto = "-";
-let dataNascimentoTexto = "-";
-
-  let dataNasc = "-";
-let dataNascTexto = "-";
-
+// FORMATAR DATAS DA AVALIAÇÃO INICIAL E PRÓXIMA AVALIAÇÃO
+// Corrigir: data da avaliação inicial (da avaliação inicial)
+let dataAvaliacaoTexto = "-";
 try {
-  if (aluno.nascimento) {
-    let nascimento;
+  const inicio = avaliacao?.inicio;
+  let data = null;
 
-    if (typeof aluno.nascimento.toDate === "function") {
-      nascimento = aluno.nascimento.toDate();
-    } else if (typeof aluno.nascimento === "string" || typeof aluno.nascimento === "number") {
-      nascimento = new Date(aluno.nascimento);
-    }
+  if (inicio instanceof Date) {
+    data = inicio;
+  } else if (typeof inicio === "string" || typeof inicio === "number") {
+    data = new Date(inicio);
+  } else if (typeof inicio?.toDate === "function") {
+    data = inicio.toDate();
+  }
 
-    if (nascimento && !isNaN(nascimento.getTime())) {
-      dataNascTexto = formatarData(nascimento.toISOString());
+  if (data && !isNaN(data.getTime())) {
+    dataAvaliacaoTexto = formatarData(data.toISOString());
+  }
+} catch (err) {
+  console.error("Erro ao processar data da avaliação inicial:", err);
+}
+// Corrigir: pegar próxima avaliação da AVALIAÇÃO INICIAL
+let proximaAvaliacaoTexto = "-";
+try {
+  const proxima = avaliacao?.proximaAvaliacao;
+  if (typeof proxima === "string") {
+    const partes = proxima.split("-");
+    if (partes.length === 3) {
+      const data = new Date(partes[0], partes[1] - 1, partes[2]);
+      if (!isNaN(data.getTime())) {
+        proximaAvaliacaoTexto = formatarData(data.toISOString());
+      }
     }
   }
 } catch (err) {
-  console.error("Erro ao converter data de nascimento:", err);
+  console.error("Erro ao processar próxima avaliação (da avaliação inicial):", err);
 }
 
-doc.text(`Data de Nascimento: ${dataNascTexto}`, 20, y); y += 6;
-doc.text(`Turma: ${peiAtual.turma || aluno.turma || "-"}`, 20, y); y += 6;
-doc.text(`Diagnóstico: ${aluno.diagnostico || "-"}`, 20, y); y += 6;
-// DATA DA AVALIAÇÃO INICIAL
-let dataCriacaoTexto = "-";
 try {
-  const dataCriacaoValor = avaliacao?.dataCriacao;
-  const dataObj = dataCriacaoValor instanceof Date
-    ? dataCriacaoValor
-    : new Date(dataCriacaoValor);
-  if (!isNaN(dataObj.getTime())) {
-    dataCriacaoTexto = formatarData(dataObj.toISOString());
+  const proxima = peiAtual?.proximaAvaliacao;
+
+  if (typeof proxima === "string") {
+    // Caso esteja no formato "YYYY-MM-DD"
+    const partes = proxima.split("-");
+    if (partes.length === 3) {
+      const data = new Date(parseInt(partes[0]), parseInt(partes[1]) - 1, parseInt(partes[2]));
+      if (!isNaN(data.getTime())) {
+        proximaAvaliacaoTexto = formatarData(data.toISOString());
+      }
+    }
+  } else if (typeof proxima?.toDate === "function") {
+    const data = proxima.toDate();
+    if (!isNaN(data.getTime())) {
+      proximaAvaliacaoTexto = formatarData(data.toISOString());
+    }
   }
 } catch (e) {
-  console.error("Erro ao formatar data de criação:", e);
+  console.error("Erro ao processar próxima avaliação:", e);
 }
-doc.text(`Data da Avaliação Inicial: ${dataCriacaoTexto}`, 20, y);
-y += 6;
 
-// PRÓXIMA AVALIAÇÃO
-let proximaAvaliacaoTexto = "-";
-try {
-  const proxVal = peiAtual?.proximaAvaliacao;
-  const proxObj = proxVal instanceof Date
-    ? proxVal
-    : new Date(proxVal);
-  if (!isNaN(proxObj.getTime())) {
-    proximaAvaliacaoTexto = formatarData(proxObj.toISOString());
+  // Processar data de nascimento
+  let dataNascTexto = "-";
+  try {
+    if (aluno.nascimento) {
+      let nascimento;
+      if (typeof aluno.nascimento.toDate === "function") {
+        nascimento = aluno.nascimento.toDate();
+      } else {
+        nascimento = new Date(aluno.nascimento);
+      }
+      if (!isNaN(nascimento.getTime())) {
+        dataNascTexto = formatarData(nascimento.toISOString());
+      }
+    }
+  } catch (err) {
+    console.error("Erro ao converter data de nascimento:", err);
   }
-} catch (e) {
-  console.error("Erro ao formatar próxima avaliação:", e);
-}
-doc.text(`Próxima Avaliação: ${proximaAvaliacaoTexto}`, 20, y);
-y += 10;
 
-  doc.setFont("times", "bold");
-  doc.text("Avaliação Inicial", 20, y); y += 8;
+  // Cabeçalho com informações principais
   doc.setFont("times", "normal");
+  doc.setFontSize(12);
+  doc.text(`Escola: ${nomeEscola}`, 20, y); y += 6;
+  doc.text(`Nome: ${aluno.nome}`, 20, y); y += 6;
+  doc.text(`Data de Nascimento: ${dataNascTexto}`, 20, y); y += 6;
+  doc.text(`Diagnóstico: ${aluno.diagnostico || "-"}`, 20, y); y += 6;
+  doc.text(`Data da Avaliação Inicial: ${dataAvaliacaoTexto}`, 20, y); y += 6;
+  doc.text(`Data da Próxima Avaliação: ${proximaAvaliacaoTexto}`, 20, y); y += 10;
 
-// --- INÍCIO DO NOVO BLOCO: TABELA AVALIAÇÃO INICIAL ---
+
 if (avaliacao.respostas && Object.keys(avaliacao.respostas).length > 0) {
   for (const area in avaliacao.respostas) {
     const habilidades = avaliacao.respostas[area];
@@ -171,7 +208,7 @@ if (avaliacao.respostas && Object.keys(avaliacao.respostas).length > 0) {
     }
 
     // Renderiza a tabela da área
-    autoTable(doc, {
+   autoTable(doc, {
   startY: y,
   head: [["Habilidade", "Nível", "Descrição"]],
   body: linhasDaArea,
@@ -199,7 +236,39 @@ if (avaliacao.respostas && Object.keys(avaliacao.respostas).length > 0) {
     1: { cellWidth: 18, halign: "center" },
     2: { cellWidth: 75 }
   },
-  margin: { left: 20 },
+  margin: { top: 20, bottom: 30, left: 20 },
+  didParseCell: (data) => {
+    if (data.column.index === 1) {
+      const nivel = data.cell.text;
+      if (coresPorNivel[nivel]) {
+        data.cell.styles.fillColor = coresPorNivel[nivel];
+        data.cell.styles.textColor = [0, 0, 0];
+      }
+    }
+  },
+  didDrawPage: (data) => {
+  const pageHeight = doc.internal.pageSize.getHeight();
+
+  doc.setFont("times", "normal");      // Fonte Times New Roman, estilo normal
+  doc.setFontSize(8);                  // Tamanho pequeno, como no Word
+
+  doc.text(
+    "Prefeitura Municipal de Guabiruba / Secretaria de Educação de Guabiruba (SEME)",
+    20,
+    pageHeight - 20
+  );
+  doc.text(
+    "Rua José Dirschnabel, 67 - Centro - Guabiruba/SC",
+    20,
+    pageHeight - 15
+  );
+  doc.text(
+    "Telefone/WhatsApp: (47) 3308-3102 - www.guabiruba.sc.gov.br",
+    20,
+    pageHeight - 10
+  );
+},
+  
       didParseCell: (data) => {
         if (data.column.index === 1) {
           const nivel = data.cell.text;
@@ -240,7 +309,7 @@ if (avaliacao.respostas && Object.keys(avaliacao.respostas).length > 0) {
   item.nivelAlmejado || "-"
 ]);
 
-  autoTable(doc, {
+ autoTable(doc, {
   startY: y,
   head: [["Área", "Habilidade", "Objetivos", "Estratégias", "Nível", "Nível Almejado"]],
   body: linhasPEI,
@@ -271,7 +340,42 @@ if (avaliacao.respostas && Object.keys(avaliacao.respostas).length > 0) {
     4: { cellWidth: 20, halign: "center" },
     5: { cellWidth: 25, halign: "center" }
   },
-  margin: { left: (doc.internal.pageSize.getWidth() - 195) / 2 },
+  margin: {
+    top: 20,
+    bottom: 30,
+    left: (doc.internal.pageSize.getWidth() - 195) / 2
+  },
+  didParseCell: (data) => {
+    const nivel = data.cell.text;
+    if (data.column.index === 4 || data.column.index === 5) {
+      if (coresPorNivel[nivel]) {
+        data.cell.styles.fillColor = coresPorNivel[nivel];
+        data.cell.styles.textColor = [0, 0, 0];
+      }
+    }
+  },
+ didDrawPage: (data) => {
+  const pageHeight = doc.internal.pageSize.getHeight();
+
+  doc.setFont("times", "normal");      // Fonte Times New Roman, estilo normal
+  doc.setFontSize(8);                  // Tamanho pequeno, como no Word
+
+  doc.text(
+    "Prefeitura Municipal de Guabiruba / Secretaria de Educação de Guabiruba (SEME)",
+    20,
+    pageHeight - 20
+  );
+  doc.text(
+    "Rua José Dirschnabel, 67 - Centro - Guabiruba/SC",
+    20,
+    pageHeight - 15
+  );
+  doc.text(
+    "Telefone/WhatsApp: (47) 3308-3102 - www.guabiruba.sc.gov.br",
+    20,
+    pageHeight - 10
+  );
+},
   didParseCell: (data) => {
   const nivel = data.cell.text;
   if (data.column.index === 4 || data.column.index === 5) {
@@ -316,8 +420,31 @@ if (peiAtual.atividadeAplicada && peiAtual.atividadeAplicada.trim() !== "") {
   columnStyles: {
     0: { cellWidth: 170 }
   },
-  margin: { left: 20 }
+  margin: { top: 20, bottom: 30, left: 20 },
+didDrawPage: (data) => {
+  const pageHeight = doc.internal.pageSize.getHeight();
+
+  doc.setFont("times", "normal");      // Fonte Times New Roman, estilo normal
+  doc.setFontSize(8);                  // Tamanho pequeno, como no Word
+
+  doc.text(
+    "Prefeitura Municipal de Guabiruba / Secretaria de Educação de Guabiruba (SEME)",
+    20,
+    pageHeight - 20
+  );
+  doc.text(
+    "Rua José Dirschnabel, 67 - Centro - Guabiruba/SC",
+    20,
+    pageHeight - 15
+  );
+  doc.text(
+    "Telefone/WhatsApp: (47) 3308-3102 - www.guabiruba.sc.gov.br",
+    20,
+    pageHeight - 10
+  );
+}
 });
+
 
   y = doc.lastAutoTable.finalY + 10;
 }
@@ -347,39 +474,64 @@ if (
   doc.text("Acompanhamento do Alcance das Metas", 20, y);
   y += 6;
 
-  autoTable(doc, {
-    startY: y,
-    head: [["Habilidade", "Nível Almejado", "Alcançado?", "Observações"]],
-    body: dadosAcompanhamento,
-    styles: {
-      font: "times",
-      fontSize: 9,
-      textColor: [0, 0, 0],
-      fillColor: [255, 255, 255],
-      lineColor: [0, 0, 0],
-      lineWidth: 0.1,
-      cellPadding: 2,
-      halign: "left",
-      valign: "middle"
-    },
-    headStyles: {
-      fillColor: [255, 255, 255],
-      textColor: [0, 0, 0],
-      fontStyle: "bold",
-      halign: "center",
-      lineColor: [0, 0, 0],
-      lineWidth: 0.1
-    },
-    columnStyles: {
-      0: { cellWidth: 60 },
-      1: { cellWidth: 30, halign: "center" },
-      2: { cellWidth: 30, halign: "center" },
-      3: { cellWidth: 70 }
-    },
-    margin: {
-      left: (doc.internal.pageSize.getWidth() - larguraTabela) / 2
-    }
-  });
+ autoTable(doc, {
+  startY: y,
+  head: [["Habilidade", "Nível Almejado", "Alcançado?", "Observações"]],
+  body: dadosAcompanhamento,
+  styles: {
+    font: "times",
+    fontSize: 9,
+    textColor: [0, 0, 0],
+    fillColor: [255, 255, 255],
+    lineColor: [0, 0, 0],
+    lineWidth: 0.1,
+    cellPadding: 2,
+    halign: "left",
+    valign: "middle"
+  },
+  headStyles: {
+    fillColor: [255, 255, 255],
+    textColor: [0, 0, 0],
+    fontStyle: "bold",
+    halign: "center",
+    lineColor: [0, 0, 0],
+    lineWidth: 0.1
+  },
+  columnStyles: {
+    0: { cellWidth: 60 },
+    1: { cellWidth: 30, halign: "center" },
+    2: { cellWidth: 30, halign: "center" },
+    3: { cellWidth: 70 }
+  },
+  margin: {
+    top: 20,
+    bottom: 30,
+    left: (doc.internal.pageSize.getWidth() - (60 + 30 + 30 + 70)) / 2
+  },
+  didDrawPage: (data) => {
+  const pageHeight = doc.internal.pageSize.getHeight();
+
+  doc.setFont("times", "normal");      // Fonte Times New Roman, estilo normal
+  doc.setFontSize(8);                  // Tamanho pequeno, como no Word
+
+  doc.text(
+    "Prefeitura Municipal de Guabiruba / Secretaria de Educação de Guabiruba (SEME)",
+    20,
+    pageHeight - 20
+  );
+  doc.text(
+    "Rua José Dirschnabel, 67 - Centro - Guabiruba/SC",
+    20,
+    pageHeight - 15
+  );
+  doc.text(
+    "Telefone/WhatsApp: (47) 3308-3102 - www.guabiruba.sc.gov.br",
+    20,
+    pageHeight - 10
+  );
+}
+});
+
 
   y = doc.lastAutoTable.finalY + 10;
 }
