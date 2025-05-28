@@ -13,10 +13,11 @@ export default function CadastrarUsuario() {
   const [senha, setSenha] = useState("");
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [perfil, setPerfil] = useState("");
+  const [disciplina, setDisciplina] = useState("");
   const navigate = useNavigate();
 
   const handleCadastro = async () => {
-    if (!nome || !email || !senha || !cargo || !perfil) {
+    if (!nome || !email || !senha || !cargo || !perfil || !disciplina) {
       alert("Preencha todos os campos.");
       return;
     }
@@ -27,7 +28,8 @@ export default function CadastrarUsuario() {
         nome: nome.trim(),
         email: email.trim(),
         cargo: cargo.trim(),
-        perfil: perfil
+        perfil: perfil,
+        disciplina: disciplina
       });
       alert("Usuário cadastrado com sucesso!");
       navigate(-1); // Volta para a tela anterior
@@ -40,13 +42,13 @@ export default function CadastrarUsuario() {
   return (
     <div style={estilos.container}>
       <div style={estilos.card}>
-       <div style={{ position: "absolute", top: 20, left: 20 }}>
-  <BotaoVoltar />
-</div>
+        <div style={{ position: "absolute", top: 20, left: 20 }}>
+          <BotaoVoltar />
+        </div>
 
-<div style={{ display: "flex", justifyContent: "center" }}>
-  <img src="/logo-vivencie.png" alt="Logo Vivencie PEI" style={estilos.logo} />
-</div>
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <img src="/logo-vivencie.png" alt="Logo Vivencie PEI" style={estilos.logo} />
+        </div>
         <h2 style={estilos.titulo}>Cadastro de Usuário</h2>
 
         <input
@@ -94,9 +96,33 @@ export default function CadastrarUsuario() {
         >
           <option value="">Selecione o tipo de perfil</option>
           <option value="gestao">Gestão</option>
-          <option value="aee">AEE</option>
+          <option value="aee">Professor AEE</option>
           <option value="professor">Professor</option>
+          <option value="diretor">Diretor</option>
+          <option value="diretor adjunto">Diretor Adjunto</option>
+          <option value="orientador pedagógico">Orientador Pedagógico</option>
           <option value="seme">SEME</option>
+        </select>
+
+        <select
+          value={disciplina}
+          onChange={(e) => setDisciplina(e.target.value)}
+          style={estilos.select}
+        >
+          <option value="">Selecione a disciplina</option>
+          <option value="PROFESSOR REGENTE">PROFESSOR REGENTE</option>
+          <option value="PROFESSOR DE SUPORTE">PROFESSOR DE SUPORTE</option>
+          <option value="ARTE">ARTE</option>
+          <option value="EDUCAÇÃO FÍSICA">EDUCAÇÃO FÍSICA</option>
+          <option value="CONTAÇÃO DE HISTÓRIAS">CONTAÇÃO DE HISTÓRIAS</option>
+          <option value="PORTUGUÊS">PORTUGUÊS</option>
+          <option value="MATEMÁTICA">MATEMÁTICA</option>
+          <option value="HISTÓRIA">HISTÓRIA</option>
+          <option value="GEOGRAFIA">GEOGRAFIA</option>
+          <option value="CIÊNCIAS">CIÊNCIAS</option>
+          <option value="INGLÊS">INGLÊS</option>
+          <option value="ENSINO RELIGIOSO">ENSINO RELIGIOSO</option>
+          <option value="COMUNICAÇÃO E LINGUAGEM">COMUNICAÇÃO E LINGUAGEM</option>
         </select>
 
         <button style={estilos.botao} onClick={handleCadastro}>
@@ -118,14 +144,14 @@ const estilos = {
     fontFamily: "'Segoe UI', sans-serif"
   },
   card: {
-  position: "relative", // necessário para o botão voltar
-  backgroundColor: "#fff",
-  padding: "40px",
-  borderRadius: "20px",
-  boxShadow: "0 0 30px rgba(0,0,0,0.2)",
-  width: "100%",
-  maxWidth: "400px",
-  textAlign: "center"
+    position: "relative",
+    backgroundColor: "#fff",
+    padding: "40px",
+    borderRadius: "20px",
+    boxShadow: "0 0 30px rgba(0,0,0,0.2)",
+    width: "100%",
+    maxWidth: "400px",
+    textAlign: "center"
   },
   logo: {
     width: "100px",

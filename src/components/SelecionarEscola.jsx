@@ -38,9 +38,12 @@ function SelecionarEscola() {
   }, []);
 
   const handleSelecionarEscola = (idEscola) => {
-    localStorage.setItem("escolaAtiva", idEscola);
+  const escolaSelecionada = escolas.find((escola) => escola.id === idEscola);
+  if (escolaSelecionada) {
+    localStorage.setItem("escolaAtiva", JSON.stringify(escolaSelecionada));
     navigate("/painel-professor");
-  };
+  }
+};
 
   return (
     <div style={estilos.container}>

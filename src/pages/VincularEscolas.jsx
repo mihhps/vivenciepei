@@ -27,7 +27,7 @@ export default function VincularEscolas() {
 
       const professoresFiltrados = usuariosSnap.docs
         .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(u => u.perfil?.toLowerCase() === "professor");
+        .filter(u => ["professor", "diretor", "diretor adjunto", "orientador pedagógico", "aee"].includes(u.perfil?.toLowerCase()));
 
       const escolasListadas = escolasSnap.docs.map(doc => ({
         id: doc.id,
@@ -140,7 +140,7 @@ export default function VincularEscolas() {
             <ul style={estilos.lista}>
               {professoresVinculados.map((prof) => (
                 <div key={prof.id} style={estilos.professorCard}>
-                  <h4>{prof.nome} ({prof.email})</h4>
+                  <h4>{`${prof.nome} (${prof.email}) - ${prof.perfil?.toUpperCase()}`}</h4>
                   {escolaSelecionada === "semVinculo" ? (
                     <>
                       <div style={estilos.checkboxContainer}>

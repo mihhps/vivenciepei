@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, matchPath } from "react-router-dom";
 
+// Páginas
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import TelaInicial from "./pages/TelaInicial";
@@ -11,7 +12,7 @@ import CriarPei from "./pages/CriarPEI";
 import VerAlunos from "./pages/VerAlunos";
 import VerPeis from "./pages/VerPEIs";
 import AvaliacaoInicial from "./pages/AvaliacaoInicial";
-import ImportarAlunos from './pages/ImportarAlunos';
+import ImportarAlunos from "./pages/ImportarAlunos";
 import AnamneseCompleta from "./pages/AnamneseCompleta";
 import EditarPei from "./pages/EditarPei";
 import EditarAluno from "./pages/EditarAluno";
@@ -28,6 +29,7 @@ import VincularEscolas from "./pages/VincularEscolas";
 import Acompanhamento from "./pages/Acompanhamento";
 import AcompanharMetas from "./pages/AcompanharMetas";
 import VincularProfessoresTurmas from "./pages/VincularProfessoresTurmas";
+import EscolaAtual from "./components/EscolaAtual"; // AQUI
 
 import * as pdfjsLib from "pdfjs-dist/build/pdf";
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -96,9 +98,15 @@ export default function App() {
 
   return (
     <Router>
+      {/* ✅ Só exibe EscolaAtual se o usuário estiver logado */}
+      {localStorage.getItem("usuarioLogado") && <EscolaAtual />}
+
       <Routes>
+        {/* Rotas públicas */}
         <Route path="/" element={<TelaInicial />} />
         <Route path="/login" element={<Login />} />
+
+        {/* Rotas privadas */}
         <Route path="/painel-gestao" element={<PrivateRoute><Home /></PrivateRoute>} />
         <Route path="/painel-aee" element={<PrivateRoute><Home /></PrivateRoute>} />
         <Route path="/painel-professor" element={<PrivateRoute><PainelProfessor /></PrivateRoute>} />
@@ -107,7 +115,7 @@ export default function App() {
         <Route path="/ver-alunos" element={<PrivateRoute><VerAlunos /></PrivateRoute>} />
         <Route path="/ver-peis" element={<PrivateRoute><VerPeis /></PrivateRoute>} />
         <Route path="/avaliacao-inicial" element={<PrivateRoute><AvaliacaoInicial /></PrivateRoute>} />
-        <Route path="/importar-alunos" element={<ImportarAlunos />} />
+        <Route path="/importar-alunos" element={<PrivateRoute><ImportarAlunos /></PrivateRoute>} />
         <Route path="/anamnese-completa" element={<PrivateRoute><AnamneseCompleta /></PrivateRoute>} />
         <Route path="/editar-pei/:id" element={<PrivateRoute><EditarPei /></PrivateRoute>} />
         <Route path="/editar-aluno/:id" element={<PrivateRoute><EditarAluno /></PrivateRoute>} />
@@ -115,15 +123,16 @@ export default function App() {
         <Route path="/ver-avaliacoes" element={<PrivateRoute><VerAvaliacoes /></PrivateRoute>} />
         <Route path="/avaliacao/:id" element={<PrivateRoute><VerAvaliacao /></PrivateRoute>} />
         <Route path="/visualizar-pei/:id" element={<PrivateRoute><VisualizarPei /></PrivateRoute>} />
-        <Route path="/editar-avaliacao/:id" element={<EditarAvaliacao />} />
-        <Route path="/cadastro-professor" element={<CadastrarProfessor />} />
-        <Route path="/selecionar-escola" element={<PrivateRoute><SelecionarEscola /></PrivateRoute>} />
+        <Route path="/editar-avaliacao/:id" element={<PrivateRoute><EditarAvaliacao /></PrivateRoute>} />
+        <Route path="/cadastro-professor" element={<PrivateRoute><CadastrarProfessor /></PrivateRoute>} />
         <Route path="/cadastro-usuario" element={<PrivateRoute><CadastrarUsuario /></PrivateRoute>} />
+        <Route path="/selecionar-escola" element={<PrivateRoute><SelecionarEscola /></PrivateRoute>} />
         <Route path="/recuperar-senha" element={<RecuperarSenha />} />
         <Route path="/vincular-escolas" element={<PrivateRoute><VincularEscolas /></PrivateRoute>} />
         <Route path="/acompanhamento" element={<PrivateRoute><Acompanhamento /></PrivateRoute>} />
-        <Route path="/vincular-professores" element={<VincularProfessoresTurmas />} />
-        <Route path="/acompanhamento/:id" element={<AcompanharMetas />} />
+        <Route path="/acompanhamento/:id" element={<PrivateRoute><AcompanharMetas /></PrivateRoute>} />
+        <Route path="/vincular-professores" element={<PrivateRoute><VincularProfessoresTurmas /></PrivateRoute>} />
+
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>

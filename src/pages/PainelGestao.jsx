@@ -25,17 +25,13 @@ export default function PainelGestao() {
           Cadastrar Usuários
         </button>
 
-        <button style={buttonStyle} onClick={() => navigate("/vincular-escolas")}>
-          Vincular Escolas a Professores
+        <button style={buttonStyle} onClick={() => navigate("/vincular-turmas")}>
+          Vincular Turmas a Professores
         </button>
 
-        <button style={buttonStyle} onClick={() => navigate("/gerar-relatorios")}>
-          Visualizar Relatórios
+        <button style={buttonStyle} onClick={() => navigate("/acompanhamento")}>
+          Acompanhamento Escolar
         </button>
-
-          <button style={estiloBotao} onClick={() => navigate("/acompanhamento")}>
-    Acompanhamento Escolar
-  </button>
 
         <button style={logoutButtonStyle} onClick={sair}>
           Sair
