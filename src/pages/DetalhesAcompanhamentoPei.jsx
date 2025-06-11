@@ -463,6 +463,7 @@ const estilos = {
   container: {
     background: "#1d3557",
     minHeight: "100vh",
+    width: "100vw",
     padding: "25px",
     fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
     display: "flex", // Adicionado para centralizar o card

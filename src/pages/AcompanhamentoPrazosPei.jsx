@@ -597,6 +597,7 @@ export default function AcompanhamentoPrazosPei() {
 const estilos = {
   container: {
     minHeight: "100vh",
+    width: "100vw",
     background: "#1d3557",
     padding: "40px 20px",
     fontFamily: "'Segoe UI', sans-serif",

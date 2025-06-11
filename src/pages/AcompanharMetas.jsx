@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import BotaoVoltar from "../components/BotaoVoltar";
-import "../styles/AvaliacaoInicial.css";
+import "../styles/AcompanharMetas.css";
 
 export default function AcompanharMetas() {
   const { id } = useParams();
@@ -69,52 +69,63 @@ export default function AcompanharMetas() {
     }
   };
 
-  if (carregando || !pei) return <p>Carregando...</p>;
+  if (carregando || !pei) return <p className="carregando">Carregando...</p>;
 
   return (
-    <div className="editar-container">
-      <BotaoVoltar />
-      <h2 className="editar-titulo">Acompanhamento das Metas - {pei.nome}</h2>
+    <div className="acompanhamento-wrapper">
+      <div className="acompanhamento-card">
+        <BotaoVoltar />
+        <h2 className="titulo-pagina">Acompanhamento das Metas - {pei.nome}</h2>
 
-      {pei.resumoPEI?.map((meta, index) => (
-  <div key={index} style={{ marginBottom: "30px" }}>
-    <p><strong>Área:</strong> {meta.area}</p>
-    <p><strong>Habilidade:</strong> {meta.habilidade}</p>
-    <p><strong>Nível Almejado:</strong> {meta.nivelAlmejado}</p>
+        {pei.resumoPEI?.map((meta, index) => (
+          <div key={index} className="meta-bloco">
+            <p>
+              <strong>Área:</strong> {meta.area}
+            </p>
+            <p>
+              <strong>Habilidade:</strong> {meta.habilidade}
+            </p>
+            <p>
+              <strong>Nível Almejado:</strong> {meta.nivelAlmejado}
+            </p>
 
-    <div style={{ display: "flex", gap: "15px", marginBottom: "10px" }}>
-      {["Sim", "Parcial", "Não"].map((opcao) => (
-        <label key={opcao} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-          <input
-            type="radio"
-            name={`status-${index}`}
-            value={opcao}
-            checked={acompanhamento[meta.habilidade]?.status === opcao}
-            onChange={() => handleStatusChange(meta.habilidade, opcao)}
-          />
-          {opcao}
-        </label>
-      ))}
-    </div>
+            <div className="botoes-status">
+              {["Sim", "Parcial", "Não"].map((opcao) => {
+                const selecionado =
+                  acompanhamento[meta.habilidade]?.status === opcao;
+                return (
+                  <button
+                    key={opcao}
+                    type="button"
+                    className={`botao-status ${
+                      selecionado ? "ativo" : ""
+                    } botao-${opcao
+                      .normalize("NFD")
+                      .replace(/[\u0300-\u036f]/g, "")
+                      .toLowerCase()}
+`}
+                    onClick={() => handleStatusChange(meta.habilidade, opcao)}
+                  >
+                    {opcao}
+                  </button>
+                );
+              })}
+            </div>
 
-    <textarea
-      placeholder="Observações..."
-      style={{
-        width: "100%",
-        height: "60px",
-        borderRadius: "6px",
-        border: "1px solid #ccc",
-        padding: "8px",
-      }}
-      value={acompanhamento[meta.habilidade]?.observacoes || ""}
-      onChange={(e) => handleObservacaoChange(meta.habilidade, e.target.value)}
-    />
-  </div>
-))}
+            <textarea
+              placeholder="Observações..."
+              value={acompanhamento[meta.habilidade]?.observacoes || ""}
+              onChange={(e) =>
+                handleObservacaoChange(meta.habilidade, e.target.value)
+              }
+            />
+          </div>
+        ))}
 
-      <button className="botao-salvar" onClick={handleSalvar}>
-        Salvar Acompanhamento
-      </button>
+        <button className="botao-salvar" onClick={handleSalvar}>
+          Salvar Acompanhamento
+        </button>
+      </div>
     </div>
   );
 }

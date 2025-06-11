@@ -14,7 +14,7 @@ import RecuperarSenha from "./pages/RecuperarSenha";
 import EscolaAtual from "./components/EscolaAtual";
 import PrivateRoute from "./components/PrivateRoute";
 
-// Lazy-loaded Pages (lista completa)
+// Lazy-loaded Pages
 const PainelGestao = lazy(() => import("./pages/PainelGestao"));
 const PainelAee = lazy(() => import("./pages/PainelAEE"));
 const PainelProfessor = lazy(() => import("./pages/PainelProfessor"));
@@ -36,8 +36,8 @@ const VisualizarPei = lazy(() => import("./pages/VisualizarPei"));
 const EditarAvaliacao = lazy(() => import("./pages/EditarAvaliacao"));
 const SelecionarEscola = lazy(() => import("./components/SelecionarEscola"));
 const VincularEscolas = lazy(() => import("./pages/VincularEscolas"));
-const Acompanhamento = lazy(() => import("./pages/Acompanhamento"));
 const AcompanharMetas = lazy(() => import("./pages/AcompanharMetas"));
+const AcompanhamentoSEME = lazy(() => import("./pages/AcompanhamentoSEME"));
 const VincularProfessoresTurmas = lazy(() =>
   import("./pages/VincularProfessoresTurmas")
 );
@@ -55,6 +55,7 @@ const MeuAcompanhamentoProfessor = lazy(() =>
   import("./pages/MeuAcompanhamentoProfessor")
 );
 
+// PDF.js Worker para importação de PDFs
 import * as pdfjsLib from "pdfjs-dist/build/pdf";
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
@@ -77,6 +78,7 @@ export default function App() {
             <Route path="/painel-aee" element={<PainelAee />} />
             <Route path="/painel-professor" element={<PainelProfessor />} />
             <Route path="/painel-dev" element={<PainelDev />} />
+
             {/* Cadastros e Gestão */}
             <Route path="/cadastrar-aluno" element={<CadastroAluno />} />
             <Route path="/editar-aluno/:id" element={<EditarAluno />} />
@@ -88,23 +90,25 @@ export default function App() {
               path="/vincular-professores"
               element={<VincularProfessoresTurmas />}
             />
-            <Route path="/ver-alunos" element={<VerAlunos />} />{" "}
-            {/* <-- ROTA ADICIONADA AQUI */}
+
             {/* Avaliações */}
+            <Route path="/ver-alunos" element={<VerAlunos />} />
             <Route path="/avaliacao-inicial" element={<AvaliacaoInicial />} />
             <Route path="/anamnese-completa" element={<AnamneseCompleta />} />
             <Route path="/ver-avaliacoes" element={<VerAvaliacoes />} />
             <Route path="/avaliacao/:id" element={<VerAvaliacao />} />
             <Route path="/editar-avaliacao/:id" element={<EditarAvaliacao />} />
+
             {/* PEI */}
             <Route path="/criar-pei" element={<CriarPei />} />
             <Route path="/ver-peis" element={<VerPeis />} />
             <Route path="/editar-pei/:id" element={<EditarPei />} />
             <Route path="/continuar-pei/:id" element={<ContinuarPei />} />
             <Route path="/visualizar-pei/:id" element={<VisualizarPei />} />
+            <Route path="/acompanhar-metas/:id" element={<AcompanharMetas />} />
+
             {/* Acompanhamento e Prazos */}
-            <Route path="/acompanhamento" element={<Acompanhamento />} />
-            <Route path="/acompanhamento/:id" element={<AcompanharMetas />} />
+            <Route path="/acompanhamento" element={<AcompanhamentoSEME />} />
             <Route
               path="/acompanhamento-pei/:professorId"
               element={<DetalhesAcompanhamentoPei />}

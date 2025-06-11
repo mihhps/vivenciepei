@@ -3,11 +3,10 @@ import { PERFIS } from "./constants";
 // --- GRUPOS DE PERMISSÃO ---
 const PERMISSOES_ADMIN = [PERFIS.GESTAO, PERFIS.AEE, PERFIS.DESENVOLVEDOR];
 
-// MODIFICAÇÃO AQUI: ADICIONE PERFIS.AEE
 const PERMISSOES_GESTAO_PEI = [
   PERFIS.GESTAO,
   PERFIS.SEME,
-  PERFIS.AEE, // <-- ADICIONADO AQUI!
+  PERFIS.AEE,
   PERFIS.DESENVOLVEDOR,
 ];
 
@@ -17,6 +16,7 @@ const PERMISSOES_PEDAGOGICAS = [
   PERFIS.AEE,
   PERFIS.DESENVOLVEDOR,
 ];
+
 const TODOS_OS_PERFIS = [
   PERFIS.GESTAO,
   PERFIS.AEE,
@@ -43,7 +43,6 @@ export const perfilRedirectMap = {
 };
 
 // --- AUTORIZAÇÃO DE ROTAS ---
-// Mapeia cada rota protegida para o grupo de permissão correspondente.
 export const AUTORIZACAO_ROTAS = {
   // Rotas Administrativas
   "/cadastrar-aluno": PERMISSOES_ADMIN,
@@ -53,14 +52,14 @@ export const AUTORIZACAO_ROTAS = {
   "/importar-alunos": PERMISSOES_ADMIN,
   "/vincular-escolas": PERMISSOES_ADMIN,
   "/editar-aluno/:id": PERMISSOES_ADMIN,
-  "/painel-aee": [PERFIS.AEE, PERFIS.GESTAO, PERFIS.DESENVOLVEDOR], // Ou apenas [PERFIS.AEE, PERFIS.DESENVOLVEDOR] se GESTAO não deve acessar
+  "/painel-aee": [PERFIS.AEE, PERFIS.GESTAO, PERFIS.DESENVOLVEDOR],
 
-  // Rotas de Gestão e Acompanhamento do PEI
-  "/gestao-prazos-pei": PERMISSOES_GESTAO_PEI, // JÁ APONTA PARA A LISTA CORRIGIDA
+  // Gestão e acompanhamento PEI
+  "/gestao-prazos-pei": PERMISSOES_GESTAO_PEI,
   "/acompanhamento-pei/:professorId": PERMISSOES_PEDAGOGICAS,
   "/acompanhamento": [PERFIS.SEME, PERFIS.DESENVOLVEDOR],
 
-  // Rotas de Acesso Geral (Visualização e Criação básica)
+  // Acesso geral (visualização, consulta)
   "/ver-alunos": TODOS_OS_PERFIS,
   "/ver-peis": TODOS_OS_PERFIS,
   "/ver-avaliacoes": TODOS_OS_PERFIS,
@@ -70,13 +69,12 @@ export const AUTORIZACAO_ROTAS = {
   "/visualizar-pei/:id": TODOS_OS_PERFIS,
   "/avaliacao/:id": TODOS_OS_PERFIS,
 
-  // ======================= REGRAS ADICIONADAS AQUI =======================
+  // Avaliação e anamnese
   "/avaliacao-inicial": TODOS_OS_PERFIS,
   "/editar-avaliacao/:id": TODOS_OS_PERFIS,
   "/anamnese-completa": TODOS_OS_PERFIS,
-  // ======================================================================
 
-  // Rotas com permissões mistas ou específicas
+  // PEI - criação, edição e acompanhamento
   "/criar-pei": [
     PERFIS.GESTAO,
     PERFIS.AEE,

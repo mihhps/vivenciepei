@@ -1,7 +1,8 @@
 // src/components/EscolaAtual.jsx
+
 import React, { useEffect, useState, useCallback } from "react";
 import { doc, getDoc } from "firebase/firestore";
-import { db } from "../firebase"; // Verifique o caminho
+import { db } from "../firebase";
 import { useLocation } from "react-router-dom";
 
 // Função utilitária para obter dados do localStorage de forma segura
@@ -13,10 +14,9 @@ const getLocalStorageSafe = (key, defaultValue = null) => {
     }
     return JSON.parse(item); // Assume que o valor é um JSON string
   } catch (error) {
-    console.error(
-      `ESCOLAATUAL DEBUG: Erro ao parsear ${key} do localStorage:`,
-      error
-    );
+    // Erros ao parsear do localStorage devem ser tratados silenciosamente em produção
+    // ou logados sem serem bloqueadores.
+    console.error(`Erro ao parsear ${key} do localStorage:`, error);
     return defaultValue;
   }
 };
@@ -39,102 +39,60 @@ export default function EscolaAtual() {
 
   // Função memoizada para carregar o nome da escola
   const carregarNomeEscolaCondicionalmente = useCallback(async () => {
-    console.log(
-      "ESCOLAATUAL DEBUG: Iniciando carregarNomeEscolaCondicionalmente. Path:",
-      location.pathname
-    );
-
     // 1. Definir rotas onde o nome da escola NÃO deve aparecer (ex: login, cadastro)
     const rotasIgnoradas = [
       "/",
       "/login",
       "/recuperar-senha",
       "/cadastro-professor",
-      // Adicione outras rotas onde o cabeçalho não deve aparecer
     ];
 
     if (rotasIgnoradas.includes(location.pathname)) {
-      console.log("ESCOLAATUAL DEBUG: Rota ignorada. Limpando nome da escola.");
       setNomeEscola("");
       return;
     }
 
     // 2. Verificar se há um usuário logado e se o perfil está autorizado a ter uma "escola ativa"
     const usuario = getLocalStorageSafe("usuarioLogado");
-    console.log(
-      "ESCOLAATUAL DEBUG: Usuário logado lido do localStorage:",
-      usuario
-    );
 
-    // === MUDANÇA CRÍTICA: Incluindo "gestao", "desenvolvedor", "seme" na lista de perfis autorizados ===
     const perfisComEscolaAtiva = [
       "professor",
       "aee",
       "diretor",
       "diretor adjunto",
       "orientador pedagógico",
-      "gestao", // Adicionado
-      "desenvolvedor", // Adicionado
-      "seme", // Adicionado
+      "gestao",
+      "desenvolvedor",
+      "seme",
     ];
-    console.log(
-      "ESCOLAATUAL DEBUG: Perfis autorizados a exibir escola ativa:",
-      perfisComEscolaAtiva
-    );
 
     if (
       !usuario ||
       !perfisComEscolaAtiva.includes(usuario.perfil?.toLowerCase())
     ) {
-      console.log(
-        "ESCOLAATUAL DEBUG: Perfil não autorizado ou usuário não logado. Limpando nome da escola."
-      );
       setNomeEscola("");
       return;
     }
-    console.log(
-      "ESCOLAATUAL DEBUG: Perfil autorizado detectado:",
-      usuario.perfil
-    );
 
     // 3. Obter o ID da escola ativa/visualizada do localStorage
     const escolaAtivaIdRaw = localStorage.getItem("escolaAtiva");
     let escolaAtivaId = null;
-    console.log(
-      "ESCOLAATUAL DEBUG: Valor bruto de 'escolaAtiva' no localStorage:",
-      escolaAtivaIdRaw
-    );
 
     if (escolaAtivaIdRaw) {
       try {
         escolaAtivaId = JSON.parse(escolaAtivaIdRaw);
-        console.log(
-          "ESCOLAATUAL DEBUG: 'escolaAtiva' parseada:",
-          escolaAtivaId
-        );
       } catch (e) {
-        console.error(
-          "ESCOLAATUAL DEBUG: Erro ao parsear 'escolaAtiva' do localStorage:",
-          e
-        );
+        console.error("Erro ao parsear 'escolaAtiva' do localStorage:", e);
         localStorage.removeItem("escolaAtiva"); // Remove item corrompido
         setNomeEscola("");
         return;
       }
     }
 
-    // Se não há um ID de escola ativa válido no localStorage
     if (!escolaAtivaId) {
-      console.log(
-        "ESCOLAATUAL DEBUG: Nenhuma 'escolaAtiva' válida encontrada no localStorage."
-      );
-      setNomeEscola("Nenhuma escola selecionada"); // Ou apenas ""
+      setNomeEscola("Nenhuma escola selecionada");
       return;
     }
-    console.log(
-      "ESCOLAATUAL DEBUG: 'escolaAtivaId' a ser buscada no Firestore:",
-      escolaAtivaId
-    );
 
     // 4. Buscar o nome da escola no Firestore usando o ID
     try {
@@ -143,41 +101,45 @@ export default function EscolaAtual() {
       if (snap.exists()) {
         const dados = snap.data();
         setNomeEscola(dados.nome || "Escola desconhecida");
-        console.log(
-          "ESCOLAATUAL DEBUG: Nome da escola carregado do Firestore:",
-          dados.nome
-        );
       } else {
-        setNomeEscola("Escola não encontrada no sistema");
+        // Se o ID da escola não for encontrado no Firestore, mas estava no localStorage
         console.warn(
-          `ESCOLAATUAL DEBUG: Escola com ID ${escolaAtivaId} não encontrada no Firestore.`
+          `Escola com ID ${escolaAtivaId} não encontrada no Firestore.`
         );
+        setNomeEscola("Escola não encontrada no sistema");
       }
     } catch (error) {
       console.error(
-        "ESCOLAATUAL DEBUG: Erro ao buscar dados da escola ativa no Firestore:",
+        "Erro ao buscar dados da escola ativa no Firestore:",
         error
       );
       setNomeEscola("Erro ao carregar dados da escola");
     }
   }, [location.pathname]); // Dependência: re-executa o efeito quando a rota muda
 
-  // Efeito para carregar o nome da escola na montagem e quando o localStorage muda
+  // Efeito para carregar o nome da escola na montagem e reagir a mudanças no localStorage
   useEffect(() => {
-    carregarNomeEscolaCondicionalmente(); // Chama a função na montagem
+    // Chama a função na montagem inicial e em mudanças de rota
+    carregarNomeEscolaCondicionalmente();
 
-    // Ouvinte para mudanças no localStorage (útil para logout/login em outra aba ou quando outro componente salva)
+    // Adiciona um pequeno atraso para re-verificar o localStorage.
+    // Isso é um workaround para a situação onde a mudança acontece na mesma aba
+    // e o evento 'storage' não é disparado para a própria janela que iniciou a mudança.
+    const timeoutId = setTimeout(() => {
+      carregarNomeEscolaCondicionalmente();
+    }, 100); // Re-executa após 100ms
+
+    // Ouvinte para mudanças no localStorage de OUTRAS abas/janelas
     const handleStorageChange = (e) => {
-      console.log("ESCOLAATUAL DEBUG: Evento 'storage' detectado:", e.key);
       if (e.key === "escolaAtiva" || e.key === "usuarioLogado") {
         carregarNomeEscolaCondicionalmente(); // Recarrega o nome da escola
       }
     };
     window.addEventListener("storage", handleStorageChange);
 
-    // Função de limpeza: remove o ouvinte de evento ao desmontar o componente
+    // Função de limpeza: remove o ouvinte de evento e o timeout ao desmontar o componente
     return () => {
-      console.log("ESCOLAATUAL DEBUG: Removendo ouvinte de 'storage'.");
+      clearTimeout(timeoutId);
       window.removeEventListener("storage", handleStorageChange);
     };
   }, [carregarNomeEscolaCondicionalmente]); // Dependência: A função memoizada para recarregar
@@ -185,7 +147,6 @@ export default function EscolaAtual() {
   // Só renderiza o componente se houver um nome de escola para mostrar
   // Se nomeEscola for uma string vazia "", não renderiza nada.
   if (!nomeEscola) {
-    console.log("ESCOLAATUAL DEBUG: nomeEscola está vazio, retornando null.");
     return null;
   }
 

@@ -1,0 +1,129 @@
+/* ===== CONTAINER E CARTÃO CENTRAL ===== */
+.acompanhamento-wrapper {
+  background-color: #1d3557;
+  min-height: 100vh;
+  width: 100vw;
+  padding: 40px 20px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.acompanhamento-card {
+  background-color: #ffffff;
+  max-width: 900px;
+  width: 100%;
+  padding: 30px;
+  border-radius: 16px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+  font-family: "Segoe UI", sans-serif;
+  color: #1d3557;
+}
+
+/* ===== TÍTULO ===== */
+.titulo-pagina {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 25px;
+  text-align: center;
+}
+
+/* ===== BLOCO DE CADA META ===== */
+.meta-bloco {
+  background: #ffffff;
+  padding: 20px;
+  margin-bottom: 25px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.meta-bloco:hover {
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+}
+
+.meta-bloco p {
+  margin: 6px 0;
+}
+
+/* ===== TEXTAREA OBSERVAÇÕES ===== */
+textarea {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  padding: 10px;
+  font-size: 14px;
+  resize: vertical;
+  margin-top: 10px;
+}
+
+/* ===== BOTÕES DE STATUS (SIM, PARCIAL, NÃO) ===== */
+.botoes-status {
+  display: flex;
+  gap: 12px;
+  margin: 12px 0 16px 0;
+  flex-wrap: wrap;
+}
+
+.botao-status {
+  padding: 8px 16px;
+  border: 1px solid #ccc;
+  border-radius: 20px;
+  font-size: 14px;
+  cursor: pointer;
+  background-color: #f0f0f0;
+  color: #333;
+  transition: all 0.2s ease-in-out;
+}
+
+.botao-status:hover {
+  opacity: 0.9;
+}
+
+.botao-status.ativo {
+  font-weight: bold;
+  color: white;
+}
+
+/* === Cores por tipo === */
+.botao-sim.ativo {
+  background-color: #2ecc71;
+  border-color: #27ae60;
+}
+
+.botao-parcial.ativo {
+  background-color: #f1c40f;
+  border-color: #f39c12;
+}
+
+.botao-nao.ativo {
+  background-color: #e74c3c;
+  border-color: #c0392b;
+}
+
+/* ===== BOTÃO SALVAR ===== */
+.botao-salvar {
+  margin: 30px auto;
+  display: block;
+  background-color: #2a9d8f;
+  color: white;
+  font-weight: bold;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.botao-salvar:hover {
+  background-color: #21867a;
+}
+
+/* ===== ESTADO DE CARREGAMENTO ===== */
+.carregando {
+  text-align: center;
+  font-size: 18px;
+  padding: 40px;
+  color: white;
+}

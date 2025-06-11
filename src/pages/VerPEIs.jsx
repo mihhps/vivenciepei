@@ -360,7 +360,7 @@ export default function VerPEIs() {
                               <button
                                 className="botao-secundario"
                                 onClick={() =>
-                                  navigate(`/acompanhamento/${pei.id}`)
+                                  navigate(`/acompanhar-metas/${pei.id}`)
                                 }
                               >
                                 Acompanhar Metas
