@@ -242,6 +242,7 @@ export default function VerAlunos() {
 
   // --- Função principal de carregamento de todos os dados (escolas e alunos) ---
   const carregarTodosOsDados = useCallback(async () => {
+    console.log("VERALUNOS DEBUG: Iniciando carregarTodosOsDados...");
     setLoading(true); // Ativa o loading
     setError(null); // Limpa qualquer erro anterior
     try {
@@ -258,6 +259,10 @@ export default function VerAlunos() {
         ...doc.data(),
       }));
       setEscolas(escolasListadas); // Atualiza o estado com todas as escolas
+      console.log(
+        "VERALUNOS DEBUG: Todas as escolas carregadas:",
+        escolasListadas.length
+      );
 
       let tempEscolasPermitidas = []; // Variável temporária para IDs de escolas permitidas
       let tempTurmasPermitidas = []; // Variável temporária para nomes de turmas permitidas (para AEE)
@@ -279,25 +284,31 @@ export default function VerAlunos() {
           );
         }
         tempEscolasPermitidas = Object.keys(userData.escolas);
-
         if (usuario.perfil === "aee" && userData.turmas) {
           tempTurmasPermitidas = Object.keys(userData.turmas);
         }
 
         console.log(
-          `VerAlunos: Usuário ${usuario.perfil?.toUpperCase()} (UID: ${
+          `VERALUNOS DEBUG: Usuário ${usuario.perfil?.toUpperCase()} (UID: ${
             usuario.uid
           })`
         );
-        console.log("VerAlunos: Escolas Permitidas:", tempEscolasPermitidas);
         console.log(
-          "VerAlunos: Turmas Permitidas (AEE):",
+          "VERALUNOS DEBUG: Escolas Permitidas:",
+          tempEscolasPermitidas
+        );
+        console.log(
+          "VERALUNOS DEBUG: Turmas Permitidas (AEE):",
           tempTurmasPermitidas
         );
 
         // Se a escola selecionada ainda não foi definida, usa a primeira escola permitida como padrão
         if (escolaSelecionada === null && tempEscolasPermitidas.length > 0) {
           setEscolaSelecionada(tempEscolasPermitidas[0]);
+          console.log(
+            "VERALUNOS DEBUG: Escola selecionada inicial (AEE/Prof):",
+            tempEscolasPermitidas[0]
+          );
         }
       } else if (
         [
@@ -314,6 +325,10 @@ export default function VerAlunos() {
         // Se a escola selecionada ainda não foi definida, usa a primeira escola do sistema como padrão
         if (escolasListadas.length > 0 && escolaSelecionada === null) {
           setEscolaSelecionada(escolasListadas[0]?.id || null);
+          console.log(
+            "VERALUNOS DEBUG: Escola selecionada inicial (Gestão/Dev/Diretor):",
+            escolasListadas[0]?.id
+          );
         }
       } else {
         // Outros perfis não autorizados (se não foram pegos na verificação inicial)
@@ -325,17 +340,41 @@ export default function VerAlunos() {
       // Atualiza os estados que serão usados no JSX para exibir filtros e dados
       setEscolasPermitidasParaUsuario(tempEscolasPermitidas);
       setTurmasPermitidasParaUsuario(tempTurmasPermitidas);
+      console.log("VERALUNOS DEBUG: Estados de permissão atualizados.");
 
       // 3. Construção da Query de Alunos com base na escola selecionada e permissões
       let alunosParaExibir = [];
       let escolaAtualmenteSelecionada = escolaSelecionada; // Pega o valor atual do estado de escola selecionada
 
-      // Se não há escola selecionada ainda (ex: primeiro load para AEE/Professor)
-      // e ele tem escolas permitidas, define a primeira como a "selecionada atual"
+      // Se escolaAtualmenteSelecionada ainda não foi definida (ex: primeiro load para AEE/Prof)
+      // e o usuário tem escolas permitidas, define a primeira como a "selecionada atual"
       if (!escolaAtualmenteSelecionada && tempEscolasPermitidas.length > 0) {
         escolaAtualmenteSelecionada = tempEscolasPermitidas[0];
         setEscolaSelecionada(escolaAtualmenteSelecionada); // Atualiza o estado da UI
+        console.log(
+          "VERALUNOS DEBUG: Escola ativa final definida para query (fallback):",
+          escolaAtualmenteSelecionada
+        );
       }
+
+      // === AQUI ESTÁ A CHAVE: SALVAR NO LOCALSTORAGE ===
+      // Salva a escola selecionada no localStorage para que o componente EscolaAtual possa exibi-la
+      if (escolaAtualmenteSelecionada) {
+        localStorage.setItem(
+          "escolaAtiva",
+          JSON.stringify(escolaAtualmenteSelecionada)
+        );
+        console.log(
+          "VERALUNOS DEBUG: 'escolaAtiva' salva no localStorage:",
+          JSON.parse(localStorage.getItem("escolaAtiva"))
+        );
+      } else {
+        localStorage.removeItem("escolaAtiva");
+        console.log(
+          "VERALUNOS DEBUG: 'escolaAtiva' removida do localStorage (nenhuma escola determinada)."
+        );
+      }
+      // === FIM DO SALVAMENTO NO LOCALSTORAGE ===
 
       if (escolaAtualmenteSelecionada) {
         let qAlunos = query(
@@ -344,7 +383,6 @@ export default function VerAlunos() {
           orderBy("nome")
         );
 
-        // Para AEE, aplicar filtro de turma se houver e o número de turmas for <= 10
         if (usuario.perfil === "aee" && tempTurmasPermitidas.length > 0) {
           if (tempTurmasPermitidas.length <= 10) {
             qAlunos = query(
@@ -353,7 +391,7 @@ export default function VerAlunos() {
             );
           } else {
             console.warn(
-              "Atenção: AEE tem mais de 10 turmas vinculadas. O filtro 'in' do Firestore só suporta até 10 valores. Alunos serão filtrados no cliente após a busca pela escola."
+              "Atenção: AEE tem mais de 10 turmas vinculadas. Alunos serão filtrados no cliente."
             );
           }
         }
@@ -364,32 +402,39 @@ export default function VerAlunos() {
           ...docSnap.data(),
         }));
 
-        // Filtragem adicional no cliente para AEE com mais de 10 turmas
         if (usuario.perfil === "aee" && tempTurmasPermitidas.length > 10) {
           fetchedAlunos = fetchedAlunos.filter((aluno) =>
             turmasPermitidasParaUsuario.includes(aluno.turma)
           );
         }
-
         alunosParaExibir = fetchedAlunos;
+        console.log(
+          "VERALUNOS DEBUG: Alunos carregados para exibição:",
+          alunosParaExibir.length
+        );
       } else {
-        // Se nenhuma escola foi selecionada/permitida, não há alunos para exibir
         alunosParaExibir = [];
+        console.log(
+          "VERALUNOS DEBUG: Nenhuma escola ativa, nenhum aluno carregado."
+        );
       }
 
       setAlunos(alunosParaExibir); // Atualiza o estado dos alunos para exibição
     } catch (e) {
-      console.error("Erro ao carregar todos os dados:", e);
+      console.error(
+        "VERALUNOS DEBUG: Erro fatal ao carregar todos os dados:",
+        e
+      );
       setError(
         e.message || "Falha ao carregar dados. Por favor, tente novamente."
       );
       setAlunos([]);
       setEscolas([]);
-      // Garante que os estados de permissão sejam limpos em caso de erro no carregamento
       setEscolasPermitidasParaUsuario([]);
       setTurmasPermitidasParaUsuario([]);
     } finally {
-      setLoading(false); // Desativa o loading
+      setLoading(false);
+      console.log("VERALUNOS DEBUG: Finalizando carregarTodosOsDados.");
     }
   }, [usuario, escolaSelecionada]); // Dependências: A função re-executa se o usuário ou a escola selecionada mudar
 
@@ -407,7 +452,6 @@ export default function VerAlunos() {
     }
 
     let escolaIdParaSalvar = formulario.escolaId;
-    // Se a escolaId não está no formulário, tenta pegar da escola selecionada
     if (!escolaIdParaSalvar && escolaSelecionada) {
       escolaIdParaSalvar = escolaSelecionada;
     }
@@ -417,7 +461,7 @@ export default function VerAlunos() {
       return;
     }
 
-    setLoadingSalvar(true); // Ativa o loading para a operação de salvar
+    setLoadingSalvar(true);
     try {
       const dadosAlunoParaSalvar = {
         nome: formulario.nome.trim(),
@@ -429,27 +473,25 @@ export default function VerAlunos() {
       };
 
       if (formulario.id) {
-        // Se o formulário tem um ID, é uma atualização
         await updateDoc(doc(db, "alunos", formulario.id), dadosAlunoParaSalvar);
       } else {
-        // Caso contrário, é um novo aluno
         await addDoc(collection(db, "alunos"), dadosAlunoParaSalvar);
       }
 
-      await carregarTodosOsDados(); // Recarrega a lista de alunos para refletir as mudanças
-      setModalAberto(false); // Fecha o modal
-      setFormulario(null); // Limpa o formulário
+      await carregarTodosOsDados();
+      setModalAberto(false);
+      setFormulario(null);
     } catch (error) {
       console.error("Erro ao salvar aluno:", error);
-      setError(`Erro ao salvar: ${error.message || "Ocorreu um problema."}`); // Exibe erro na UI
+      setError(`Erro ao salvar: ${error.message || "Ocorreu um problema."}`);
     } finally {
-      setLoadingSalvar(false); // Desativa o loading de salvar
+      setLoadingSalvar(false);
     }
-  }, [formulario, escolaSelecionada, carregarTodosOsDados]); // Dependências da função
+  }, [formulario, escolaSelecionada, carregarTodosOsDados]);
 
   const handleExcluir = useCallback(
     async (idAluno) => {
-      if (loadingSalvar) return; // Impede múltiplas exclusões
+      if (loadingSalvar) return;
       if (
         !window.confirm(
           "Tem certeza que deseja excluir este aluno? Esta ação não pode ser desfeita."
@@ -458,30 +500,31 @@ export default function VerAlunos() {
         return;
       }
 
-      setLoadingSalvar(true); // Ativa o loading para a operação de excluir
+      setLoadingSalvar(true);
       try {
         await deleteDoc(doc(db, "alunos", idAluno));
-        await carregarTodosOsDados(); // Recarrega a lista de alunos após excluir
+        await carregarTodosOsDados();
       } catch (error) {
         console.error("Erro ao excluir aluno:", error);
-        setError("Erro ao excluir aluno. Por favor, tente novamente."); // Exibe erro na UI
+        setError("Erro ao excluir aluno. Por favor, tente novamente.");
       } finally {
-        setLoadingSalvar(false); // Desativa o loading de excluir
+        setLoadingSalvar(false);
       }
     },
-    [loadingSalvar, carregarTodosOsDados] // Dependências da função
+    [loadingSalvar, carregarTodosOsDados]
   );
 
   // Memoiza a lista de alunos para exibição na UI
-  // Esta lista já é filtrada em `carregarTodosOsDados`, então aqui apenas retorna o estado 'alunos'
   const alunosDaEscola = useMemo(() => {
     return alunos;
-  }, [alunos]); // Depende apenas do estado 'alunos'
+  }, [alunos]);
 
   // --- Renderização Condicional da UI ---
 
   // Exibe um loader global enquanto a tela principal está carregando
-  if (loading && !error) return <Loader />;
+  if (loading && !error) {
+    return <Loader />;
+  }
 
   // Exibe uma mensagem de erro principal se houver um erro e não estiver carregando
   if (error && !loading) {
@@ -504,7 +547,7 @@ export default function VerAlunos() {
     );
   }
 
-  // Exibe uma mensagem se não há escolas disponíveis para o perfil (exceto AEE, que tem tratamento de erro específico)
+  // Exibe uma mensagem se não há escolas disponíveis para o perfil
   if (!loading && escolas.length === 0 && usuario?.perfil !== "aee") {
     return (
       <div style={styles.container}>
@@ -543,10 +586,9 @@ export default function VerAlunos() {
               onClick={() => {
                 let targetEscolaId = escolaSelecionada;
 
-                // Valida se há uma escola selecionada para adicionar um novo aluno
                 if (
                   !targetEscolaId &&
-                  !["desenvolvedor", "gestao"].includes(usuario.perfil) // AEE/Professor já deveria ter targetEscolaId preenchido
+                  !["desenvolvedor", "gestao"].includes(usuario.perfil)
                 ) {
                   alert(
                     "Por favor, selecione uma escola primeiro para adicionar um novo aluno."
@@ -560,12 +602,12 @@ export default function VerAlunos() {
                   turma: "",
                   turno: "",
                   diagnostico: "",
-                  escolaId: targetEscolaId, // Define a escolaId para o novo formulário
+                  escolaId: targetEscolaId,
                 });
                 setModalAberto(true);
               }}
               style={styles.buttonPrimary}
-              disabled={loadingSalvar || loading} // Desabilita o botão se estiver salvando ou carregando
+              disabled={loadingSalvar || loading}
             >
               <FaPlus /> Novo Aluno
             </button>
@@ -579,7 +621,6 @@ export default function VerAlunos() {
             <div style={styles.schoolFilter}>
               {escolas.map(
                 (escola) =>
-                  // Renderiza o botão da escola APENAS se ela estiver na lista de escolas permitidas
                   escolasPermitidasParaUsuario.includes(escola.id) && (
                     <button
                       key={escola.id}
@@ -587,7 +628,7 @@ export default function VerAlunos() {
                       style={styles.schoolButton(
                         escolaSelecionada === escola.id
                       )}
-                      disabled={loading} // Desabilita o botão enquanto carrega
+                      disabled={loading}
                     >
                       {escola.nome}
                     </button>

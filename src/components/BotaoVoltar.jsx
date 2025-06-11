@@ -1,10 +1,10 @@
 // src/components/BotaoVoltar.jsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import * as PropTypes from "prop-types";
+import * as PropTypesImport from "prop-types"; // Importa tudo de prop-types como um objeto
 import { FaArrowLeft } from "react-icons/fa";
 
-// Estilos base com CSS-in-JS pattern
+// Estilos base com CSS-in-JS pattern (mantido aqui para simplicidade, mas pode ir para CSS)
 const estilosBase = {
   botao: {
     backgroundColor: "#6c757d",
@@ -34,6 +34,7 @@ const estilosBase = {
   },
 };
 
+// Componente de Botão Voltar
 function BotaoVoltar({ destino, estiloPersonalizado, texto = "Voltar" }) {
   const navigate = useNavigate();
 
@@ -42,13 +43,13 @@ function BotaoVoltar({ destino, estiloPersonalizado, texto = "Voltar" }) {
       if (destino) {
         navigate(destino);
       } else if (window.history.length > 1) {
-        navigate(-1);
+        navigate(-1); // Volta uma página no histórico
       } else {
-        navigate("/", { replace: true }); // Fallback para rota raiz
+        navigate("/", { replace: true }); // Fallback para rota raiz se não houver histórico
       }
     } catch (error) {
       console.error("Falha na navegação:", error);
-      navigate("/", { replace: true }); // Fallback seguro
+      navigate("/", { replace: true }); // Fallback seguro em caso de erro
     }
   };
 
@@ -65,14 +66,13 @@ function BotaoVoltar({ destino, estiloPersonalizado, texto = "Voltar" }) {
   );
 }
 
+// Definição das PropTypes usando o objeto importado (PropTypesImport.default)
 BotaoVoltar.propTypes = {
-  destino: PropTypes.string,
-  estiloPersonalizado: PropTypes.object,
-  texto: PropTypes.string,
+  destino: PropTypesImport.default.string,
+  estiloPersonalizado: PropTypesImport.default.object,
+  texto: PropTypesImport.default.string,
 };
 
-BotaoVoltar.defaultProps = {
-  texto: "Voltar",
-};
+// Não é mais necessário o BotaoVoltar.defaultProps, pois o parâmetro padrão já é usado na função
 
 export default BotaoVoltar;
