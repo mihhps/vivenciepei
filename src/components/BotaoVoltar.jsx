@@ -1,7 +1,7 @@
 // src/components/BotaoVoltar.jsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import PropTypes from "prop-types";
+import * as PropTypes from "prop-types";
 import { FaArrowLeft } from "react-icons/fa";
 
 // Estilos base com CSS-in-JS pattern
