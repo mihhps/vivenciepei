@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import Modal from "react-modal";
-import { db } from "../firebase"; // Certifique-se que o caminho para o firebase config está correto
+import { db } from "../firebase";
 import {
   collection,
   getDocs,
@@ -15,9 +15,9 @@ import {
   getDoc,
   orderBy,
 } from "firebase/firestore";
-import BotaoVoltar from "../components/BotaoVoltar"; // Certifique-se que o caminho para o BotaoVoltar está correto
+import BotaoVoltar from "../components/BotaoVoltar";
 import { FaPencilAlt, FaTrashAlt, FaPlus } from "react-icons/fa";
-import Loader from "../components/Loader"; // Certifique-se que o caminho para o Loader está correto
+import Loader from "../components/Loader";
 
 // Define o elemento raiz do seu aplicativo para acessibilidade do modal
 Modal.setAppElement("#root");
@@ -258,7 +258,7 @@ export default function VerAlunos() {
         id: doc.id,
         ...doc.data(),
       }));
-      setEscolas(escolasListadas); // Atualiza o estado com todas as escolas
+      setEscolas(escolasListadas);
       console.log(
         "VERALUNOS DEBUG: Todas as escolas carregadas:",
         escolasListadas.length
@@ -519,7 +519,7 @@ export default function VerAlunos() {
     return alunos;
   }, [alunos]);
 
-  // --- Renderização Condicional da UI ---
+  // --- Renderização Condicional da UI (CORRIGIDA) ---
 
   // Exibe um loader global enquanto a tela principal está carregando
   if (loading && !error) {
@@ -570,6 +570,7 @@ export default function VerAlunos() {
     );
   }
 
+  // === INÍCIO DO RETURN PRINCIPAL DO COMPONENTE ===
   return (
     <div style={styles.container}>
       <div style={styles.content}>

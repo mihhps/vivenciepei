@@ -1,56 +1,67 @@
-import React, { useState, useEffect, useCallback } from "react";
+// src/pages/VincularEscolas.jsx
+
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { getDocs, collection, updateDoc, doc } from "firebase/firestore";
-import { db } from "../firebase";
+import { db } from "../firebase"; // Certifique-se que o caminho para o firebase config está correto
 import { useNavigate } from "react-router-dom";
-import BotaoVoltar from "../components/BotaoVoltar";
-import "./VincularEscolas.css"; // Certifique-se de que o caminho está correto
+import BotaoVoltar from "../components/BotaoVoltar"; // Certifique-se que o caminho para o BotaoVoltar está correto
+
+// --- Importar PropTypes ---
+import * as PropTypesImport from "prop-types"; // Importa tudo de prop-types como um objeto
+
+// --- IMPORTAR O ARQUIVO CSS ---
+import "./VincularEscolas.css"; // Certifique-se que o caminho está correto
 
 // --- Componente Auxiliar para renderizar os checkboxes de escolas ---
-// Isso ajuda a evitar duplicação de código e mantém a lógica de renderização mais limpa.
-const EscolaCheckboxes = ({
-  prof,
-  escolas,
-  edicoesPendentes,
-  toggleEscola,
-  salvarEscolas,
-}) => {
-  return (
-    <>
-      <div className="checkbox-container-list">
-        {" "}
-        {/* Alterado de 'checkbox-container-grid' para 'checkbox-container-list' para clareza */}
-        {escolas.map((escola) => (
-          <label key={escola.id} className="checkbox-label">
-            <input
-              type="checkbox"
-              checked={
-                edicoesPendentes[prof.id]?.[escola.id] ??
-                !!prof.escolas?.[escola.id]
+const EscolaCheckboxes = React.memo(
+  ({ prof, escolas, edicoesPendentes, toggleEscola, salvarEscolas }) => {
+    return (
+      <>
+        <div className="checkbox-container-list">
+          {" "}
+          {/* Usando a classe de lista */}
+          {escolas.map((escola) => (
+            <label key={escola.id} className="checkbox-label">
+              <input
+                type="checkbox"
+                // CORREÇÃO: Usando parênteses para precedência do operador ??
+                checked={
+                  edicoesPendentes[prof.id]?.[escola.id] ??
+                  !!prof.escolas?.[escola.id]
+                }
+                onChange={() => toggleEscola(prof.id, escola.id)}
+              />
+              <span>{escola.nome}</span>
+            </label>
+          ))}
+        </div>
+        {/* Exibir o botão salvar apenas se houver edições pendentes para este professor */}
+        {edicoesPendentes[prof.id] &&
+          Object.keys(edicoesPendentes[prof.id]).length > 0 && (
+            <button
+              onClick={() =>
+                salvarEscolas(
+                  prof.id,
+                  edicoesPendentes[prof.id] || {} // Passa as edições pendentes para a função de salvar
+                )
               }
-              onChange={() => toggleEscola(prof.id, escola.id)}
-              style={{ marginTop: 2 }}
-            />
-            <span style={{ marginLeft: 8 }}>{escola.nome}</span>
-          </label>
-        ))}
-      </div>
-      {/* Exibir o botão salvar apenas se houver edições pendentes para este professor */}
-      {edicoesPendentes[prof.id] &&
-        Object.keys(edicoesPendentes[prof.id]).length > 0 && (
-          <button
-            onClick={() =>
-              salvarEscolas(
-                prof.id,
-                edicoesPendentes[prof.id] || {} // Passa as edições pendentes para a função de salvar
-              )
-            }
-            className="vinculacao-botao-base vinculacao-botao-salvar"
-          >
-            Salvar alterações
-          </button>
-        )}
-    </>
-  );
+              className="vinculacao-botao-base vinculacao-botao-salvar"
+            >
+              Salvar alterações
+            </button>
+          )}
+      </>
+    );
+  }
+);
+
+// === ADICIONADO: VALIDAÇÃO DE PROPS PARA EscolaCheckboxes ===
+EscolaCheckboxes.propTypes = {
+  prof: PropTypesImport.default.object.isRequired, // 'prof' deve ser um objeto e é obrigatório
+  escolas: PropTypesImport.default.array.isRequired, // 'escolas' deve ser um array e é obrigatório
+  edicoesPendentes: PropTypesImport.default.object.isRequired, // 'edicoesPendentes' deve ser um objeto e é obrigatório
+  toggleEscola: PropTypesImport.default.func.isRequired, // 'toggleEscola' deve ser uma função e é obrigatório
+  salvarEscolas: PropTypesImport.default.func.isRequired, // 'salvarEscolas' deve ser uma função e é obrigatório
 };
 
 // --- Componente Principal: VincularEscolas ---
@@ -59,12 +70,12 @@ export default function VincularEscolas() {
   const [escolas, setEscolas] = useState([]);
   const [escolaSelecionada, setEscolaSelecionada] = useState(null); // Pode ser null, um objeto escola, ou "semVinculo"
   const [modoEdicaoGeral, setModoEdicaoGeral] = useState(false); // Controla o modo de edição para a lista geral de professores de uma escola
-  const [edicoesPendentes, setEdicoesPendentes] = useState({}); // { profId: { escolaId: true/false } }
+  const [edicoesPendentes, setEdicoesPendentes] = useState({}); // Formato: { profId: { escolaId: true/false } }
   const [isLoading, setIsLoading] = useState(true); // Estado de carregamento
   const [error, setError] = useState(null); // Estado para exibir mensagens de erro
   const navigate = useNavigate();
 
-  // Efeito para verificação de autorização do usuário
+  // Efeito para verificação de autorização do usuário ao carregar a página
   useEffect(() => {
     const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
     if (
@@ -74,9 +85,9 @@ export default function VincularEscolas() {
       alert("Apenas perfis autorizados podem acessar esta página.");
       navigate("/");
     }
-  }, [navigate]);
+  }, [navigate]); // navigate é uma dependência do useEffect
 
-  // Função para carregar dados de usuários e escolas do Firebase
+  // Função para carregar dados de usuários (professores) e escolas do Firebase
   const carregarDados = useCallback(async () => {
     setIsLoading(true);
     setError(null); // Limpa qualquer erro anterior
@@ -84,6 +95,7 @@ export default function VincularEscolas() {
       const usuariosSnap = await getDocs(collection(db, "usuarios"));
       const escolasSnap = await getDocs(collection(db, "escolas"));
 
+      // Filtra usuários que são perfis de professores ou AEE/diretores, etc.
       const professoresFiltrados = usuariosSnap.docs
         .map((doc) => ({ id: doc.id, ...doc.data() }))
         .filter((u) =>
@@ -107,9 +119,9 @@ export default function VincularEscolas() {
       // Define a escola selecionada inicial se ainda não estiver definida
       if (!escolaSelecionada) {
         if (escolasListadas.length > 0) {
-          setEscolaSelecionada(escolasListadas[0]);
+          setEscolaSelecionada(escolasListadas[0]); // Seleciona a primeira escola por padrão
         } else {
-          setEscolaSelecionada("semVinculo"); // Se não houver escolas, vai para 'semVinculo'
+          setEscolaSelecionada("semVinculo"); // Ou "Professores sem vínculo" se não houver escolas
         }
       }
     } catch (err) {
@@ -118,12 +130,12 @@ export default function VincularEscolas() {
     } finally {
       setIsLoading(false);
     }
-  }, [escolaSelecionada]); // Dependência adicionada para carregar a primeira escola apenas uma vez
+  }, [escolaSelecionada]); // escolaSelecionada é uma dependência para evitar loop de inicialização
 
-  // Efeito para carregar dados na montagem do componente
+  // Efeito para carregar dados na montagem inicial do componente
   useEffect(() => {
     carregarDados();
-  }, [carregarDados]); // `carregarDados` é uma dependência porque está dentro de `useCallback`
+  }, [carregarDados]); // carregarDados é uma dependência porque é um useCallback
 
   // Lógica para alternar o vínculo de uma escola para um professor nas edições pendentes
   const toggleEscola = useCallback(
@@ -158,14 +170,14 @@ export default function VincularEscolas() {
         return { ...prev, [profId]: professorEdicoes };
       });
     },
-    [professores]
-  ); // `professores` é uma dependência para acessar `prof.escolas`
+    [professores] // professores é uma dependência para acessar prof.escolas
+  );
 
   // Função para salvar as escolas vinculadas de um professor no Firebase
   const salvarEscolas = useCallback(
     async (profId, edicoesDoProfessor) => {
-      setIsLoading(true);
-      setError(null);
+      setIsLoading(true); // Ativa o loading para feedback visual
+      setError(null); // Limpa erros anteriores
       try {
         const professorAtual = professores.find((p) => p.id === profId);
         if (!professorAtual)
@@ -180,8 +192,8 @@ export default function VincularEscolas() {
             delete escolasFinais[escolaId];
           }
         }
-        console.log("🔍 Salvando escolas para", profId, escolasFinais);
 
+        // Atualiza o campo 'escolas' do documento do professor na coleção 'usuarios'
         await updateDoc(doc(db, "usuarios", profId), {
           escolas: escolasFinais,
         });
@@ -199,14 +211,14 @@ export default function VincularEscolas() {
         console.error("Erro ao salvar:", err);
         setError("Erro ao salvar vínculos. Por favor, tente novamente.");
       } finally {
-        setIsLoading(false);
+        setIsLoading(false); // Desativa o loading
       }
     },
-    [carregarDados, professores]
-  ); // `carregarDados` e `professores` são dependências
+    [carregarDados, professores] // carregarDados e professores são dependências
+  );
 
   // Filtra professores com base na escola selecionada ou se estão sem vínculo
-  const professoresFiltradosParaExibicao = React.useMemo(() => {
+  const professoresFiltradosParaExibicao = useMemo(() => {
     if (escolaSelecionada === "semVinculo") {
       return professores.filter(
         (prof) => !prof.escolas || Object.keys(prof.escolas).length === 0
@@ -219,17 +231,34 @@ export default function VincularEscolas() {
     return []; // Retorna um array vazio se nenhuma escola estiver selecionada ou estado inválido
   }, [professores, escolaSelecionada]);
 
+  // Renderização do Loader global se a tela estiver carregando e não há erro principal
+  if (isLoading && !error) {
+    return <Loader />;
+  }
+
+  // Renderização da mensagem de erro principal se houver um erro
+  if (error && !isLoading) {
+    return (
+      <div className="vinculacao-container">
+        <BotaoVoltar />
+        <p className="error-message">{error}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="vinculacao-container">
       <div className="vinculacao-card">
         {/* Usando as classes CSS refatoradas para o BotãoVoltar */}
         <BotaoVoltar className="vinculacao-botao-base vinculacao-botao-voltar" />
+
         <h2 className="vinculacao-titulo">Vincular Escolas a Professores</h2>
+
         <div className="vinculacao-abas-container">
           {escolas.map((escola) => (
             <button
               key={escola.id}
-              // Aplicando a classe 'active' dinamicamente
+              // Aplicando a classe 'active' dinamicamente para a aba selecionada
               className={`vinculacao-aba ${
                 escolaSelecionada?.id === escola.id ? "active" : ""
               }`}
@@ -243,7 +272,7 @@ export default function VincularEscolas() {
             </button>
           ))}
           <button
-            // Aplicando a classe 'active' dinamicamente
+            // Aplicando a classe 'active' dinamicamente para a aba "Professores sem vínculo"
             className={`vinculacao-aba ${
               escolaSelecionada === "semVinculo" ? "active" : ""
             }`}
@@ -256,11 +285,8 @@ export default function VincularEscolas() {
             Professores sem vínculo
           </button>
         </div>
-        {/* Mensagens de Carregamento e Erro */}
-        {isLoading && <p>Carregando dados...</p>}
-        {error && <p className="error-message">{error}</p>}{" "}
-        {/* Adicione uma classe CSS para estilizar `.error-message` */}
-        {!isLoading && !error && escolaSelecionada && (
+
+        {escolaSelecionada && (
           <>
             <h3 className="vinculacao-subtitulo">
               {escolaSelecionada === "semVinculo"
@@ -275,7 +301,7 @@ export default function VincularEscolas() {
               {escolaSelecionada === "semVinculo" || modoEdicaoGeral ? (
                 // Modo de Edição (para "sem vínculo" ou quando modoEdicaoGeral está ativo)
                 professoresFiltradosParaExibicao.length === 0 ? (
-                  <p>
+                  <p className="info-message">
                     Nenhum professor encontrado{" "}
                     {escolaSelecionada === "semVinculo"
                       ? "sem vínculo."
@@ -289,14 +315,8 @@ export default function VincularEscolas() {
                         prof.email
                       }) - ${prof.perfil?.toUpperCase()}`}</h4>
                       <EscolaCheckboxes
-                        prof={prof}
-                        escolas={
-                          escolaSelecionada === "semVinculo"
-                            ? escolas
-                            : escolas.filter(
-                                (e) => e.id === escolaSelecionada.id
-                              )
-                        }
+                        prof={prof} // Passa o objeto prof completo
+                        escolas={escolas} // Sempre passa a lista completa de todas as escolas
                         edicoesPendentes={edicoesPendentes}
                         toggleEscola={toggleEscola}
                         salvarEscolas={salvarEscolas}
@@ -306,7 +326,7 @@ export default function VincularEscolas() {
                 )
               ) : // Modo de Visualização (apenas para escolas específicas quando modoEdicaoGeral está inativo)
               professoresFiltradosParaExibicao.length === 0 ? (
-                <p>
+                <p className="info-message">
                   Nenhum professor encontrado vinculado a{" "}
                   {escolaSelecionada?.nome}.
                 </p>
@@ -316,8 +336,8 @@ export default function VincularEscolas() {
                     <h4>
                       {prof.nome} ({prof.email})
                     </h4>
-                    {/* Aqui você pode exibir as escolas já vinculadas de forma não editável se quiser */}
-                    {/* Por exemplo: <p>Escolas: {Object.keys(prof.escolas || {}).map(id => escolas.find(e => e.id === id)?.nome).join(', ')}</p> */}
+                    {/* Opcional: exibir as escolas já vinculadas de forma não editável aqui */}
+                    {/* <p>Escolas: {Object.keys(prof.escolas || {}).map(id => escolas.find(e => e.id === id)?.nome).join(', ')}</p> */}
                   </div>
                 ))
               )}
