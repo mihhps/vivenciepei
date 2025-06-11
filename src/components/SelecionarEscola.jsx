@@ -20,13 +20,13 @@ function SelecionarEscola() {
 
         // Busca os dados completos das escolas
         const todasEscolasSnap = await getDocs(collection(db, "escolas"));
-        const todasEscolas = todasEscolasSnap.docs.map(doc => ({
+        const todasEscolas = todasEscolasSnap.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
 
         // Filtra apenas as escolas vinculadas ao professor
-        const escolasVinculadas = todasEscolas.filter(escola =>
+        const escolasVinculadas = todasEscolas.filter((escola) =>
           idsEscolas.includes(escola.id)
         );
 
@@ -38,12 +38,11 @@ function SelecionarEscola() {
   }, []);
 
   const handleSelecionarEscola = (idEscola) => {
-  const escolaSelecionada = escolas.find((escola) => escola.id === idEscola);
-  if (escolaSelecionada) {
-    localStorage.setItem("escolaAtiva", JSON.stringify(escolaSelecionada));
-    navigate("/painel-professor");
-  }
-};
+    const escolaSelecionada = escolas.find((escola) => escola.id === idEscola);
+    if (escolaSelecionada) {
+      navigate("/painel-professor");
+    }
+  };
 
   return (
     <div style={estilos.container}>
@@ -52,7 +51,10 @@ function SelecionarEscola() {
         <ul style={estilos.lista}>
           {escolas.map((escola) => (
             <li key={escola.id} style={estilos.item}>
-              <button style={estilos.botao} onClick={() => handleSelecionarEscola(escola.id)}>
+              <button
+                style={estilos.botao}
+                onClick={() => handleSelecionarEscola(escola.id)}
+              >
                 {escola.nome}
               </button>
             </li>

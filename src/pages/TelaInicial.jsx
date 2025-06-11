@@ -7,19 +7,20 @@ export default function TelaInicial() {
   return (
     <div style={estilos.container}>
       <div style={estilos.card}>
-        <img src="/logo-vivencie.png" alt="Logo Vivencie PEI" style={estilos.logo} />
+        <img
+          src="/logo-vivencie.png"
+          alt="Logo Vivencie PEI"
+          style={estilos.logo}
+        />
 
         <h1 style={estilos.titulo}>Vivencie PEI</h1>
         <p style={estilos.subtitulo}>
-          Um sistema completo para gestão de Planos Educacionais Individualizados, 
-          construído para facilitar o acompanhamento pedagógico e fortalecer o desenvolvimento 
-          dos alunos com base na BNCC.
+          Criada para apoiar quem educa e acolher quem aprende, Vivencie PEI
+          facilita a construção de Planos Educacionais Individualizados e
+          acompanha, com carinho e estratégia, o crescimento de cada estudante.
         </p>
 
-        <button
-          onClick={() => navigate("/login")}
-          style={estilos.botao}
-        >
+        <button onClick={() => navigate("/login")} style={estilos.botao}>
           Fazer Login
         </button>
       </div>
@@ -35,7 +36,7 @@ const estilos = {
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    fontFamily: "'Segoe UI', sans-serif"
+    fontFamily: "'Segoe UI', sans-serif",
   },
   card: {
     backgroundColor: "#fff",
@@ -44,23 +45,23 @@ const estilos = {
     boxShadow: "0 0 30px rgba(0,0,0,0.2)",
     textAlign: "center",
     maxWidth: "700px",
-    width: "100%"
+    width: "100%",
   },
   logo: {
     width: "240px",
-    marginBottom: "10px"
+    marginBottom: "10px",
   },
   titulo: {
     fontSize: "50px",
     color: "#1d3557",
     marginTop: "0px",
-    marginBottom: "0px"
+    marginBottom: "0px",
   },
   subtitulo: {
     fontSize: "16px",
     color: "#333",
     marginBottom: "30px",
-    lineHeight: "1.6"
+    lineHeight: "1.6",
   },
   botao: {
     padding: "12px 30px",
@@ -69,6 +70,6 @@ const estilos = {
     border: "none",
     borderRadius: "8px",
     fontSize: "16px",
-    cursor: "pointer"
-  }
+    cursor: "pointer",
+  },
 };

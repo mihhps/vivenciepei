@@ -1,0 +1,194 @@
+/* src/pages/VincularEscolas.css */
+
+/* --- Variáveis CSS para Cores e Sombras --- */
+:root {
+  --cor-fundo-gradiente-inicio: #00264d;
+  --cor-fundo-gradiente-fim: #005b96;
+  --cor-branca: #fff;
+  --cor-texto-principal: #1d3557;
+  --cor-azul-medio: #457b9d;
+  --cor-cinza-claro: #aaa;
+  --cor-borda-card-professor: #ccc;
+  --cor-fundo-card-professor: #f9f9f9;
+
+  --sombra-card: 0 0 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Estilos de layout principais */
+.vinculacao-container {
+  min-height: 100vh;
+  width: 100vw;
+  background: linear-gradient(
+    to bottom,
+    var(--cor-fundo-gradiente-inicio),
+    var(--cor-fundo-gradiente-fim)
+  );
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 20px;
+  font-family: "Segoe UI", sans-serif;
+  box-sizing: border-box;
+}
+
+.vinculacao-card {
+  background-color: var(--cor-branca);
+  padding: 40px;
+  border-radius: 20px;
+  box-shadow: var(--sombra-card);
+  width: 90%;
+  max-width: 900px;
+  text-align: center;
+}
+
+.vinculacao-titulo {
+  font-size: 24px;
+  margin-bottom: 20px;
+  color: var(--cor-texto-principal);
+}
+
+.vinculacao-abas-container {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.vinculacao-aba {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  background-color: #e0e0e0;
+  color: var(--cor-texto-principal);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.vinculacao-aba.active {
+  background-color: var(--cor-azul-medio);
+  color: var(--cor-branca);
+}
+
+.vinculacao-aba:hover:not(.active) {
+  background-color: #d0d0d0;
+}
+
+.vinculacao-subtitulo {
+  font-size: 18px;
+  margin-bottom: 10px;
+  color: var(--cor-texto-principal);
+}
+
+.vinculacao-lista {
+  list-style: none;
+  padding: 0;
+  margin-bottom: 20px;
+}
+
+.vinculacao-professor-card {
+  border: 1px solid var(--cor-borda-card-professor);
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 20px;
+  background-color: var(--cor-fundo-card-professor);
+  text-align: left;
+}
+
+/* --- ESTILOS PRINCIPAIS PARA O CHECKBOX E LABEL (NOVO LAYOUT DE LISTA) --- */
+.checkbox-container-list {
+  /* Renomeada de 'checkbox-container-grid' */
+  display: flex; /* Agora usa flexbox */
+  flex-direction: column; /* Empilha os itens verticalmente */
+  gap: 8px; /* Espaçamento entre os itens (agora vertical) */
+  margin-top: 10px;
+  align-items: flex-start; /* Alinha os itens à esquerda dentro do container */
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center; /* ALINHAMENTO VERTICAL CRÍTICO (mantido) */
+  gap: 8px;
+  white-space: normal;
+  flex-wrap: wrap;
+  min-height: 10px;
+  cursor: pointer;
+}
+
+/* Ajuste específico para o checkbox dentro do label */
+.checkbox-label input[type="checkbox"] {
+  margin: 0;
+  position: relative; /* Manter se o desalinhamento vertical persistir */
+  top: 1px; /* Ajustar este valor se necessário (0px, 1px, -1px, etc.) */
+}
+
+/* --- Estilos de Botão Refatorados --- */
+.vinculacao-botao-base {
+  padding: 10px 20px;
+  color: var(--cor-branca);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s ease, transform 0.1s ease;
+}
+
+.vinculacao-botao-base:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.vinculacao-botao-base:active {
+  transform: translateY(0);
+  filter: brightness(0.9);
+}
+
+.vinculacao-botao-salvar {
+  background-color: var(--cor-texto-principal);
+  margin-top: 10px;
+}
+
+.vinculacao-botao {
+  background-color: var(--cor-azul-medio);
+  margin-top: 15px;
+}
+
+.vinculacao-botao-cancelar {
+  background-color: var(--cor-cinza-claro);
+  margin-top: 30px;
+}
+
+.vinculacao-botoes-acao {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.vinculacao-botao-voltar {
+  background-color: var(--cor-cinza-claro);
+  align-self: flex-start;
+  margin-bottom: 20px;
+  margin-right: auto;
+}
+
+/* Media Queries básicas para ajustar padding em telas muito pequenas */
+@media (max-width: 600px) {
+  .vinculacao-card {
+    padding: 25px;
+  }
+
+  .vinculacao-titulo {
+    font-size: 20px;
+  }
+
+  .vinculacao-abas-container {
+    gap: 5px;
+  }
+
+  .vinculacao-aba {
+    padding: 6px 12px;
+    font-size: 14px;
+  }
+}

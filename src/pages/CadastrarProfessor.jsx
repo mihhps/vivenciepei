@@ -1,37 +1,68 @@
 import React, { useState } from "react";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore"; // setDoc é o suficiente para criar/sobrescrever
 import { auth, db } from "../firebase";
 import { useNavigate } from "react-router-dom";
+import BotaoVoltar from "../components/BotaoVoltar";
+import { PERFIS } from "../config/constants";
 
 export default function CadastrarProfessor() {
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
-  const [cargo, setCargo] = useState("");
+  const [cargo, setCargo] = useState(""); // Aqui é a disciplina/cargo do professor
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const navigate = useNavigate();
 
   const handleCadastro = async () => {
     if (!nome || !email || !senha || !cargo) {
+      // Removi o perfil pois ele é fixo como 'professor' aqui
       alert("Preencha todos os campos.");
       return;
     }
 
     try {
-      const cred = await createUserWithEmailAndPassword(auth, email.trim(), senha);
+      const cred = await createUserWithEmailAndPassword(
+        auth,
+        email.trim(),
+        senha
+      );
+      const novoUsuarioUid = cred.user.uid;
+      const perfilProfessor = "professor"; // O perfil é fixo como professor aqui
 
-      await setDoc(doc(db, "usuarios", cred.user.uid), {
-        nome,
+      // 1. Dados do professor a serem salvos no Firestore
+      const dadosProfessorFirestore = {
+        uid: novoUsuarioUid, // UID de autenticação
+        nome: nome.trim(),
         email: email.trim(),
-        cargo,
-        perfil: "professor",
-        uid: cred.user.uid,
-        escolas: []
-      });
+        cargo: cargo, // Cargo/Disciplina selecionada
+        perfil: perfilProfessor, // Perfil fixo como 'professor'
+        escolas: {}, // Inicializa escolas como um objeto vazio
+        turmas: {}, // Inicializa turmas como um objeto vazio
+      };
+
+      // 2. Salva o documento do professor no Firestore usando o UID como ID do documento
+      await setDoc(
+        doc(db, "usuarios", novoUsuarioUid),
+        dadosProfessorFirestore
+      );
+
+      // 3. *** NOVO: Salva o professor recém-cadastrado no localStorage ***
+      const professorParaLocalStorage = {
+        ...dadosProfessorFirestore, // Copia todos os dados salvos no Firestore
+        id: novoUsuarioUid, // Adiciona o ID do documento Firestore (que é o UID neste caso)
+      };
+      localStorage.setItem(
+        "usuarioLogado",
+        JSON.stringify(professorParaLocalStorage)
+      );
 
       alert("Professor cadastrado com sucesso!");
-      navigate("/login");
+
+      // 4. Redireciona para o painel apropriado (PainelProfessor)
+      // Você pode usar o perfilRedirectMap se ele for importado de config/routesConfig
+      // ou redirecionar diretamente para "/painel-professor"
+      navigate("/painel-professor");
     } catch (error) {
       console.error("Erro ao cadastrar:", error);
 
@@ -43,7 +74,8 @@ export default function CadastrarProfessor() {
       } else if (error.code === "auth/weak-password") {
         mensagem = "A senha precisa ter pelo menos 6 caracteres.";
       } else if (error.code === "permission-denied") {
-        mensagem = "Sem permissão para salvar no Firestore. Verifique as regras.";
+        mensagem =
+          "Sem permissão para salvar no Firestore. Verifique as regras.";
       }
 
       alert(mensagem);
@@ -53,7 +85,16 @@ export default function CadastrarProfessor() {
   return (
     <div style={estilos.container}>
       <div style={estilos.card}>
-        <img src="/logo-vivencie.png" alt="Logo" style={estilos.logo} />
+        {/* Usar BotaoVoltar, que já tem estilo e navegação para -1 */}
+        <BotaoVoltar style={{ position: "absolute", top: 20, left: 20 }} />
+
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <img
+            src="/logo-vivencie.png"
+            alt="Logo Vivencie PEI"
+            style={estilos.logo}
+          />
+        </div>
         <h2 style={estilos.titulo}>Cadastro de Professor</h2>
 
         <input
@@ -65,7 +106,7 @@ export default function CadastrarProfessor() {
         />
 
         <select
-          value={cargo}
+          value={cargo} // Cargo aqui é a disciplina
           onChange={(e) => setCargo(e.target.value)}
           style={estilos.select}
         >
@@ -82,7 +123,10 @@ export default function CadastrarProfessor() {
           <option value="CIÊNCIAS">CIÊNCIAS</option>
           <option value="INGLÊS">INGLÊS</option>
           <option value="ENSINO RELIGIOSO">ENSINO RELIGIOSO</option>
-          <option value="COMUNICAÇÃO E LINGUAGEM">COMUNICAÇÃO E LINGUAGEM</option>
+          <option value="COMUNICAÇÃO E LINGUAGEM">
+            COMUNICAÇÃO E LINGUAGEM
+          </option>
+          <option value="AEE">AEE</option>
         </select>
 
         <input
@@ -96,7 +140,7 @@ export default function CadastrarProfessor() {
         <div style={estilos.senhaWrapper}>
           <input
             type={mostrarSenha ? "text" : "password"}
-            placeholder="Senha"
+            placeholder="Senha (mínimo 6 caracteres)"
             value={senha}
             onChange={(e) => setSenha(e.target.value)}
             style={estilos.input}
@@ -110,7 +154,7 @@ export default function CadastrarProfessor() {
           </button>
         </div>
 
-        <button onClick={handleCadastro} style={estilos.botao}>
+        <button style={estilos.botao} onClick={handleCadastro}>
           Cadastrar
         </button>
 
@@ -133,23 +177,23 @@ const estilos = {
     fontFamily: "'Segoe UI', sans-serif",
   },
   card: {
+    position: "relative",
     backgroundColor: "#fff",
     padding: "40px",
     borderRadius: "16px",
-    boxShadow: "0 0 30px rgba(0,0,0,0.1)",
+    boxShadow: "0 0 30px rgba(0,0,0,0.2)",
     width: "100%",
     maxWidth: "450px",
-    position: "relative",
-    textAlign: "center"
+    textAlign: "center",
   },
   logo: {
     width: "100px",
-    marginBottom: "20px"
+    marginBottom: "20px",
   },
   titulo: {
     fontSize: "24px",
     marginBottom: "20px",
-    color: "#1d3557"
+    color: "#1d3557",
   },
   input: {
     width: "100%",
@@ -157,7 +201,7 @@ const estilos = {
     marginBottom: "16px",
     borderRadius: "6px",
     border: "1px solid #ccc",
-    fontSize: "16px"
+    fontSize: "16px",
   },
   select: {
     width: "100%",
@@ -176,10 +220,10 @@ const estilos = {
     backgroundRepeat: "no-repeat",
     backgroundPosition: "right 10px center",
     backgroundSize: "20px",
-    cursor: "pointer"
+    cursor: "pointer",
   },
   senhaWrapper: {
-    position: "relative"
+    position: "relative",
   },
   botaoMostrar: {
     position: "absolute",
@@ -190,7 +234,7 @@ const estilos = {
     border: "none",
     color: "#1d3557",
     fontWeight: "bold",
-    cursor: "pointer"
+    cursor: "pointer",
   },
   botao: {
     width: "100%",
@@ -201,7 +245,6 @@ const estilos = {
     borderRadius: "6px",
     border: "none",
     cursor: "pointer",
-    marginTop: "20px"
   },
   voltar: {
     marginTop: "10px",
@@ -209,6 +252,6 @@ const estilos = {
     border: "none",
     color: "#1d3557",
     cursor: "pointer",
-    textDecoration: "underline"
-  }
+    textDecoration: "underline",
+  },
 };

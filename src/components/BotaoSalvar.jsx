@@ -28,7 +28,8 @@ export default function BotaoSalvar({
       data: new Date().toISOString(),
     };
 
-    const dadosSalvos = JSON.parse(localStorage.getItem("avaliacoesIniciais")) || [];
+    const dadosSalvos =
+      JSON.parse(localStorage.getItem("avaliacoesIniciais")) || [];
 
     let atualizados;
     if (editando) {
@@ -39,7 +40,6 @@ export default function BotaoSalvar({
       atualizados = [...dadosSalvos, novaAvaliacao];
     }
 
-    localStorage.setItem("avaliacoesIniciais", JSON.stringify(atualizados));
     alert("Avaliação salva com sucesso!");
     navigate("/ver-avaliacoes");
   };

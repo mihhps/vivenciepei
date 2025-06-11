@@ -1,0 +1,79 @@
+/* Certifique-se que este CSS está sendo carregado */
+.acompanhamento-table {
+  width: 100%;
+  border-collapse: collapse; /* MUITO IMPORTANTE para as divisórias funcionarem bem */
+  margin-top: 25px;
+  background-color: #ffffff;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 0.95em;
+  border: 1px solid #dee2e6; /* Borda externa para a tabela */
+}
+
+.acompanhamento-table th,
+.acompanhamento-table td {
+  border: 1px solid #dee2e6; /* Linhas/Divisórias entre células */
+  padding: 12px 15px; /* Aumentar padding se quiser mais espaço interno */
+  text-align: left;
+  vertical-align: middle;
+}
+
+.acompanhamento-table th {
+  background-color: #1d3557;
+  color: white;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.9em;
+  letter-spacing: 0.5px;
+  border-top: none; /* Remove borda do topo dos headers se a tabela tem borda externa */
+  border-bottom: 2px solid #103c5f; /* Linha mais grossa abaixo do header */
+}
+.acompanhamento-table th:first-child {
+  border-left: none;
+}
+.acompanhamento-table th:last-child {
+  border-right: none;
+}
+
+.acompanhamento-table tbody tr:nth-child(even) {
+  background-color: #f8f9fa; /* Linhas zebradas */
+}
+
+.acompanhamento-table tbody tr:hover {
+  background-color: #e9ecef; /* Destaque ao passar o mouse */
+}
+
+/* ... (outras classes como .escola-link-button, .status-pendente, etc., continuam as mesmas) ... */
+.escola-link-button {
+  background: none;
+  border: none;
+  color: #007bff;
+  font-weight: 500;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  text-align: left;
+  font-size: inherit;
+  font-family: inherit;
+}
+.escola-link-button:hover {
+  color: #0056b3;
+  text-decoration: underline;
+}
+
+.status-pendente {
+  color: #dc3545 !important;
+  font-weight: bold;
+}
+.status-atrasado {
+  color: #ff8c00 !important;
+  font-weight: bold;
+}
+.status-concluido {
+  color: #28a745 !important;
+  font-weight: bold;
+}
+.text-center {
+  text-align: center !important;
+}

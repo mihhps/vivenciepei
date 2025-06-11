@@ -8,7 +8,7 @@ const estilos = {
     background: "linear-gradient(135deg, #457b9d, #1d3557)",
     minHeight: "100vh",
     width: "100vw",
-    boxSizing: "border-box"
+    boxSizing: "border-box",
   },
 
   card: {
@@ -144,7 +144,7 @@ const estilos = {
     fontWeight: "bold",
     cursor: "pointer",
     marginTop: "20px",
-  }
+  },
 };
 
 export default estilos;

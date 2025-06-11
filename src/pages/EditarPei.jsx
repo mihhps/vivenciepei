@@ -1,9 +1,10 @@
-// src/pages/EditarPei.jsx
-import React, { useEffect, useState } from "react";
+// Cole isto em EditarPei.jsx
+import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import BotaoVoltar from "../components/BotaoVoltar";
 import { db } from "../firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
+import "../styles/EditarPei.css";
 
 const LEGENDA_NIVEIS = {
   NR: "Não realizou",
@@ -11,7 +12,13 @@ const LEGENDA_NIVEIS = {
   AG: "Apoio gestual",
   AV: "Apoio verbal",
   AVi: "Apoio visual",
-  I: "Independente"
+  I: "Independente",
+};
+
+const normalizarEstrategias = (estrategias) => {
+  if (Array.isArray(estrategias)) return estrategias;
+  if (typeof estrategias === "string" && estrategias) return [estrategias];
+  return [];
 };
 
 function EditarPei() {
@@ -19,233 +26,262 @@ function EditarPei() {
   const navigate = useNavigate();
 
   const [pei, setPei] = useState(null);
+  const [atividadeAplicada, setAtividadeAplicada] = useState("");
   const [entradaManual, setEntradaManual] = useState({});
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState(null);
 
-  useEffect(() => {
-    const carregarPei = async () => {
-      try {
-        const ref = doc(db, "peis", id);
-        const docSnap = await getDoc(ref);
-
-        if (!docSnap.exists()) {
-          alert("PEI não encontrado.");
-          return navigate("/ver-peis");
-        }
-
-        const dados = docSnap.data();
-        setPei({ id, ...dados });
-
-        const entradaInicial = {};
-        (dados.resumoPEI || []).forEach((meta) => {
-          entradaInicial[meta.habilidade] = {
-            estrategias: meta.estrategias || [],
-            estrategiasManuais: ""
-          };
-        });
-        setEntradaManual(entradaInicial);
-      } catch (error) {
-        console.error("Erro ao carregar PEI:", error);
-        setErro("Erro ao carregar dados.");
-      } finally {
-        setCarregando(false);
-      }
-    };
-
-    carregarPei();
-  }, [id, navigate]);
-
-  const handleSalvar = async () => {
+  const carregarPei = useCallback(async () => {
+    setCarregando(true);
+    setErro(null);
     try {
-      setCarregando(true);
-
-      const resumoAtualizado = (pei.resumoPEI || []).map((meta) => {
-        const entrada = entradaManual[meta.habilidade] || {};
-        const estrategiasSelecionadas = entrada.estrategias || [];
-        const estrategiasManuais = entrada.estrategiasManuais
-          .split("\n")
-          .filter((e) => e.trim());
-
-        return {
-          ...meta,
-          estrategias: [...estrategiasSelecionadas, ...estrategiasManuais]
+      const ref = doc(db, "peis", id);
+      const docSnap = await getDoc(ref);
+      if (!docSnap.exists()) {
+        setErro("PEI não encontrado.");
+        return;
+      }
+      const dados = docSnap.data();
+      const resumoPeiNormalizado = (dados.resumoPEI || []).map((meta) => ({
+        ...meta,
+        estrategias: normalizarEstrategias(meta.estrategias),
+      }));
+      setPei({ id, ...dados, resumoPEI: resumoPeiNormalizado });
+      setAtividadeAplicada(dados.atividadeAplicada || "");
+      const entradaInicial = {};
+      resumoPeiNormalizado.forEach((meta) => {
+        entradaInicial[meta.habilidade] = {
+          estrategias: meta.estrategias,
+          estrategiasManuais: "",
         };
       });
+      setEntradaManual(entradaInicial);
+    } catch (error) {
+      console.error("Erro ao carregar PEI:", error);
+      setErro("Erro ao carregar dados do PEI. Tente novamente.");
+    } finally {
+      setCarregando(false);
+    }
+  }, [id]);
 
-      await updateDoc(doc(db, "peis", id), {
-        resumoPEI: resumoAtualizado
+  useEffect(() => {
+    if (id) {
+      carregarPei();
+    } else {
+      setErro("ID do PEI não fornecido.");
+      setCarregando(false);
+    }
+  }, [id, carregarPei]);
+
+  const handleSalvar = async () => {
+    if (!pei) return alert("Não há dados do PEI para salvar.");
+    setCarregando(true);
+    setErro(null);
+    try {
+      const resumoAtualizado = pei.resumoPEI.map((meta) => {
+        const entrada = entradaManual[meta.habilidade] || {};
+        const estrategiasSelecionadas = entrada.estrategias || [];
+        const estrategiasManuaisNovas = (entrada.estrategiasManuais || "")
+          .split("\n")
+          .map((e) => e.trim())
+          .filter(Boolean);
+        const todasEstrategias = [
+          ...new Set([...estrategiasSelecionadas, ...estrategiasManuaisNovas]),
+        ];
+        return { ...meta, estrategias: todasEstrategias };
       });
-
+      await updateDoc(doc(db, "peis", id), {
+        resumoPEI: resumoAtualizado,
+        atividadeAplicada: atividadeAplicada,
+      });
       alert("PEI atualizado com sucesso!");
+      navigate("/ver-peis");
     } catch (error) {
       console.error("Erro ao salvar PEI:", error);
-      alert("Erro ao salvar PEI.");
+      setErro("Erro ao salvar o PEI. Tente novamente.");
     } finally {
       setCarregando(false);
     }
   };
 
-  const handleRemoverMeta = (idxRemover, habilidade) => {
-    const novaLista = pei.resumoPEI.filter((_, i) => i !== idxRemover);
-    const novaEntradaManual = { ...entradaManual };
-    delete novaEntradaManual[habilidade];
-
-    setPei((prev) => ({ ...prev, resumoPEI: novaLista }));
-    setEntradaManual(novaEntradaManual);
+  const handleRemoverMeta = (habilidadeMetaRemover) => {
+    if (
+      window.confirm(
+        `Tem certeza que deseja remover a meta "${habilidadeMetaRemover}"?`
+      )
+    ) {
+      setPei((prevPei) => {
+        if (!prevPei) return null;
+        const novaListaMetas = prevPei.resumoPEI.filter(
+          (meta) => meta.habilidade !== habilidadeMetaRemover
+        );
+        return { ...prevPei, resumoPEI: novaListaMetas };
+      });
+      setEntradaManual((prevEntrada) => {
+        const { [habilidadeMetaRemover]: _, ...novaEntradaManual } =
+          prevEntrada;
+        return novaEntradaManual;
+      });
+    }
   };
 
-  if (carregando) return <p>Carregando...</p>;
-  if (!pei) return null;
+  const handleCheckboxChange = (habilidade, estrategia, estaMarcado) => {
+    setEntradaManual((prev) => {
+      const estrategiasAtuais = prev[habilidade]?.estrategias || [];
+      const novasEstrategias = estaMarcado
+        ? [...estrategiasAtuais, estrategia]
+        : estrategiasAtuais.filter((est) => est !== estrategia);
+      return {
+        ...prev,
+        [habilidade]: { ...prev[habilidade], estrategias: novasEstrategias },
+      };
+    });
+  };
+
+  if (carregando)
+    return (
+      <div className="estado-container">
+        <p>Carregando...</p>
+      </div>
+    );
+  if (erro)
+    return (
+      <div className="estado-container">
+        <p className="mensagem-erro">{erro}</p>
+        <BotaoVoltar />
+      </div>
+    );
+  if (!pei)
+    return (
+      <div className="estado-container">
+        <p>Nenhum PEI carregado.</p>
+        <BotaoVoltar />
+      </div>
+    );
 
   return (
-    <div style={estilos.container}>
-      <div style={estilos.card}>
+    <div className="editar-pei-fundo">
+      <div className="editar-pei-card">
         <BotaoVoltar />
-        <h2 style={estilos.titulo}>Editar PEI: {pei.aluno}</h2>
+        <h2 className="editar-pei-titulo">
+          Editar PEI: {pei.aluno || "Aluno não identificado"}
+        </h2>
 
-        {(pei.resumoPEI || []).map((meta, idx) => {
-          const entrada = entradaManual[meta.habilidade] || {};
-
-          const estrategiasOriginais = Array.isArray(meta.estrategias)
-            ? meta.estrategias
-            : typeof meta.estrategias === "string"
-            ? [meta.estrategias]
-            : [];
-
-          const selecionadas = entrada.estrategias || [];
-
+        {(pei.resumoPEI || []).map((meta) => {
+          const entrada = entradaManual[meta.habilidade] || {
+            estrategias: [],
+            estrategiasManuais: "",
+          };
           return (
-            <article key={idx} style={estilos.metaCard}>
-              <h3>{meta.habilidade}</h3>
-              <p><strong>Nível atual:</strong> {meta.nivel} — {LEGENDA_NIVEIS[meta.nivel]}</p>
-              <p><strong>Nível almejado:</strong> {meta.nivelAlmejado}</p>
-              <p><strong>Objetivo:</strong> {meta.objetivo}</p>
+            <article key={meta.habilidade} className="meta-card">
+              <div className="meta-header">
+                <h3 className="meta-card-titulo">{meta.habilidade}</h3>
+                <button
+                  onClick={() => handleRemoverMeta(meta.habilidade)}
+                  className="botao-remover"
+                  disabled={carregando}
+                >
+                  Remover
+                </button>
+              </div>
+              <p>
+                <strong>Nível atual:</strong> {meta.nivel} —{" "}
+                {LEGENDA_NIVEIS[meta.nivel] || meta.nivel}
+              </p>
+              <p>
+                <strong>Nível almejado:</strong> {meta.nivelAlmejado} —{" "}
+                {LEGENDA_NIVEIS[meta.nivelAlmejado] || meta.nivelAlmejado}
+              </p>
+              <p>
+                <strong>Objetivo:</strong> {meta.objetivo}
+              </p>
 
-              <button
-                onClick={() => handleRemoverMeta(idx, meta.habilidade)}
-                style={estilos.botaoRemover}
-              >
-                Remover
-              </button>
-
-              <fieldset>
-                <legend style={{ fontWeight: "bold" }}>Estratégias:</legend>
-
-                {estrategiasOriginais.map((estrategia, i) => (
-                  <div key={i}>
-                    <input
-                      type="checkbox"
-                      id={`estrategia-${idx}-${i}`}
-                      checked={selecionadas.includes(estrategia)}
-                      onChange={(e) => {
-                        const atual = [...selecionadas];
-                        const atualizadas = e.target.checked
-                          ? [...atual, estrategia]
-                          : atual.filter((e) => e !== estrategia);
-
-                        setEntradaManual((prev) => ({
-                          ...prev,
-                          [meta.habilidade]: {
-                            ...prev[meta.habilidade],
-                            estrategias: atualizadas
-                          }
-                        }));
-                      }}
-                    />
-                    <label htmlFor={`estrategia-${idx}-${i}`} style={{ marginLeft: "8px" }}>
-                      {estrategia}
-                    </label>
-                  </div>
-                ))}
-
-                <label style={{ display: "block", marginTop: "10px" }}>
-                  Estratégias personalizadas (uma por linha):
+              <fieldset className="meta-fieldset">
+                <legend className="meta-legend">Estratégias:</legend>
+                {normalizarEstrategias(meta.estrategias).map(
+                  (estrategia, i) => (
+                    <div
+                      key={`${estrategia}-${i}`}
+                      className="checkbox-container"
+                    >
+                      <input
+                        type="checkbox"
+                        id={`estrategia-${meta.habilidade}-${i}`}
+                        checked={entrada.estrategias.includes(estrategia)}
+                        disabled={carregando}
+                        onChange={(e) =>
+                          handleCheckboxChange(
+                            meta.habilidade,
+                            estrategia,
+                            e.target.checked
+                          )
+                        }
+                        className="checkbox-input"
+                      />
+                      <label
+                        htmlFor={`estrategia-${meta.habilidade}-${i}`}
+                        className="checkbox-label"
+                      >
+                        {estrategia}
+                      </label>
+                    </div>
+                  )
+                )}
+                <label
+                  htmlFor={`estrategias-manuais-${meta.habilidade}`}
+                  className="label-estrategias-manuais"
+                >
+                  Adicionar estratégias personalizadas (uma por linha):
                 </label>
                 <textarea
+                  id={`estrategias-manuais-${meta.habilidade}`}
                   value={entrada.estrategiasManuais || ""}
+                  disabled={carregando}
                   onChange={(e) =>
                     setEntradaManual((prev) => ({
                       ...prev,
                       [meta.habilidade]: {
                         ...prev[meta.habilidade],
-                        estrategiasManuais: e.target.value
-                      }
+                        estrategiasManuais: e.target.value,
+                      },
                     }))
                   }
-                  style={estilos.textarea}
+                  className="textarea-pei"
+                  rows={3}
                 />
               </fieldset>
             </article>
           );
         })}
 
-        <button style={estilos.botaoSalvar} onClick={handleSalvar} disabled={carregando}>
+        <article className="meta-card">
+          <h3 className="meta-card-titulo">Atividade Aplicada</h3>
+          <label
+            htmlFor="atividade-aplicada"
+            className="label-estrategias-manuais"
+          >
+            Descreva a atividade que foi aplicada com o aluno:
+          </label>
+          <textarea
+            id="atividade-aplicada"
+            value={atividadeAplicada}
+            onChange={(e) => setAtividadeAplicada(e.target.value)}
+            className="textarea-pei"
+            rows={4}
+            placeholder="Ex: Brincadeira simbólica usando fantoches..."
+          />
+        </article>
+
+        <button
+          className="botao-salvar"
+          onClick={handleSalvar}
+          disabled={carregando || !pei}
+        >
           {carregando ? "Salvando..." : "Salvar Alterações"}
         </button>
       </div>
     </div>
   );
 }
-
-const estilos = {
-  container: {
-    background: "#1d3557",
-    minHeight: "100vh",
-    width: "100vw",
-    padding: "30px"
-  },
-  card: {
-    background: "#fff",
-    maxWidth: "1000px",
-    margin: "0 auto",
-    padding: "30px",
-    borderRadius: "16px",
-    boxShadow: "0 4px 15px rgba(0,0,0,0.1)"
-  },
-  titulo: {
-    textAlign: "center",
-    color: "#1d3557",
-    marginBottom: "25px"
-  },
-  metaCard: {
-    background: "#f9f9f9",
-    border: "1px solid #ddd",
-    borderRadius: "12px",
-    padding: "15px",
-    marginBottom: "15px"
-  },
-  textarea: {
-    width: "100%",
-    minHeight: "60px",
-    padding: "10px",
-    borderRadius: "6px",
-    border: "1px solid #ccc",
-    fontSize: "14px"
-  },
-  botaoSalvar: {
-    backgroundColor: "#2a9d8f",
-    color: "#fff",
-    padding: "14px 24px",
-    border: "none",
-    borderRadius: "8px",
-    fontSize: "16px",
-    fontWeight: "bold",
-    display: "block",
-    margin: "30px auto 0",
-    cursor: "pointer"
-  },
-  botaoRemover: {
-    backgroundColor: "#e63946",
-    color: "#fff",
-    padding: "6px 14px",
-    border: "none",
-    borderRadius: "6px",
-    fontSize: "14px",
-    fontWeight: "bold",
-    cursor: "pointer",
-    marginBottom: "10px"
-  }
-};
 
 export default EditarPei;

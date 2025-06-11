@@ -5,7 +5,6 @@ import { gerarPDFCompleto } from "../utils/gerarPDFCompleto";
 import { db } from "../firebase";
 import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
 
-
 const calcularIdadeEFaixa = (nascimento) => {
   if (!nascimento) return ["-", "-"];
   const hoje = new Date();
@@ -13,14 +12,24 @@ const calcularIdadeEFaixa = (nascimento) => {
   let idade = hoje.getFullYear() - nasc.getFullYear();
   const m = hoje.getMonth() - nasc.getMonth();
   if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) idade--;
-  let faixa = idade <= 3 ? "0-3 anos" : idade <= 5 ? "4-5 anos" : idade <= 8 ? "6-8 anos" : idade <= 11 ? "9-11 anos" : "12+ anos";
+  let faixa =
+    idade <= 3
+      ? "0-3 anos"
+      : idade <= 5
+      ? "4-5 anos"
+      : idade <= 8
+      ? "6-8 anos"
+      : idade <= 11
+      ? "9-11 anos"
+      : "12+ anos";
   return [idade, faixa];
 };
 
 function formatarDataSegura(data) {
   if (!data) return "-";
   try {
-    const dataStr = typeof data === "string" ? data : data.toDate?.().toISOString();
+    const dataStr =
+      typeof data === "string" ? data : data.toDate?.().toISOString();
     if (!dataStr) return "-";
 
     const [ano, mes, dia] = dataStr.split("T")[0].split("-");
@@ -49,23 +58,35 @@ export default function VerPEIs() {
       setCarregando(true);
       setErro(null);
 
-      const [peisSnapshot, alunosSnapshot, usuariosSnapshot] = await Promise.all([
-        getDocs(collection(db, "peis")),
-        getDocs(collection(db, "alunos")),
-        getDocs(collection(db, "usuarios"))
-      ]);
-          const avaliacoesSnapshot = await getDocs(collection(db, "avaliacoesIniciais"));
-    const avaliacoes = {};
-    avaliacoesSnapshot.docs.forEach(doc => {
-      const data = doc.data();
-      avaliacoes[data.aluno] = data;
-    });
-    setAvaliacoesIniciais(avaliacoes);
-      
-      const alunosSalvos = alunosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      const usuariosSalvos = usuariosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const [peisSnapshot, alunosSnapshot, usuariosSnapshot] =
+        await Promise.all([
+          getDocs(collection(db, "peis")),
+          getDocs(collection(db, "alunos")),
+          getDocs(collection(db, "usuarios")),
+        ]);
+      const avaliacoesSnapshot = await getDocs(
+        collection(db, "avaliacoesIniciais")
+      );
+      const avaliacoes = {};
+      avaliacoesSnapshot.docs.forEach((doc) => {
+        const data = doc.data();
+        avaliacoes[data.aluno] = data;
+      });
+      setAvaliacoesIniciais(avaliacoes);
 
-      const todosPeis = peisSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const alunosSalvos = alunosSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      const usuariosSalvos = usuariosSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      const todosPeis = peisSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
 
       setUsuarios(usuariosSalvos);
       setAlunos(alunosSalvos);
@@ -74,16 +95,17 @@ export default function VerPEIs() {
         setAbaAtiva(alunosSalvos[0]?.nome || "");
       }
 
-      const peisFiltrados = tipo === "professor"
-        ? todosPeis.filter(p => p.criadorId === usuarioLogado.email)
-        : filtroUsuario
-          ? todosPeis.filter(p => p.criadorId === filtroUsuario)
+      const peisFiltrados =
+        tipo === "professor"
+          ? todosPeis.filter((p) => p.criadorId === usuarioLogado.email)
+          : filtroUsuario
+          ? todosPeis.filter((p) => p.criadorId === filtroUsuario)
           : todosPeis;
 
       const agrupados = {};
-      alunosSalvos.forEach(aluno => {
+      alunosSalvos.forEach((aluno) => {
         agrupados[aluno.nome] = peisFiltrados
-          .filter(p => p.aluno === aluno.nome)
+          .filter((p) => p.aluno === aluno.nome)
           .sort((a, b) => new Date(b.inicio) - new Date(a.inicio));
       });
 
@@ -101,12 +123,17 @@ export default function VerPEIs() {
   }, [carregarDados]);
 
   const excluirPei = async (pei) => {
-    if (!window.confirm(`Tem certeza que deseja excluir o PEI de ${pei.aluno}?`)) return;
+    if (
+      !window.confirm(`Tem certeza que deseja excluir o PEI de ${pei.aluno}?`)
+    )
+      return;
 
     try {
       await deleteDoc(doc(db, "peis", pei.id));
       const atualizados = { ...peisPorAluno };
-      atualizados[pei.aluno] = atualizados[pei.aluno].filter(p => p.id !== pei.id);
+      atualizados[pei.aluno] = atualizados[pei.aluno].filter(
+        (p) => p.id !== pei.id
+      );
       setPeisPorAluno(atualizados);
     } catch (error) {
       console.error("Erro ao excluir PEI:", error);
@@ -117,15 +144,19 @@ export default function VerPEIs() {
   const handleGerarPDF = async (pei) => {
     try {
       const snapshot = await getDocs(collection(db, "avaliacoesIniciais"));
-      const avaliacoes = snapshot.docs.map(doc => doc.data());
+      const avaliacoes = snapshot.docs.map((doc) => doc.data());
 
       const removerAcentos = (str) =>
-        str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+        str
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toLowerCase()
+          .trim();
 
       const nomePEI = removerAcentos(pei.aluno);
 
-      const avaliacao = avaliacoes.find(a =>
-        removerAcentos(a.aluno) === nomePEI
+      const avaliacao = avaliacoes.find(
+        (a) => removerAcentos(a.aluno) === nomePEI
       );
 
       if (!avaliacao) {
@@ -157,7 +188,9 @@ export default function VerPEIs() {
         <div style={estilos.card}>
           <BotaoVoltar />
           <p style={{ color: "#e63946" }}>{erro}</p>
-          <button style={estilos.recarregar} onClick={carregarDados}>Tentar novamente</button>
+          <button style={estilos.recarregar} onClick={carregarDados}>
+            Tentar novamente
+          </button>
         </div>
       </div>
     );
@@ -171,7 +204,9 @@ export default function VerPEIs() {
 
         {(tipo === "gestao" || tipo === "aee") && (
           <div style={estilos.filtroContainer}>
-            <label htmlFor="filtroUsuario" style={estilos.filtroLabel}>Filtrar por professor:</label>
+            <label htmlFor="filtroUsuario" style={estilos.filtroLabel}>
+              Filtrar por professor:
+            </label>
             <select
               id="filtroUsuario"
               onChange={(e) => setFiltroUsuario(e.target.value)}
@@ -179,9 +214,13 @@ export default function VerPEIs() {
               style={estilos.filtroSelect}
             >
               <option value="">Todos os professores</option>
-              {usuarios.filter(u => u.perfil === "professor").map((u, i) => (
-                <option key={u.email} value={u.email}>{u.nome}</option>
-              ))}
+              {usuarios
+                .filter((u) => u.perfil === "professor")
+                .map((u, i) => (
+                  <option key={u.email} value={u.email}>
+                    {u.nome}
+                  </option>
+                ))}
             </select>
           </div>
         )}
@@ -190,118 +229,184 @@ export default function VerPEIs() {
           <p style={estilos.semDados}>Nenhum aluno cadastrado.</p>
         ) : (
           <>
-            <div style={{ width: "100%", maxWidth: "400px", marginBottom: "30px" }}>
-  <label htmlFor="alunoSelect" style={{ fontWeight: "bold", display: "block", marginBottom: "8px" }}>
-    Selecione o Aluno:
-  </label>
-  <select
-    id="alunoSelect"
-    value={abaAtiva}
-    onChange={(e) => setAbaAtiva(e.target.value)}
-    style={{
-      padding: "12px",
-      width: "100%",
-      borderRadius: "6px",
-      border: "1px solid #ccc",
-      backgroundColor: "#f8f9fa",
-      fontSize: "16px"
-    }}
-  >
-    <option value="">Selecione o Aluno</option>
-    {alunos.map((aluno) => (
-      <option key={aluno.id} value={aluno.nome}>
-        {aluno.nome}
-      </option>
-    ))}
-  </select>
-</div>
+            <div
+              style={{ width: "100%", maxWidth: "400px", marginBottom: "30px" }}
+            >
+              <label
+                htmlFor="alunoSelect"
+                style={{
+                  fontWeight: "bold",
+                  display: "block",
+                  marginBottom: "8px",
+                }}
+              >
+                Selecione o Aluno:
+              </label>
+              <select
+                id="alunoSelect"
+                value={abaAtiva}
+                onChange={(e) => setAbaAtiva(e.target.value)}
+                style={{
+                  padding: "12px",
+                  width: "100%",
+                  borderRadius: "6px",
+                  border: "1px solid #ccc",
+                  backgroundColor: "#f8f9fa",
+                  fontSize: "16px",
+                }}
+              >
+                <option value="">Selecione o Aluno</option>
+                {alunos.map((aluno) => (
+                  <option key={aluno.id} value={aluno.nome}>
+                    {aluno.nome}
+                  </option>
+                ))}
+              </select>
+            </div>
             {/* Conteúdo da aba ativa */}
 
             <div style={estilos.conteudoAba}>
-              {abaAtiva && (() => {
-                const aluno = alunos.find(a => a.nome === abaAtiva);
-                const [idade, faixa] = aluno ? calcularIdadeEFaixa(aluno.nascimento) : ["-", "-"];
-                const peis = peisPorAluno[abaAtiva] || [];
+              {abaAtiva &&
+                (() => {
+                  const aluno = alunos.find((a) => a.nome === abaAtiva);
+                  const [idade, faixa] = aluno
+                    ? calcularIdadeEFaixa(aluno.nascimento)
+                    : ["-", "-"];
+                  const peis = peisPorAluno[abaAtiva] || [];
 
-                return (
-                  <>
-                    <div style={estilos.infoAluno}>
-                      <p><strong>Idade:</strong> {idade} anos ({faixa})</p>
-                      {aluno?.turma && <p><strong>Turma:</strong> {aluno.turma}</p>}
-                    </div>
+                  return (
+                    <>
+                      <div style={estilos.infoAluno}>
+                        <p>
+                          <strong>Idade:</strong> {idade} anos ({faixa})
+                        </p>
+                        {aluno?.turma && (
+                          <p>
+                            <strong>Turma:</strong> {aluno.turma}
+                          </p>
+                        )}
+                      </div>
 
-                    {peis.length === 0 ? (
-                      <p style={estilos.semDados}>Nenhum PEI registrado para este aluno.</p>
-                    ) : (
-                      peis.map((pei, idx) => (
-  <div key={idx} style={estilos.cardInterno}>
-    <div style={estilos.infoPei}>
-      <p><strong>Turma no PEI:</strong> {pei.turma}</p>
+                      {peis.length === 0 ? (
+                        <p style={estilos.semDados}>
+                          Nenhum PEI registrado para este aluno.
+                        </p>
+                      ) : (
+                        peis.map((pei, idx) => (
+                          <div key={idx} style={estilos.cardInterno}>
+                            <div style={estilos.infoPei}>
+                              <p>
+                                <strong>Turma no PEI:</strong> {pei.turma}
+                              </p>
 
-      {/* Substituição aqui: */}
-      {(() => {
-        const avaliacao = avaliacoesIniciais[pei.aluno];
-        const dataInicial = formatarDataSegura(avaliacao?.inicio);
-        const proxima = formatarDataSegura(avaliacao?.proximaAvaliacao);
+                              {/* Substituição aqui: */}
+                              {(() => {
+                                const avaliacao = avaliacoesIniciais[pei.aluno];
+                                const dataInicial = formatarDataSegura(
+                                  avaliacao?.inicio
+                                );
+                                const proxima = formatarDataSegura(
+                                  avaliacao?.proximaAvaliacao
+                                );
 
-        return (
-          <>
-            <p><strong>Data da Avaliação Inicial:</strong> {dataInicial}</p>
-            <p><strong>Próxima Avaliação:</strong> {proxima}</p>
-          </>
-        );
-      })()}
+                                return (
+                                  <>
+                                    <p>
+                                      <strong>
+                                        Data da Avaliação Inicial:
+                                      </strong>{" "}
+                                      {dataInicial}
+                                    </p>
+                                    <p>
+                                      <strong>Próxima Avaliação:</strong>{" "}
+                                      {proxima}
+                                    </p>
+                                  </>
+                                );
+                              })()}
 
-      <p><strong>Criado por:</strong> {pei.nomeCriador || "-"}</p>
-    </div>
+                              <p>
+                                <strong>Criado por:</strong>{" "}
+                                {pei.nomeCriador || "-"}
+                              </p>
+                            </div>
 
-                          <div style={estilos.botoes}>
-                            {(tipo === "gestao" || tipo === "aee" || usuarioLogado.email === pei.criadorId) && (
+                            <div style={estilos.botoes}>
+                              {(tipo === "gestao" ||
+                                tipo === "aee" ||
+                                usuarioLogado.email === pei.criadorId) && (
+                                <button
+                                  style={estilos.editar}
+                                  onClick={() =>
+                                    navigate("/editar-pei/" + pei.id, {
+                                      state: { voltarPara: abaAtiva },
+                                    })
+                                  }
+                                >
+                                  Editar
+                                </button>
+                              )}
+
                               <button
-                                style={estilos.editar}
-                                onClick={() => navigate("/editar-pei/" + pei.id, { state: { voltarPara: abaAtiva } })}
+                                style={estilos.visualizar}
+                                onClick={() =>
+                                  navigate("/visualizar-pei/" + pei.id, {
+                                    state: { pei, voltarPara: abaAtiva },
+                                  })
+                                }
                               >
-                                Editar
+                                Visualizar
                               </button>
-                            )}
+                              <button
+                                className="botao-secundario"
+                                onClick={() =>
+                                  navigate(`/acompanhamento/${pei.id}`)
+                                }
+                              >
+                                Acompanhar Metas
+                              </button>
 
-                            <button
-                              style={estilos.visualizar}
-                              onClick={() => navigate("/visualizar-pei/" + pei.id, { state: { pei, voltarPara: abaAtiva } })}
-                            >
-                              Visualizar
-                            </button>
-                            <button
-  className="botao-secundario"
-  onClick={() => navigate(`/acompanhamento/${pei.id}`)}
->
-  Acompanhar Metas
-</button>
-
-
-                            {(usuarioLogado.email === pei.criadorId || tipo === "gestao") && (
-                              <button style={estilos.excluir} onClick={() => excluirPei(pei)}>Excluir</button>
-                            )}
+                              {(usuarioLogado.email === pei.criadorId ||
+                                tipo === "gestao") && (
+                                <button
+                                  style={estilos.excluir}
+                                  onClick={() => excluirPei(pei)}
+                                >
+                                  Excluir
+                                </button>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      ))
-                    )}
-                    <button
-  style={estilos.gerar}
-  onClick={async () => {
-    try {
-      await gerarPDFCompleto(aluno, usuarioLogado);
-    } catch (erro) {
-      console.error("Erro ao gerar PDF:", erro);
-      alert("Erro ao gerar PDF. Verifique se há Avaliação Inicial e PEIs cadastrados.");
-    }
-  }}
->
-  Gerar PDF
-</button>
-                  </>
-                );
-              })()}
+                        ))
+                      )}
+                      <button
+                        style={estilos.gerar}
+                        onClick={async () => {
+                          try {
+                            const peisDoAluno = peisPorAluno[aluno.nome] || [];
+                            if (peisDoAluno.length === 0) {
+                              alert("Nenhum PEI encontrado para este aluno.");
+                              return;
+                            }
+
+                            await gerarPDFCompleto(
+                              aluno,
+                              usuarioLogado,
+                              peisDoAluno
+                            ); // Enviando todos os PEIs do aluno
+                          } catch (erro) {
+                            console.error("Erro ao gerar PDF:", erro);
+                            alert(
+                              "Erro ao gerar PDF. Verifique se há Avaliação Inicial e PEIs cadastrados."
+                            );
+                          }
+                        }}
+                      >
+                        Gerar PDF
+                      </button>
+                    </>
+                  );
+                })()}
             </div>
           </>
         )}
@@ -323,24 +428,24 @@ const estilos = {
   },
 
   listaAlunos: {
-  display: "flex",
-  flexDirection: "column",
-  width: "100%",
-  maxWidth: "400px",
-  marginBottom: "20px",
-  borderRight: "2px solid #ccc",
-  paddingRight: "10px",
-},
+    display: "flex",
+    flexDirection: "column",
+    width: "100%",
+    maxWidth: "400px",
+    marginBottom: "20px",
+    borderRight: "2px solid #ccc",
+    paddingRight: "10px",
+  },
 
-itemAluno: {
-  padding: "12px",
-  cursor: "pointer",
-  fontWeight: "500",
-  borderRadius: "6px",
-  marginBottom: "5px",
-  boxShadow: "0 0 4px rgba(0,0,0,0.1)",
-  transition: "background-color 0.2s",
-},
+  itemAluno: {
+    padding: "12px",
+    cursor: "pointer",
+    fontWeight: "500",
+    borderRadius: "6px",
+    marginBottom: "5px",
+    boxShadow: "0 0 4px rgba(0,0,0,0.1)",
+    transition: "background-color 0.2s",
+  },
   card: {
     backgroundColor: "#fff",
     borderRadius: "16px",

@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'alunos';
+const STORAGE_KEY = "alunos";
 
 export function listarAlunos() {
   const alunos = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
@@ -8,5 +8,4 @@ export function listarAlunos() {
 export function adicionarAluno(aluno) {
   const alunos = listarAlunos();
   alunos.push(aluno);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(alunos));
 }

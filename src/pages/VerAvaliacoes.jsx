@@ -11,8 +11,14 @@ function VerAvaliacoes() {
   const [usuarios, setUsuarios] = useState([]);
   const navigate = useNavigate();
 
-  const usuarioLogado = JSON.parse(localStorage.getItem("usuarioLogado"));
-  const perfil = usuarioLogado?.perfil;
+  // ======================= CORREÇÃO APLICADA AQUI =======================
+  // Tornamos a leitura do localStorage segura.
+  // Se não houver usuário, ele usa um objeto vazio '{}' como padrão, evitando o erro.
+  const usuarioLogado = JSON.parse(
+    localStorage.getItem("usuarioLogado") || "{}"
+  );
+  const perfil = usuarioLogado.perfil;
+  // ======================================================================
 
   useEffect(() => {
     const carregarDados = async () => {
@@ -23,7 +29,10 @@ function VerAvaliacoes() {
           getDocs(collection(db, "usuarios")),
         ]);
 
-        const listaAvaliacoes = avaliacoesSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        const listaAvaliacoes = avaliacoesSnap.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
         const listaAlunos = alunosSnap.docs.map((doc) => doc.data());
         const listaUsuarios = usuariosSnap.docs.map((doc) => doc.data());
 
@@ -40,7 +49,8 @@ function VerAvaliacoes() {
   }, []);
 
   const excluirAvaliacao = async (id) => {
-    if (!window.confirm("Tem certeza que deseja excluir esta avaliação?")) return;
+    if (!window.confirm("Tem certeza que deseja excluir esta avaliação?"))
+      return;
     try {
       await deleteDoc(doc(db, "avaliacoesIniciais", id));
       setAvaliacoes((prev) => prev.filter((a) => a.id !== id));
@@ -53,7 +63,7 @@ function VerAvaliacoes() {
   return (
     <div style={estilos.container}>
       <div style={estilos.card}>
-        <BotaoVoltar />
+        <BotaoVoltar destino="/avaliacao-inicial" />
         <h2 style={estilos.titulo}>Avaliações Iniciais</h2>
 
         <table style={estilos.tabela}>
@@ -74,6 +84,7 @@ function VerAvaliacoes() {
                   >
                     Visualizar
                   </button>
+                  {/* A verificação de perfil agora é segura */}
                   {(perfil === "gestao" || perfil === "aee") && (
                     <>
                       <button
@@ -108,7 +119,7 @@ const estilos = {
     padding: "40px",
     display: "flex",
     justifyContent: "center",
-    alignItems: "flex-start"
+    alignItems: "flex-start",
   },
   card: {
     backgroundColor: "#fff",

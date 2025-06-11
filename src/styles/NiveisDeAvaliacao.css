@@ -1,0 +1,278 @@
+/* src/styles/NiveisDeAvaliacao.css */
+
+/* Novo container para o título da área e o botão "Marcar área como NA" */
+.area-header-with-button {
+  display: flex;
+  justify-content: space-between; /* Espaça o título e o botão */
+  align-items: center; /* Alinha verticalmente */
+  margin-bottom: 20px; /* Espaço abaixo do cabeçalho da área */
+  flex-wrap: wrap; /* Permite quebrar em telas menores */
+  gap: 15px; /* Espaço entre o título e o botão se quebrar a linha */
+}
+
+/* Estilos para o wrapper da área (pai dos acordeões) */
+.area-perguntas-wrapper {
+  margin-bottom: 40px;
+}
+
+.area-titulo {
+  font-size: 20px;
+  color: #1d3557;
+  /* margin-bottom: 20px; -> removido para ser controlado pelo parent .area-header-with-button */
+  text-align: left; /* Alinhado à esquerda agora, com o botão à direita */
+  font-weight: 600;
+  flex-shrink: 0; /* Impede que o título encolha para dar espaço ao botão */
+}
+
+/* NOVO: Estilo para o botão "Marcar área como NA" */
+.marcar-na-area-btn {
+  background-color: #adb5bd; /* Um cinza para "Não Aplicável" */
+  color: white;
+  padding: 6px 10px; /* Reduzindo o padding para deixá-lo menor */
+  border: none;
+  border-radius: 5px; /* Cantos um pouco menos arredondados para um visual mais compacto */
+  font-size: 11px; /* Reduzindo o tamanho da fonte */
+  font-weight: bold;
+  cursor: pointer;
+
+  white-space: nowrap; /* Garante que o texto do botão não quebre */
+  flex-shrink: 0; /* Impede que o botão encolha */
+  transition: background-color 0.3s ease;
+}
+
+.marcar-na-area-btn:hover:not(:disabled) {
+  background-color: #959ea6; /* Escurece no hover */
+}
+
+.marcar-na-area-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Estilos para o item do acordeão (cada subárea) */
+.accordion-item {
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  background-color: #ffffff;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+  transition: box-shadow 0.2s ease;
+}
+
+.accordion-item:hover {
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.12);
+}
+
+/* Estilos para o cabeçalho do acordeão (botão clicável) */
+.accordion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 18px 25px;
+  background-color: #f8f8f8;
+  border: none;
+  cursor: pointer;
+  font-size: 17px;
+  font-weight: bold;
+  color: #333;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  font-family: inherit;
+  text-align: left;
+}
+
+.accordion-header:hover:not(:disabled) {
+  background-color: #f0f0f0;
+  color: #1d3557;
+}
+
+.accordion-header:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: #fcfcfc;
+}
+
+.accordion-title {
+  margin: 0;
+  font-size: 17px;
+  flex: 1;
+}
+
+/* Estilo para o ícone de seta */
+.accordion-icon {
+  font-size: 20px;
+  color: #a0a0a0;
+  margin-left: 15px;
+  transition: transform 0.3s ease, color 0.3s ease;
+  flex-shrink: 0;
+}
+
+.accordion-header.expanded .accordion-icon {
+  transform: rotate(180deg);
+  color: #1d3557;
+}
+
+/* Estilos para o conteúdo do acordeão (onde as habilidades estão) */
+.accordion-content {
+  background-color: #ffffff;
+  padding: 0 25px;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.5s ease-in-out, padding 0.5s ease-in-out;
+}
+
+.accordion-content.open {
+  max-height: 1000px; /* Ajuste se o conteúdo for muito longo */
+  padding-top: 15px;
+  padding-bottom: 15px;
+}
+
+/* Estilos para a linha de cada habilidade */
+.linha-habilidade {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #f0f0f0;
+  padding: 12px 0;
+  margin-bottom: 0;
+  flex-wrap: wrap;
+}
+.linha-habilidade:last-child {
+  border-bottom: none;
+}
+
+/* Estilos para o texto da habilidade */
+.texto-habilidade {
+  flex: 1 1 65%; /* Ajuste a base para dar mais ou menos espaço ao texto */
+  font-size: 15px;
+  color: #444;
+  padding-right: 20px;
+  white-space: normal;
+  box-sizing: border-box;
+  min-width: 280px; /* Garante que o texto tenha espaço suficiente e não seja cortado */
+  line-height: 1.4;
+}
+
+/* Estilos para o contêiner dos botões de nível */
+.niveis-habilidade {
+  display: flex;
+  gap: 5px;
+  flex-wrap: nowrap;
+  align-items: center;
+  flex-shrink: 0;
+  flex-basis: auto;
+}
+
+/* Estilos para cada círculo de nível individual */
+.circulo-nivel {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: bold;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+  cursor: pointer;
+  transition: opacity 0.2s, outline 0.2s, transform 0.2s;
+  user-select: none;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Estilo para o círculo de nível ATIVO (selecionado) */
+.circulo-nivel.ativo {
+  opacity: 1;
+  outline: 2px solid #1d3557;
+  transform: scale(1.15);
+  box-shadow: 0 0 10px rgba(29, 53, 87, 0.6);
+}
+
+/* Cores específicas para cada nível */
+.circulo-nivel.NR {
+  background-color: #e63946;
+}
+.circulo-nivel.AF {
+  background-color: #f4a261;
+}
+.circulo-nivel.AG {
+  background-color: #e9c46a;
+}
+.circulo-nivel.AV {
+  background-color: #2a9d8f;
+}
+.circulo-nivel.AVi {
+  background-color: #8ecae6;
+}
+.circulo-nivel.I {
+  background-color: #4caf50;
+}
+.circulo-nivel.NA {
+  background-color: #adb5bd;
+}
+
+/* Estilos para o textarea de observações */
+.observacoes-area {
+  margin-top: 30px;
+  padding: 15px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  border: 1px solid #eee;
+}
+.observacoes-area label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: #1d3557;
+}
+.observacoes-area textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  min-height: 90px;
+  box-sizing: border-box;
+  resize: vertical;
+}
+
+/* Estilos para a legenda dos níveis */
+.legenda-niveis {
+  background: #f9f9f9;
+  padding: 15px;
+  border-radius: 8px;
+  margin-top: 30px;
+  font-size: 13px;
+  border: 1px solid #eee;
+}
+
+.legenda-niveis strong {
+  color: #1d3557;
+}
+
+.legenda-niveis ul {
+  padding-left: 0;
+  margin-top: 10px;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.legenda-niveis li {
+  margin-bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Para o pequeno círculo de cor na legenda */
+.legenda-niveis .circulo-nivel {
+  width: 20px;
+  height: 20px;
+  opacity: 1;
+  border: none;
+  flex-shrink: 0;
+}

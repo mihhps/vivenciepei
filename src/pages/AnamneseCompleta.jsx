@@ -66,84 +66,201 @@ function AnamneseCompleta() {
 
     const alunos = JSON.parse(localStorage.getItem("alunos")) || [];
 
-    const alunoIndex = alunos.findIndex(aluno => aluno.nome === formData.nome);
+    const alunoIndex = alunos.findIndex(
+      (aluno) => aluno.nome === formData.nome
+    );
 
     if (alunoIndex === -1) {
-      alert("Aluno não encontrado! Certifique-se que o nome foi cadastrado exatamente igual.");
+      alert(
+        "Aluno não encontrado! Certifique-se que o nome foi cadastrado exatamente igual."
+      );
       return;
     }
 
     alunos[alunoIndex].anamneseCompleta = formData;
 
-    localStorage.setItem("alunos", JSON.stringify(alunos));
-
     alert("Anamnese salva com sucesso!");
   };
 
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#e0f7fa", padding: "40px" }}>
+    <div
+      style={{
+        minHeight: "100vh",
+        backgroundColor: "#e0f7fa",
+        padding: "40px",
+      }}
+    >
       <BotaoVoltar />
 
       <div style={containerStyle}>
-        <h2 style={{ textAlign: "center", marginBottom: "20px" }}>Anamnese Completa</h2>
+        <h2 style={{ textAlign: "center", marginBottom: "20px" }}>
+          Anamnese Completa
+        </h2>
 
         <form onSubmit={handleSubmit}>
           {/* Identificação */}
           <h3 style={sectionTitle}>Identificação da Criança</h3>
-          <input type="text" name="nome" placeholder="Nome completo" value={formData.nome} onChange={handleChange} required style={inputStyle} />
-          <input type="date" name="nascimento" value={formData.nascimento} onChange={handleChange} required style={inputStyle} />
-          <input type="number" name="idade" placeholder="Idade" value={formData.idade} onChange={handleChange} required style={inputStyle} />
+          <input
+            type="text"
+            name="nome"
+            placeholder="Nome completo"
+            value={formData.nome}
+            onChange={handleChange}
+            required
+            style={inputStyle}
+          />
+          <input
+            type="date"
+            name="nascimento"
+            value={formData.nascimento}
+            onChange={handleChange}
+            required
+            style={inputStyle}
+          />
+          <input
+            type="number"
+            name="idade"
+            placeholder="Idade"
+            value={formData.idade}
+            onChange={handleChange}
+            required
+            style={inputStyle}
+          />
 
           {/* Desenvolvimento Motor */}
           <h3 style={sectionTitle}>Desenvolvimento Motor</h3>
-          <label style={labelStyle}>A criança engatinhou no tempo esperado?</label>
-          <select name="engatinhou" value={formData.engatinhou} onChange={handleChange} required style={inputStyle}>
-            <option value="">Selecione</option><option>Sim</option><option>Não</option><option>Não se aplica</option>
+          <label style={labelStyle}>
+            A criança engatinhou no tempo esperado?
+          </label>
+          <select
+            name="engatinhou"
+            value={formData.engatinhou}
+            onChange={handleChange}
+            required
+            style={inputStyle}
+          >
+            <option value="">Selecione</option>
+            <option>Sim</option>
+            <option>Não</option>
+            <option>Não se aplica</option>
           </select>
 
-          <label style={labelStyle}>A criança caminhou no tempo esperado?</label>
-          <select name="caminhou" value={formData.caminhou} onChange={handleChange} required style={inputStyle}>
-            <option value="">Selecione</option><option>Sim</option><option>Não</option><option>Não se aplica</option>
+          <label style={labelStyle}>
+            A criança caminhou no tempo esperado?
+          </label>
+          <select
+            name="caminhou"
+            value={formData.caminhou}
+            onChange={handleChange}
+            required
+            style={inputStyle}
+          >
+            <option value="">Selecione</option>
+            <option>Sim</option>
+            <option>Não</option>
+            <option>Não se aplica</option>
           </select>
 
           <label style={labelStyle}>Apresenta dificuldades motoras?</label>
-          <select name="dificuldadesMotoras" value={formData.dificuldadesMotoras} onChange={handleChange} required style={inputStyle}>
-            <option value="">Selecione</option><option>Sim</option><option>Não</option>
+          <select
+            name="dificuldadesMotoras"
+            value={formData.dificuldadesMotoras}
+            onChange={handleChange}
+            required
+            style={inputStyle}
+          >
+            <option value="">Selecione</option>
+            <option>Sim</option>
+            <option>Não</option>
           </select>
 
           {formData.dificuldadesMotoras === "Sim" && (
-            <input type="text" name="descricaoDificuldadesMotoras" placeholder="Descreva as dificuldades motoras" value={formData.descricaoDificuldadesMotoras} onChange={handleChange} style={inputStyle} />
+            <input
+              type="text"
+              name="descricaoDificuldadesMotoras"
+              placeholder="Descreva as dificuldades motoras"
+              value={formData.descricaoDificuldadesMotoras}
+              onChange={handleChange}
+              style={inputStyle}
+            />
           )}
 
           {/* Desenvolvimento da Linguagem */}
           <h3 style={sectionTitle}>Desenvolvimento da Linguagem</h3>
           <label style={labelStyle}>Falou na idade esperada?</label>
-          <select name="falouIdadeEsperada" value={formData.falouIdadeEsperada} onChange={handleChange} required style={inputStyle}>
-            <option value="">Selecione</option><option>Sim</option><option>Não</option>
+          <select
+            name="falouIdadeEsperada"
+            value={formData.falouIdadeEsperada}
+            onChange={handleChange}
+            required
+            style={inputStyle}
+          >
+            <option value="">Selecione</option>
+            <option>Sim</option>
+            <option>Não</option>
           </select>
 
           <label style={labelStyle}>Apresenta dificuldades na fala?</label>
-          <select name="dificuldadesFala" value={formData.dificuldadesFala} onChange={handleChange} required style={inputStyle}>
-            <option value="">Selecione</option><option>Sim</option><option>Não</option>
+          <select
+            name="dificuldadesFala"
+            value={formData.dificuldadesFala}
+            onChange={handleChange}
+            required
+            style={inputStyle}
+          >
+            <option value="">Selecione</option>
+            <option>Sim</option>
+            <option>Não</option>
           </select>
 
           {formData.dificuldadesFala === "Sim" && (
-            <input type="text" name="descricaoDificuldadesFala" placeholder="Descreva as dificuldades de fala" value={formData.descricaoDificuldadesFala} onChange={handleChange} style={inputStyle} />
+            <input
+              type="text"
+              name="descricaoDificuldadesFala"
+              placeholder="Descreva as dificuldades de fala"
+              value={formData.descricaoDificuldadesFala}
+              onChange={handleChange}
+              style={inputStyle}
+            />
           )}
 
           <label style={labelStyle}>Forma frases completas?</label>
-          <select name="usaFrases" value={formData.usaFrases} onChange={handleChange} required style={inputStyle}>
-            <option value="">Selecione</option><option>Sim</option><option>Não</option>
+          <select
+            name="usaFrases"
+            value={formData.usaFrases}
+            onChange={handleChange}
+            required
+            style={inputStyle}
+          >
+            <option value="">Selecione</option>
+            <option>Sim</option>
+            <option>Não</option>
           </select>
 
-          <label style={labelStyle}>É compreendido por pessoas fora da família?</label>
-          <select name="compreendidoPorOutros" value={formData.compreendidoPorOutros} onChange={handleChange} required style={inputStyle}>
-            <option value="">Selecione</option><option>Sim</option><option>Não</option>
+          <label style={labelStyle}>
+            É compreendido por pessoas fora da família?
+          </label>
+          <select
+            name="compreendidoPorOutros"
+            value={formData.compreendidoPorOutros}
+            onChange={handleChange}
+            required
+            style={inputStyle}
+          >
+            <option value="">Selecione</option>
+            <option>Sim</option>
+            <option>Não</option>
           </select>
 
           {/* Anexos */}
           <h3 style={sectionTitle}>Anexar Documentos</h3>
-          <input type="file" multiple accept=".pdf, .jpg, .jpeg, .png" onChange={handleAnexos} style={{ margin: "10px 0" }} />
+          <input
+            type="file"
+            multiple
+            accept=".pdf, .jpg, .jpeg, .png"
+            onChange={handleAnexos}
+            style={{ margin: "10px 0" }}
+          />
 
           {/* Botão Finalizar */}
           <button type="submit" style={buttonStyle}>
