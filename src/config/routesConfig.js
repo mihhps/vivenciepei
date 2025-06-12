@@ -1,36 +1,11 @@
+// src/config/routesConfig.js
+
 import { PERFIS } from "./constants";
 
-// --- GRUPOS DE PERMISSÃO ---
-const PERMISSOES_ADMIN = [PERFIS.GESTAO, PERFIS.AEE, PERFIS.DESENVOLVEDOR];
-
-const PERMISSOES_GESTAO_PEI = [
-  PERFIS.GESTAO,
-  PERFIS.SEME,
-  PERFIS.AEE,
-  PERFIS.DESENVOLVEDOR,
-];
-
-const PERMISSOES_PEDAGOGICAS = [
-  PERFIS.GESTAO,
-  PERFIS.SEME,
-  PERFIS.AEE,
-  PERFIS.DESENVOLVEDOR,
-];
-
-const TODOS_OS_PERFIS = [
-  PERFIS.GESTAO,
-  PERFIS.AEE,
-  PERFIS.PROFESSOR,
-  PERFIS.SEME,
-  PERFIS.DESENVOLVEDOR,
-  PERFIS.DIRETOR,
-  PERFIS.DIRETOR_ADJUNTO,
-  PERFIS.ORIENTADOR_PEDAGOGICO,
-];
-
-// --- CONFIGURAÇÕES INDIVIDUAIS ---
+// ========== E-MAIL DESENVOLVEDORA ==========
 export const desenvolvedoraEmail = "mihhps@gmail.com";
 
+// ========== ROTAS PÓS-LOGIN POR PERFIL ==========
 export const perfilRedirectMap = {
   [PERFIS.DESENVOLVEDOR]: "/painel-dev",
   [PERFIS.GESTAO]: "/painel-gestao",
@@ -42,39 +17,65 @@ export const perfilRedirectMap = {
   [PERFIS.ORIENTADOR_PEDAGOGICO]: "/painel-gestao",
 };
 
-// --- AUTORIZAÇÃO DE ROTAS ---
+// ========== GRUPOS DE PERMISSÃO ==========
+
+const ADMINISTRADORES = [PERFIS.GESTAO, PERFIS.AEE, PERFIS.DESENVOLVEDOR];
+
+const GESTORES_PEDAGOGICOS = [
+  PERFIS.GESTAO,
+  PERFIS.AEE,
+  PERFIS.SEME,
+  PERFIS.DESENVOLVEDOR,
+];
+
+const TODOS = [
+  PERFIS.GESTAO,
+  PERFIS.AEE,
+  PERFIS.PROFESSOR,
+  PERFIS.SEME,
+  PERFIS.DESENVOLVEDOR,
+  PERFIS.DIRETOR,
+  PERFIS.DIRETOR_ADJUNTO,
+  PERFIS.ORIENTADOR_PEDAGOGICO,
+];
+
+// ========== PERMISSÕES POR ROTA ==========
+
 export const AUTORIZACAO_ROTAS = {
-  // Rotas Administrativas
-  "/cadastrar-aluno": PERMISSOES_ADMIN,
-  "/cadastro-usuario": PERMISSOES_ADMIN,
-  "/vincular-turmas": PERMISSOES_ADMIN,
-  "/vincular-professores": PERMISSOES_ADMIN,
-  "/importar-alunos": PERMISSOES_ADMIN,
-  "/vincular-escolas": PERMISSOES_ADMIN,
-  "/editar-aluno/:id": PERMISSOES_ADMIN,
+  // --- Painéis ---
+  "/painel-dev": [PERFIS.DESENVOLVEDOR],
   "/painel-aee": [PERFIS.AEE, PERFIS.GESTAO, PERFIS.DESENVOLVEDOR],
 
-  // Gestão e acompanhamento PEI
-  "/gestao-prazos-pei": PERMISSOES_GESTAO_PEI,
-  "/acompanhamento-pei/:professorId": PERMISSOES_PEDAGOGICAS,
+  // --- Admin: Cadastros e Vinculações ---
+  "/cadastrar-aluno": ADMINISTRADORES,
+  "/cadastro-usuario": ADMINISTRADORES,
+  "/editar-aluno/:id": ADMINISTRADORES,
+  "/vincular-turmas": ADMINISTRADORES,
+  "/vincular-professores": ADMINISTRADORES,
+  "/vincular-escolas": ADMINISTRADORES,
+  "/importar-alunos": ADMINISTRADORES,
+
+  // --- Gestão e Prazos ---
+  "/gestao-prazos-pei": GESTORES_PEDAGOGICOS,
+  "/acompanhamento-pei/:professorId": GESTORES_PEDAGOGICOS,
   "/acompanhamento": [PERFIS.SEME, PERFIS.DESENVOLVEDOR],
 
-  // Acesso geral (visualização, consulta)
-  "/ver-alunos": TODOS_OS_PERFIS,
-  "/ver-peis": TODOS_OS_PERFIS,
-  "/ver-avaliacoes": TODOS_OS_PERFIS,
-  "/acompanhamento-prazos-pei": TODOS_OS_PERFIS,
-  "/selecionar-escola": TODOS_OS_PERFIS,
-  "/prazos-professor": TODOS_OS_PERFIS,
-  "/visualizar-pei/:id": TODOS_OS_PERFIS,
-  "/avaliacao/:id": TODOS_OS_PERFIS,
+  // --- Visualizações gerais ---
+  "/ver-alunos": TODOS,
+  "/ver-peis": TODOS,
+  "/ver-avaliacoes": TODOS,
+  "/acompanhamento-prazos-pei": TODOS,
+  "/selecionar-escola": TODOS,
+  "/prazos-professor": TODOS,
+  "/visualizar-pei/:id": TODOS,
+  "/avaliacao/:id": TODOS,
 
-  // Avaliação e anamnese
-  "/avaliacao-inicial": TODOS_OS_PERFIS,
-  "/editar-avaliacao/:id": TODOS_OS_PERFIS,
-  "/anamnese-completa": TODOS_OS_PERFIS,
+  // --- Avaliação Inicial & Anamnese ---
+  "/avaliacao-inicial": TODOS,
+  "/editar-avaliacao/:id": TODOS,
+  "/anamnese-completa": TODOS,
 
-  // PEI - criação, edição e acompanhamento
+  // --- PEI: Criação, edição, acompanhamento ---
   "/criar-pei": [
     PERFIS.GESTAO,
     PERFIS.AEE,

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "../firebase";
+import BotaoVoltar from "../components/BotaoVoltar"; // <--- Importe o BotaoVoltar
 
 export default function RecuperarSenha() {
   const [email, setEmail] = useState("");
@@ -14,7 +15,9 @@ export default function RecuperarSenha() {
 
     try {
       await sendPasswordResetEmail(auth, email.trim());
-      setMensagem("E-mail de redefinição de senha enviado. Verifique sua caixa de entrada.");
+      setMensagem(
+        "E-mail de redefinição de senha enviado. Verifique sua caixa de entrada."
+      );
     } catch (error) {
       console.error("Erro ao enviar e-mail:", error);
       if (error.code === "auth/user-not-found") {
@@ -28,6 +31,7 @@ export default function RecuperarSenha() {
   return (
     <div style={estilos.container}>
       <div style={estilos.card}>
+        <BotaoVoltar /> {/* <--- Adicione o BotaoVoltar aqui */}
         <h2 style={estilos.titulo}>Recuperar Senha</h2>
         <input
           type="email"
@@ -53,7 +57,7 @@ const estilos = {
     height: "100vh",
     width: "100vw",
     background: "linear-gradient(to bottom, #00264d, #005b96)",
-    fontFamily: "'Segoe UI', sans-serif"
+    fontFamily: "'Segoe UI', sans-serif",
   },
   card: {
     backgroundColor: "#fff",
@@ -62,12 +66,13 @@ const estilos = {
     boxShadow: "0 0 30px rgba(0,0,0,0.2)",
     width: "100%",
     maxWidth: "400px",
-    textAlign: "center"
+    textAlign: "center",
+    position: "relative", // Adicione isso para posicionar o botão voltar se ele for absoluto
   },
   titulo: {
     fontSize: "24px",
     marginBottom: "20px",
-    color: "#1d3557"
+    color: "#1d3557",
   },
   input: {
     width: "100%",
@@ -75,7 +80,7 @@ const estilos = {
     marginBottom: "20px",
     borderRadius: "6px",
     border: "1px solid #ccc",
-    fontSize: "16px"
+    fontSize: "16px",
   },
   botao: {
     width: "100%",
@@ -85,11 +90,11 @@ const estilos = {
     fontSize: "16px",
     borderRadius: "6px",
     border: "none",
-    cursor: "pointer"
+    cursor: "pointer",
   },
   mensagem: {
     marginTop: "15px",
     color: "#1d3557",
-    fontWeight: "bold"
-  }
+    fontWeight: "bold",
+  },
 };

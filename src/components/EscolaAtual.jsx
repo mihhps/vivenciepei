@@ -62,8 +62,6 @@ export default function EscolaAtual() {
       "diretor adjunto",
       "orientador pedagógico",
       "gestao",
-      "desenvolvedor",
-      "seme",
     ];
 
     if (

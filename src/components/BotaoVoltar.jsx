@@ -1,10 +1,10 @@
 // src/components/BotaoVoltar.jsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import * as PropTypesImport from "prop-types"; // Importa tudo de prop-types como um objeto
+import * as PropTypesImport from "prop-types";
 import { FaArrowLeft } from "react-icons/fa";
 
-// Estilos base com CSS-in-JS pattern (mantido aqui para simplicidade, mas pode ir para CSS)
+// Estilos base
 const estilosBase = {
   botao: {
     backgroundColor: "#6c757d",
@@ -21,35 +21,38 @@ const estilosBase = {
     marginBottom: "20px",
     textDecoration: "none",
     transition: "background-color 0.2s ease",
-    "&:hover": {
-      backgroundColor: "#5a6268",
-    },
-    "&:focus": {
-      outline: "none",
-      boxShadow: "0 0 0 3px rgba(108, 117, 125, 0.5)",
-    },
   },
   icone: {
     fontSize: "14px",
   },
 };
 
-// Componente de Botão Voltar
 function BotaoVoltar({ destino, estiloPersonalizado, texto = "Voltar" }) {
   const navigate = useNavigate();
 
+  const usuario = JSON.parse(localStorage.getItem("usuarioLogado")) || {};
+  const perfil = (usuario.perfil || "").toLowerCase().trim();
+
+  const painelMap = {
+    desenvolvedor: "/painel-dev",
+    desenvolvedora: "/painel-dev",
+    gestao: "/painel-gestao",
+    aee: "/painel-aee",
+    seme: "/acompanhamento",
+    professor: "/painel-professor",
+    diretor: "/painel-gestao",
+    diretor_adjunto: "/painel-gestao",
+    orientador_pedagogico: "/painel-gestao",
+  };
+
+  const destinoFinal = destino || painelMap[perfil] || "/";
+
   const handleVoltar = () => {
     try {
-      if (destino) {
-        navigate(destino);
-      } else if (window.history.length > 1) {
-        navigate(-1); // Volta uma página no histórico
-      } else {
-        navigate("/", { replace: true }); // Fallback para rota raiz se não houver histórico
-      }
+      navigate(destinoFinal);
     } catch (error) {
       console.error("Falha na navegação:", error);
-      navigate("/", { replace: true }); // Fallback seguro em caso de erro
+      navigate("/", { replace: true });
     }
   };
 
@@ -57,7 +60,7 @@ function BotaoVoltar({ destino, estiloPersonalizado, texto = "Voltar" }) {
     <button
       onClick={handleVoltar}
       style={{ ...estilosBase.botao, ...estiloPersonalizado }}
-      aria-label={texto === "Voltar" ? "Voltar para a página anterior" : texto}
+      aria-label={texto}
       data-testid="botao-voltar"
     >
       <FaArrowLeft style={estilosBase.icone} />
@@ -66,13 +69,10 @@ function BotaoVoltar({ destino, estiloPersonalizado, texto = "Voltar" }) {
   );
 }
 
-// Definição das PropTypes usando o objeto importado (PropTypesImport.default)
 BotaoVoltar.propTypes = {
   destino: PropTypesImport.default.string,
   estiloPersonalizado: PropTypesImport.default.object,
   texto: PropTypesImport.default.string,
 };
-
-// Não é mais necessário o BotaoVoltar.defaultProps, pois o parâmetro padrão já é usado na função
 
 export default BotaoVoltar;

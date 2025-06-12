@@ -50,7 +50,21 @@ function AvaliacaoInicial() {
 
   // Cria a rota do painel dinamicamente. Ex: /painel-dev, /painel-aee
   // Se não encontrar um perfil, volta para a página raiz "/" como segurança.
-  const painelDestino = perfil ? `/painel-${perfil}` : "/";
+  const perfilNormalizado = (usuarioLogado.perfil || "").toLowerCase().trim();
+
+  const painelDestinoMapeado = {
+    desenvolvedor: "/painel-dev",
+    desenvolvedora: "/painel-dev",
+    gestao: "/painel-gestao",
+    aee: "/painel-aee",
+    seme: "/acompanhamento",
+    professor: "/painel-professor",
+    diretor: "/painel-gestao",
+    diretor_adjunto: "/painel-gestao",
+    orientador_pedagogico: "/painel-gestao",
+  };
+
+  const painelDestino = painelDestinoMapeado[perfilNormalizado] || "/";
   // ==========================================================================
 
   const areas = useMemo(() => Object.keys(avaliacaoInicial), []);

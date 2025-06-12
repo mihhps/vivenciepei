@@ -1,18 +1,26 @@
-{
-  "functions": [
-    {
-      "source": "functions",
-      "codebase": "default",
-      "ignore": [
-        "node_modules",
-        ".git",
-        "firebase-debug.log",
-        "firebase-debug.*.log",
-        "*.local"
-      ],
-      "predeploy": [
-        "npm --prefix \"$RESOURCE_DIR\" run lint"
-      ]
-    }
-  ]
-}
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";       // <--- IMPORTANTE!
+import { getFirestore } from "firebase/firestore"; // <--- IMPORTANTE!
+import { getFunctions } from "firebase/functions"; // <--- IMPORTANTE! (se você usa funções no frontend)
+
+// Sua configuração do Firebase (obtida do Console do Firebase)
+const firebaseConfig = {
+  apiKey: "AIzaSyBcMMoKNIpijamhbADP3aO0Yx7xF0tJg5U",
+  authDomain: "vivenciepei.firebaseapp.com",
+  projectId: "vivenciepei",
+  storageBucket: "vivenciepei.firebasestorage.app",
+  messagingSenderId: "591556223675",
+  appId: "1:591556223675:web:804fc4b9b4a56ac4757f9e"
+};
+
+// Inicializa o aplicativo Firebase
+const app = initializeApp(firebaseConfig);
+
+// Inicializa e EXPORTA os serviços que você usa
+export const auth = getAuth(app);         // <--- INICIALIZA E EXPORTA AUTENTICAÇÃO
+export const db = getFirestore(app);       // <--- INICIALIZA E EXPORTA FIRESTORE
+export const functions = getFunctions(app); // <--- INICIALIZA E EXPORTA CLOUD FUNCTIONS (para chamar recalcularTodosPrazos)
+
+// Se você tiver a função getAnalytics, também a inicializaria e exportaria aqui
+// import { getAnalytics } from "firebase/analytics";
+// export const analytics = getAnalytics(app);

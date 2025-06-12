@@ -7,8 +7,18 @@
  * @returns {boolean} True se o perfil for autorizado, false caso contrário.
  */
 export const isAuthorized = (perfil) => {
-  // <--- PRECISA TER 'export const' AQUI
-  return ["gestao", "seme", "aee", "desenvolvedor", "professor"].includes(
-    perfil
-  );
+  // Converte o perfil recebido para minúsculas antes de verificar.
+  // Isso garante que "Desenvolvedor" ou "GESTAO" sejam tratados como "desenvolvedor" e "gestao".
+  const perfilLowerCase = perfil ? perfil.toLowerCase() : "";
+
+  return [
+    "gestao",
+    "seme",
+    "aee",
+    "desenvolvedor",
+    "professor",
+    "diretor", // Inclua outros perfis se necessário, ex: "diretor", "diretor adjunto", "orientador pedagógico", "gestao" (já inclusa)
+    "diretor adjunto",
+    "orientador pedagógico",
+  ].includes(perfilLowerCase);
 };
