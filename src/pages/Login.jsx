@@ -1,12 +1,12 @@
+// src/pages/Login.jsx
+
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { auth, db } from "../firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 
-// Importa os PERFIS do seu arquivo de configuração
-// Linha correta
-import { PERFIS } from "../config/constants";
+import { PERFIS } from "../config/constants"; // Importa os PERFIS
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -27,9 +27,8 @@ export default function Login() {
 
     try {
       const cred = await signInWithEmailAndPassword(auth, email.trim(), senha);
-      const user = cred.user; // O objeto user da autenticação
+      const user = cred.user;
 
-      // Buscar os dados do usuário no Firestore usando o UID de autenticação
       const usuarioRef = doc(db, "usuarios", user.uid);
       const usuarioSnap = await getDoc(usuarioRef);
 
@@ -41,28 +40,21 @@ export default function Login() {
         return;
       }
 
-      const usuarioDataDoFirestore = usuarioSnap.data(); // Dados do Firestore
+      const usuarioDataDoFirestore = usuarioSnap.data();
       const usuarioCompletoParaSalvar = {
-        // Copia todos os dados do Firestore
         ...usuarioDataDoFirestore,
-        uid: user.uid, // Garante que o UID de autenticação está presente
-        email: user.email, // Garante que o email de autenticação está presente
-        // *** CAMPO CRÍTICO: ID DO DOCUMENTO FIRESTORE ***
-        id: usuarioSnap.id, // O ID do documento no Firestore é userDocSnap.id
-        // Garante que turmas e escolas são objetos vazios se não existirem
+        uid: user.uid,
+        email: user.email,
+        id: usuarioSnap.id,
         turmas: usuarioDataDoFirestore.turmas || {},
         escolas: usuarioDataDoFirestore.escolas || {},
       };
 
-      // *** SALVA O USUÁRIO COMPLETO NO LOCALSTORAGE AQUI, ANTES DO SWITCH ***
-      // Isso garante que todos os perfis (Gestão, AEE, Professor, SEME, etc.)
-      // terão o campo 'id' salvo corretamente.
       localStorage.setItem(
         "usuarioLogado",
         JSON.stringify(usuarioCompletoParaSalvar)
       );
 
-      // Lógica de redirecionamento baseada no perfil
       switch (usuarioCompletoParaSalvar.perfil) {
         case PERFIS.GESTAO:
           navigate("/painel-gestao", {
@@ -75,23 +67,21 @@ export default function Login() {
           });
           break;
         case PERFIS.PROFESSOR: {
-          const escolasObj = usuarioCompletoParaSalvar.escolas; // Use o objeto completo
+          const escolasObj = usuarioCompletoParaSalvar.escolas;
           const escolaIds = Object.keys(escolasObj);
 
           if (escolaIds.length === 0) {
             setErro("Este professor não está vinculado a nenhuma escola.");
-            // Não precisa de localStorage.setItem aqui, já foi salvo acima.
-            // Poderíamos limpar o localStorage se quisermos impedir o acesso,
-            // mas o PrivateRoute já vai pegar a falta de escolas vinculadas.
             setLoading(false);
-            // Não faça navigate aqui se setErro foi chamado, o usuário precisa ver o erro
           } else if (escolaIds.length === 1) {
-            localStorage.setItem("escolaAtiva", escolaIds[0]);
+            // --- INÍCIO DA ALTERAÇÃO ---
+            // CORREÇÃO: Usar JSON.stringify para garantir que o ID é salvo como uma string JSON válida
+            localStorage.setItem("escolaAtiva", JSON.stringify(escolaIds[0]));
+            // --- FIM DA ALTERAÇÃO ---
             navigate("/painel-professor", {
               state: { usuario: usuarioCompletoParaSalvar },
             });
           } else {
-            // Multiplas escolas, redireciona para seleção de escola
             localStorage.setItem(
               "escolasDisponiveis",
               JSON.stringify(escolaIds)
@@ -107,15 +97,15 @@ export default function Login() {
             state: { usuario: usuarioCompletoParaSalvar },
           });
           break;
-        case "desenvolvedor": // Adicionado para perfil desenvolvedor se tiver em PERFIS
+        case "desenvolvedor":
           navigate("/painel-dev", {
             state: { usuario: usuarioCompletoParaSalvar },
           });
           break;
         default:
           setErro("Perfil de usuário desconhecido. Contate o suporte.");
-          setTimeout(() => navigate("/"), 2000); // Redireciona após 2s
-          break; // Garante que o switch não continue
+          setTimeout(() => navigate("/"), 2000);
+          break;
       }
     } catch (error) {
       console.error("Erro no login:", error);
@@ -131,10 +121,11 @@ export default function Login() {
         );
       }
     } finally {
-      setLoading(false); // Sempre desativa o loading
+      setLoading(false);
     }
   };
 
+  // ... (o restante do componente Login permanece inalterado)
   return (
     <div style={estilos.container}>
       <div style={estilos.card}>
