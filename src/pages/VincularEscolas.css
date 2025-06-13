@@ -1,194 +1,282 @@
-/* src/pages/VincularEscolas.css */
+/* --- src/pages/VincularEscolas.css --- */
 
-/* --- Variáveis CSS para Cores e Sombras --- */
-:root {
-  --cor-fundo-gradiente-inicio: #00264d;
-  --cor-fundo-gradiente-fim: #005b96;
-  --cor-branca: #fff;
-  --cor-texto-principal: #1d3557;
-  --cor-azul-medio: #457b9d;
-  --cor-cinza-claro: #aaa;
-  --cor-borda-card-professor: #ccc;
-  --cor-fundo-card-professor: #f9f9f9;
-
-  --sombra-card: 0 0 20px rgba(0, 0, 0, 0.2);
-}
-
-/* Estilos de layout principais */
+/* Contêiner principal da página */
 .vinculacao-container {
-  min-height: 100vh;
-  width: 100vw;
-  background: linear-gradient(
-    to bottom,
-    var(--cor-fundo-gradiente-inicio),
-    var(--cor-fundo-gradiente-fim)
-  );
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  padding: 40px 20px;
-  font-family: "Segoe UI", sans-serif;
-  box-sizing: border-box;
+  padding: 20px;
+  background-color: #f0f2f5; /* Fundo mais suave */
+  min-height: 100vh; /* Ocupa a altura total da viewport */
 }
 
+/* Card principal que contém o conteúdo */
 .vinculacao-card {
-  background-color: var(--cor-branca);
-  padding: 40px;
-  border-radius: 20px;
-  box-shadow: var(--sombra-card);
-  width: 90%;
-  max-width: 900px;
-  text-align: center;
-}
-
-.vinculacao-titulo {
-  font-size: 24px;
-  margin-bottom: 20px;
-  color: var(--cor-texto-principal);
-}
-
-.vinculacao-abas-container {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
-.vinculacao-aba {
-  padding: 8px 16px;
-  border: none;
+  background-color: #fff;
   border-radius: 8px;
-  cursor: pointer;
-  font-weight: bold;
-  background-color: #e0e0e0;
-  color: var(--cor-texto-principal);
-  transition: background-color 0.3s ease, color 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 30px;
+  width: 100%;
+  max-width: 900px; /* Largura máxima para melhor legibilidade */
+  margin-top: 20px;
+  position: relative; /* Para posicionar o botão de voltar */
 }
 
-.vinculacao-aba.active {
-  background-color: var(--cor-azul-medio);
-  color: var(--cor-branca);
-}
-
-.vinculacao-aba:hover:not(.active) {
-  background-color: #d0d0d0;
+/* Títulos */
+.vinculacao-titulo {
+  color: #333;
+  text-align: center;
+  margin-bottom: 25px;
+  font-size: 2em;
 }
 
 .vinculacao-subtitulo {
-  font-size: 18px;
-  margin-bottom: 10px;
-  color: var(--cor-texto-principal);
-}
-
-.vinculacao-lista {
-  list-style: none;
-  padding: 0;
+  color: #555;
+  margin-top: 30px;
   margin-bottom: 20px;
+  text-align: center;
+  font-size: 1.5em;
+  border-bottom: 2px solid #eee;
+  padding-bottom: 10px;
 }
 
-.vinculacao-professor-card {
-  border: 1px solid var(--cor-borda-card-professor);
-  border-radius: 10px;
-  padding: 20px;
-  margin-bottom: 20px;
-  background-color: var(--cor-fundo-card-professor);
-  text-align: left;
-}
-
-/* --- ESTILOS PRINCIPAIS PARA O CHECKBOX E LABEL (NOVO LAYOUT DE LISTA) --- */
-.checkbox-container-list {
-  /* Renomeada de 'checkbox-container-grid' */
-  display: flex; /* Agora usa flexbox */
-  flex-direction: column; /* Empilha os itens verticalmente */
-  gap: 8px; /* Espaçamento entre os itens (agora vertical) */
-  margin-top: 10px;
-  align-items: flex-start; /* Alinha os itens à esquerda dentro do container */
-}
-
-.checkbox-label {
+/* --- ESTILOS DOS BOTÕES DE ABAS (SELEÇÃO DE ESCOLAS) --- */
+.vinculacao-abas-container {
   display: flex;
-  align-items: center; /* ALINHAMENTO VERTICAL CRÍTICO (mantido) */
-  gap: 8px;
-  white-space: normal;
-  flex-wrap: wrap;
-  min-height: 10px;
+  flex-wrap: wrap; /* Permite que as abas quebrem para a próxima linha */
+  justify-content: center; /* Centraliza as abas */
+  gap: 10px; /* Espaçamento entre as abas */
+  margin-bottom: 30px;
+  border-bottom: 2px solid #e0e0e0; /* Linha sutil abaixo das abas */
+  padding-bottom: 10px; /* Espaçamento da linha para as abas */
+}
+
+.vinculacao-aba {
+  background-color: #e9ecef; /* Cor de fundo padrão para abas */
+  color: #495057; /* Cor do texto padrão */
+  border: 1px solid #ced4da; /* Borda sutil */
+  padding: 10px 20px;
+  border-radius: 5px 5px 0 0; /* Borda superior arredondada para dar aspecto de aba */
   cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease; /* Transição suave para hover e active */
+  font-size: 0.95em;
+  min-width: 120px; /* Largura mínima para botões menores */
+  text-align: center;
 }
 
-/* Ajuste específico para o checkbox dentro do label */
-.checkbox-label input[type="checkbox"] {
-  margin: 0;
-  position: relative; /* Manter se o desalinhamento vertical persistir */
-  top: 1px; /* Ajustar este valor se necessário (0px, 1px, -1px, etc.) */
+.vinculacao-aba:hover {
+  background-color: #dee2e6; /* Fundo mais escuro no hover */
+  color: #212529;
+  border-color: #adb5bd;
 }
 
-/* --- Estilos de Botão Refatorados --- */
+.vinculacao-aba.active {
+  background-color: #007bff; /* Cor principal de sua aplicação */
+  color: #fff; /* Texto branco para aba ativa */
+  border-color: #007bff;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.2); /* Sombra para destacar a aba ativa */
+  transform: translateY(
+    2px
+  ); /* Pequeno deslocamento para baixo para "prensar" */
+}
+
+/* --- ESTILOS DOS BOTÕES GERAIS E DE AÇÃO --- */
 .vinculacao-botao-base {
   padding: 10px 20px;
-  color: var(--cor-branca);
-  border: none;
-  border-radius: 6px;
+  border-radius: 5px;
   cursor: pointer;
   font-weight: bold;
-  transition: background-color 0.3s ease, transform 0.1s ease;
-}
-
-.vinculacao-botao-base:hover {
-  filter: brightness(1.1);
-  transform: translateY(-1px);
-}
-
-.vinculacao-botao-base:active {
-  transform: translateY(0);
-  filter: brightness(0.9);
-}
-
-.vinculacao-botao-salvar {
-  background-color: var(--cor-texto-principal);
-  margin-top: 10px;
-}
-
-.vinculacao-botao {
-  background-color: var(--cor-azul-medio);
-  margin-top: 15px;
-}
-
-.vinculacao-botao-cancelar {
-  background-color: var(--cor-cinza-claro);
-  margin-top: 30px;
-}
-
-.vinculacao-botoes-acao {
-  display: flex;
-  gap: 15px;
-  justify-content: center;
-  margin-top: 20px;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease;
+  font-size: 1em;
+  margin-top: 20px; /* Espaço acima dos botões de ação */
+  display: block; /* Ocupa a largura total */
+  width: fit-content; /* Se ajusta ao conteúdo */
+  margin-left: auto; /* Centraliza */
+  margin-right: auto; /* Centraliza */
 }
 
 .vinculacao-botao-voltar {
-  background-color: var(--cor-cinza-claro);
-  align-self: flex-start;
-  margin-bottom: 20px;
-  margin-right: auto;
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background-color: #6c757d; /* Cinza para o botão de voltar */
+  color: #fff;
+  border: 1px solid #6c757d;
+  padding: 8px 15px; /* Um pouco menor */
+  font-size: 0.9em;
 }
 
-/* Media Queries básicas para ajustar padding em telas muito pequenas */
-@media (max-width: 600px) {
-  .vinculacao-card {
-    padding: 25px;
-  }
+.vinculacao-botao-voltar:hover {
+  background-color: #5a6268;
+  border-color: #545b62;
+}
 
-  .vinculacao-titulo {
-    font-size: 20px;
-  }
+.vinculacao-botao {
+  background-color: #28a745; /* Verde para ação principal (editar) */
+  color: #fff;
+  border: 1px solid #28a745;
+}
 
-  .vinculacao-abas-container {
-    gap: 5px;
-  }
+.vinculacao-botao:hover {
+  background-color: #218838;
+  border-color: #1e7e34;
+}
 
-  .vinculacao-aba {
-    padding: 6px 12px;
-    font-size: 14px;
+.vinculacao-botao-salvar {
+  background-color: #007bff; /* Azul para salvar */
+  color: #fff;
+  border: 1px solid #007bff;
+  margin-top: 15px; /* Espaço para o botão salvar dentro do card do professor */
+  width: auto; /* Para não ocupar 100% da largura do card do professor */
+  padding: 8px 15px;
+  margin-left: auto; /* Alinha o botão à direita dentro do card do professor */
+  display: block; /* Essencial para margin-left: auto */
+}
+
+.vinculacao-botao-salvar:hover {
+  background-color: #0056b3;
+  border-color: #004085;
+}
+
+.vinculacao-botao-cancelar {
+  background-color: #dc3545; /* Vermelho para cancelar */
+  color: #fff;
+  border: 1px solid #dc3545;
+}
+
+.vinculacao-botao-cancelar:hover {
+  background-color: #c82333;
+  border-color: #bd2130;
+}
+
+/* --- ESTILOS DAS LISTAS E ITENS --- */
+.vinculacao-lista {
+  /* Não é um <ul>, mas um <div> no seu JSX */
+  padding: 0;
+  margin-top: 20px;
+}
+
+.vinculacao-professor-card {
+  background-color: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 15px 20px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.vinculacao-professor-card h4 {
+  color: #343a40;
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-size: 1.2em;
+}
+
+/* Estilo para a lista de escolas vinculadas no modo de visualização */
+.escolas-vinculadas-visualizacao {
+  color: #6c757d;
+  font-size: 0.95em;
+  margin-top: 10px;
+  margin-bottom: 0;
+}
+
+/* --- ESTILOS PARA OS CHECKBOXES DE ESCOLAS VINCULADAS (DENTRO DO PROFESSOR) --- */
+
+/* Contêiner da lista de checkboxes (tags de escola) */
+.checkbox-container-list {
+  display: flex;
+  flex-wrap: wrap; /* Permite que as tags quebrem a linha */
+  gap: 10px; /* Espaçamento entre as tags */
+  margin-top: 15px;
+  margin-bottom: 10px;
+  justify-content: flex-start; /* Alinha as tags à esquerda */
+}
+
+/* Esconde o checkbox nativo */
+.checkbox-label input[type="checkbox"] {
+  display: none; /* Esconde o input original */
+}
+
+/* Estilo para a label (que agora será a nossa tag clicável) */
+.checkbox-label {
+  display: inline-flex; /* Para que o span e o input se comportem como um item */
+  align-items: center;
+  padding: 8px 15px; /* Espaçamento interno da tag */
+  border: 1px solid #ced4da; /* Borda padrão */
+  border-radius: 20px; /* Bordas arredondadas para parecer uma tag/pílula */
+  background-color: #f8f9fa; /* Cor de fundo padrão */
+  color: #495057; /* Cor do texto padrão */
+  cursor: pointer;
+  transition: all 0.3s ease; /* Transição suave para hover e click */
+  font-size: 0.9em;
+  font-weight: 500;
+  white-space: nowrap; /* Evita que o nome da escola quebre linha */
+}
+
+/* Estilo da tag quando não está vinculada (mas o mouse está sobre ela) */
+.checkbox-label:hover {
+  background-color: #e9ecef; /* Cor mais escura no hover */
+  border-color: #adb5bd;
+}
+
+/* Estilo da tag quando está CHECKED (vinculada) */
+.checkbox-label input[type="checkbox"]:checked + span {
+  background-color: #28a745; /* Verde para vinculado */
+  color: #fff; /* Texto branco */
+  border-color: #28a745;
+  box-shadow: 0 2px 5px rgba(0, 123, 255, 0.2); /* Sombra para destaque */
+}
+
+/* Mensagens de informação e erro */
+.info-message {
+  text-align: center;
+  color: #6c757d;
+  font-style: italic;
+  margin-top: 20px;
+  padding: 10px;
+  border: 1px dashed #ced4da;
+  border-radius: 5px;
+  background-color: #e9ecef;
+}
+
+.error-message {
+  text-align: center;
+  color: #dc3545;
+  font-weight: bold;
+  margin-top: 20px;
+  padding: 10px;
+  border: 1px solid #dc3545;
+  border-radius: 5px;
+  background-color: #f8d7da;
+}
+
+/* Loader */
+.loader-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #f0f2f5;
+}
+
+.loader {
+  border: 8px solid #f3f3f3; /* Light grey */
+  border-top: 8px solid #3498db; /* Blue */
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
   }
 }

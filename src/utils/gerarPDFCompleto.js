@@ -7,10 +7,10 @@ import {
   query,
   where,
   getDocs,
-  doc,
+  doc as firestoreDoc, // <--- Mude aqui!
   getDoc,
-} from "firebase/firestore"; // Importa 'doc' e 'getDoc' diretamente
-import { db } from "../firebase"; // Certifique-se que o caminho para o firebase config está correto
+} from "firebase/firestore";
+import { db } from "../firebase";
 
 // Configurações de estilo para o PDF
 const styles = {
@@ -122,7 +122,7 @@ export async function gerarPDFCompleto(aluno, usuarioLogado) {
     console.error("ID ou nome do aluno não definido para gerar o PDF!");
     return;
   }
-
+  console.log("ID da Escola do Aluno:", aluno.escolaId);
   const doc = new jsPDF();
   let y = 45; // Posição vertical inicial
 
@@ -140,7 +140,8 @@ export async function gerarPDFCompleto(aluno, usuarioLogado) {
   if (aluno.escolaId) {
     try {
       // CORRIGIDO: Usando 'doc' importado diretamente
-      const escolaSnap = await getDoc(doc(db, "escolas", aluno.escolaId));
+      const escolaRef = firestoreDoc(db, "escolas", aluno.escolaId);
+      const escolaSnap = await getDoc(escolaRef);
       if (escolaSnap.exists()) {
         nomeEscola = escolaSnap.data().nome || "-";
       }
@@ -394,11 +395,12 @@ export async function gerarPDFCompleto(aluno, usuarioLogado) {
     doc.setFont(styles.font, "bold");
     doc.setFontSize(styles.fontSize.large);
     doc.text(
-      `Plano Educacional Individualizado (PEI) - ${formatarData(
-        peiItem.criadoEm
-      )}`,
-      20,
-      y
+      `Plano Educacional Individualizado (PEI)`,
+      doc.internal.pageSize.getWidth() / 2,
+      y,
+      {
+        align: "center",
+      }
     );
     y += 8;
 
@@ -409,8 +411,8 @@ export async function gerarPDFCompleto(aluno, usuarioLogado) {
       Array.isArray(item.estrategias)
         ? item.estrategias.filter(Boolean).join(", ")
         : typeof item.estrategias === "string"
-        ? item.estrategias
-        : "-",
+          ? item.estrategias
+          : "-",
       item.nivel || "-",
       item.nivelAlmejado || "-",
     ]);

@@ -1,12 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { db } from "../firebase";
-import {
-  collection,
-  getDocs,
-  query,
-  where,
-  orderBy, // Ainda útil se quiser ordenar o resumo
-} from "firebase/firestore";
+import { collection, getDocs, query, where, orderBy } from "firebase/firestore";
 import BotaoVoltar from "../components/BotaoVoltar";
 import Loader from "../components/Loader";
 import { useNavigate } from "react-router-dom";
@@ -78,7 +72,6 @@ export default function AcompanhamentoPrazosPei() {
   // Efeito para carregar todas as escolas (apenas para desenvolvedores, uma vez)
   useEffect(() => {
     const fetchTodasEscolas = async () => {
-      // Carrega todas as escolas apenas se o usuário for desenvolvedor e ainda não as tiver carregado
       if (usuario?.perfil === "desenvolvedor" && todasAsEscolas.length === 0) {
         try {
           const qTodasEscolas = collection(db, "escolas");
@@ -95,13 +88,12 @@ export default function AcompanhamentoPrazosPei() {
       }
     };
     fetchTodasEscolas();
-  }, [usuario?.perfil, todasAsEscolas.length]); // Depende do perfil e do estado para evitar recargas desnecessárias
+  }, [usuario?.perfil, todasAsEscolas.length]);
 
   // Efeito principal para CARREGAR OS DADOS DO RESUMO PRÉ-CALCULADO
   useEffect(() => {
-    // Só prossegue se o usuário estiver autorizado E a escola ativa estiver definida (ou for desenvolvedor com "TODAS")
     if (!usuario || !isAuthorized(usuario.perfil)) return;
-    if (usuario.perfil !== "desenvolvedor" && !escolaAtivaId) return; // Espera escolaAtivaId ser definido se não for desenvolvedor
+    if (usuario.perfil !== "desenvolvedor" && !escolaAtivaId) return;
 
     const carregarResumoPEI = async () => {
       setLoading(true);
@@ -111,75 +103,81 @@ export default function AcompanhamentoPrazosPei() {
       try {
         let professoresQuery = collection(db, "acompanhamentoPrazosPEIResumo");
 
-        const filterBySchoolId =
-          escolaAtivaId && escolaAtivaId !== "TODAS" ? escolaAtivaId : null;
-
-        // Aplica o filtro de escola na query
-        if (filterBySchoolId) {
-          professoresQuery = query(
-            professoresQuery,
-            where("escolaId", "==", filterBySchoolId)
-          );
-        } else if (usuario.perfil !== "desenvolvedor") {
-          // Se não é desenvolvedor e não selecionou "TODAS", filtra pelas escolas do usuário
-          const userSchoolIds = usuario.escolasVinculadas.map((e) => e.id);
-          if (userSchoolIds.length > 0) {
-            // ATENÇÃO: A query 'in' do Firestore tem um limite de 10 itens.
-            // Se um usuário SEME estiver vinculado a mais de 10 escolas, esta query falhará.
-            // Para cenários com >10 escolas por usuário, a agregação no backend precisa ser ainda mais inteligente,
-            // talvez criando um documento de resumo por professor-escola ou usando uma Cloud Function auxiliar.
-            if (userSchoolIds.length <= 10) {
-              professoresQuery = query(
-                professoresQuery,
-                where("escolaId", "in", userSchoolIds)
-              );
-            } else {
-              setFetchError(
-                "Seu perfil está vinculado a um grande número de escolas. Não foi possível carregar todos os dados diretamente. Por favor, entre em contato com o suporte."
-              );
-              setLoading(false);
-              return;
-            }
-          } else {
-            setNoDataMessage(
-              "Seu perfil não está vinculado a nenhuma escola para exibir dados de acompanhamento."
-            );
-            setLoading(false);
-            return;
-          }
-        }
+        // NOVO: NÃO USAMOS MAIS 'where("escolaId", "==", filterBySchoolId)' DIRETAMENTE AQUI
+        // Porque o 'escolaId' no resumo agora é 'null'.
+        // Em vez disso, vamos pegar TODOS os professores e filtrar em memória.
 
         // Opcional: Ordenar para que os professores atrasados apareçam primeiro
         professoresQuery = query(
           professoresQuery,
           orderBy("statusGeral", "desc")
         );
-        // Assumindo que 'Atrasado' > 'Em dia' lexicograficamente, ou defina um campo numérico de prioridade no resumo.
 
         const snapshot = await getDocs(professoresQuery);
-        const professoresResumo = snapshot.docs.map((doc) => ({
+        let professoresResumo = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
 
-        setProfessoresComStatus(professoresResumo);
+        // --- NOVA LÓGICA DE FILTRAGEM EM MEMÓRIA (AQUI!) ---
+        let professoresFiltradosParaExibir = [];
 
-        if (professoresResumo.length === 0) {
+        // 1. Se o usuário é desenvolvedor e selecionou "TODAS" as escolas
+        if (usuario.perfil === "desenvolvedor" && escolaAtivaId === "TODAS") {
+          professoresFiltradosParaExibir = professoresResumo;
+        }
+        // 2. Se o usuário é desenvolvedor e selecionou uma escola específica
+        else if (usuario.perfil === "desenvolvedor" && escolaAtivaId) {
+          professoresFiltradosParaExibir = professoresResumo.filter(
+            (prof) =>
+              prof.alunosDetalhesPrazos &&
+              prof.alunosDetalhesPrazos.some(
+                (aluno) => aluno.escolaId === escolaAtivaId
+              )
+          );
+        }
+        // 3. Se o usuário NÃO é desenvolvedor (ex: SEME, Diretor, Professor)
+        else if (
+          usuario.perfil !== "desenvolvedor" &&
+          usuario.escolasVinculadas &&
+          usuario.escolasVinculadas.length > 0
+        ) {
+          const escolasPermitidasIds = usuario.escolasVinculadas.map(
+            (e) => e.id
+          );
+          professoresFiltradosParaExibir = professoresResumo.filter(
+            (prof) =>
+              prof.alunosDetalhesPrazos &&
+              prof.alunosDetalhesPrazos.some((aluno) =>
+                escolasPermitidasIds.includes(aluno.escolaId)
+              )
+          );
+        }
+        // 4. Caso contrário (ex: sem escolas vinculadas, ou erro na lógica)
+        else {
+          professoresFiltradosParaExibir = []; // Nenhuma escola para filtrar, então nenhum professor.
+        }
+        // --- FIM DA NOVA LÓGICA DE FILTRAGEM EM MEMÓRIA ---
+
+        setProfessoresComStatus(professoresFiltradosParaExibir);
+
+        if (professoresFiltradosParaExibir.length === 0) {
           const schoolName =
-            todasAsEscolas.find((e) => e.id === filterBySchoolId)?.nome ||
-            filterBySchoolId ||
+            todasAsEscolas.find((e) => e.id === escolaAtivaId)?.nome ||
+            escolaAtivaId ||
             "a escola selecionada";
           setNoDataMessage(
             `Nenhum dado de acompanhamento encontrado para professores ${
-              filterBySchoolId
+              escolaAtivaId && escolaAtivaId !== "TODAS"
                 ? `da escola "${schoolName}"`
                 : "das escolas vinculadas ao seu perfil"
             }.`
           );
         } else if (
-          professoresResumo.every((p) => p.alunosAtrasadosCount === 0)
+          professoresFiltradosParaExibir.every(
+            (p) => p.alunosAtrasadosCount === 0
+          )
         ) {
-          // Mensagem mais amigável se todos estiverem em dia
           setNoDataMessage(
             "Todos os professores e seus alunos estão em dia com os prazos do PEI para a escola selecionada. Não há atrasos a serem exibidos."
           );
@@ -199,14 +197,14 @@ export default function AcompanhamentoPrazosPei() {
     };
 
     carregarResumoPEI();
-  }, [usuario, navigate, escolaAtivaId, todasAsEscolas.length]);
+  }, [usuario, navigate, escolaAtivaId, todasAsEscolas.length]); // Depende do perfil e do estado para evitar recargas desnecessárias
 
   // Função para navegar para os detalhes (mantém a mesma)
   const handleVerDetalhes = (professorData) => {
     navigate(`/acompanhamento-pei/${professorData.id}`, {
       state: {
-        professorNome: professorData.nome,
-        // Passa os detalhes de atraso que já vêm do resumo do backend
+        professorNome: professorData.professorNome, // Mudei para professorNome do resumo
+        // O detalhesAtraso já vem do resumo, não precisa de professorData.nome
         detalhesAtraso: professorData.detalhesAtraso,
       },
     });
@@ -225,7 +223,7 @@ export default function AcompanhamentoPrazosPei() {
   const escolasParaAbas =
     usuario?.perfil === "desenvolvedor"
       ? todasAsEscolas
-      : usuario?.escolasVinculadas || []; // Garante que é um array para iteração
+      : usuario?.escolasVinculadas || [];
 
   return (
     <div className="acompanhamento-container" style={estilos.container}>
@@ -304,7 +302,8 @@ export default function AcompanhamentoPrazosPei() {
                 professoresComStatus.map((prof) => (
                   <tr key={prof.id}>
                     <td className="acompanhamento-td" style={estilos.td}>
-                      {prof.nome}
+                      {prof.professorNome}{" "}
+                      {/* Mudei de prof.nome para prof.professorNome */}
                     </td>
                     <td className="acompanhamento-td" style={estilos.td}>
                       <span

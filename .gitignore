@@ -26,3 +26,4 @@ dist-ssr
 # Firebase sensitive keys
 src/chave-firebase.json
 script/chave-firebase.json
+functions/serviceAccountKey.json 
