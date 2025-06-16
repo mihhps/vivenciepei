@@ -6,22 +6,14 @@ export default function BotaoSair() {
   const navigate = useNavigate();
 
   const handleSair = () => {
-    // --- LOG CRÍTICO PARA CONFIRMAÇÃO ---
-    console.log(
-      "!!! BOTAO_SAIR: handleSair() disparado! Iniciando processo de logout e redirecionamento."
-    );
-    // --- FIM LOG CRÍTICO ---
     auth
       .signOut()
       .then(() => {
         localStorage.removeItem("usuarioLogado");
-        console.log(
-          "!!! BOTAO_SAIR: Logout bem-sucedido. localStorage 'usuarioLogado' limpo."
-        ); // Log de sucesso no logout
         navigate("/"); // Redireciona para a tela institucional
       })
       .catch((error) => {
-        console.error("!!! BOTAO_SAIR: Erro ao sair:", error);
+        console.error("Erro ao sair:", error);
         alert("Erro ao sair. Tente novamente.");
       });
   };

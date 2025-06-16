@@ -8,6 +8,10 @@ import {
   query,
   where,
   updateDoc,
+  orderBy, // Importar orderBy para ordenar a busca de PEI
+  limit, // Importar limit para pegar apenas o mais recente
+  serverTimestamp, // Importar serverTimestamp para datas no servidor
+  // Timestamp, // Não necessário para salvar, apenas para ler valores de Timestamp
 } from "firebase/firestore";
 import BotaoVoltar from "../components/BotaoVoltar";
 import { useNavigate } from "react-router-dom";
@@ -16,7 +20,7 @@ import { useNavigate } from "react-router-dom";
 import estruturaPEI from "../data/estruturaPEI2";
 import { avaliacaoInicial } from "../data/avaliacaoInicialData";
 
-// !!! IMPORTAR O NOVO ARQUIVO CSS AQUI !!!
+// IMPORTAR O NOVO ARQUIVO CSS AQUI (se ainda não estiver importando)
 import "../styles/CriarPEIComponent.css"; // AJUSTE O CAMINHO SE NECESSÁRIO
 
 // NIVEIS_PROGRESSAO define a ordem exata de progressão dos níveis de apoio.
@@ -45,6 +49,7 @@ const estruturaPEIMap = (() => {
           ) {
             Object.entries(habilidadesBySubarea).forEach(
               ([habilidadeName, niveisData]) => {
+                // console.log(`[DEBUG MAP] Processando habilidade: ${habilidadeName}`);
                 if (!map[habilidadeName]) {
                   map[habilidadeName] = {};
                 }
@@ -89,6 +94,7 @@ export default function CriarPEI() {
 
   const navigate = useNavigate();
 
+  // Use useMemo para memorizar todasAsAreas, pois ela não muda
   const todasAsAreas = useMemo(() => Object.keys(avaliacaoInicial), []);
 
   const exibirMensagem = useCallback((tipo, texto) => {
@@ -102,7 +108,7 @@ export default function CriarPEI() {
     setTimeout(() => {
       setErro(null);
       setMensagemSucesso(null);
-    }, 5000);
+    }, 5000); // Mensagem desaparece após 5 segundos
   }, []);
 
   const carregarDados = useCallback(async () => {
@@ -110,10 +116,9 @@ export default function CriarPEI() {
       setCarregando(true);
       setErro(null);
 
-      const [alunosSnap, avaliacoesSnap, peisSnap] = await Promise.all([
+      const [alunosSnap, avaliacoesSnap] = await Promise.all([
         getDocs(collection(db, "alunos")),
         getDocs(collection(db, "avaliacoesIniciais")),
-        getDocs(collection(db, "peis")),
       ]);
 
       const todosAlunos = alunosSnap.docs.map((doc) => ({
@@ -121,10 +126,6 @@ export default function CriarPEI() {
         ...doc.data(),
       }));
       const todasAvaliacoes = avaliacoesSnap.docs.map((doc) => doc.data());
-      const peisCriados = peisSnap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
 
       const usuario = JSON.parse(localStorage.getItem("usuarioLogado")) || {};
       const { cargo, perfil, turmas } = usuario;
@@ -144,12 +145,8 @@ export default function CriarPEI() {
         alunosFiltrados = todosAlunos;
       } else {
         alunosFiltrados = todosAlunos.filter((aluno) => {
-          const temPEI = peisCriados.some(
-            (peiDoc) =>
-              peiDoc.alunoId === aluno.id || peiDoc.aluno === aluno.nome
-          );
           const pertenceATurma = turmasVinculadas.includes(aluno.turma);
-          return temPEI && pertenceATurma;
+          return pertenceATurma;
         });
       }
 
@@ -198,15 +195,15 @@ export default function CriarPEI() {
   const montarPeiInicial = useCallback(
     (avaliacao) => {
       const novoPei = {};
-      console.log("--- DEBUG: Iniciando montarPeiInicial ---");
-      console.log(
-        "Avaliação de entrada para montarPeiInicial (respostas):",
-        avaliacao.respostas
-      );
+      // console.log("--- DEBUG: Iniciando montarPeiInicial ---");
+      // console.log(
+      //   "Avaliação de entrada para montarPeiInicial (respostas):",
+      //   avaliacao.respostas
+      // );
 
       Object.entries(avaliacao.respostas || {}).forEach(
         ([area, habilidadesAvaliacao]) => {
-          console.log(` Processando Avaliação para Área: "${area}"`);
+          // console.log(` Processando Avaliação para Área: "${area}"`);
           if (
             typeof habilidadesAvaliacao !== "object" ||
             habilidadesAvaliacao === null
@@ -218,14 +215,14 @@ export default function CriarPEI() {
           }
           Object.entries(habilidadesAvaliacao).forEach(
             ([habilidade, nivelAtual]) => {
-              console.log(
-                ` Habilidade da Avaliação: "${habilidade}", Nível Avaliado: "${nivelAtual}"`
-              );
+              // console.log(
+              //   ` Habilidade da Avaliação: "${habilidade}", Nível Avaliado: "${nivelAtual}"`
+              // );
 
               if (nivelAtual === "NA") {
-                console.log(
-                  ` -> Habilidade "${habilidade}" ignorada (NA) no PEI.`
-                );
+                // console.log(
+                //   ` -> Habilidade "${habilidade}" ignorada (NA) no PEI.`
+                // );
                 return;
               }
 
@@ -234,6 +231,8 @@ export default function CriarPEI() {
               let sugestaoObjetivoEstrategias = null;
 
               if (nivelAtual === "I") {
+                // Se já é independente, o nível almejado é o próprio I
+                // E as estratégias serão as para manter a independência.
                 nivelAlmejado = nivelAtual;
                 sugestaoObjetivoEstrategias =
                   estruturaPEIMap[habilidade]?.[nivelAlmejado];
@@ -251,21 +250,21 @@ export default function CriarPEI() {
                 return;
               }
 
-              const debugSugestaoPorHabilidade = estruturaPEIMap[habilidade];
-              console.log(
-                ` DEBUG: estruturaPEIMap['${habilidade}'] ->`,
-                debugSugestaoPorHabilidade
-              );
-              if (debugSugestaoPorHabilidade) {
-                console.log(
-                  ` DEBUG: estruturaPEIMap['${habilidade}']['${nivelAlmejado}'] ->`,
-                  debugSugestaoPorHabilidade[nivelAlmejado]
-                );
-              } else {
-                console.warn(
-                  ` DEBUG: Habilidade "${habilidade}" (da avaliação) NÃO ENCONTRADA como chave principal em estruturaPEIMap.`
-                );
-              }
+              // const debugSugestaoPorHabilidade = estruturaPEIMap[habilidade];
+              // console.log(
+              //   ` DEBUG: estruturaPEIMap['${habilidade}'] ->`,
+              //   debugSugestaoPorHabilidade
+              // );
+              // if (debugSugestaoPorHabilidade) {
+              //   console.log(
+              //     ` DEBUG: estruturaPEIMap['${habilidade}']['${nivelAlmejado}'] ->`,
+              //     debugSugestaoPorHabilidade[nivelAlmejado]
+              //   );
+              // } else {
+              //   console.warn(
+              //     ` DEBUG: Habilidade "${habilidade}" (da avaliação) NÃO ENCONTRADA como chave principal em estruturaPEIMap.`
+              //   );
+              // }
 
               if (
                 !sugestaoObjetivoEstrategias ||
@@ -284,81 +283,110 @@ export default function CriarPEI() {
                 nivel: nivelAtual,
                 nivelAlmejado: nivelAlmejado,
                 objetivo: sugestaoObjetivoEstrategias.objetivo,
-                estrategias: sugestaoObjetivoEstrategias.estrategias,
-                estrategiasSelecionadas: [],
+                estrategias: Array.isArray(
+                  sugestaoObjetivoEstrategias.estrategias
+                )
+                  ? sugestaoObjetivoEstrategias.estrategias
+                  : [sugestaoObjetivoEstrategias.estrategias], // Garante que seja um array
+                estrategiasSelecionadas: [], // Vazio para um novo PEI, o usuário irá selecionar
               });
-              console.log(
-                ` -> Meta ADICIONADA para PEI: Área "${area}", Habilidade "${habilidade}" (Nível Avaliado: ${nivelAtual}, Nível Almejado: ${nivelAlmejado}).`
-              );
+              // console.log(
+              //   ` -> Meta ADICIONADA para PEI: Área "${area}", Habilidade "${habilidade}" (Nível Avaliado: ${nivelAtual}, Nível Almejado: ${nivelAlmejado}).`
+              // );
             }
           );
         }
       );
-      console.log(
-        "--- DEBUG: PEI NOVO CONSTRUÍDO (Objeto 'pei' antes de ser setado):",
-        novoPei
-      );
+      // console.log(
+      //   "--- DEBUG: PEI NOVO CONSTRUÍDO (Objeto 'pei' antes de ser setado):",
+      //   novoPei
+      // );
       return novoPei;
     },
     [estruturaPEIMap, NIVEIS_PROGRESSAO]
   );
 
-  const montarPeiExistente = useCallback((resumoPEIExistente) => {
-    const peiMontado = {};
-    console.log("--- DEBUG: Iniciando montarPeiExistente ---");
-    console.log("Resumo PEI Existente de entrada:", resumoPEIExistente);
+  const montarPeiExistente = useCallback(
+    (peiExistenteData) => {
+      const peiMontado = {};
+      const entradaManualMontada = {}; // Para armazenar as estratégias manuais salvas
+      // console.log("--- DEBUG: Iniciando montarPeiExistente ---");
+      // console.log("PEI Existente de entrada (data):", peiExistenteData);
 
-    resumoPEIExistente.forEach((meta) => {
-      console.log(
-        ` Processando meta existente: Habilidade "${meta.habilidade}", Nível Avaliado: "${meta.nivel}", Nível Almejado: "${meta.nivelAlmejado}"`
-      );
+      const resumoPEIExistente = peiExistenteData.resumoPEI || [];
+      const atividadeAplicadaExistente =
+        peiExistenteData.atividadeAplicada || "";
 
-      if (!peiMontado[meta.area]) peiMontado[meta.area] = [];
+      resumoPEIExistente.forEach((meta) => {
+        // console.log(
+        //   ` Processando meta existente: Habilidade "${meta.habilidade}", Nível Avaliado: "${meta.nivel}", Nível Almejado: "${meta.nivelAlmejado}"`
+        // );
 
-      const bloco = estruturaPEIMap[meta.habilidade]?.[meta.nivelAlmejado];
-      let estrategiasOriginais = [];
-      if (Array.isArray(bloco?.estrategias)) {
-        estrategiasOriginais = [...bloco.estrategias];
-      } else if (typeof bloco?.estrategias === "string") {
-        estrategiasOriginais = [bloco.estrategias];
-      }
+        if (!peiMontado[meta.area]) peiMontado[meta.area] = [];
 
-      if (!bloco) {
-        console.warn(
-          ` AVISO (montarPeiExistente): Bloco de sugestão para habilidade "${meta.habilidade}" e nível almejado "${meta.nivelAlmejado}" NÃO ENCONTRADO em estruturaPEIMap. Usando estratégias salvas.`
+        // Pega as estratégias sugeridas para o nível almejado a partir do estruturaPEIMap
+        const blocoSugestao =
+          estruturaPEIMap[meta.habilidade]?.[meta.nivelAlmejado];
+        let estrategiasSugeridas = [];
+        if (Array.isArray(blocoSugestao?.estrategias)) {
+          estrategiasSugeridas = [...blocoSugestao.estrategias];
+        } else if (typeof blocoSugestao?.estrategias === "string") {
+          estrategiasSugeridas = [blocoSugestao.estrategias];
+        }
+
+        // As estratégias que JÁ FORAM SELECIONADAS/MANUAIS no PEI salvo
+        const estrategiasSalvas = Array.isArray(meta.estrategias)
+          ? meta.estrategias
+          : [];
+
+        // Filtra as estratégias sugeridas para encontrar quais ainda não foram salvas
+        const estrategiasRestantes = estrategiasSugeridas.filter(
+          (sug) => !estrategiasSalvas.includes(sug)
         );
-      } else if (!bloco.estrategias) {
-        console.warn(
-          ` AVISO (montarPeiExistente): Bloco para habilidade "${meta.habilidade}" no nível almejado "${meta.nivelAlmejado}" NÃO TEM ESTRATÉGIAS definidas. Usando estratégias salvas.`
+
+        // Separa as estratégias salvas entre as que são sugeridas e as que são manuais
+        const sugeridasSelecionadas = estrategiasSalvas.filter((salva) =>
+          estrategiasSugeridas.includes(salva)
         );
-      }
 
-      const todasUsadasParaHabilidade = resumoPEIExistente
-        .filter((m) => m.habilidade === meta.habilidade)
-        .flatMap((m) => m.estrategias || []);
+        const manuaisSalvas = estrategiasSalvas.filter(
+          (salva) => !estrategiasSugeridas.includes(salva)
+        );
 
-      const restantes = estrategiasOriginais.filter(
-        (e) => !todasUsadasParaHabilidade.includes(e)
-      );
+        // Armazena as estratégias manuais salvas no estado de entradaManual
+        const chaveEntradaManual = `${meta.area}-${meta.habilidade}`;
+        entradaManualMontada[chaveEntradaManual] = {
+          estrategiasManuais: manuaisSalvas.join("\n"),
+          estrategias: sugeridasSelecionadas, // Estratégias sugeridas que estavam selecionadas
+        };
 
-      peiMontado[meta.area].push({
-        habilidade: meta.habilidade,
-        nivel: meta.nivel,
-        nivelAlmejado: meta.nivelAlmejado || meta.nivel,
-        objetivo: meta.objetivo,
-        estrategias: restantes,
-        estrategiasSelecionadas: meta.estrategias || [],
+        peiMontado[meta.area].push({
+          habilidade: meta.habilidade,
+          nivel: meta.nivel,
+          nivelAlmejado: meta.nivelAlmejado || meta.nivel, // Garante que nívelAlmejado exista
+          objetivo: meta.objetivo,
+          estrategias: estrategiasRestantes, // Estratégias sugeridas que AINDA NÃO FORAM SELECIONADAS (mas que estão no estruturaPEIMap)
+          estrategiasSelecionadas: sugeridasSelecionadas, // Estratégias sugeridas que JÁ FORAM SELECIONADAS no PEI existente
+        });
+        // console.log(
+        //   ` -> Meta ADICIONADA para PEI existente: Área "${meta.area}", Habilidade "${meta.habilidade}".`
+        // );
       });
-      console.log(
-        ` -> Meta ADICIONADA para PEI existente: Área "${meta.area}", Habilidade "${meta.habilidade}".`
-      );
-    });
-    console.log(
-      "--- DEBUG: PEI MONTADO A PARTIR DE EXISTENTE (Objeto 'pei' antes de setPei):",
-      peiMontado
-    );
-    return peiMontado;
-  }, []);
+      // console.log(
+      //   "--- DEBUG: PEI MONTADO A PARTIR DE EXISTENTE (Objeto 'pei' antes de setPei):",
+      //   peiMontado
+      // );
+      // console.log("--- DEBUG: entradaManualMontada:", entradaManualMontada);
+
+      // Retorna o PEI montado, a atividade aplicada e as entradas manuais para serem setados no estado
+      return {
+        pei: peiMontado,
+        atividadeAplicada: atividadeAplicadaExistente,
+        entradaManual: entradaManualMontada,
+      };
+    },
+    [estruturaPEIMap]
+  );
 
   const handleSelecionarAluno = useCallback(
     async (nome) => {
@@ -391,43 +419,49 @@ export default function CriarPEI() {
       const cargo = usuarioLogado.cargo;
       const perfil = usuarioLogado.perfil;
 
-      setCarregando(true); // Move para o início para englobar toda a lógica assíncrona
+      setCarregando(true);
 
       try {
+        // Busca o PEI mais recente do aluno para o ano atual
         const q = query(
           collection(db, "peis"),
-          where("alunoId", "==", aluno.id)
+          where("alunoId", "==", aluno.id),
+          where("anoLetivo", "==", new Date().getFullYear()), // Busca pelo ano letivo atual
+          orderBy("dataCriacao", "desc"), // Garante que, se houver múltiplos, pega o mais recente
+          limit(1)
         );
         const peisSnap = await getDocs(q);
 
         let peiExistente = null;
         if (!peisSnap.empty) {
-          peiExistente = peisSnap.docs
-            .map((doc) => ({ id: doc.id, ...doc.data() }))
-            .sort(
-              (a, b) =>
-                new Date(b.criadoEm).getTime() - new Date(a.criadoEm).getTime()
-            )[0];
+          peiExistente = peisSnap.docs[0].data(); // Pega apenas o primeiro (mais recente)
         }
 
         if (peiExistente) {
-          const peiMontado = montarPeiExistente(peiExistente.resumoPEI || []);
+          const {
+            pei: peiMontado,
+            atividadeAplicada: atividadeAplicadaCarregada,
+            entradaManual: entradaManualCarregada,
+          } = montarPeiExistente(peiExistente);
           setPei(peiMontado);
           setAreaAtiva(Object.keys(peiMontado)[0] || todasAsAreas[0] || "");
-          setAtividadeAplicada(peiExistente.atividadeAplicada || "");
-          setEntradaManual({}); // Limpa entrada manual para um PEI existente
-          exibirMensagem("sucesso", "PEI existente carregado para edição.");
+          setAtividadeAplicada(atividadeAplicadaCarregada);
+          setEntradaManual(entradaManualCarregada); // Define as entradas manuais carregadas
+          exibirMensagem(
+            "sucesso",
+            "PEI existente do ano atual carregado para edição."
+          );
           return; // Sai da função após carregar o PEI existente
         }
       } catch (erroBusca) {
         console.error("Erro ao buscar PEI existente:", erroBusca);
         exibirMensagem(
           "erro",
-          "Erro ao carregar PEI existente. Tente novamente."
+          "Erro ao carregar PEI existente. Tentando iniciar novo PEI..."
         );
         // A lógica de criação de novo PEI será executada abaixo se o erro não for crítico.
       } finally {
-        setCarregando(false); // Garante que o carregamento seja desativado ao final da tentativa de busca
+        setCarregando(false);
       }
 
       // Se o PEI existente não foi encontrado OU ocorreu um erro na busca do PEI existente,
@@ -436,7 +470,7 @@ export default function CriarPEI() {
       if (!verificarPermissaoCriacaoPEI(etapa, cargo, perfil)) {
         exibirMensagem(
           "erro",
-          "Você não tem permissão para iniciar o PEI deste aluno."
+          "Você não tem permissão para iniciar ou editar o PEI deste aluno."
         );
         setAlunoSelecionado(null);
         return;
@@ -452,6 +486,7 @@ export default function CriarPEI() {
         return;
       }
 
+      // Se não encontrou PEI existente para o ano atual, monta um novo PEI com base na avaliação inicial
       const novoPei = montarPeiInicial(avaliacao);
       setPei(novoPei);
       setAreaAtiva(
@@ -459,7 +494,7 @@ export default function CriarPEI() {
           ? Object.keys(novoPei)[0]
           : todasAsAreas[0] || ""
       );
-      setAtividadeAplicada("");
+      setAtividadeAplicada(""); // Limpa atividade aplicada para um novo PEI
       setEntradaManual({}); // Limpa entrada manual para um novo PEI
       exibirMensagem(
         "sucesso",
@@ -498,54 +533,106 @@ export default function CriarPEI() {
       setCarregando(true);
       const usuario = JSON.parse(localStorage.getItem("usuarioLogado")) || {};
 
-      const peiFinal = Object.entries(pei).flatMap(([area, metas]) =>
-        metas
-          .map((meta) => {
-            // CORRIGIDO: Removidas tags de markdown da chave
-            const chave = `${area}-${meta.habilidade}`;
-            const manual = entradaManual[chave] || {};
-            const estrategiasManuais = manual.estrategiasManuais
-              ? manual.estrategiasManuais.split("\n").filter((e) => e.trim())
-              : [];
+      const peiFinal = Object.entries(pei).flatMap(
+        ([area, metas]) =>
+          metas
+            .map((meta) => {
+              const chave = `${area}-${meta.habilidade}`;
+              const manual = entradaManual[chave] || {};
 
-            const estrategiasSelecionadas = Array.isArray(manual.estrategias)
-              ? manual.estrategias
-              : Array.isArray(meta.estrategiasSelecionadas)
-              ? meta.estrategiasSelecionadas
-              : [];
+              // Estratégias manuais (do textarea)
+              const estrategiasManuaisDigitadas = manual.estrategiasManuais
+                ? manual.estrategiasManuais
+                    .split("\n")
+                    .map((s) => s.trim())
+                    .filter((e) => e.length > 0)
+                : [];
 
-            const todasEstrategias = [
-              ...new Set([...estrategiasSelecionadas, ...estrategiasManuais]),
-            ].filter((e) => typeof e === "string" && e.trim() !== "");
+              // Estratégias sugeridas selecionadas (dos checkboxes)
+              const estrategiasSugeridasSelecionadas = Array.isArray(
+                manual.estrategias
+              )
+                ? manual.estrategias
+                : Array.isArray(meta.estrategiasSelecionadas) // fallback para o que veio do banco no load
+                  ? meta.estrategiasSelecionadas
+                  : [];
 
-            if (todasEstrategias.length === 0) return null;
+              // Combina todas as estratégias e remove duplicatas
+              const todasEstrategias = [
+                ...new Set([
+                  ...estrategiasSugeridasSelecionadas,
+                  ...estrategiasManuaisDigitadas,
+                ]),
+              ].filter((e) => typeof e === "string" && e.trim() !== "");
 
-            return {
-              area,
-              habilidade: meta.habilidade,
-              nivel: meta.nivel,
-              nivelAlmejado: meta.nivelAlmejado,
-              objetivo: meta.objetivo,
-              estrategias: todasEstrategias,
-            };
-          })
-          .filter(Boolean)
+              if (todasEstrategias.length === 0) {
+                // Se não há estratégias, esta meta não deve ser salva
+                return null;
+              }
+
+              return {
+                area,
+                habilidade: meta.habilidade,
+                nivel: meta.nivel,
+                nivelAlmejado: meta.nivelAlmejado,
+                objetivo: meta.objetivo,
+                estrategias: todasEstrategias, // Todas as estratégias salvas
+              };
+            })
+            .filter(Boolean) // Remove as metas que retornaram null (sem estratégias)
       );
 
-      await addDoc(collection(db, "peis"), {
-        alunoId: alunoSelecionado.id,
-        aluno: alunoSelecionado.nome,
-        turma: alunoSelecionado.turma,
-        resumoPEI: peiFinal,
-        atividadeAplicada: atividadeAplicada,
-        criadoEm: new Date().toISOString(),
-        nomeCriador: usuario.nome || "Desconhecido",
-        cargoCriador: usuario.cargo || "Desconhecido",
-        criadorId: usuario.email || "",
-        criadorPerfil: usuario.perfil || "",
-      });
+      // Se após o filtro, não houver metas, exibe erro
+      if (peiFinal.length === 0 && !temAtividadeAplicada) {
+        exibirMensagem(
+          "erro",
+          "É preciso ter pelo menos uma estratégia selecionada ou uma atividade aplicada para salvar o PEI."
+        );
+        setCarregando(false);
+        return;
+      }
 
-      exibirMensagem("sucesso", "PEI salvo com sucesso!");
+      let peiDocRef = null;
+      const anoAtual = new Date().getFullYear();
+
+      // Primeiro, tentar encontrar um PEI existente para o aluno no ano atual
+      const qExistente = query(
+        collection(db, "peis"),
+        where("alunoId", "==", alunoSelecionado.id),
+        where("anoLetivo", "==", anoAtual), // Garante que busca o PEI do ano atual
+        limit(1) // Apenas o primeiro (deveria ser único por ano)
+      );
+      const snapExistente = await getDocs(qExistente);
+
+      if (!snapExistente.empty) {
+        peiDocRef = snapExistente.docs[0].ref; // Referência ao PEI existente
+        await updateDoc(peiDocRef, {
+          resumoPEI: peiFinal,
+          atividadeAplicada: atividadeAplicada,
+          dataUltimaRevisao: serverTimestamp(), // Data da última atualização
+          nomeCriador: usuario.nome || "Desconhecido", // Quem está atualizando
+          cargoCriador: usuario.cargo || "Desconhecido",
+          criadorId: usuario.email || "",
+          criadorPerfil: usuario.perfil || "",
+        });
+        exibirMensagem("sucesso", "PEI atualizado com sucesso!");
+      } else {
+        // Se não encontrou um PEI existente para o ano atual, cria um novo
+        await addDoc(collection(db, "peis"), {
+          alunoId: alunoSelecionado.id,
+          aluno: alunoSelecionado.nome,
+          turma: alunoSelecionado.turma,
+          resumoPEI: peiFinal,
+          atividadeAplicada: atividadeAplicada,
+          dataCriacao: serverTimestamp(), // Data de criação do PEI como Timestamp
+          anoLetivo: anoAtual, // Define o ano letivo do PEI
+          nomeCriador: usuario.nome || "Desconhecido",
+          cargoCriador: usuario.cargo || "Desconhecido",
+          criadorId: usuario.email || "",
+          criadorPerfil: usuario.perfil || "",
+        });
+        exibirMensagem("sucesso", "Novo PEI salvo com sucesso!");
+      }
     } catch (err) {
       console.error("Erro ao salvar PEI:", err);
       exibirMensagem("erro", `Erro ao salvar PEI: ${err.message}`);
@@ -607,6 +694,7 @@ export default function CriarPEI() {
       borderRadius: "6px",
       border: "1px solid #ccc",
       fontSize: "14px",
+      resize: "vertical", // Permite redimensionar verticalmente
     },
     botaoSalvar: {
       backgroundColor: "#2a9d8f",
@@ -620,6 +708,7 @@ export default function CriarPEI() {
       margin: "30px auto 0",
       cursor: "pointer",
       transition: "background-color 0.3s",
+      opacity: carregando ? 0.7 : 1, // Feedback visual quando carregando
     },
     mensagemErro: {
       color: "#e63946",
@@ -645,6 +734,7 @@ export default function CriarPEI() {
       textAlign: "center",
       margin: "20px 0",
       color: "#1d3557",
+      fontSize: "1.1em",
     },
     // === ESTILOS CORRIGIDOS E REFORÇADOS PARA ALINHAR CHECKBOX E FRASE ===
     // Contêiner flexível para cada checkbox e seu label
@@ -658,23 +748,22 @@ export default function CriarPEI() {
     },
     // Estilos para o próprio input checkbox
     checkboxInput: {
-      marginRight: "8px", // Espaçamento entre o checkbox e a frase
-      marginTop: "4px", // Pequeno ajuste vertical para alinhar o checkbox
-      flexShrink: 0, // Impede que o checkbox seja comprimido
-      width: "auto", // Garante que o checkbox não tenha uma largura fixada errada
-      height: "auto", // Garante que o checkbox não tenha uma altura fixada errada
-      // Podemos adicionar um !important aqui se o checkbox ainda estiver com display:block ou width/height errados
-      // display: 'inline-block !important',
-      // verticalAlign: 'middle !important',
+      marginRight: "8px !important", // Espaçamento entre o checkbox e a frase
+      marginTop: "4px !important", // Pequeno ajuste vertical para alinhar o checkbox
+      flexShrink: "0 !important", // Impede que o checkbox seja comprimido
+      width: "auto !important", // Garante que o checkbox não tenha uma largura fixada errada
+      height: "auto !important", // Garante que o checkbox não tenha uma altura fixada errada
+      minWidth: "16px !important", // Garante um tamanho mínimo para o checkbox
+      minHeight: "16px !important",
     },
     // Estilos para o texto da frase (label)
     checkboxLabel: {
-      flex: "1 1 0%", // flex-grow:1, flex-shrink:1, flex-basis:0%. Crucial para preencher o espaço.
-      wordWrap: "break-word", // Garante que palavras longas quebrem
-      overflowWrap: "break-word", // Compatibilidade para quebra de palavras
+      flex: "1 1 0% !important", // flex-grow:1, flex-shrink:1, flex-basis:0%. Crucial para preencher o espaço.
+      wordWrap: "break-word !important", // Garante que palavras longas quebrem
+      overflowWrap: "break-word !important", // Compatibilidade para quebra de palavras
       whiteSpace: "normal !important", // FORÇA A QUEBRA NORMAL DE LINHA, anulando qualquer 'nowrap'
-      lineHeight: "1.4", // Melhora a legibilidade em múltiplas linhas
-      fontSize: "14px", // Mantém o tamanho da fonte
+      lineHeight: "1.4 !important", // Melhora a legibilidade em múltiplas linhas
+      fontSize: "14px !important", // Mantém o tamanho da fonte
       marginLeft: "0px !important", // Zera qualquer margin-left que possa vir de outro lugar
       maxWidth: "none !important", // Garante que não haja limite de largura forçado
       minWidth: "0 !important", // Permite que o label encolha, crucial para flex itens
@@ -727,7 +816,7 @@ export default function CriarPEI() {
             aria-label="Selecione um aluno para criar o PEI"
           >
             <option value="">
-              {carregando ? "Carregando..." : "Selecione um aluno"}
+              {carregando ? "Carregando alunos..." : "Selecione um aluno"}
             </option>
             {alunos.map((aluno) => (
               <option key={aluno.id} value={aluno.nome}>
@@ -790,6 +879,7 @@ export default function CriarPEI() {
                   onChange={(e) => setAtividadeAplicada(e.target.value)}
                   placeholder="Ex: Brincadeira simbólica usando fantoches para desenvolver comunicação e imaginação..."
                   style={estilos.textarea}
+                  rows="4" // Adicionado rows para melhor visualização
                 />
               </div>
             )}
@@ -803,18 +893,24 @@ export default function CriarPEI() {
                     if (!meta || typeof meta !== "object" || !meta.habilidade)
                       return null;
 
-                    // CORRIGIDO: Chave para entrada manual (removidas tags markdown)
-                    const chaveEntradaManual = `${areaAtiva}-${meta.habilidade}`;
+                    // Chave para entrada manual (sem caracteres especiais ou espaços)
+                    const chaveEntradaManual = `${areaAtiva}-${meta.habilidade.replace(/[^a-zA-Z0-9-]/g, "")}`;
                     const dadosManuais =
                       entradaManual[chaveEntradaManual] || {};
+
+                    // Combina as estratégias sugeridas que não foram selecionadas e as já selecionadas
+                    const estrategiasParaExibir = [
+                      ...(meta.estrategias || []), // Estratégias restantes do PEI_MAP
+                      ...(meta.estrategiasSelecionadas || []), // Estratégias que já estavam selecionadas no PEI existente
+                    ];
 
                     return (
                       <article
                         key={`${meta.habilidade}-${idx}`} // Chave robusta para o React
                         style={estilos.metaCard}
-                        aria-labelledby={`meta-${areaAtiva}-${idx}`}
+                        aria-labelledby={`meta-${chaveEntradaManual}-habilidade`}
                       >
-                        <h3 id={`meta-${areaAtiva}-${idx}`}>
+                        <h3 id={`meta-${chaveEntradaManual}-habilidade`}>
                           {meta.habilidade}
                         </h3>
                         <p>
@@ -851,62 +947,66 @@ export default function CriarPEI() {
                             Estratégias:
                           </legend>
 
-                          {(() => {
-                            const estrategiasOriginais = Array.isArray(
-                              meta.estrategias
-                            )
-                              ? meta.estrategias
-                              : []; // Garante que é um array vazio se não houver
-
-                            const selecionadas =
-                              dadosManuais.estrategias ||
-                              meta.estrategiasSelecionadas ||
-                              [];
-
-                            return estrategiasOriginais.map((estrategia, i) => (
+                          {estrategiasParaExibir.length > 0 ? (
+                            estrategiasParaExibir.map((estrategia, i) => (
                               <div key={i} style={estilos.checkboxContainer}>
                                 <input
                                   type="checkbox"
-                                  id={`estrategia-${areaAtiva}-${idx}-${i}`} // CORRIGIDO: Removidas tags de markdown
-                                  checked={selecionadas.includes(estrategia)}
+                                  id={`estrategia-${chaveEntradaManual}-${i}`}
+                                  checked={(
+                                    dadosManuais.estrategias ||
+                                    meta.estrategiasSelecionadas ||
+                                    []
+                                  ).includes(estrategia)}
                                   onChange={(e) => {
-                                    const atual = [...selecionadas];
-                                    const atualizadas = e.target.checked
-                                      ? [...atual, estrategia]
-                                      : atual.filter((s) => s !== estrategia);
+                                    const atual = new Set(
+                                      dadosManuais.estrategias ||
+                                        meta.estrategiasSelecionadas ||
+                                        []
+                                    );
+                                    if (e.target.checked) {
+                                      atual.add(estrategia);
+                                    } else {
+                                      atual.delete(estrategia);
+                                    }
 
                                     setEntradaManual((prev) => ({
                                       ...prev,
                                       [chaveEntradaManual]: {
                                         ...prev[chaveEntradaManual],
-                                        estrategias: atualizadas,
+                                        estrategias: Array.from(atual),
                                       },
                                     }));
                                   }}
                                   style={estilos.checkboxInput}
                                 />
                                 <label
-                                  htmlFor={`estrategia-${areaAtiva}-${idx}-${i}`} // CORRIGIDO: Removidas tags de markdown
+                                  htmlFor={`estrategia-${chaveEntradaManual}-${i}`}
                                   style={estilos.checkboxLabel}
                                 >
                                   {estrategia}
                                 </label>
                               </div>
-                            ));
-                          })()}
+                            ))
+                          ) : (
+                            <p style={{ fontStyle: "italic", color: "#888" }}>
+                              Nenhuma estratégia sugerida para este nível.
+                              Adicione uma personalizada abaixo.
+                            </p>
+                          )}
 
                           <label
-                            htmlFor={`estrategias-manuais-${areaAtiva}-${idx}`} // CORRIGIDO: Removidas tags de markdown
+                            htmlFor={`estrategias-manuais-${chaveEntradaManual}`}
                             style={{
                               display: "block",
                               marginTop: "10px",
-                              fontWeight: "bold", // <--- ADICIONE ESTA LINHA AQUI
+                              fontWeight: "bold",
                             }}
                           >
                             Estratégias personalizadas (uma por linha):
                           </label>
                           <textarea
-                            id={`estrategias-manuais-${areaAtiva}-${idx}`} // CORRIGIDO: Removidas tags de markdown
+                            id={`estrategias-manuais-${chaveEntradaManual}`}
                             value={dadosManuais.estrategiasManuais || ""}
                             onChange={(e) =>
                               setEntradaManual((prev) => ({
@@ -919,6 +1019,7 @@ export default function CriarPEI() {
                             }
                             style={estilos.textarea}
                             placeholder="Adicione novas estratégias aqui, uma por linha..."
+                            rows="3" // Adicionado rows para melhor visualização
                           />
                         </fieldset>
                       </article>
@@ -934,7 +1035,7 @@ export default function CriarPEI() {
                   >
                     Nenhuma meta de PEI sugerida para esta área com base na
                     avaliação inicial. Isso ocorre porque todas as habilidades
-                    faram marcadas como 'Não Aplicável' (NA) ou 'Independente'
+                    foram marcadas como 'Não Aplicável' (NA) ou 'Independente'
                     (I).
                   </p>
                 )}

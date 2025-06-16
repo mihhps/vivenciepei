@@ -20,7 +20,10 @@ async function migratePeis() {
   const batchSize = 400; // Limite do batch
 
   try {
-    const snapshot = await peisRef.get(); // Busca todos os documentos PEI
+    // Busca todos os documentos PEI.
+    // Para bases de dados MUITO grandes (milhões de documentos), você pode precisar
+    // de paginação para evitar carregar tudo na memória de uma vez.
+    const snapshot = await peisRef.get();
     const docs = snapshot.docs;
 
     if (docs.length === 0) {
@@ -33,52 +36,85 @@ async function migratePeis() {
     for (const doc of docs) {
       const peiData = doc.data();
       const updateData = {};
-
       let needsUpdate = false;
 
-      // Se 'anoLetivo' está faltando ou não é um número (ajuste o ano padrão)
-      if (!peiData.anoLetivo || typeof peiData.anoLetivo !== "number") {
-        updateData.anoLetivo = new Date().getFullYear(); // Ou o ano letivo correto para esses PEIs
-        needsUpdate = true;
+      // 1. Lógica para 'anoLetivo'
+      // Tenta obter o ano da data de criação ou última revisão
+      let peiCreationDate = null;
+      if (peiData.dataCriacao && peiData.dataCriacao.toDate) {
+        peiCreationDate = peiData.dataCriacao.toDate();
+      } else if (typeof peiData.criadoEm === "string") {
+        peiCreationDate = new Date(peiData.criadoEm);
       }
 
-      // Se 'status' está faltando (defina um status padrão)
+      // Se 'anoLetivo' está faltando ou não é um número, e temos uma data de criação
+      if (
+        (!peiData.anoLetivo || typeof peiData.anoLetivo !== "number") &&
+        peiCreationDate &&
+        !isNaN(peiCreationDate)
+      ) {
+        updateData.anoLetivo = peiCreationDate.getFullYear();
+        needsUpdate = true;
+        console.log(
+          `PEI ${doc.id}: Adicionando/Corrigindo anoLetivo para ${updateData.anoLetivo}`
+        );
+      } else if (!peiCreationDate || isNaN(peiCreationDate)) {
+        console.warn(
+          `PEI ${doc.id}: Não foi possível determinar anoLetivo a partir de dataCriacao/criadoEm. Verifique este PEI manualmente.`
+        );
+      }
+
+      // 2. Lógica para 'status'
       if (!peiData.status) {
         updateData.status = "em elaboração"; // Ou outro status padrão apropriado
         needsUpdate = true;
+        console.log(
+          `PEI ${doc.id}: Adicionando status padrão 'em elaboração'.`
+        );
       }
 
-      // Se 'escolaId' está faltando
-      if (!peiData.escolaId) {
-        // Você precisará buscar o aluno para obter o escolaId
-        if (peiData.alunoId) {
-          const alunoDoc = await db
-            .collection("alunos")
-            .doc(peiData.alunoId)
-            .get();
-          if (alunoDoc.exists && alunoDoc.data().escolaId) {
-            updateData.escolaId = alunoDoc.data().escolaId;
-            needsUpdate = true;
-          } else {
-            console.warn(
-              `Aluno ${peiData.alunoId} para PEI ${doc.id} não encontrado ou sem escolaId. PEI não será atualizado com escolaId.`
-            );
-          }
+      // 3. Lógica para 'escolaId'
+      if (!peiData.escolaId && peiData.alunoId) {
+        const alunoDoc = await db
+          .collection("alunos")
+          .doc(peiData.alunoId)
+          .get();
+        if (alunoDoc.exists && alunoDoc.data().escolaId) {
+          updateData.escolaId = alunoDoc.data().escolaId;
+          needsUpdate = true;
+          console.log(
+            `PEI ${doc.id}: Adicionando escolaId: ${updateData.escolaId}.`
+          );
         } else {
           console.warn(
-            `PEI ${doc.id} sem alunoId. Não é possível determinar escolaId.`
+            `PEI ${doc.id}: Aluno ${peiData.alunoId} não encontrado ou sem escolaId. PEI não será atualizado com escolaId.`
           );
         }
+      } else if (!peiData.escolaId && !peiData.alunoId) {
+        console.warn(
+          `PEI ${doc.id}: Sem alunoId, não é possível determinar escolaId.`
+        );
       }
 
-      // Se 'dataPrevistaTermino' está faltando (opcional, adicione se quiser)
-      // if (!peiData.dataPrevistaTermino) {
-      //   updateData.dataPrevistaTermino = admin.firestore.Timestamp.fromDate(new Date('2025-12-31')); // Exemplo
-      //   needsUpdate = true;
-      // }
+      // 4. Lógica para 'dataPrevistaTermino' (opcional)
+      // Adiciona uma data prevista de término, por exemplo, 6 meses após a criação
+      if (
+        !peiData.dataPrevistaTermino &&
+        peiCreationDate &&
+        !isNaN(peiCreationDate)
+      ) {
+        const futureDate = new Date(peiCreationDate);
+        futureDate.setMonth(futureDate.getMonth() + 6); // Adiciona 6 meses
+        updateData.dataPrevistaTermino =
+          admin.firestore.Timestamp.fromDate(futureDate);
+        needsUpdate = true;
+        console.log(
+          `PEI ${doc.id}: Adicionando dataPrevistaTermino como 6 meses após criação.`
+        );
+      }
 
       if (needsUpdate) {
-        batch.update(peisRef.doc(doc.id), updateData);
+        batch.update(doc.ref, updateData); // Use doc.ref em vez de peisRef.doc(doc.id)
         peisProcessed++;
 
         if (peisProcessed % batchSize === 0) {
@@ -86,6 +122,8 @@ async function migratePeis() {
           console.log(`Commited ${peisProcessed} PEIs...`);
           batch = db.batch(); // Inicia novo batch
         }
+      } else {
+        // console.log(`PEI ${doc.id}: Não precisa de atualização.`); // Log opcional para ver os ignorados
       }
     }
 

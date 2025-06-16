@@ -3,127 +3,244 @@
 // Importa as dependências necessárias
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
-// Importa as funções v2 do Firestore para gatilhos de documentos e HTTPS
-const { onDocumentWritten } = require("firebase-functions/v2/firestore");
-const { onCall } = require("firebase-functions/v2/https");
+
+// Importa as funções v2 do Firestore para gatilhos de documentos (onDocumentWritten, etc.)
+// e para funções HTTPS (onCall, onRequest)
+const {
+  onDocumentWritten,
+  onDocumentCreated,
+  onDocumentUpdated,
+  onDocumentDeleted,
+} = require("firebase-functions/v2/firestore");
+const { onCall, onRequest } = require("firebase-functions/v2/https");
 
 // Inicializa o Admin SDK do Firebase
 admin.initializeApp();
 const db = admin.firestore(); // Referência ao Firestore
 
-// --- FUNÇÃO AUXILIAR: Determina o status do PEI e revisões de um aluno ---
-// Esta função é usada para calcular os detalhes de status de cada aluno,
-// que serão armazenados no resumo do professor.
+// Define o tamanho máximo de um batch para queries 'in' no Firestore (limite de 10)
+const FIRESTORE_QUERY_BATCH_SIZE = 10;
+
+// --- FUNÇÃO AUXILIAR: Zera a hora de uma data para comparação apenas por dia ---
+const resetTime = (date) => {
+  if (date instanceof Date) {
+    date.setHours(0, 0, 0, 0);
+  }
+  return date;
+};
+
 const getPeiStatusDetails = (peiData, prazos, hoje) => {
   let statusPeiGeral = "Não iniciado";
   let statusRevisao1 = "N/A";
   let statusRevisao2 = "N/A";
   let dataUltimaAtualizacaoPei = null;
+  // isAtrasadoRealmente será calculado no final, baseado nos status finais
+  // Não o inicializaremos com true em nenhum ponto intermediário.
 
-  const { dataLimiteCriacaoPEI, dataLimiteRevisao1Sem, dataLimiteRevisao2Sem } =
-    prazos;
+  const hojeZerado = resetTime(new Date(hoje.getTime()));
 
+  const dataLimiteCriacaoPEI = prazos.dataLimiteCriacaoPEI
+    ? resetTime(prazos.dataLimiteCriacaoPEI)
+    : null;
+  const dataLimiteRevisao1Sem = prazos.dataLimiteRevisao1Sem
+    ? resetTime(prazos.dataLimiteRevisao1Sem)
+    : null;
+  const dataLimiteRevisao2Sem = prazos.dataLimiteRevisao2Sem
+    ? resetTime(prazos.dataLimiteRevisao2Sem)
+    : null;
+
+  functions.logger.log(`[getPeiStatusDetails] === DEBUG INICIO ===`);
+  functions.logger.log(
+    `[getPeiStatusDetails] PEI ID: ${peiData ? peiData.id : "NENHUM PEI ENCONTRADO"}`
+  );
+  functions.logger.log(
+    `[getPeiStatusDetails] HOJE (zerado): ${hojeZerado ? hojeZerado.toISOString() : "N/A"}`
+  );
+  functions.logger.log(
+    `[getPeiStatusDetails] PRAZO CRIAÇÃO (zerado): ${dataLimiteCriacaoPEI ? dataLimiteCriacaoPEI.toISOString() : "N/A"}`
+  );
+  functions.logger.log(
+    `[getPeiStatusDetails] PRAZO REVISÃO 1 (zerado): ${dataLimiteRevisao1Sem ? dataLimiteRevisao1Sem.toISOString() : "N/A"}`
+  );
+  functions.logger.log(
+    `[getPeiStatusDetails] PRAZO REVISÃO 2 (zerado): ${dataLimiteRevisao2Sem ? dataLimiteRevisao2Sem.toISOString() : "N/A"}`
+  );
+
+  functions.logger.log(
+    `[getPeiStatusDetails] peiData: ${JSON.stringify(peiData)}`
+  );
+
+  // --- LÓGICA DE STATUS: AQUI DEFINIMOS AS STRINGS DE STATUS GERAL E REVISÕES ---
   if (!peiData) {
-    // PEI não encontrado
-    if (dataLimiteCriacaoPEI && hoje >= dataLimiteCriacaoPEI) {
-      statusPeiGeral = "Atrasado - Sem PEI";
+    functions.logger.log(
+      `[getPeiStatusDetails] -> Caminho: PEI NÃO ENCONTRADO.`
+    );
+    if (dataLimiteCriacaoPEI && hojeZerado >= dataLimiteCriacaoPEI) {
+      statusPeiGeral = "Atrasado - Sem PEI"; // Ação NÃO realizada
     } else {
       statusPeiGeral = "Aguardando Criação";
     }
-    if (dataLimiteRevisao1Sem && hoje >= dataLimiteRevisao1Sem)
-      statusRevisao1 = "Atrasado";
-    if (dataLimiteRevisao2Sem && hoje >= dataLimiteRevisao2Sem)
-      statusRevisao2 = "Atrasado";
   } else {
-    // PEI encontrado
-    const dataCriacaoPei = peiData.criadoEm?.toDate() || null;
-    dataUltimaAtualizacaoPei =
-      peiData.dataUltimaRevisao?.toDate() || dataCriacaoPei;
+    functions.logger.log(`[getPeiStatusDetails] -> Caminho: PEI ENCONTRADO.`);
+    const dataCriacaoPeiOriginal = peiData.dataCriacao?.toDate
+      ? peiData.dataCriacao.toDate()
+      : null;
+    const dataUltimaRevisaoOriginal = peiData.dataUltimaRevisao?.toDate
+      ? peiData.dataUltimaRevisao.toDate()
+      : null;
 
-    // Status Geral do PEI
+    const dataCriacaoPei = resetTime(dataCriacaoPeiOriginal);
+    dataUltimaAtualizacaoPei = resetTime(
+      dataUltimaRevisaoOriginal || dataCriacaoPeiOriginal
+    );
+
+    functions.logger.log(
+      `[getPeiStatusDetails]   PEI Data Criacao (zerada): ${dataCriacaoPei ? dataCriacaoPei.toISOString() : "N/A"}`
+    );
+    functions.logger.log(
+      `[getPeiStatusDetails]   PEI Data Ultima Atualizacao (zerada): ${dataUltimaAtualizacaoPei ? dataUltimaAtualizacaoPei.toISOString() : "N/A"}`
+    );
+
     if (dataLimiteCriacaoPEI) {
-      if (hoje >= dataLimiteCriacaoPEI) {
-        if (dataCriacaoPei && dataCriacaoPei <= dataLimiteCriacaoPEI) {
-          statusPeiGeral = "Criado no Prazo";
-        } else if (dataCriacaoPei && dataCriacaoPei > dataLimiteCriacaoPEI) {
-          statusPeiGeral = "Criado (Atrasado)";
+      if (hojeZerado >= dataLimiteCriacaoPEI) {
+        if (dataCriacaoPei) {
+          statusPeiGeral =
+            dataCriacaoPei <= dataLimiteCriacaoPEI
+              ? "Criado no Prazo"
+              : "Criado (Atrasado)"; // Ação REALIZADA (mesmo que com atraso)
         } else {
-          statusPeiGeral = "Atrasado - Sem PEI";
+          statusPeiGeral = "Atrasado - Sem PEI (Dados Inconsistentes)"; // Ação NÃO realizada
         }
       } else {
-        statusPeiGeral = "Aguardando Criação";
-        if (dataCriacaoPei) statusPeiGeral = "Criado (antes do prazo final)";
+        statusPeiGeral = dataCriacaoPei
+          ? "Criado (antes do prazo final)"
+          : "Aguardando Criação";
       }
     } else {
-      // Se não há data limite de criação configurada
       statusPeiGeral = dataCriacaoPei
         ? "Criado (Prazo não definido)"
         : "Não iniciado (Prazo não definido)";
     }
 
-    // Status 1ª Revisão
-    if (dataLimiteRevisao1Sem) {
-      if (hoje >= dataLimiteRevisao1Sem) {
-        if (
-          dataUltimaAtualizacaoPei &&
-          dataUltimaAtualizacaoPei >= dataLimiteRevisao1Sem
-        ) {
-          statusRevisao1 = "Em dia (Feita)";
+    if (dataCriacaoPei) {
+      // Só avaliamos revisões se o PEI foi criado
+      // Revisão 1
+      if (dataLimiteRevisao1Sem) {
+        if (hojeZerado >= dataLimiteRevisao1Sem) {
+          if (
+            dataUltimaAtualizacaoPei &&
+            dataUltimaAtualizacaoPei >= dataLimiteRevisao1Sem
+          ) {
+            statusRevisao1 = "Em dia (Feita)"; // Ação REALIZADA
+          } else {
+            statusRevisao1 = "Atrasado"; // Ação NÃO realizada (prazo passou e não feita desde o prazo)
+          }
         } else {
-          statusRevisao1 = "Atrasado";
+          statusRevisao1 =
+            dataUltimaAtualizacaoPei &&
+            dataUltimaAtualizacaoPei >= dataCriacaoPei
+              ? "Feita (Aguardando prazo)" // Ação REALIZADA
+              : "Aguardando";
         }
       } else {
-        statusRevisao1 = "Aguardando";
-        if (
-          dataUltimaAtualizacaoPei &&
-          dataUltimaAtualizacaoPei >= dataLimiteCriacaoPEI
-        ) {
-          statusRevisao1 = "Feita (Aguardando prazo)";
-        }
+        statusRevisao1 =
+          dataUltimaAtualizacaoPei && dataUltimaAtualizacaoPei >= dataCriacaoPei
+            ? "Feita (Prazo não definido)"
+            : "Aguardando (Prazo não definido)";
       }
-    }
 
-    // Status 2ª Revisão
-    if (dataLimiteRevisao2Sem) {
-      if (hoje >= dataLimiteRevisao2Sem) {
-        if (
-          dataUltimaAtualizacaoPei &&
-          dataUltimaAtualizacaoPei >= dataLimiteRevisao2Sem
-        ) {
-          statusRevisao2 = "Em dia (Feita)";
+      // Revisão 2
+      if (dataLimiteRevisao2Sem) {
+        if (hojeZerado >= dataLimiteRevisao2Sem) {
+          if (
+            dataUltimaAtualizacaoPei &&
+            dataUltimaAtualizacaoPei >= dataLimiteRevisao2Sem
+          ) {
+            statusRevisao2 = "Em dia (Feita)"; // Ação REALIZADA
+          } else {
+            statusRevisao2 = "Atrasado"; // Ação NÃO realizada (prazo passou e não feita desde o prazo)
+          }
         } else {
-          statusRevisao2 = "Atrasado";
+          statusRevisao2 =
+            dataUltimaAtualizacaoPei &&
+            dataUltimaAtualizacaoPei >= dataCriacaoPei &&
+            (!dataLimiteRevisao1Sem ||
+              dataUltimaAtualizacaoPei >= dataLimiteRevisao1Sem)
+              ? "Feita (Aguardando prazo)"
+              : "Aguardando";
         }
       } else {
-        statusRevisao2 = "Aguardando";
-        if (
-          dataUltimaAtualizacaoPei &&
-          dataUltimaAtualizacaoPei >= dataLimiteRevisao1Sem
-        ) {
-          statusRevisao2 = "Feita (Aguardando prazo)";
-        }
+        statusRevisao2 =
+          dataUltimaAtualizacaoPei && dataUltimaAtualizacaoPei >= dataCriacaoPei
+            ? "Feita (Prazo não definido)"
+            : "Aguardando (Prazo não definido)";
+      }
+    } else {
+      // Se PEI não criado (dataCriacaoPei é nulo), mas peiData existe (consistência duvidosa)
+      // Considera atrasado real se prazos de revisão passaram sem criação
+      if (dataLimiteRevisao1Sem && hojeZerado >= dataLimiteRevisao1Sem) {
+        statusRevisao1 = "Atrasado (PEI não criado)"; // Ação NÃO realizada
+      } else {
+        statusRevisao1 = "N/A (PEI não criado)";
+      }
+
+      if (dataLimiteRevisao2Sem && hojeZerado >= dataLimiteRevisao2Sem) {
+        statusRevisao2 = "Atrasado (PEI não criado)"; // Ação NÃO realizada
+      } else {
+        statusRevisao2 = "N/A (PEI não criado)";
       }
     }
   }
+
+  // --- CALCULA isAtrasadoRealmente NO FINAL, COM BASE NOS STATUS FINAIS ---
+  let finalIsAtrasadoRealmente = false; // Inicializa como false
+
+  // Se o status indica que a ação não foi realizada E o prazo passou, então é um atraso real.
+  if (
+    (statusPeiGeral === "Atrasado - Sem PEI" ||
+      statusPeiGeral === "Atrasado - Sem PEI (Dados Inconsistentes)") &&
+    !peiData
+  ) {
+    finalIsAtrasadoRealmente = true;
+  } else if (
+    statusRevisao1 === "Atrasado" &&
+    (!peiData?.dataUltimaRevisao ||
+      peiData.dataUltimaRevisao.toDate() < dataLimiteRevisao1Sem)
+  ) {
+    finalIsAtrasadoRealmente = true;
+  } else if (
+    statusRevisao2 === "Atrasado" &&
+    (!peiData?.dataUltimaRevisao ||
+      peiData.dataUltimaRevisao.toDate() < dataLimiteRevisao2Sem)
+  ) {
+    finalIsAtrasadoRealmente = true;
+  }
+
+  // TODOS os outros status indicam que a ação foi realizada (mesmo com atraso) ou não está atrasada.
+
+  functions.logger.log(
+    `[getPeiStatusDetails] Status Final: Geral=<span class="math-inline">\{statusPeiGeral\}, R1\=</span>{statusRevisao1}, R2=<span class="math-inline">\{statusRevisao2\}, isAtrasadoRealmente\=</span>{finalIsAtrasadoRealmente}`
+  );
+  functions.logger.log(`[getPeiStatusDetails] === DEBUG FIM ===`);
 
   return {
     statusPeiGeral,
     statusRevisao1,
     statusRevisao2,
-    dataUltimaAtualizacaoPei,
+    isAtrasadoRealmente: finalIsAtrasadoRealmente, // Retorna o valor FINAL ajustado
+    dataUltimaAtualizacaoPei:
+      peiData?.dataUltimaRevisao || peiData?.dataCriacao || null,
   };
 };
 
-// =========================================================================
-// FUNÇÃO AUXILIAR: LÓGICA DE CÁLCULO DE STATUS DO PROFESSOR (AGREGADO)
-// Esta função agora calcula o status GERAL do professor, considerando TODAS as suas escolas/turmas.
-// Também retorna os detalhes de status de PEI por aluno.
-// =========================================================================
-async function calcularStatusProfessor(professorId) {
-  const anoAtual = new Date().getFullYear();
-  const hoje = new Date();
+// ... (código posterior omitido para brevidade) ...
 
-  // 1. Busca os prazos anuais do PEI (necessário para todos os cálculos)
+async function calcularStatusProfessor(professorId) {
+  const anoAtual = new Date().getFullYear(); // Isso será 2025
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+
+  // 1. Busca os prazos anuais do PEI
   const prazosSnap = await db
     .collection("prazosPEIAnuais")
     .where("anoLetivo", "==", anoAtual)
@@ -131,7 +248,6 @@ async function calcularStatusProfessor(professorId) {
     .get();
   const prazoAnualDoc = prazosSnap.empty ? null : prazosSnap.docs[0].data();
 
-  // Objeto de prazos convertido para facilitar o uso em getPeiStatusDetails
   const prazosConvertidos = {
     dataLimiteCriacaoPEI: prazoAnualDoc?.dataLimiteCriacaoPEI?.toDate() || null,
     dataLimiteRevisao1Sem:
@@ -140,176 +256,289 @@ async function calcularStatusProfessor(professorId) {
       prazoAnualDoc?.dataLimiteRevisao2Sem?.toDate() || null,
   };
 
-  // Se prazos não configurados ou professor inválido/sem turmas/escolas:
   if (!prazoAnualDoc) {
     functions.logger.warn(
-      `[calcularStatusProfessor] Prazos anuais para ${anoAtual} não encontrados. Professor ${professorId} será considerado em dia.`
+      `[calcularStatusProfessor] Prazos anuais para ${anoAtual} não encontrados. Professor ${professorId} pode não ter status exato.`
     );
-    const professorData = (
-      await db.collection("usuarios").doc(professorId).get()
-    ).data();
-    return {
-      professorId: professorId,
-      professorNome: professorData?.nome || "Nome Desconhecido",
-      escolaId: null, // Indica que é um resumo geral, sem escola específica
-      statusGeral: "Em dia",
-      alunosAtrasadosCount: 0,
-      detalhesAtraso: [
-        "Prazos anuais não configurados ou professor sem turmas/alunos vinculados.",
-      ],
-      alunosDetalhesPrazos: [], // NOVO CAMPO: Array vazio se não há dados
-      ultimaAtualizacao: admin.firestore.FieldValue.serverTimestamp(),
-    };
   }
 
-  // 2. Busca os dados do professor
   const professorDoc = await db.collection("usuarios").doc(professorId).get();
   if (!professorDoc.exists || professorDoc.data().perfil !== "professor") {
     functions.logger.info(
       `[calcularStatusProfessor] Professor ${professorId} não encontrado ou não é perfil de professor. Retornando null.`
     );
-    return null; // Retorna null para indicar que este professor não deve ter um resumo
+    return null;
   }
   const professorData = professorDoc.data();
+
+  // === ✅ NOVO LOG 1: DUMP COMPLETO DO OBJETO DO PROFESSOR ===
+  functions.logger.log(
+    `[calcularStatusProfessor] Dados completos do professor ${professorId}:`,
+    JSON.stringify(professorData)
+  );
+  // ==========================================================
+
   const turmasDoProfessor = professorData.turmas
     ? Object.keys(professorData.turmas)
     : [];
   const escolasDoProfessor = professorData.escolas
     ? Object.keys(professorData.escolas)
-    : []; // Pega todas as escolas
+    : [];
 
-  // Se o professor não tem turmas ou escolas, ele está "Em dia"
+  // === ✅ NOVO LOG 2: Turmas e Escolas do Professor (APÓS Object.keys) ===
+  functions.logger.log(
+    `[calcularStatusProfessor] Professor ${professorId} turmas (após Object.keys):`,
+    turmasDoProfessor
+  );
+  functions.logger.log(
+    `[calcularStatusProfessor] Professor ${professorId} escolas (após Object.keys):`,
+    escolasDoProfessor
+  );
+  // =======================================================================
+
+  // === ✅ NOVO BLOCO DE DIAGNÓSTICO: TENTAR PEGAR O PEI DO HEITOR DIRETAMENTE POR ID ===
+  const heitorPeiDocId = "HEpzLwhHaNB9Gigf527M"; // <<< ID do documento PEI do Heitor
+  try {
+    functions.logger.log(
+      `[calcularStatusProfessor] DIAGNÓSTICO: Tentando buscar PEI do Heitor diretamente por ID: ${heitorPeiDocId}`
+    );
+    const heitorPeiSnap = await db.collection("peis").doc(heitorPeiDocId).get();
+
+    if (heitorPeiSnap.exists()) {
+      functions.logger.log(
+        `[calcularStatusProfessor] DIAGNÓSTICO: PEI do Heitor encontrado diretamente por ID. Dados:`,
+        heitorPeiSnap.data()
+      );
+      // Aqui, você pode até tentar forçar a inclusão desse PEI para fins de teste, se quiser
+      // allPeisData.push({ id: heitorPeiSnap.id, ...heitorPeiSnap.data() }); // Descomente para forçar para teste
+    } else {
+      functions.logger.warn(
+        `[calcularStatusProfessor] DIAGNÓSTICO: PEI do Heitor NÃO encontrado diretamente por ID ${heitorPeiDocId}.`
+      );
+    }
+  } catch (directError) {
+    functions.logger.error(
+      `[calcularStatusProfessor] DIAGNÓSTICO: Erro ao tentar buscar PEI do Heitor por ID ${heitorPeiDocId}:`,
+      directError
+    );
+  }
+  // =======================================================================
+
   if (turmasDoProfessor.length === 0 || escolasDoProfessor.length === 0) {
+    functions.logger.log(
+      `[calcularStatusProfessor] Professor ${professorId} não tem turmas ou escolas vinculadas.`
+    );
     return {
       professorId: professorId,
       professorNome: professorData.nome,
-      escolaId: null, // Resumo geral
+      escolaId: professorData.escolaId || null,
       statusGeral: "Em dia",
       alunosAtrasadosCount: 0,
       detalhesAtraso: ["Nenhuma turma ou escola vinculada a este professor."],
-      alunosDetalhesPrazos: [], // NOVO CAMPO
+      alunosDetalhesPrazos: [],
       ultimaAtualizacao: admin.firestore.FieldValue.serverTimestamp(),
     };
   }
 
-  // 3. Busca ALUNOS vinculados a TODAS as turmas do professor (com filtro interno de escola)
   let allAlunosData = [];
-  const BATCH_SIZE = 10;
-  for (let i = 0; i < turmasDoProfessor.length; i += BATCH_SIZE) {
-    const batchTurmas = turmasDoProfessor.slice(i, i + BATCH_SIZE);
-    let qAlunos = db.collection("alunos").where("turma", "in", batchTurmas);
+  const alunoIdsBatchSize = FIRESTORE_QUERY_BATCH_SIZE; // Usar a constante
+  for (let i = 0; i < turmasDoProfessor.length; i += alunoIdsBatchSize) {
+    // Loop sobre turmas
+    const batchTurmas = turmasDoProfessor.slice(i, i + alunoIdsBatchSize);
+    const qAlunos = db
+      .collection("alunos")
+      .where("turma", "in", batchTurmas)
+      .where("escolaId", "in", escolasDoProfessor);
+
+    // === ✅ NOVO LOG 3: Detalhes da Query de Alunos ===
+    functions.logger.log(
+      `[calcularStatusProfessor] Query Alunos: turma IN [<span class="math-inline">\{batchTurmas\.join\(', '\)\}\] e escolaId IN \[</span>{escolasDoProfessor.join(', ')}]`
+    );
+    // ==================================================
+
     const snap = await qAlunos.get();
-    snap.forEach((doc) => {
-      const aluno = { id: doc.id, ...doc.data() };
-      if (escolasDoProfessor.includes(aluno.escolaId)) {
-        allAlunosData.push(aluno);
-      }
-    });
+    snap.forEach((doc) => allAlunosData.push({ id: doc.id, ...doc.data() }));
   }
 
-  // Se não há alunos válidos para o professor em suas escolas, ele está "Em dia"
+  // === ✅ NOVO LOG 4: Alunos Encontrados (ANTES do map para ID) ===
+  functions.logger.log(
+    `[calcularStatusProfessor] Alunos encontrados para professor <span class="math-inline">\{professorId\} \(</span>{allAlunosData.length} total):`,
+    allAlunosData.map((a) => ({
+      id: a.id,
+      nome: a.id,
+      turma: a.turma,
+      escolaId: a.escolaId,
+    }))
+  );
+  // =================================================================
+
   if (allAlunosData.length === 0) {
+    functions.logger.log(
+      `[calcularStatusProfessor] Nenhum aluno encontrado para turmas/escolas do professor ${professorId}.`
+    );
     return {
       professorId: professorId,
       professorNome: professorData.nome,
-      escolaId: null, // Resumo geral
+      escolaId: professorData.escolaId || null,
       statusGeral: "Em dia",
       alunosAtrasadosCount: 0,
-      detalhesAtraso: [
-        `Nenhum aluno encontrado nas turmas vinculadas ao professor em suas escolas.`,
-      ],
-      alunosDetalhesPrazos: [], // NOVO CAMPO: Vazio
+      detalhesAtraso: ["Nenhuma turma ou escola vinculada a este professor."],
+      alunosDetalhesPrazos: [],
       ultimaAtualizacao: admin.firestore.FieldValue.serverTimestamp(),
     };
   }
 
-  // 4. Busca PEIs de todos os alunos encontrados em lotes
   let allPeisData = [];
-  const alunoIdsArray = allAlunosData.map((a) => a.id);
-  if (alunoIdsArray.length > 0) {
-    for (let i = 0; i < alunoIdsArray.length; i += BATCH_SIZE) {
-      const batchAlunoIds = alunoIdsArray.slice(i, i + BATCH_SIZE);
-      let qPeis = db
-        .collection("peis")
-        .where("alunoId", "in", batchAlunoIds)
-        .where("anoLetivo", "==", anoAtual)
-        .orderBy("criadoEm", "desc");
-      const snap = await qPeis.get();
-      snap.forEach((doc) => {
-        const pei = { id: doc.id, ...doc.data() };
-        if (escolasDoProfessor.includes(pei.escolaId)) {
-          allPeisData.push(pei);
-        }
-      });
-    }
+  const alunoIdsArray = allAlunosData.map((a) => a.id); // Array de IDs de alunos
+  const peiIdsBatchSize = FIRESTORE_QUERY_BATCH_SIZE; // Usar a constante
+
+  for (let i = 0; i < alunoIdsArray.length; i += peiIdsBatchSize) {
+    // Loop sobre IDs de alunos
+    const batchAlunoIds = alunoIdsArray.slice(i, i + peiIdsBatchSize);
+    const qPeis = db
+      .collection("peis")
+      .where("alunoId", "in", batchAlunoIds)
+      .where("anoLetivo", "==", anoAtual)
+      .orderBy("dataCriacao", "desc");
+
+    // === ✅ NOVO LOG 5: Detalhes da Query de PEIs ===
+    functions.logger.log(
+      `[calcularStatusProfessor] Query PEIs: alunoId IN [${batchAlunoIds.join(", ")}] e anoLetivo == ${anoAtual}`
+    );
+    // ===============================================
+
+    const snap = await qPeis.get();
+    snap.forEach((doc) => allPeisData.push({ id: doc.id, ...doc.data() }));
   }
 
-  // 5. Processa o status individual de cada aluno e agrega para o professor
+  // === ✅ NOVO LOG 6: Todos os PEIs encontrados (allPeisData) ===
+  functions.logger.log(
+    `[calcularStatusProfessor] Todos os PEIs encontrados (allPeisData, ${allPeisData.length} total):`,
+    allPeisData.map((p) => ({
+      docId: p.id,
+      alunoId: p.alunoId,
+      anoLetivo: p.anoLetivo,
+      criadoEm: p.criadoEm,
+      status: p.status,
+    }))
+  );
+  // ==============================================================
+
   let statusProfessor = "Em dia";
-  let detalhesAtrasoPorAluno = []; // Mensagens de atraso resumidas
-  let alunosDetalhesPrazos = []; // NOVO: Detalhes completos por aluno
+  let detalhesAtrasoPorAluno = [];
+  let alunosDetalhesPrazos = [];
 
   for (const aluno of allAlunosData) {
-    const peiDoAluno = allPeisData
-      .filter((p) => p.alunoId === aluno.id)
-      .sort((a, b) => b.criadoEm.toDate() - a.criadoEm.toDate())[0];
+    const peiDoAluno = allPeisData.find((p) => p.alunoId === aluno.id);
 
-    // Usa a função getPeiStatusDetails para obter os status detalhados
+    // === ✅ NOVO LOG 7: PEI encontrado para aluno específico no loop ===
+    functions.logger.log(
+      `[calcularStatusProfessor] Processando aluno <span class="math-inline">\{aluno\.nome\} \(</span>{aluno.id}). PEI encontrado:`,
+      peiDoAluno ? peiDoAluno.id : "NENHUM"
+    );
+    // ===============================================================
+
     const statusDetalhadoAluno = getPeiStatusDetails(
-      peiDoAluno,
-      prazosConvertidos, // Passa prazosConvertidos
+      peiDoAluno, // <<< Aqui peiDoAluno DEVE ter o PEI do Heitor
+      prazosConvertidos,
       hoje
     );
 
-    // Verifica se há atraso geral ou nas revisões para definir o status do professor
-    if (
-      statusDetalhadoAluno.statusPeiGeral.includes("Atrasado") ||
-      statusDetalhadoAluno.statusRevisao1.includes("Atrasado") ||
-      statusDetalhadoAluno.statusRevisao2.includes("Atrasado")
-    ) {
-      statusProfessor = "Atrasado"; // Se pelo menos um aluno está atrasado, o professor está atrasado
+    // MUDANÇA AQUI: Usamos a nova flag `isAtrasadoRealmente`
+    if (statusDetalhadoAluno.isAtrasadoRealmente) {
+      statusProfessor = "Atrasado";
       detalhesAtrasoPorAluno.push(
         `Aluno ${aluno.nome} - PEI: ${statusDetalhadoAluno.statusPeiGeral}, R1: ${statusDetalhadoAluno.statusRevisao1}, R2: ${statusDetalhadoAluno.statusRevisao2}`
       );
     }
 
-    // Adiciona os detalhes completos do aluno (com status) para o novo array
     alunosDetalhesPrazos.push({
       id: aluno.id,
       nome: aluno.nome,
-      turma: aluno.turma, // Adiciona a turma para contexto
-      escolaId: aluno.escolaId, // Adiciona a escola para contexto
+      turma: aluno.turma,
+      escolaId: aluno.escolaId,
       ...statusDetalhadoAluno,
     });
   }
 
-  // Retorna o objeto de resumo para ser salvo no Firestore
   return {
     professorId: professorId,
     professorNome: professorData.nome,
-    escolaId: null, // Agora é um resumo geral, não ligado a uma escola específica
+    escolaId: professorData.escolaId || null,
     statusGeral: statusProfessor,
     alunosAtrasadosCount: detalhesAtrasoPorAluno.length,
-    detalhesAtraso: detalhesAtrasoPorAluno, // Mantém este campo para a tela principal
-    alunosDetalhesPrazos: alunosDetalhesPrazos, // NOVO CAMPO: Detalhes por aluno para a tela de detalhes!
+    detalhesAtraso: detalhesAtrasoPorAluno,
+    alunosDetalhesPrazos: alunosDetalhesPrazos,
     ultimaAtualizacao: admin.firestore.FieldValue.serverTimestamp(),
   };
 }
 
 // =========================================================================
-// GATILHOS (TRIGGERS) DO FIRESTORE: Acionam o recalculo quando dados mudam
+// GATILHO PARA CUSTOM CLAIMS: Adiciona perfil ao token de autenticação do usuário
 // =========================================================================
 
-/**
- * Gatilho: onDocumentWritten em 'peis'.
- * Acionado quando um documento PEI é criado, atualizado ou deletado.
- * Recalcula o status do(s) professor(es) associado(s) ao aluno do PEI.
- */
+exports.setCustomUserClaimsOnProfileUpdate = onDocumentWritten(
+  "usuarios/{userId}",
+  async (event) => {
+    const userId = event.params.userId;
+    const beforeData = event.data.before?.data();
+    const afterData = event.data.after?.data();
+
+    let currentClaims = {};
+    try {
+      const userRecord = await admin.auth().getUser(userId);
+      currentClaims = userRecord.customClaims || {};
+    } catch (error) {
+      functions.logger.error(
+        `[setCustomClaims] Erro ao buscar usuário ${userId} para claims:`,
+        error
+      );
+      return null;
+    }
+
+    let newClaims = { ...currentClaims };
+    let shouldUpdateClaims = false;
+
+    if (!afterData || !afterData.perfil) {
+      if (newClaims.perfil !== undefined) {
+        delete newClaims.perfil;
+        shouldUpdateClaims = true;
+      }
+    } else {
+      if (newClaims.perfil !== afterData.perfil) {
+        newClaims.perfil = afterData.perfil;
+        shouldUpdateClaims = true;
+      }
+    }
+
+    if (shouldUpdateClaims) {
+      try {
+        await admin.auth().setCustomUserClaims(userId, newClaims);
+        functions.logger.log(
+          `[setCustomClaims] Custom claims atualizadas para o usuário ${userId}: ${JSON.stringify(newClaims)}`
+        );
+      } catch (error) {
+        functions.logger.error(
+          `[setCustomClaims] Erro ao definir custom claims para ${userId}:`,
+          error
+        );
+      }
+    } else {
+      functions.logger.log(
+        `[setCustomClaims] Nenhuma mudança relevante de perfil para ${userId}. Claims não atualizadas.`
+      );
+    }
+
+    return null;
+  }
+);
+
+// =========================================================================
+// OUTROS GATILHOS DO FIRESTORE (corrigidos para sintaxe v2)
+// =========================================================================
+
 exports.onPeiWrite = onDocumentWritten("peis/{peiId}", async (event) => {
-  const change = event.data;
-  const peiData = change.after.exists
-    ? change.after.data()
-    : change.before.data();
+  const peiData = event.data.after?.data() || event.data.before?.data();
   if (!peiData || !peiData.alunoId) {
     functions.logger.log(
       `[onPeiWrite] Dados insuficientes (alunoId) para processar PEI ${event.params.peiId}.`
@@ -317,20 +546,17 @@ exports.onPeiWrite = onDocumentWritten("peis/{peiId}", async (event) => {
     return null;
   }
 
-  const alunoId = peiData.alunoId;
-  const alunoDoc = await db.collection("alunos").doc(alunoId).get();
+  const alunoDoc = await db.collection("alunos").doc(peiData.alunoId).get();
   if (!alunoDoc.exists) {
     functions.logger.warn(
-      `[onPeiWrite] Aluno ${alunoId} não encontrado para PEI ${event.params.peiId}. Pode ter sido deletado.`
+      `[onPeiWrite] Aluno ${peiData.alunoId} não encontrado para PEI ${event.params.peiId}.`
     );
     return null;
   }
   const alunoData = alunoDoc.data();
-  const turmaDoAluno = alunoData.turma;
-
-  if (!turmaDoAluno) {
+  if (!alunoData?.turma) {
     functions.logger.warn(
-      `[onPeiWrite] Aluno ${alunoId} não tem turma associada. Não é possível determinar o professor.`
+      `[onPeiWrite] Aluno ${peiData.alunoId} sem turma. Não é possível determinar o professor.`
     );
     return null;
   }
@@ -338,30 +564,30 @@ exports.onPeiWrite = onDocumentWritten("peis/{peiId}", async (event) => {
   const professoresSnap = await db
     .collection("usuarios")
     .where("perfil", "==", "professor")
-    .where(`turmas.${turmaDoAluno}`, "==", true)
+    .where(`turmas.${alunoData.turma}`, "==", true)
     .get();
 
   if (professoresSnap.empty) {
     functions.logger.log(
-      `[onPeiWrite] Nenhum professor encontrado para aluno ${alunoId} na turma ${turmaDoAluno}.`
+      `[onPeiWrite] Nenhum professor encontrado para aluno ${alunoData.nome} na turma ${alunoData.turma}.`
     );
     return null;
   }
 
   const batch = db.batch();
-  for (const doc of professoresSnap.docs) {
+  for (const doc /* of */ of professoresSnap.docs) {
     const professorId = doc.id;
     const resumo = await calcularStatusProfessor(professorId);
     if (resumo) {
-      const resumoRef = db
-        .collection("acompanhamentoPrazosPEIResumo")
-        .doc(professorId);
-      batch.set(resumoRef, resumo, { merge: true });
+      batch.set(
+        db.collection("acompanhamentoPrazosPEIResumo").doc(professorId),
+        resumo,
+        { merge: true }
+      );
     } else {
-      const resumoRef = db
-        .collection("acompanhamentoPrazosPEIResumo")
-        .doc(professorId);
-      batch.delete(resumoRef);
+      batch.delete(
+        db.collection("acompanhamentoPrazosPEIResumo").doc(professorId)
+      );
     }
   }
   await batch.commit();
@@ -371,17 +597,11 @@ exports.onPeiWrite = onDocumentWritten("peis/{peiId}", async (event) => {
   return null;
 });
 
-/**
- * Gatilho: onDocumentWritten em 'usuarios'.
- * Acionado quando um documento de usuário é criado, atualizado ou deletado.
- * Recalcula o status se for um professor ou se seu perfil mudou.
- */
 exports.onProfessorUpdate = onDocumentWritten(
   "usuarios/{userId}",
   async (event) => {
-    const change = event.data;
-    const beforeData = change.before.data();
-    const afterData = change.after.data();
+    const beforeData = event.data.before?.data();
+    const afterData = event.data.after?.data();
     const professorId = event.params.userId;
 
     const isNowProfessor = afterData?.perfil === "professor";
@@ -410,7 +630,7 @@ exports.onProfessorUpdate = onDocumentWritten(
           .doc(professorId)
           .set(resumo, { merge: true });
         functions.logger.log(
-          `[onProfessorUpdate] Resumo do PEI atualizado para professor ${professorId} após alteração de perfil/turmas/escolas.`
+          `[onProfessorUpdate] Resumo do PEI atualizado para professor ${professorId}.`
         );
       } else {
         await db
@@ -418,7 +638,7 @@ exports.onProfessorUpdate = onDocumentWritten(
           .doc(professorId)
           .delete();
         functions.logger.log(
-          `[onProfessorUpdate] Resumo do PEI deletado para usuário ${professorId} (não é mais um professor válido).`
+          `[onProfessorUpdate] Resumo do PEI deletado para usuário ${professorId} (não é mais um professor válido para acompanhamento).`
         );
       }
       return null;
@@ -428,18 +648,9 @@ exports.onProfessorUpdate = onDocumentWritten(
   }
 );
 
-/**
- * Gatilho: onDocumentWritten em 'alunos'.
- * Acionado quando um documento de aluno é criado, atualizado ou deletado.
- * Recalcula o status do(s) professor(es) afetado(s).
- */
 exports.onAlunoWrite = onDocumentWritten("alunos/{alunoId}", async (event) => {
-  const alunoDataBefore = event.data.before.exists
-    ? event.data.before.data()
-    : null;
-  const alunoDataAfter = event.data.after.exists
-    ? event.data.after.data()
-    : null;
+  const alunoDataBefore = event.data.before?.data();
+  const alunoDataAfter = event.data.after?.data();
   const alunoId = event.params.alunoId;
 
   if (!alunoDataAfter && !alunoDataBefore) return null;
@@ -453,15 +664,9 @@ exports.onAlunoWrite = onDocumentWritten("alunos/{alunoId}", async (event) => {
     affectedTurmas.add(alunoDataBefore.turma);
   }
 
-  if (
-    affectedTurmas.size === 0 ||
-    (alunoDataBefore &&
-      alunoDataAfter &&
-      alunoDataBefore.turma === alunoDataAfter.turma &&
-      alunoDataBefore.escolaId === alunoDataAfter.escolaId)
-  ) {
+  if (affectedTurmas.size === 0) {
     functions.logger.log(
-      `[onAlunoWrite] Aluno ${alunoId}: Nenhuma mudança relevante de turma/escola.`
+      `[onAlunoWrite] Aluno ${alunoId}: Nenhuma mudança de turma relevante.`
     );
     return null;
   }
@@ -476,20 +681,20 @@ exports.onAlunoWrite = onDocumentWritten("alunos/{alunoId}", async (event) => {
       .where(`turmas.${turmaId}`, "==", true)
       .get();
 
-    for (const doc of professoresSnap.docs) {
+    for (const doc /* of */ of professoresSnap.docs) {
       const professorId = doc.id;
       if (!processedProfessors.has(professorId)) {
         const resumo = await calcularStatusProfessor(professorId);
         if (resumo) {
-          const resumoRef = db
-            .collection("acompanhamentoPrazosPEIResumo")
-            .doc(professorId);
-          batch.set(resumoRef, resumo, { merge: true });
+          batch.set(
+            db.collection("acompanhamentoPrazosPEIResumo").doc(professorId),
+            resumo,
+            { merge: true }
+          );
         } else {
-          const resumoRef = db
-            .collection("acompanhamentoPrazosPEIResumo")
-            .doc(professorId);
-          batch.delete(resumoRef);
+          batch.delete(
+            db.collection("acompanhamentoPrazosPEIResumo").doc(professorId)
+          );
         }
         processedProfessors.add(professorId);
       }
@@ -499,7 +704,7 @@ exports.onAlunoWrite = onDocumentWritten("alunos/{alunoId}", async (event) => {
   if (processedProfessors.size > 0) {
     await batch.commit();
     functions.logger.log(
-      `[onAlunoWrite] Resumo do PEI atualizado para ${processedProfessors.size} professores afetados pela alteração do aluno ${alunoId}.`
+      `[onAlunoWrite] Resumo do PEI atualizado para ${processedProfessors.size} professores afetados pelo aluno ${alunoId}.`
     );
   } else {
     functions.logger.log(
@@ -509,20 +714,15 @@ exports.onAlunoWrite = onDocumentWritten("alunos/{alunoId}", async (event) => {
   return null;
 });
 
-/**
- * Gatilho: onDocumentWritten em 'prazosPEIAnuais'.
- * Recalcula o status para TODOS os professores.
- */
 exports.onPrazosAnuaisWrite = onDocumentWritten(
   "prazosPEIAnuais/{docId}",
   async (event) => {
-    const change = event.data;
-    if (!change.after.exists && !change.before.exists) return null;
+    if (!event.data.after.exists && !event.data.before.exists) return null;
     if (
-      change.before.exists &&
-      change.after.exists &&
-      JSON.stringify(change.before.data()) ===
-        JSON.stringify(change.after.data())
+      event.data.before.exists &&
+      event.data.after.exists &&
+      JSON.stringify(event.data.before.data()) ===
+        JSON.stringify(event.data.after.data())
     ) {
       functions.logger.log(
         `[onPrazosAnuaisWrite] Prazos anuais: Nenhuma mudança de dados. Ignorando.`
@@ -548,27 +748,26 @@ exports.onPrazosAnuaisWrite = onDocumentWritten(
 
     let batch = db.batch();
     let professoresProcessados = 0;
-    const batchSizeLimit = 400;
+    const FIREBASE_BATCH_COMMIT_LIMIT = 400;
 
-    for (const doc of professoresSnap.docs) {
+    for (const doc /* of */ of professoresSnap.docs) {
       const professorId = doc.id;
       const resumo = await calcularStatusProfessor(professorId);
       if (resumo) {
-        const resumoRef = db
-          .collection("acompanhamentoPrazosPEIResumo")
-          .doc(professorId);
-        batch.set(resumoRef, resumo, { merge: true });
-        professoresProcessados++;
+        batch.set(
+          db.collection("acompanhamentoPrazosPEIResumo").doc(professorId),
+          resumo,
+          { merge: true }
+        );
       } else {
-        const resumoRef = db
-          .collection("acompanhamentoPrazosPEIResumo")
-          .doc(professorId);
-        batch.delete(resumoRef);
-        professoresProcessados++;
+        batch.delete(
+          db.collection("acompanhamentoPrazosPEIResumo").doc(professorId)
+        );
       }
+      professoresProcessados++;
 
       if (
-        professoresProcessados % batchSizeLimit === 0 &&
+        professoresProcessados % FIREBASE_BATCH_COMMIT_LIMIT === 0 &&
         professoresProcessados > 0
       ) {
         await batch.commit();
@@ -580,7 +779,7 @@ exports.onPrazosAnuaisWrite = onDocumentWritten(
     }
 
     if (
-      professoresProcessados % batchSizeLimit !== 0 ||
+      professoresProcessados % FIREBASE_BATCH_COMMIT_LIMIT !== 0 ||
       professoresProcessados === 0
     ) {
       await batch.commit();
@@ -593,249 +792,397 @@ exports.onPrazosAnuaisWrite = onDocumentWritten(
   }
 );
 
-// =========================================================================
-// FUNÇÃO DE BACKFILL: RECALCULAR TODOS OS PRAZOS PARA DADOS EXISTENTES
-// =========================================================================
-
-/**
- * Cloud Function acionável via HTTPS para recalcular e preencher
- * os resumos de acompanhamento de PEI para todos os professores existentes.
- * Esta função deve ser usada APENAS para backfill inicial ou reprocessamento manual.
- *
- * @param {object} request - Objeto de requisição (contém 'auth' para segurança).
- */
-exports.recalcularTodosPrazos = onCall(async (request) => {
-  if (!request.auth || !request.auth.token.admin) {
-    throw new functions.https.HttpsError(
-      "permission-denied",
-      "Você não tem permissão para executar esta operação. Requer token de admin."
-    );
-  }
-
-  functions.logger.log(
-    "Iniciando backfill/recalculo de todos os prazos PEI para professores..."
-  );
-
-  try {
-    const professoresSnap = await db
-      .collection("usuarios")
-      .where("perfil", "==", "professor")
-      .get();
-
-    if (professoresSnap.empty) {
-      functions.logger.log(
-        "Nenhum professor encontrado para recalcular prazos PEI."
-      );
-      return {
-        status: "success",
-        message: "Nenhum professor para recalcular.",
-      };
-    }
-
-    let batch = db.batch();
-    let professoresProcessados = 0;
-    const batchSizeLimit = 400;
-
-    for (const doc of professoresSnap.docs) {
-      const professorId = doc.id;
-      const resumo = await calcularStatusProfessor(professorId);
-      if (resumo) {
-        const resumoRef = db
-          .collection("acompanhamentoPrazosPEIResumo")
-          .doc(professorId);
-        batch.set(resumoRef, resumo, { merge: true });
-        professoresProcessados++;
-      } else {
-        const resumoRef = db
-          .collection("acompanhamentoPrazosPEIResumo")
-          .doc(professorId);
-        batch.delete(resumoRef);
-        professoresProcessados++;
-      }
-
-      if (
-        professoresProcessados % batchSizeLimit === 0 &&
-        professoresProcessados > 0
-      ) {
-        await batch.commit();
-        batch = db.batch();
-        functions.logger.log(
-          `Commited batch for ${professoresProcessados} professors.`
-        );
-      }
-    }
-
-    if (
-      professoresProcessados % batchSizeLimit !== 0 ||
-      professoresProcessados === 0
-    ) {
-      await batch.commit();
-    }
-
-    functions.logger.log(
-      `Backfill concluído para ${professoresProcessados} professores.`
-    );
-    return {
-      status: "success",
-      message: `Backfill concluído para ${professoresProcessados} professores.`,
-    };
-  } catch (error) {
-    functions.logger.error(
-      "Erro durante o backfill/recalculo de prazos PEI:",
-      error
-    );
-    throw new functions.https.HttpsError(
-      "internal",
-      "Ocorreu um erro durante o backfill dos prazos PEI.",
-      error.message
-    );
-  }
-});
 // functions/index.js
 
-// ... (todo o código acima: imports, admin.initializeApp(), db, getPeiStatusDetails, calcularStatusProfessor, gatilhos, recalcularTodosPrazos) ...
+// ... (todo o código acima: imports, admin.initializeApp(), db, resetTime, getPeiStatusDetails, calcularStatusProfessor, setCustomUserClaimsOnProfileUpdate, onPeiWrite, onProfessorUpdate, onAlunoWrite, onPrazosAnuaisWrite) ...
 
 // =========================================================================
-// SUA FUNÇÃO HTTP ORIGINAL: getPeiAcompanhamentoBySchool (RESTAURADA E CORRIGIDA)
+// FUNÇÃO DE BACKFILL: RECALCULAR TODOS OS PRAZOS PARA DADOS EXISTENTES (onRequest WORKAROUND - CORRIGIDO ERROS ESLINT)
 // =========================================================================
 
-/**
- * Cloud Function para agregar dados de acompanhamento de PEIs por escola.
- * Acionada via HTTP.
- * @param {object} req - Objeto de requisição HTTP (espera { anoLetivo: number } no body ou query).
- * @param {object} res - Objeto de resposta HTTP.
- */
-exports.getPeiAcompanhamentoBySchool = functions.https.onRequest(
+exports.recalcularTodosPrazos = onRequest(
+  { region: "southamerica-east1" },
   async (req, res) => {
-    // Configurar CORS para permitir requisições do seu frontend
-    res.set("Access-Control-Allow-Origin", "*"); // Ou o domínio específico do seu frontend: 'https://seuapp.web.app'
-    res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    res.set("Access-Control-Allow-Headers", "Content-Type");
+    // ✅ AGORA RECEBE req, res
+    // --- Tratamento de CORS (MANDATÓRIO PARA onRequest) ---
+    res.set("Access-Control-Allow-Origin", "*"); // Ou o domínio específico do seu frontend em produção
+    res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type, Authorization"); // Inclua Authorization
 
-    // Lida com requisições OPTIONS (preflight)
     if (req.method === "OPTIONS") {
       res.status(204).send("");
       return;
     }
+    // --- Fim do Tratamento de CORS ---
 
-    // Obter o ano letivo do corpo da requisição ou dos parâmetros de query
-    const anoLetivo =
-      req.method === "POST" ? req.body.anoLetivo : req.query.anoLetivo;
+    functions.logger.log(
+      "[recalcularTodosPrazos] *** INÍCIO DA EXECUÇÃO DA FUNÇÃO (onRequest WORKAROUND - CORRIGIDO) ***"
+    );
 
-    if (!anoLetivo) {
-      console.error("Ano letivo não fornecido na requisição.");
-      return res.status(400).json({ error: "Ano letivo é obrigatório." });
+    // --- ✅ NOVOS LOGS DE DIAGNÓSTICO DO CORPO DA REQUISIÇÃO ---
+    // Removidas referências a 'context' que causavam 'no-undef'
+    functions.logger.log(
+      "[recalcularTodosPrazos] Tipo de Content-Type:",
+      req.headers["content-type"]
+    );
+    functions.logger.log(
+      "[recalcularTodosPrazos] req.body (parseado automaticamente):",
+      req.body
+    ); // O corpo parseado
+
+    let rawBodyString = null;
+    if (req.rawBody) {
+      // req.rawBody contém o corpo bruto da requisição como um Buffer
+      rawBodyString = req.rawBody.toString("utf8");
+      functions.logger.log(
+        "[recalcularTodosPrazos] req.rawBody (String):",
+        rawBodyString
+      );
+    } else {
+      functions.logger.log(
+        "[recalcularTodosPrazos] req.rawBody é NULO/UNDEFINED."
+      );
     }
 
+    let parsedBodyManually = null;
     try {
-      const hoje = admin.firestore.Timestamp.now().toDate();
-      hoje.setHours(0, 0, 0, 0);
-
-      // 1. Busca todas as escolas
-      const escolasSnapshot = await db.collection("escolas").get();
-      const escolas = escolasSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-
-      const dadosAgregados = [];
-
-      await Promise.all(
-        escolas.map(async (escola) => {
-          const alunosQuery = db
-            .collection("alunos")
-            .where("escolaId", "==", escola.id);
-
-          const totalNecessitandoSnapshot = await alunosQuery.count().get();
-          const totalNecessitando = totalNecessitandoSnapshot.data().count;
-
-          const peisQuery = db
-            .collection("peis") // ATENÇÃO: Confirme que o nome da coleção é 'peis' (minúsculo)
-            .where("escolaId", "==", escola.id)
-            .where("anoLetivo", "==", Number(anoLetivo));
-
-          const peisSnapshot = await peisQuery.get();
-
-          let peisComStatusEmElaboracao = 0;
-          let peisComStatusConcluido = 0;
-          let peisAtrasados = 0;
-
-          peisSnapshot.forEach((doc) => {
-            const pei = doc.data();
-            const statusOriginal = pei.status;
-            const statusPEI = statusOriginal
-              ? statusOriginal.trim().toLowerCase()
-              : "";
-
-            const STATUS_CONCLUIDO = "concluído";
-            const STATUS_EM_ELABORACAO = "em elaboração";
-
-            if (statusPEI === STATUS_CONCLUIDO) {
-              peisComStatusConcluido++;
-            } else if (statusPEI === STATUS_EM_ELABORACAO) {
-              peisComStatusEmElaboracao++;
-              if (
-                pei.dataPrevistaTermino instanceof admin.firestore.Timestamp
-              ) {
-                try {
-                  const dataPrevista = pei.dataPrevistaTermino.toDate();
-                  if (dataPrevista < hoje) {
-                    peisAtrasados++;
-                  }
-                } catch (e) {
-                  console.warn(
-                    `[Cloud Function] Erro ao processar dataPrevistaTermino para PEI ${doc.id} da escola ${escola.nome}:`,
-                    e.message
-                  );
-                }
-              } else {
-                console.warn(
-                  `[Cloud Function] dataPrevistaTermino não é um Timestamp para PEI ${doc.id} da escola ${escola.nome}`
-                );
-              }
-            }
-          });
-
-          const peisExistentes =
-            peisComStatusEmElaboracao + peisComStatusConcluido;
-          const pendenteCriacaoCalculado = Math.max(
-            0,
-            totalNecessitando - peisExistentes
-          );
-
-          const percentualConcluidosNum =
-            totalNecessitando > 0
-              ? (peisComStatusConcluido / totalNecessitando) * 100
-              : 0;
-
-          // --- Calcule 'emElaboracaoNoPrazo' AQUI antes de usar ---
-          const emElaboracaoNoPrazo = peisComStatusEmElaboracao - peisAtrasados;
-
-          dadosAgregados.push({
-            id: escola.id,
-            nomeEscola: escola.nome || "Nome Indisponível",
-            totalAlunosMonitorados: totalNecessitando,
-            pendenteCriacao: pendenteCriacaoCalculado,
-            // Use a variável calculada 'emElaboracaoNoPrazo'
-            emElaboracao: emElaboracaoNoPrazo < 0 ? 0 : emElaboracaoNoPrazo,
-            atrasados: peisAtrasados,
-            concluidos: peisComStatusConcluido,
-            percentualConcluidosNum: percentualConcluidosNum,
-          });
-        })
+      if (
+        rawBodyString &&
+        req.headers["content-type"]?.includes("application/json")
+      ) {
+        parsedBodyManually = JSON.parse(rawBodyString);
+        functions.logger.log(
+          "[recalcularTodosPrazos] Body parseado manualmente (se JSON):",
+          parsedBodyManually
+        );
+      }
+    } catch (parseError) {
+      functions.logger.error(
+        "[recalcularTodosPrazos] Erro ao parsear req.rawBody manualmente:",
+        parseError
       );
+    }
+    // --- FIM DOS NOVOS LOGS ---
+
+    // ✅ OBTENDO O userId do payload (req.body ou parse manual)
+    let userIdFromFrontend = null;
+    if (
+      req.body &&
+      typeof req.body === "object" &&
+      req.body.data &&
+      req.body.data.userId
+    ) {
+      userIdFromFrontend = req.body.data.userId;
+      functions.logger.log(
+        "[recalcularTodosPrazos] userIdFromFrontend obtido de req.body.data:",
+        userIdFromFrontend
+      );
+    } else if (
+      parsedBodyManually &&
+      parsedBodyManually.data &&
+      parsedBodyManually.data.userId
+    ) {
+      // Tenta obter do parse manual
+      userIdFromFrontend = parsedBodyManually.data.userId;
+      functions.logger.log(
+        "[recalcularTodosPrazos] userIdFromFrontend obtido do parse manual (fallback):",
+        userIdFromFrontend
+      );
+    } else {
+      functions.logger.log(
+        "[recalcularTodosPrazos] userIdFromFrontend AINDA É NULO/UNDEFINED, ou não está em req.body.data."
+      );
+    }
+
+    // --- VERIFICAÇÃO DE userId (AGORA MAIS INFORMATIVA) ---
+    if (!userIdFromFrontend) {
+      functions.logger.warn(
+        "[recalcularTodosPrazos] WORKAROUND FINAL: userIdFromFrontend NÃO CONSEGUIDO. Finalizando com 400 Bad Request."
+      );
+      res.status(400).json({
+        error: "Requisição inválida: userId é obrigatório no payload.",
+        details: "UID não fornecido pela requisição.",
+      });
+      return;
+    }
+
+    let idToken = null;
+    try {
+      const authorizationHeader = req.headers.authorization;
+      if (!authorizationHeader || !authorizationHeader.startsWith("Bearer ")) {
+        functions.logger.warn(
+          "[recalcularTodosPrazos] Token de Autorização Bearer ausente ou inválido no cabeçalho."
+        );
+        res
+          .status(401)
+          .json({ error: "Não autorizado: Token Bearer ausente ou inválido." });
+        return;
+      }
+      idToken = authorizationHeader.split("Bearer ")[1];
+
+      const decodedToken = await admin.auth().verifyIdToken(idToken);
+      // Confere se o UID do token corresponde ao UID enviado no payload (segurança extra)
+      if (decodedToken.uid !== userIdFromFrontend) {
+        functions.logger.warn(
+          "[recalcularTodosPrazos] WORKAROUND FINAL: UID do token não corresponde ao UID do payload."
+        );
+        res.status(403).json({
+          error:
+            "Permissão negada: UID do token não corresponde ao UID do payload.",
+        });
+        return;
+      }
+
+      const customClaims = decodedToken; // Token decodificado já contém as claims
+      functions.logger.log(
+        "[recalcularTodosPrazos] WORKAROUND FINAL: Claims do token decodificado:",
+        customClaims
+      );
+
+      if (customClaims.admin !== true) {
+        functions.logger.warn(
+          "[recalcularTodosPrazos] WORKAROUND FINAL: UID " +
+            userIdFromFrontend +
+            " não possui claim 'admin: true'."
+        );
+        res
+          .status(403)
+          .json({ error: "Permissão negada: Requer token de admin." });
+        return;
+      }
 
       functions.logger.log(
-        `[getPeiAcompanhamentoBySchool] Retornando dados: ${JSON.stringify(
-          dadosAgregados
-        )}`
+        "Iniciando backfill/recalculo de prazos PEI (AUTORIZADO VIA onRequest WORKAROUND - FINAL)..."
       );
-      return res.status(200).json(dadosAgregados);
-    } catch (err) {
-      console.error("[Cloud Function] Erro ao agregar dados de PEI:", err);
-      return res
-        .status(500)
-        .json({ error: "Erro interno do servidor ao processar os dados." });
+
+      // --- SEU CÓDIGO ORIGINAL DA FUNÇÃO COMEÇA AQUI ---
+      const professoresSnap = await db
+        .collection("usuarios")
+        .where("perfil", "==", "professor")
+        .get();
+
+      if (professoresSnap.empty) {
+        functions.logger.log(
+          "Nenhum professor encontrado para recalcular prazos PEI."
+        );
+        res.status(200).json({
+          status: "success",
+          message: "Nenhum professor para recalcular.",
+        });
+        return;
+      }
+
+      let batch = db.batch();
+      let professoresProcessed = 0;
+      const FIREBASE_BATCH_COMMIT_LIMIT = 400;
+
+      for (const doc /* of */ of professoresSnap.docs) {
+        const professorId = doc.id;
+        const resumo = await calcularStatusProfessor(professorId);
+        if (resumo) {
+          batch.set(
+            db.collection("acompanhamentoPrazosPEIResumo").doc(professorId),
+            resumo,
+            { merge: true }
+          );
+        } else {
+          batch.delete(
+            db.collection("acompanhamentoPrazosPEIResumo").doc(professorId)
+          );
+        }
+        professoresProcessed++;
+
+        if (
+          professoresProcessed % FIREBASE_BATCH_COMMIT_LIMIT === 0 &&
+          professoresProcessed > 0
+        ) {
+          await batch.commit();
+          functions.logger.log(
+            `Commited batch for ${professoresProcessed} professors.`
+          );
+          batch = db.batch(); // Inicia novo batch
+        }
+      }
+
+      if (
+        professoresProcessed % FIREBASE_BATCH_COMMIT_LIMIT !== 0 ||
+        professoresProcessed === 0
+      ) {
+        await batch.commit();
+      }
+
+      functions.logger.log(
+        `Backfill concluído para ${professoresProcessed} professores.`
+      );
+      res.status(200).json({
+        status: "success",
+        message: `Backfill concluído para ${professoresProcessed} professores.`,
+      });
+      return;
+    } catch (error) {
+      functions.logger.error(
+        "Erro durante o backfill/recalculo de prazos PEI (na seção do WORKAROUND ou admin.auth()):",
+        error
+      );
+      if (
+        error.code === "auth/argument-error" ||
+        error.code === "auth/invalid-id-token" ||
+        error.code === "auth/user-not-found"
+      ) {
+        res.status(401).json({
+          error:
+            "Autenticação falhou: Token inválido ou ausente. Faça login novamente.",
+          details: error.message,
+        });
+      } else if (error.code === "permission-denied") {
+        res.status(403).json({
+          error: "Permissão negada: Requer token de admin.",
+          details: error.message,
+        });
+      } else {
+        res.status(500).json({
+          error: "Ocorreu um erro interno no servidor.",
+          details: error.message,
+        });
+      }
+      return;
     }
   }
 );
+
+// =========================================================================
+// SUA FUNÇÃO HTTP ORIGINAL: getPeiAcompanhamentoBySchool
+// =========================================================================
+
+exports.getPeiAcompanhamentoBySchool = onRequest(async (req, res) => {
+  res.set("Access-Control-Allow-Origin", "*");
+  res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.set("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") {
+    res.status(204).send("");
+    return;
+  }
+
+  const anoLetivo =
+    req.method === "POST" ? req.body.anoLetivo : req.query.anoLetivo;
+
+  if (!anoLetivo) {
+    // Usar functions.logger.error para consistência
+    functions.logger.error("Ano letivo não fornecido na requisição.");
+    return res.status(400).json({ error: "Ano letivo é obrigatório." });
+  }
+
+  try {
+    const hoje = admin.firestore.Timestamp.now().toDate();
+    hoje.setHours(0, 0, 0, 0);
+
+    const escolasSnapshot = await db.collection("escolas").get();
+    const escolas = escolasSnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    const dadosAgregados = [];
+
+    await Promise.all(
+      escolas.map(async (escola) => {
+        const alunosQuery = db
+          .collection("alunos")
+          .where("escolaId", "==", escola.id);
+
+        const totalNecessitandoSnapshot = await alunosQuery.count().get();
+        const totalNecessitando = totalNecessitandoSnapshot.data().count;
+
+        const peisQuery = db
+          .collection("peis")
+          .where("escolaId", "==", escola.id)
+          .where("anoLetivo", "==", Number(anoLetivo));
+
+        const peisSnapshot = await peisQuery.get();
+
+        let peisComStatusEmElaboracao = 0;
+        let peisComStatusConcluido = 0;
+        let peisAtrasados = 0; // Esta contagem de "atrasados" é para PEIs "em elaboração" que passaram da data prevista
+
+        peisSnapshot.forEach((doc) => {
+          const pei = doc.data();
+          const statusOriginal = pei.status;
+          const statusPEI = statusOriginal
+            ? statusOriginal.trim().toLowerCase()
+            : "";
+
+          const STATUS_CONCLUIDO = "concluído";
+          const STATUS_EM_ELABORACAO = "em elaboração";
+
+          if (statusPEI === STATUS_CONCLUIDO) {
+            peisComStatusConcluido++;
+          } else if (statusPEI === STATUS_EM_ELABORACAO) {
+            peisComStatusEmElaboracao++;
+            if (pei.dataPrevistaTermino instanceof admin.firestore.Timestamp) {
+              try {
+                const dataPrevista = pei.dataPrevistaTermino.toDate();
+                if (dataPrevista < hoje) {
+                  peisAtrasados++;
+                }
+              } catch (e) {
+                // Usar functions.logger.warn para consistência
+                functions.logger.warn(
+                  `[Cloud Function] Erro ao processar dataPrevistaTermino para PEI ${doc.id} da escola ${escola.nome}:`,
+                  e.message
+                );
+              }
+            } else {
+              // Usar functions.logger.warn para consistência
+              functions.logger.warn(
+                `[Cloud Function] dataPrevistaTermino não é um Timestamp para PEI ${doc.id} da escola ${escola.nome}`
+              );
+            }
+          }
+        });
+
+        const peisExistentes =
+          peisComStatusEmElaboracao + peisComStatusConcluido;
+        const pendenteCriacaoCalculado = Math.max(
+          0,
+          totalNecessitando - peisExistentes
+        );
+
+        const percentualConcluidosNum =
+          totalNecessitando > 0
+            ? (peisComStatusConcluido / totalNecessitando) * 100
+            : 0;
+
+        const emElaboracaoNoPrazo = peisComStatusEmElaboracao - peisAtrasados;
+
+        dadosAgregados.push({
+          id: escola.id,
+          nomeEscola: escola.nome || "Nome Indisponível",
+          totalAlunosMonitorados: totalNecessitando,
+          pendenteCriacao: pendenteCriacaoCalculado,
+          // Corrigido aqui: emElaboracao deve considerar apenas os que NÃO estão atrasados nesta categoria
+          emElaboracao: emElaboracaoNoPrazo < 0 ? 0 : emElaboracaoNoPrazo,
+          atrasados: peisAtrasados + pendenteCriacaoCalculado, // Atrasados inclui PEIs em elaboração atrasados E PEIs pendentes de criação
+          concluidos: peisComStatusConcluido,
+          percentualConcluidosNum: percentualConcluidosNum,
+        });
+      })
+    );
+
+    functions.logger.log(
+      `[getPeiAcompanhamentoBySchool] Retornando dados: ${JSON.stringify(
+        dadosAgregados
+      )}`
+    );
+    return res.status(200).json(dadosAgregados);
+  } catch (err) {
+    // Usar functions.logger.error para consistência
+    functions.logger.error(
+      "[Cloud Function] Erro ao agregar dados de PEI:",
+      err
+    );
+    return res
+      .status(500)
+      .json({ error: "Erro interno do servidor ao processar os dados." });
+  }
+});

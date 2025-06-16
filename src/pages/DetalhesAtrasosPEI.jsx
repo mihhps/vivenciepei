@@ -1,139 +1,72 @@
 // src/pages/DetalhesAtrasosPEI.jsx
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { db } from "../firebase";
-import { doc, getDoc } from "firebase/firestore"; // Importa apenas doc e getDoc
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate, useLocation } from "react-router-dom"; // 1. IMPORTE useLocation
 import BotaoVoltar from "../components/BotaoVoltar";
 import Loader from "../components/Loader";
-import { isAuthorized } from "../utils/authUtils";
 
-// --- Funções Auxiliares (mantidas para consistência da exibição) ---
-
-// Função auxiliar para formatar datas para exibição
+// Função auxiliar para formatar datas (mantida)
 const formatDate = (date) => {
   if (!date) return "N/A";
-  // Garante que é um objeto Date, pois a Cloud Function pode retornar Timestamp
   if (date.toDate && typeof date.toDate === "function") {
     date = date.toDate();
   }
-  return date.toLocaleDateString("pt-BR", {
+  return new Date(date).toLocaleDateString("pt-BR", {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
   });
 };
 
-// A função getPeiStatusDetails foi movida para o backend (Cloud Function).
-// O frontend agora apenas consome os resultados dela.
-
-// --- Componente Principal ---
-
 export default function DetalhesAtrasosPEI() {
   const { professorId } = useParams();
   const navigate = useNavigate();
-  const [professorResumo, setProfessorResumo] = useState(null); // Agora armazena o resumo completo
+  const location = useLocation(); // 2. USE o hook useLocation
+
+  // Os estados agora são preenchidos com os dados da página anterior
+  const [professorNome, setProfessorNome] = useState("");
   const [alunosDetalhesPrazos, setAlunosDetalhesPrazos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState(null);
 
-  // Simula a obtenção do usuário de um AuthContext ou similar
-  const getUsuarioLogado = useCallback(() => {
-    try {
-      const user = JSON.parse(localStorage.getItem("usuarioLogado"));
-      // Para o frontend, o filtro de escola será mais complexo se 'escolaId' no resumo é null.
-      // O frontend pode exibir todos os professores e o usuário desenvolvedor pode filtrar em memória,
-      // ou se for SEME, o usuário verá apenas os professores das suas escolas vinculadas (mas o resumo do professor é geral).
-      // Por enquanto, esta parte não precisa de grandes mudanças aqui.
-      const escolasVinculadas =
-        user?.escolas && typeof user.escolas === "object"
-          ? Object.keys(user.escolas).filter(
-              (key) =>
-                typeof user.escolas[key] === "string" ||
-                typeof user.escolas[key] === "boolean"
-            )
-          : [];
-      return { ...user, escolasVinculadas };
-    } catch (e) {
-      console.error("Erro ao parsear dados do usuário logado:", e);
-      return null;
-    }
-  }, []);
-
-  const usuario = useMemo(() => getUsuarioLogado(), [getUsuarioLogado]);
-
   useEffect(() => {
-    // 1. Verificação de Permissão e Dados do Usuário
-    if (!usuario || !isAuthorized(usuario.perfil)) {
-      setErrorMessage("Você não tem permissão para acessar esta página.");
-      setLoading(false);
-      setTimeout(() => navigate("/"), 3000); // Navega após um pequeno delay
-      return;
-    }
+    // 3. OBTENHA os dados do location.state
+    const stateData = location.state;
 
-    // A lógica de filtragem de escola vinculada ao usuário para esta página de detalhes
-    // precisa ser reconsiderada, pois o resumo do professor é agora "geral" (escolaId: null).
-    // O frontend pode decidir mostrar TODOS os detalhes do professor (se for dev)
-    // ou filtrar os alunosDetalhesPrazos em memória pela escola do usuário (se for SEME).
-    // Para simplificar, vou remover o filtro de "sem escolas vinculadas" aqui por enquanto,
-    // já que o resumo do professor não tem um escolaId específico para filtrar.
-    // O usuário SEME/escola verá o resumo GERAL do professor.
-
-    // 2. Valida se o professorId foi fornecido na URL
-    if (!professorId) {
-      setErrorMessage("ID do professor não fornecido na URL.");
+    // Verifica se os dados foram passados corretamente
+    if (!stateData || !stateData.detalhesAtraso) {
+      setErrorMessage(
+        "Não foi possível carregar os detalhes. Tente voltar e acessar novamente."
+      );
       setLoading(false);
       return;
     }
 
-    const carregarDetalhesProfessor = async () => {
-      setLoading(true);
-      setErrorMessage(null); // Limpa mensagens anteriores
+    setProfessorNome(stateData.professorNome);
 
-      try {
-        // Agora, lemos o resumo do professor diretamente da coleção de agregação
-        const professorResumoRef = doc(
-          db,
-          "acompanhamentoPrazosPEIResumo",
-          professorId
-        );
-        const professorResumoSnap = await getDoc(professorResumoRef);
+    // FILTRO IMPORTANTE:
+    // A página anterior já envia os professores filtrados por escola para o usuário SEME.
+    // No entanto, o 'detalhesAtraso' dentro do professor pode conter alunos de TODAS as escolas.
+    // Precisamos filtrar aqui os alunos que pertencem às escolas do usuário SEME.
+    const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
 
-        if (!professorResumoSnap.exists()) {
-          setErrorMessage(
-            "Dados de acompanhamento para este professor não encontrados."
-          );
-          setLoading(false);
-          return;
-        }
+    if (
+      usuario &&
+      usuario.perfil !== "desenvolvedor" &&
+      usuario.escolasVinculadas
+    ) {
+      const escolasPermitidas = usuario.escolasVinculadas;
+      const alunosFiltrados = stateData.detalhesAtraso.filter((aluno) =>
+        escolasPermitidas.includes(aluno.escolaId)
+      );
+      setAlunosDetalhesPrazos(alunosFiltrados);
+    } else {
+      // Se for dev ou não tiver filtro, mostra tudo
+      setAlunosDetalhesPrazos(stateData.detalhesAtraso);
+    }
 
-        const professorData = {
-          id: professorResumoSnap.id,
-          ...professorResumoSnap.data(),
-        };
-        setProfessorResumo(professorData); // Armazena o resumo completo do professor
-
-        // Usa o novo campo 'alunosDetalhesPrazos' do resumo, que vem pré-calculado
-        const detalhesParaExibir = professorData.alunosDetalhesPrazos || [];
-        setAlunosDetalhesPrazos(detalhesParaExibir);
-
-        if (detalhesParaExibir.length === 0) {
-          setErrorMessage(
-            `Nenhum detalhe de PEI encontrado para os alunos deste professor. Todos em dia ou sem PEI no ano atual.`
-          );
-        }
-      } catch (err) {
-        console.error("Erro no carregamento dos detalhes do professor:", err);
-        setErrorMessage(
-          "Ocorreu um erro ao carregar os detalhes: " + err.message
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    carregarDetalhesProfessor();
-  }, [professorId, usuario, navigate]); // professorId, usuario, e navigate como dependências
+    setLoading(false);
+  }, [location.state]); // A dependência agora é o state da navegação
 
   if (loading) return <Loader />;
 
@@ -142,15 +75,11 @@ export default function DetalhesAtrasosPEI() {
       <div className="detalhes-card" style={estilos.card}>
         <BotaoVoltar />
         <h1 className="detalhes-title" style={estilos.title}>
-          Detalhes dos PEIs -{" "}
-          {professorResumo ? professorResumo.professorNome : "Carregando..."}{" "}
-          {/* Usa professorNome do resumo */}
+          Detalhes dos PEIs - {professorNome}
         </h1>
-
         <p style={{ marginBottom: "20px" }}>
           Esta tabela mostra o status detalhado dos PEIs de cada aluno sob
-          responsabilidade deste professor, com base nos prazos de criação e
-          revisões.
+          responsabilidade deste professor.
         </p>
 
         {errorMessage ? (
@@ -162,11 +91,12 @@ export default function DetalhesAtrasosPEI() {
             className="detalhes-mensagem-aviso"
             style={estilos.mensagemAviso}
           >
-            Nenhum aluno com PEI encontrado para este professor, suas turmas ou
-            escolas vinculadas, no ano letivo atual, ou todos estão em dia.
+            Nenhum aluno com atraso encontrado para as escolas vinculadas ao seu
+            perfil.
           </div>
         ) : (
           <table className="detalhes-table" style={estilos.table}>
+            {/* O restante da sua tabela continua igual */}
             <thead>
               <tr>
                 <th style={estilos.th}>Aluno</th>
@@ -177,10 +107,10 @@ export default function DetalhesAtrasosPEI() {
               </tr>
             </thead>
             <tbody>
-              {/* Renderiza diretamente os detalhes dos alunos pré-calculados */}
               {alunosDetalhesPrazos.map((aluno) => (
                 <tr key={aluno.id}>
                   <td style={estilos.td}>{aluno.nome}</td>
+                  {/* ... resto das células da tabela ... */}
                   <td style={estilos.td}>
                     <span
                       style={{
@@ -188,10 +118,10 @@ export default function DetalhesAtrasosPEI() {
                         color: aluno.statusPeiGeral.includes("Atrasado")
                           ? "#dc3545" // Vermelho
                           : aluno.statusPeiGeral.includes("Em dia") ||
-                            aluno.statusPeiGeral.includes("Criado") ||
-                            aluno.statusPeiGeral.includes("antes do prazo")
-                          ? "#28a745" // Verde
-                          : "#ffc107", // Amarelo
+                              aluno.statusPeiGeral.includes("Criado") ||
+                              aluno.statusPeiGeral.includes("antes do prazo")
+                            ? "#28a745" // Verde
+                            : "#ffc107", // Amarelo
                       }}
                     >
                       {aluno.statusPeiGeral}
@@ -204,9 +134,9 @@ export default function DetalhesAtrasosPEI() {
                         color: aluno.statusRevisao1.includes("Atrasado")
                           ? "#dc3545"
                           : aluno.statusRevisao1.includes("Em dia") ||
-                            aluno.statusRevisao1.includes("Feita")
-                          ? "#28a745"
-                          : "#ffc107",
+                              aluno.statusRevisao1.includes("Feita")
+                            ? "#28a745"
+                            : "#ffc107",
                       }}
                     >
                       {aluno.statusRevisao1}
@@ -219,9 +149,9 @@ export default function DetalhesAtrasosPEI() {
                         color: aluno.statusRevisao2.includes("Atrasado")
                           ? "#dc3545"
                           : aluno.statusRevisao2.includes("Em dia") ||
-                            aluno.statusRevisao2.includes("Feita")
-                          ? "#28a745"
-                          : "#ffc107",
+                              aluno.statusRevisao2.includes("Feita")
+                            ? "#28a745"
+                            : "#ffc107",
                       }}
                     >
                       {aluno.statusRevisao2}
@@ -240,7 +170,7 @@ export default function DetalhesAtrasosPEI() {
   );
 }
 
-// Estilos permanecem os mesmos
+// Seus estilos
 const estilos = {
   container: {
     background: "#f4f7f6",

@@ -1,156 +1,137 @@
-// src/components/EscolaAtual.jsx
-
 import React, { useEffect, useState, useCallback } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { useLocation } from "react-router-dom";
+import { useLocalStorage } from "../hooks/useLocalStorage";
 
-// Função utilitária para obter dados do localStorage de forma segura
-const getLocalStorageSafe = (key, defaultValue = null) => {
-  try {
-    const item = localStorage.getItem(key);
-    if (item === null || item === undefined || item === "undefined") {
-      return defaultValue;
-    }
-    return JSON.parse(item); // Assume que o valor é um JSON string
-  } catch (error) {
-    // Erros ao parsear do localStorage devem ser tratados silenciosamente em produção
-    // ou logados sem serem bloqueadores.
-    console.error(`Erro ao parsear ${key} do localStorage:`, error);
-    return defaultValue;
+/**
+ * Função auxiliar que centraliza a lógica para determinar o ID da escola a ser exibida.
+ * @param {object} usuario O objeto do usuário logado.
+ * @param {string | null} escolaAtivaStorage O ID da escola ativa vindo do localStorage.
+ * @returns {string | null} O ID da escola a ser usado na busca, ou null.
+ */
+const getEscolaIdParaExibir = (usuario, escolaAtivaStorage) => {
+  if (!usuario?.perfil) {
+    return null;
   }
+
+  let idEncontrado = null;
+  const perfisComVinculoDireto = [
+    "aee",
+    "professor",
+    "diretor",
+    "diretor adjunto",
+    "orientador pedagógico",
+  ];
+
+  // 1. Tenta encontrar um ID de escola diretamente vinculado ao perfil do usuário.
+  if (perfisComVinculoDireto.includes(usuario.perfil.toLowerCase())) {
+    if (usuario.escolaId) {
+      idEncontrado = usuario.escolaId;
+    } else if (
+      usuario.escolasVinculadas &&
+      Object.keys(usuario.escolasVinculadas).length > 0
+    ) {
+      // Pega a primeira escola da lista como padrão.
+      idEncontrado = Object.keys(usuario.escolasVinculadas)[0];
+    }
+  }
+
+  // 2. Retorna o ID encontrado ou, como fallback, o valor do localStorage.
+  //    Isso garante que perfis de vínculo direto possam usar a escola ativa se não tiverem ID próprio,
+  //    e que perfis globais (dev, seme, etc.) usem diretamente o valor do localStorage.
+  return idEncontrado || escolaAtivaStorage;
 };
 
-// Estilos movidos para um objeto CSS
+// Objeto de estilos para o componente.
 const escolaAtualStyles = {
   container: {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    width: "100%",
     textAlign: "center",
-    padding: "6px",
+    padding: "8px",
     fontSize: "14px",
-    background: "#f2f2f2",
+    background: "#f8f9fa",
     color: "#1d3557",
-    borderBottom: "1px solid #ddd",
+    borderBottom: "1px solid #dee2e6",
+    zIndex: 1000,
   },
 };
 
+/**
+ * Componente que exibe o nome da escola ativa do usuário.
+ * A lógica é reativa a mudanças de rota e no localStorage.
+ */
 export default function EscolaAtual() {
   const [nomeEscola, setNomeEscola] = useState("");
   const location = useLocation();
 
-  // Função memoizada para carregar o nome da escola
-  const carregarNomeEscolaCondicionalmente = useCallback(async () => {
-    // 1. Definir rotas onde o nome da escola NÃO deve aparecer (ex: login, cadastro)
+  // Hooks reativos para ler e sincronizar com o localStorage.
+  const [usuarioLogado] = useLocalStorage("usuarioLogado", null);
+  const [escolaAtiva, setEscolaAtiva] = useLocalStorage("escolaAtiva", null);
+
+  const carregarNomeEscola = useCallback(async () => {
     const rotasIgnoradas = [
       "/",
       "/login",
       "/recuperar-senha",
       "/cadastro-professor",
+      "/cadastro-usuario",
     ];
-
-    if (rotasIgnoradas.includes(location.pathname)) {
+    if (rotasIgnoradas.includes(location.pathname) || !usuarioLogado) {
       setNomeEscola("");
       return;
     }
 
-    // 2. Verificar se há um usuário logado e se o perfil está autorizado a ter uma "escola ativa"
-    const usuario = getLocalStorageSafe("usuarioLogado");
+    const escolaId = getEscolaIdParaExibir(usuarioLogado, escolaAtiva);
 
-    const perfisComEscolaAtiva = [
-      "professor",
-      "aee",
-      "diretor",
-      "diretor adjunto",
-      "orientador pedagógico",
-      "gestao",
-    ];
-
-    if (
-      !usuario ||
-      !perfisComEscolaAtiva.includes(usuario.perfil?.toLowerCase())
-    ) {
-      setNomeEscola("");
+    if (!escolaId) {
+      const perfisGlobais = ["desenvolvedor", "seme", "gestao"];
+      const msg = perfisGlobais.includes(usuarioLogado.perfil.toLowerCase())
+        ? "(Nenhuma escola em visualização)"
+        : "Nenhuma escola associada";
+      setNomeEscola(msg);
       return;
     }
 
-    // 3. Obter o ID da escola ativa/visualizada do localStorage
-    const escolaAtivaIdRaw = localStorage.getItem("escolaAtiva");
-    let escolaAtivaId = null;
-
-    if (escolaAtivaIdRaw) {
-      try {
-        escolaAtivaId = JSON.parse(escolaAtivaIdRaw);
-      } catch (e) {
-        console.error("Erro ao parsear 'escolaAtiva' do localStorage:", e);
-        localStorage.removeItem("escolaAtiva"); // Remove item corrompido
-        setNomeEscola("");
-        return;
-      }
-    }
-
-    if (!escolaAtivaId) {
-      setNomeEscola("Nenhuma escola selecionada");
-      return;
-    }
-
-    // 4. Buscar o nome da escola no Firestore usando o ID
     try {
-      const ref = doc(db, "escolas", escolaAtivaId);
-      const snap = await getDoc(ref);
+      const snap = await getDoc(doc(db, "escolas", escolaId));
       if (snap.exists()) {
-        const dados = snap.data();
-        setNomeEscola(dados.nome || "Escola desconhecida");
+        setNomeEscola(snap.data().nome || "Nome da escola não encontrado");
       } else {
-        // Se o ID da escola não for encontrado no Firestore, mas estava no localStorage
         console.warn(
-          `Escola com ID ${escolaAtivaId} não encontrada no Firestore.`
+          `[EscolaAtual] Escola com ID ${escolaId} não encontrada no sistema.`
         );
-        setNomeEscola("Escola não encontrada no sistema");
+        setNomeEscola("Escola não encontrada");
+        // Autocorreção: se o ID inválido for o do localStorage, limpa-o.
+        if (escolaId === escolaAtiva) {
+          setEscolaAtiva(null);
+        }
       }
     } catch (error) {
       console.error(
-        "Erro ao buscar dados da escola ativa no Firestore:",
+        "[EscolaAtual] Erro ao buscar dados da escola no Firestore:",
         error
       );
       setNomeEscola("Erro ao carregar dados da escola");
     }
-  }, [location.pathname]); // Dependência: re-executa o efeito quando a rota muda
+  }, [location.pathname, usuarioLogado, escolaAtiva, setEscolaAtiva]);
 
-  // Efeito para carregar o nome da escola na montagem e reagir a mudanças no localStorage
+  // Efeito que dispara a busca sempre que uma de suas dependências reativas mudar.
   useEffect(() => {
-    // Chama a função na montagem inicial e em mudanças de rota
-    carregarNomeEscolaCondicionalmente();
+    carregarNomeEscola();
+  }, [carregarNomeEscola]);
 
-    // Adiciona um pequeno atraso para re-verificar o localStorage.
-    // Isso é um workaround para a situação onde a mudança acontece na mesma aba
-    // e o evento 'storage' não é disparado para a própria janela que iniciou a mudança.
-    const timeoutId = setTimeout(() => {
-      carregarNomeEscolaCondicionalmente();
-    }, 100); // Re-executa após 100ms
-
-    // Ouvinte para mudanças no localStorage de OUTRAS abas/janelas
-    const handleStorageChange = (e) => {
-      if (e.key === "escolaAtiva" || e.key === "usuarioLogado") {
-        carregarNomeEscolaCondicionalmente(); // Recarrega o nome da escola
-      }
-    };
-    window.addEventListener("storage", handleStorageChange);
-
-    // Função de limpeza: remove o ouvinte de evento e o timeout ao desmontar o componente
-    return () => {
-      clearTimeout(timeoutId);
-      window.removeEventListener("storage", handleStorageChange);
-    };
-  }, [carregarNomeEscolaCondicionalmente]); // Dependência: A função memoizada para recarregar
-
-  // Só renderiza o componente se houver um nome de escola para mostrar
-  // Se nomeEscola for uma string vazia "", não renderiza nada.
+  // Renderização condicional: não mostra nada se não houver nome de escola.
   if (!nomeEscola) {
     return null;
   }
 
   return (
     <div style={escolaAtualStyles.container}>
-      Escola Ativa: <strong>{nomeEscola}</strong>
+      <strong>Escola Ativa:</strong> {nomeEscola}
     </div>
   );
 }

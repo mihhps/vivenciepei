@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import BotaoSair from "../components/BotaoSair";
 import TrocarEscola from "../components/TrocarEscola"; // Assumindo que este componente existe e está correto
-import { verificarPrazosPEI } from "./services/peiStatusChecker"; // Importa o serviço criado no Passo 1
+import { verificarPrazosPEI } from "../src/services/peiStatusChecker"; // Importa o serviço criado no Passo 1
 
 export default function PainelProfessor() {
   const navigate = useNavigate();
@@ -83,13 +83,12 @@ export default function PainelProfessor() {
       return <p style={estilos.nenhumPeiEncontrado}>{mensagem}</p>;
     }
 
+    // DEPOIS (com a mensagem alterada)
     if (statusGeral === "Atrasado" && totalAlunosAtrasados > 0) {
       return (
         <div style={estilos.alertaAtraso}>
           <h3>Atenção: PEIs com Pendências!</h3>
-          <p>
-            Você tem **{totalAlunosAtrasados} aluno(s)** com PEI(s) em atraso.
-          </p>
+          <p>Existem PEIs com pendências de prazo.</p>
           <button
             style={estilos.botaoVerDetalhes}
             onClick={() => navigate(`/meu-acompanhamento-pei`)}

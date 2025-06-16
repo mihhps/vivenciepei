@@ -1,10 +1,12 @@
+// src/pages/Login.jsx
+
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { auth, db } from "../firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 
-import { PERFIS } from "../config/constants";
+import { PERFIS } from "../config/constants"; // Importa os PERFIS
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -48,21 +50,6 @@ export default function Login() {
         escolas: usuarioDataDoFirestore.escolas || {},
       };
 
-      // --- LOG NOVO ---
-      console.log(
-        "LOGIN: Usuario Completo PREPARADO para salvar:",
-        usuarioCompletoParaSalvar
-      );
-      console.log(
-        "LOGIN: Perfil PREPARADO para salvar:",
-        usuarioCompletoParaSalvar.perfil
-      );
-      console.log(
-        "LOGIN: Email PREPARADO para salvar:",
-        usuarioCompletoParaSalvar.email
-      );
-      // --- FIM LOG NOVO ---
-
       localStorage.setItem(
         "usuarioLogado",
         JSON.stringify(usuarioCompletoParaSalvar)
@@ -87,7 +74,10 @@ export default function Login() {
             setErro("Este professor não está vinculado a nenhuma escola.");
             setLoading(false);
           } else if (escolaIds.length === 1) {
+            // --- INÍCIO DA ALTERAÇÃO ---
+            // CORREÇÃO: Usar JSON.stringify para garantir que o ID é salvo como uma string JSON válida
             localStorage.setItem("escolaAtiva", JSON.stringify(escolaIds[0]));
+            // --- FIM DA ALTERAÇÃO ---
             navigate("/painel-professor", {
               state: { usuario: usuarioCompletoParaSalvar },
             });
@@ -107,7 +97,7 @@ export default function Login() {
             state: { usuario: usuarioCompletoParaSalvar },
           });
           break;
-        case "desenvolvedor": // Adicionado para perfil desenvolvedor se tiver em PERFIS
+        case "desenvolvedor":
           navigate("/painel-dev", {
             state: { usuario: usuarioCompletoParaSalvar },
           });
@@ -135,6 +125,7 @@ export default function Login() {
     }
   };
 
+  // ... (o restante do componente Login permanece inalterado)
   return (
     <div style={estilos.container}>
       <div style={estilos.card}>

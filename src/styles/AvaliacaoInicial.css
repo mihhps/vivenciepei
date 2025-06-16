@@ -1,71 +1,102 @@
 /* src/styles/AvaliacaoInicial.css */
 
-/* Estilos globais para o corpo da página */
+/* --- Layout Geral da Página --- */
 body {
   margin: 0;
   padding: 0;
-  /* Fundo azul degradê preenchendo toda a tela */
+  font-family: "Segoe UI", sans-serif;
   background: linear-gradient(to bottom right, #1d3557, #457b9d);
-  min-height: 100vh; /* Ocupa 100% da altura da viewport */
-  font-family: "Segoe UI", sans-serif; /* Fonte padrão */
-
-  /* Flexbox para centralizar o conteúdo (o cartão principal) */
+  min-height: 100vh;
   display: flex;
-  align-items: center; /* Centraliza verticalmente */
-  justify-content: center; /* Centraliza horizontalmente */
-
-  /* Garantir que não há bordas ou outlines indesejados aqui */
-  border: none;
-  outline: none;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
 }
 
-/* Estilos para o cartão principal (o contêiner branco no centro) */
+/* --- Card Principal --- */
 .avaliacao-card {
-  background-color: #ffffff; /* Fundo branco */
-  max-width: 900px; /* Largura máxima, ajuste conforme necessário */
-  width: 100%; /* Ocupa a largura disponível até o max-width */
-  padding: 30px; /* Espaçamento interno */
-  border-radius: 16px; /* Cantos arredondados */
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2); /* Sombra para o efeito de flutuação */
-
-  /* Remove qualquer margem que possa empurrar o card para fora da tela */
-  margin: 20px; /* Adiciona uma margem para que o card não encoste nas bordas em telas menores */
-  box-sizing: border-box; /* Inclui padding e border no cálculo da largura/altura */
+  background-color: #ffffff;
+  max-width: 900px;
+  width: 100%;
+  padding: 30px;
+  margin: 20px;
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  box-sizing: border-box;
 }
 
-/* Estilos para o título da avaliação */
-.avaliacao-titulo {
+/* --- Barra de Informação da Escola (NOVO) --- */
+.escola-ativa-bar {
+  margin: -30px -30px 25px -30px;
+  padding: 12px 30px;
+  background-color: #f7f9fc;
+  border-bottom: 1px solid #e0e0e0;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
   text-align: center;
+  font-size: 1rem;
   color: #1d3557;
+}
+
+/* --- Cabeçalho e Título --- */
+.avaliacao-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 25px;
-  font-size: 26px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 1rem;
 }
 
-/* Estilos para mensagens de erro */
-.mensagem-erro {
-  color: #e63946;
-  margin: 15px 0;
+.avaliacao-titulo {
+  color: #1d3557;
+  font-size: 1.5rem;
   text-align: center;
-  font-weight: bold;
-  background-color: #ffe6e6;
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid #e63946;
+  margin: 0 1rem;
 }
 
-/* Estilos para mensagens de sucesso */
-.mensagem-sucesso {
-  color: #2a9d8f;
-  margin: 15px 0;
-  text-align: center;
-  font-weight: bold;
-  background-color: #e6fff2;
+/* --- Formulários (Seleção, Datas) --- */
+.selecao-aluno-container select {
   padding: 10px;
-  border-radius: 8px;
-  border: 1px solid #2a9d8f;
+  width: 100%;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 16px;
+  margin-bottom: 25px;
 }
 
-/* Estilos para os botões de área (abas) */
+.date-inputs-container {
+  display: flex;
+  gap: 30px;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+}
+
+.date-input-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.date-input-group label {
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.date-input-group input[type="date"] {
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  width: 200px;
+}
+
+/* --- Botões de Navegação (Áreas/Tabs) --- */
+.area-tabs-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 30px;
+}
+
 .area-botao {
   padding: 10px 18px;
   border-radius: 20px;
@@ -74,7 +105,7 @@ body {
   cursor: pointer;
   transition: all 0.3s ease;
   font-weight: 500;
-  white-space: nowrap; /* Impede que o texto do botão quebre linha */
+  white-space: nowrap;
 }
 
 .area-botao.ativo {
@@ -83,9 +114,8 @@ body {
   font-weight: bold;
 }
 
-/* Estilos para os botões de salvar e ver avaliações */
-.botao-salvar,
-.botao-ver-avaliacoes {
+/* --- Botões de Ação (Salvar, Ver Avaliações) --- */
+.botao-salvar {
   background-color: #2a9d8f;
   color: white;
   padding: 14px 24px;
@@ -94,47 +124,68 @@ body {
   font-size: 16px;
   font-weight: bold;
   margin: 20px auto;
-  display: block; /* Para centralizar com margin: auto */
+  display: block;
   cursor: pointer;
   transition: background-color 0.3s ease;
 }
 
-.botao-salvar:hover,
-.botao-ver-avaliacoes:hover {
+.botao-salvar:hover {
   background-color: #21867a;
 }
 
-/* Estilos para o cabeçalho da página (Botão Voltar e Ver Avaliações) */
-.avaliacao-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 25px;
+.botao-ver-avaliacoes {
+  background-color: #f0f0f0;
+  color: #1d3557;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 20px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
 }
 
-/* Estilo para o estado de carregamento */
+.botao-ver-avaliacoes:hover {
+  background-color: #e0e0e0;
+}
+
+/* --- Mensagens e Carregamento --- */
+.mensagem-erro,
+.mensagem-sucesso {
+  margin: 15px 0;
+  text-align: center;
+  font-weight: bold;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.mensagem-erro {
+  color: #e63946;
+  background-color: #ffe6e6;
+  border: 1px solid #e63946;
+}
+
+.mensagem-sucesso {
+  color: #2a9d8f;
+  background-color: #e6fff2;
+  border: 1px solid #2a9d8f;
+}
+
 .loading {
   text-align: center;
   margin: 20px 0;
   color: #1d3557;
   font-weight: bold;
 }
-
-/* Estilos para o Select de Aluno */
-select {
-  padding: 10px;
-  width: 100%;
+.botao-baixar-pdf {
+  padding: 8px 16px;
+  background-color: #457b9d;
+  color: white;
+  border: none;
   border-radius: 6px;
-  border: 1px solid #ccc;
-  font-size: 16px;
-  margin-bottom: 15px; /* Adicionado para espaçamento */
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
 }
-
-/* Estilos para campos de data */
-input[type="date"] {
-  width: calc(100% - 18px); /* Ajuste para padding e borda */
-  padding: 8px;
-  font-size: 14px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
+.botao-baixar-pdf:hover {
+  background-color: #1d3557;
 }

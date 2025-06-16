@@ -1,37 +1,37 @@
 // functions/setAdmin.js
-
 const admin = require("firebase-admin");
+const serviceAccount = require("./serviceAccountKey.json"); // Mantenha este arquivo seguro!
 
-// O caminho para o arquivo JSON da sua conta de serviço
-// Certifique-se de que o nome do arquivo JSON que você baixou está correto
-const serviceAccount = require("./serviceAccountKey.json");
+const targetUID = "W4iih9DuDPfztgUWN3T34Pt4ZPE3"; // SEU UID AQUI!
+const adminProfile = "desenvolvedor"; // Mantenha consistente com seu perfil
 
-// O UID do usuário que você quer tornar administrador
-// Substitua 'W4iih9DuDPfztgUWN3T34Pt4ZPE3' pelo UID EXATO que você obteve do console do navegador
-const targetUID = "W4iih9DuDPfztgUWN3T34Pt4ZPE3";
-
-// Inicializa o Firebase Admin SDK com a conta de serviço
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
 
-console.log(`Definindo custom claim 'admin: true' para o UID: ${targetUID}...`);
+console.log(`Iniciando configuração de claims para o UID: ${targetUID}...`);
 
 admin
   .auth()
-  .setCustomUserClaims(targetUID, { admin: true })
+  .getUser(targetUID)
+  .then((userRecord) => {
+    const currentClaims = userRecord.customClaims || {};
+    const newClaims = {
+      ...currentClaims,
+      admin: true, // Garante que a claim de admin é TRUE
+      perfil: adminProfile, // Garante que o perfil está correto
+    };
+    return admin.auth().setCustomUserClaims(targetUID, newClaims);
+  })
   .then(() => {
-    console.log(
-      `SUCESSO: Custom claim 'admin: true' definido para o UID: ${targetUID}`
-    );
-    // Opcional: Para verificar imediatamente se o claim foi aplicado
-    return admin.auth().getUser(targetUID);
+    console.log(`SUCESSO: Claims atualizadas para o UID: ${targetUID}.`);
+    return admin.auth().getUser(targetUID); // Verifica as claims após a atualização
   })
   .then((userRecord) => {
     console.log("Claims do usuário após atualização:", userRecord.customClaims);
-    process.exit(0); // Sai do script com sucesso
+    process.exit(0);
   })
   .catch((error) => {
     console.error("ERRO ao definir custom claim:", error);
-    process.exit(1); // Sai do script com erro
+    process.exit(1);
   });

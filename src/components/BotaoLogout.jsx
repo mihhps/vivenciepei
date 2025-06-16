@@ -1,93 +1,30 @@
-// src/components/BotaoLogout.jsx (Versão FINAL E CORRETA)
 import React, { useEffect, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { auth } from "../firebase"; // Importar auth
+import { useNavigate } from "react-router-dom";
 
 function BotaoLogout() {
   const navigate = useNavigate();
-  const location = useLocation();
   const [usuario, setUsuario] = useState(null);
-  const [isHandlingLogout, setIsHandlingLogout] = useState(false);
 
   useEffect(() => {
-    console.log(
-      "BOTAO_LOGOUT: useEffect disparado para rota:",
-      location.pathname
-    );
-    const dados = localStorage.getItem("usuarioLogado");
-    console.log("BOTAO_LOGOUT: Dados do localStorage no useEffect:", dados);
-    if (dados) {
-      setUsuario(JSON.parse(dados));
-    } else {
-      setUsuario(null);
-    }
-  }, [location.pathname]); // Dependência na rota atual
+    const dados = JSON.parse(localStorage.getItem("usuarioLogado"));
+    if (dados) setUsuario(dados);
+  }, []);
 
-  const handleLogout = async () => {
-    if (isHandlingLogout) return;
-
-    // Adiciona uma confirmação antes de sair
-    const confirmar = window.confirm("Tem certeza que deseja sair?");
-    if (!confirmar) {
-      console.log("BOTAO_LOGOUT: Logout cancelado pelo usuário.");
-      return;
-    }
-
-    setIsHandlingLogout(true);
-
-    console.log(
-      "!!! BOTAO_LOGOUT: handleLogout() disparado por CLIQUE NO BOTÃO 'SAIR'!"
-    ); // ESTE É O LOG QUE PRECISA APARECER
-
-    try {
-      if (auth && auth.currentUser) {
-        await auth.signOut();
-        console.log("!!! BOTAO_LOGOUT: Logout do Firebase Auth realizado.");
-      } else {
-        console.log(
-          "!!! BOTAO_LOGOUT: Nenhum usuário autenticado no Firebase, prosseguindo com limpeza local."
-        );
-      }
-
-      localStorage.removeItem("usuarioLogado");
-      console.log(
-        "!!! BOTAO_LOGOUT: 'usuarioLogado' removido do localStorage."
-      );
-
-      navigate("/login", { replace: true });
-    } catch (error) {
-      console.error("!!! BOTAO_LOGOUT: Erro no processo de logout:", error);
-      alert("Não foi possível sair. Tente novamente.");
-    } finally {
-      setIsHandlingLogout(false);
-    }
+  const handleLogout = () => {
+    localStorage.removeItem("usuarioLogado");
+    navigate("/login");
   };
 
-  if (!usuario) {
-    console.log(
-      "BOTAO_LOGOUT: Não há usuário no estado, componente não renderiza."
-    );
-    return null;
-  }
+  if (!usuario) return null;
 
-  console.log(
-    "BOTAO_LOGOUT: Renderizando botão 'Sair'. Usuário:",
-    usuario.nome
-  );
   return (
     <div style={estilos.container}>
       <div style={estilos.info}>
-        <div>
-          <strong>{usuario.nome?.split(" ")[0]}</strong>
-        </div>
+        <div><strong>{usuario.nome?.split(" ")[0]}</strong></div>
         <div style={estilos.cargo}>{usuario.cargo}</div>
       </div>
-      <button
-        onClick={handleLogout}
-        style={estilos.botao}
-        disabled={isHandlingLogout}
-      >
-        {isHandlingLogout ? "Saindo..." : "Sair"}
+      <button onClick={handleLogout} style={estilos.botao}>
+        Sair
       </button>
     </div>
   );
@@ -95,16 +32,37 @@ function BotaoLogout() {
 
 const estilos = {
   container: {
-    /* ... */
+    position: "fixed",
+    top: 20,
+    right: 20,
+    zIndex: 999,
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
   },
   info: {
-    /* ... */
+    backgroundColor: "#457b9d",
+    color: "#fff",
+    padding: "6px 12px",
+    borderRadius: 6,
+    fontSize: 14,
+    textAlign: "right",
+    lineHeight: 1.2,
   },
   cargo: {
-    /* ... */
+    fontSize: 12,
+    opacity: 0.9,
   },
   botao: {
-    /* ... */
+    padding: "10px 16px",
+    backgroundColor: "#e63946",
+    color: "#fff",
+    border: "none",
+    borderRadius: 6,
+    fontWeight: "bold",
+    fontSize: 14,
+    cursor: "pointer",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
   },
 };
 

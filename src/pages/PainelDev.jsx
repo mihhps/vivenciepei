@@ -1,71 +1,127 @@
+// src/pages/PainelDev.jsx
+
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BotaoSair from "../components/BotaoSair";
-
-// Importações do Firebase para chamar a Cloud Function
-import { getFunctions, httpsCallable } from "firebase/functions";
-import { getAuth } from "firebase/auth"; // Para verificar a autenticação e obter o token do usuário
+// import { httpsCallable } from "firebase/functions"; // REMOVER: não é mais necessário para onRequest
+import { auth, functions } from "../firebase"; // Manter 'auth' e 'functions' (para 'auth.currentUser' e o URL base da função)
 
 export default function PainelDev() {
   const navigate = useNavigate();
   const [usuarioLogado, setUsuarioLogado] = useState(null);
-  const [loadingRecalculo, setLoadingRecalculo] = useState(false); // Novo estado para controlar o loading do backfill
+  const [loadingRecalculo, setLoadingRecalculo] = useState(false);
 
   useEffect(() => {
+    const verificarClaims = async () => {
+      const user = auth.currentUser;
+      if (user) {
+        const idTokenResult = await user.getIdTokenResult(true); // força atualização
+        console.log("Claims ativas (useEffect):", idTokenResult.claims);
+      } else {
+        console.log("Nenhum usuário logado (useEffect).");
+      }
+    };
+
     const userData = localStorage.getItem("usuarioLogado");
     if (userData) {
       const user = JSON.parse(userData);
       setUsuarioLogado(user);
-      console.log("UID do usuário logado:", user.uid);
+      console.log("UID do usuário logado (localStorage):", user.uid);
     }
+
+    verificarClaims();
   }, []);
 
-  // Inicializa o serviço de funções do Firebase
-  const functions = getFunctions();
-  const auth = getAuth(); // Inicializa o serviço de autenticação
-
-  // Função para chamar a Cloud Function de recalculo
+  // ✅ FUNÇÃO handleRecalcularTodosPrazos AGORA PARA onRequest
   const handleRecalcularTodosPrazos = async () => {
-    const user = auth.currentUser;
-
-    if (!user) {
-      alert("Você precisa estar logado para realizar esta operação.");
-      return;
-    }
-
-    setLoadingRecalculo(true); // Ativa o estado de loading
+    setLoadingRecalculo(true);
     try {
-      // Força a atualização do token de ID do usuário para garantir que os custom claims (como 'admin') sejam enviados
-      await user.getIdTokenResult(true);
+      const user = await new Promise((resolve) => {
+        const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
+          unsubscribe(); // Desinscreve após a primeira notificação
+          resolve(firebaseUser);
+        });
+      });
 
-      // Cria a função callable
-      const recalcularPrazosCallable = httpsCallable(
-        functions,
-        "recalcularTodosPrazos"
+      if (!user) {
+        alert("Você precisa estar logado para realizar esta operação.");
+        return;
+      }
+
+      // ✅ Obter o token de ID mais recente (MANDATÓRIO PARA onRequest)
+      const idToken = await user.getIdToken(true);
+
+      console.log(
+        "DEBUG FINAL: UID do usuário para a chamada da função:",
+        user.uid
+      );
+      console.log(
+        "DEBUG FINAL: Token de ID para a chamada da função:",
+        idToken.substring(0, 30) + "..."
+      ); // Logar só o começo do token
+
+      // Construir o URL da função onRequest
+      // IMPORTANTE: O nome da função no URL é 'recalcularTodosPrazos'
+      const functionUrl = `https://southamerica-east1-${auth.app.options.projectId}.cloudfunctions.net/recalcularTodosPrazos`;
+
+      // ✅ Payload da requisição (mesmo formato que httpsCallable enviava)
+      const payloadData = { userId: user.uid };
+
+      console.log(
+        "Iniciando recalculo de prazos PEI (enviando UID: " + user.uid + ")..."
       );
 
-      console.log("Iniciando recalculo de prazos PEI...");
-      const result = await recalcularPrazosCallable();
-      console.log("Recalculo concluído:", result.data.message);
-      alert(
-        `Recalculo de prazos PEI iniciado/concluído! Mensagem: ${result.data.message}. Verifique os logs do Firebase Functions para detalhes.`
-      );
+      // ✅ Usar fetch API para a requisição HTTP POST
+      const response = await fetch(functionUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`, // ✅ ENVIANDO O TOKEN AQUI
+        },
+        body: JSON.stringify({ data: payloadData }), // ✅ ENVIANDO O PAYLOAD AQUI
+      });
+
+      // ✅ Tratar a resposta da requisição
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        // Se o status não for 2xx (ex: 401, 403, 500)
+        // A função onRequest retornará JSON com 'error' em caso de falha
+        throw new Error(
+          responseData.error || "Erro desconhecido na resposta da função."
+        );
+      }
+
+      console.log("Recalculo concluído:", responseData.message);
+      alert(`Recalculo de prazos concluído! Mensagem: ${responseData.message}`);
     } catch (error) {
       console.error(
-        "Erro ao recalcular prazos PEI:",
-        error.code,
-        error.message
+        "Erro ao recalcular prazos PEI (frontend fetch):",
+        error.message,
+        error // Log o objeto erro completo
       );
-      let errorMessage = "Erro desconhecido ao recalcular.";
-      if (error.code === "permission-denied") {
+      let errorMessage = "Ocorreu um erro ao recalcular. Verifique o console.";
+      if (error.message.includes("Não autorizado: Token Bearer ausente.")) {
         errorMessage =
-          "Permissão negada: Você não tem autorização para realizar esta operação. Verifique se seu usuário tem privilégios de administrador.";
-      } else if (error.message) {
-        errorMessage = `Erro: ${error.message}`;
+          "Não autenticado: Seu token não foi enviado corretamente. Tente sair e entrar novamente.";
+      } else if (
+        error.message.includes("Permissão negada: Requer token de admin.")
+      ) {
+        errorMessage =
+          "Permissão negada: Seu usuário não tem privilégios de administrador.";
+      } else if (
+        error.message.includes(
+          "Requisição inválida: userId é obrigatório no payload."
+        )
+      ) {
+        errorMessage =
+          "Erro de comunicação: O ID do usuário não foi enviado corretamente para a função.";
+      } else {
+        errorMessage = `Erro: ${error.message}`; // Mostra a mensagem do erro capturado
       }
       alert(errorMessage);
     } finally {
-      setLoadingRecalculo(false); // Desativa o estado de loading
+      setLoadingRecalculo(false);
     }
   };
 
@@ -101,9 +157,9 @@ export default function PainelDev() {
 
   const estiloBotaoAdmin = {
     ...estiloBotao,
-    backgroundColor: loadingRecalculo ? "#a8dadc" : "#e63946", // Cor diferente para admin, e cinza quando carregando
+    backgroundColor: loadingRecalculo ? "#a8dadc" : "#e63946",
     color: "white",
-    marginTop: "20px", // Um pouco de espaço acima
+    marginTop: "20px",
     opacity: loadingRecalculo ? 0.7 : 1,
     cursor: loadingRecalculo ? "not-allowed" : "pointer",
   };
@@ -163,11 +219,10 @@ export default function PainelDev() {
           </button>
         ))}
 
-        {/* NOVO BOTÃO PARA RECALCULO DE PRAZOS PEI (BACKFILL) */}
         <button
           onClick={handleRecalcularTodosPrazos}
           style={estiloBotaoAdmin}
-          disabled={loadingRecalculo} // Desabilita o botão enquanto o recalculo está em andamento
+          disabled={loadingRecalculo}
         >
           {loadingRecalculo
             ? "Recalculando Prazos..."
