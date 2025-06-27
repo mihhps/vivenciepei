@@ -9,7 +9,6 @@ export default function PainelSEME() {
   // Configuração para os botões de navegação
   const botoesNavegacao = [
     { label: "Ver Alunos", path: "/ver-alunos" },
-    { label: "Ver PEIs", path: "/ver-peis" },
     { label: "Ver Avaliações Iniciais", path: "/ver-avaliacoes" },
     { label: "Vincular Escolas a Professores", path: "/vincular-escolas" },
     { label: "Gerar PDF Consolidado", path: "/gerar-relatorios" },

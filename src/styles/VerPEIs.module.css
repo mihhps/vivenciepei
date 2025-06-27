@@ -1,0 +1,137 @@
+/* src/styles/VerPEIs.module.css */
+
+.fundo {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 20px;
+  font-family: "Segoe UI", sans-serif;
+  background: linear-gradient(135deg, #457b9d, #1d3557);
+  width: 100%;
+  min-height: 100vh;
+}
+
+.card {
+  background-color: #fff;
+  border-radius: 16px;
+  padding: 30px;
+  width: 100%;
+  max-width: 1000px;
+  box-shadow: 0 0 25px rgba(22, 1, 114, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.titulo {
+  text-align: center;
+  font-size: 26px;
+  color: #1d3557;
+  margin-bottom: 20px;
+}
+
+.filtroContainer {
+  width: 100%;
+  max-width: 400px;
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.filtroLabel {
+  font-weight: 500;
+  color: #1d3557;
+}
+
+.filtroSelect {
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background-color: #f8f9fa;
+  width: 100%;
+}
+
+.conteudoAba {
+  width: 100%;
+}
+
+.infoAluno {
+  margin-bottom: 20px;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+}
+
+.cardInterno {
+  background-color: #ffffff;
+  padding: 20px;
+  margin-bottom: 20px;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.infoPei {
+  margin-bottom: 15px;
+}
+
+.botoes {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+  flex-wrap: wrap;
+}
+
+.editar {
+  background-color: #1d3557;
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.visualizar {
+  background-color: #457b9d;
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.gerar {
+  background-color: #2a9d8f;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-top: 20px;
+}
+
+.excluir {
+  background-color: #e63946;
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.semDados {
+  text-align: center;
+  color: #666;
+  padding: 20px;
+}
+
+.recarregar {
+  background-color: #1d3557;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-top: 10px;
+}

@@ -1,0 +1,138 @@
+/* --- src/pages/ListaProfessoresMinhaEscola.css --- */
+
+/* Contêiner principal da página */
+.lista-professores-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  background-color: #f0f2f5; /* Fundo mais suave */
+  min-height: 100vh; /* Ocupa a altura total da viewport */
+}
+
+/* Card principal que contém o conteúdo */
+.lista-professores-card {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 30px;
+  width: 100%;
+  max-width: 800px; /* Largura máxima para melhor legibilidade */
+  margin-top: 20px;
+  position: relative; /* Para posicionar o botão de voltar */
+}
+
+/* Títulos */
+.lista-professores-titulo {
+  color: #333;
+  text-align: center;
+  margin-bottom: 25px;
+  font-size: 2em;
+}
+
+/* --- ESTILOS DOS BOTÕES GERAIS --- */
+/* Botão de voltar */
+.lista-professores-botao-voltar {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background-color: #6c757d; /* Cinza para o botão de voltar */
+  color: #fff;
+  border: 1px solid #6c757d;
+  padding: 8px 15px; /* Um pouco menor */
+  font-size: 0.9em;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.lista-professores-botao-voltar:hover {
+  background-color: #5a6268;
+  border-color: #545b62;
+}
+
+/* --- ESTILOS DA LISTA DE PROFESSORES --- */
+.lista-professores-ul {
+  list-style: none; /* Remove marcadores de lista */
+  padding: 0;
+  margin-top: 20px;
+}
+
+.lista-professores-item {
+  background-color: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 15px 20px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.lista-professores-item h3 {
+  color: #343a40;
+  margin-top: 0;
+  margin-bottom: 5px;
+  font-size: 1.2em;
+}
+
+.lista-professores-item p {
+  color: #6c757d;
+  font-size: 0.95em;
+  margin: 0;
+}
+
+/* Mensagens de informação e erro */
+.info-message {
+  text-align: center;
+  color: #6c757d;
+  font-style: italic;
+  margin-top: 20px;
+  padding: 10px;
+  border: 1px dashed #ced4da;
+  border-radius: 5px;
+  background-color: #e9ecef;
+}
+
+.error-message {
+  text-align: center;
+  color: #dc3545;
+  font-weight: bold;
+  margin-top: 20px;
+  padding: 10px;
+  border: 1px solid #dc3545;
+  border-radius: 5px;
+  background-color: #f8d7da;
+}
+
+/* Loader */
+.loader-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #f0f2f5;
+}
+
+.loader {
+  border: 8px solid #f3f3f3; /* Light grey */
+  border-top: 8px solid #3498db; /* Blue */
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}

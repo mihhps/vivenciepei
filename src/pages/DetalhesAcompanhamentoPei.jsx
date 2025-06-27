@@ -16,6 +16,7 @@ import {
 import BotaoVoltar from "../components/BotaoVoltar";
 import Loader from "../components/Loader";
 import { isAuthorized } from "../utils/authUtils";
+import { useAuth } from "../context/AuthContext";
 
 // Função auxiliar para formatar datas para exibição
 const formatDate = (date) => {
@@ -437,9 +438,8 @@ export default function DetalhesAcompanhamentoPei() {
         </h1>
 
         <p style={{ marginBottom: "20px" }}>
-          Esta tabela mostra o status detalhado dos PEIs dos alunos **com
-          atrasos pendentes de realização**, com base nos prazos de criação e
-          revisões.
+          Esta tabela mostra o status detalhado dos PEIs dos alunos com atrasos
+          pendentes de realização, com base nos prazos de criação e revisões.
         </p>
 
         {noDataMessage ? (

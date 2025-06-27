@@ -123,7 +123,7 @@ async function criarPEIPlaceholderParaAluno(
     // Adicione outros campos padrão que um PEI possa ter
   };
   try {
-    const peiDocRef = await addDoc(collection(db, "PEIs"), dadosPEIPlaceholder);
+    const peiDocRef = await addDoc(collection(db, "peis"), dadosPEIPlaceholder);
     console.log(
       `PEI Placeholder criado para aluno ${alunoId} com ID: ${peiDocRef.id}`
     );

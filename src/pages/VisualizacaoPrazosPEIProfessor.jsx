@@ -1,24 +1,15 @@
-// src/pages/VisualizacaoPrazosPEIProfessor.jsx
-
-import React, { useState, useEffect, useCallback } from "react";
-import { db } from "../firebase"; // Importa sua instância do Firebase Firestore
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { db } from "../firebase";
 import { collection, getDocs, query, where } from "firebase/firestore";
-import BotaoVoltar from "../components/BotaoVoltar"; // Certifique-se de que este caminho está correto
-import { useNavigate } from "react-router-dom"; // Para voltar para a página anterior
+import BotaoVoltar from "../components/BotaoVoltar";
+import Loader from "../components/Loader";
+import { useNavigate } from "react-router-dom";
 
-function VisualizacaoPrazosPEIProfessor() {
-  const [anoLetivoSelecionado, setAnoLetivoSelecionado] = useState(
-    new Date().getFullYear()
-  );
-  const [dataLimiteCriacao, setDataLimiteCriacao] = useState("");
-  const [dataLimiteRevisao1, setDataLimiteRevisao1] = useState("");
-  const [dataLimiteRevisao2, setDataLimiteRevisao2] = useState("");
-  const [carregando, setCarregando] = useState(false);
+// --- HOOK CUSTOMIZADO PARA MENSAGENS ---
+const useMessageSystem = () => {
   const [erro, setErro] = useState(null);
   const [mensagemSucesso, setMensagemSucesso] = useState(null);
-  const navigate = useNavigate();
 
-  // --- Funções Auxiliares de UI ---
   const exibirMensagem = useCallback((tipo, texto) => {
     if (tipo === "erro") {
       setErro(texto);
@@ -33,11 +24,95 @@ function VisualizacaoPrazosPEIProfessor() {
     }, 5000);
   }, []);
 
-  // --- Funções de Carregamento de Prazos (similar à gestão) ---
+  return { erro, mensagemSucesso, exibirMensagem };
+};
+
+// --- FUNÇÕES AUXILIARES ---
+// Função para formatar datas de forma robusta para exibição no PDF
+const formatarDataParaInput = (dataFirebase) => {
+  if (!dataFirebase) return ""; // Retorna string vazia para input type="date"
+
+  let dateObj;
+  try {
+    if (typeof dataFirebase.toDate === "function") {
+      // Firestore Timestamp
+      dateObj = dataFirebase.toDate();
+    } else if (dataFirebase instanceof Date) {
+      // Objeto Date nativo
+      dateObj = dataFirebase;
+    } else if (typeof dataFirebase === "string") {
+      // String (YYYY-MM-DD ou ISO)
+      dateObj = new Date(dataFirebase);
+    } else {
+      return ""; // Caso de dado inesperado
+    }
+
+    if (isNaN(dateObj.getTime())) return ""; // Verifica se a data é válida
+
+    const ano = dateObj.getFullYear();
+    const mes = (dateObj.getMonth() + 1).toString().padStart(2, "0");
+    const dia = dateObj.getDate().toString().padStart(2, "0");
+
+    return `${ano}-${mes}-${dia}`; // Formato YYYY-MM-DD para input type="date"
+  } catch (e) {
+    console.error("Erro ao formatar data para input:", e);
+    return "";
+  }
+};
+
+// --- COMPONENTE PRINCIPAL ---
+export default function VisualizacaoPrazosPEIProfessor() {
+  const navigate = useNavigate();
+  const { erro, mensagemSucesso, exibirMensagem } = useMessageSystem();
+
+  const [anoLetivoSelecionado, setAnoLetivoSelecionado] = useState(
+    new Date().getFullYear()
+  );
+  const [dataLimiteCriacao, setDataLimiteCriacao] = useState("");
+  const [dataLimiteRevisao1, setDataLimiteRevisao1] = useState("");
+  const [dataLimiteRevisao2, setDataLimiteRevisao2] = useState("");
+  const [carregando, setCarregando] = useState(false);
+
+  // Carrega e padroniza os dados do usuário logado uma única vez
+  const usuarioLogado = useMemo(() => {
+    try {
+      const user = JSON.parse(localStorage.getItem("usuarioLogado")) || {};
+      return { ...user, perfil: user.perfil?.toLowerCase()?.trim() || "" }; // Normaliza o perfil
+    } catch (e) {
+      console.error("Erro ao parsear dados do usuário logado:", e);
+      return {};
+    }
+  }, []);
+
+  // Define os perfis que podem ver esta página (com perfil já normalizado)
+  const perfisComPermissaoDeVisualizacao = useMemo(
+    () => ["professor", "aee", "gestao"],
+    []
+  );
+
+  // --- EFEITO 1: Verificação de Permissão de Acesso à Página ---
+  useEffect(() => {
+    // Apenas executa depois que usuarioLogado foi inicializado
+    if (Object.keys(usuarioLogado).length === 0) return;
+
+    if (!perfisComPermissaoDeVisualizacao.includes(usuarioLogado.perfil)) {
+      exibirMensagem(
+        "erro",
+        "Você não tem permissão para acessar esta página."
+      );
+      navigate("/");
+      return;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [usuarioLogado, navigate]); // Dependências: usuário logado e navigate
+
+  // --- EFEITO 2: Carregamento de Prazos por Ano Letivo ---
   const buscarPrazos = useCallback(async () => {
     setCarregando(true);
-    setErro(null);
-    setMensagemSucesso(null); // Limpa mensagens anteriores
+    exibirMensagem(
+      "sucesso",
+      `Carregando prazos para ${anoLetivoSelecionado}...`
+    ); // Mensagem de feedback
     try {
       const q = query(
         collection(db, "prazosPEIAnuais"),
@@ -47,16 +122,20 @@ function VisualizacaoPrazosPEIProfessor() {
 
       if (!snapshot.empty) {
         const dadosPrazos = snapshot.docs[0].data();
-        // Os campos do Firebase são strings de data (YYYY-MM-DD), o que é ideal para input type="date"
-        setDataLimiteCriacao(dadosPrazos.dataLimiteCriacaoPEI || "");
-        setDataLimiteRevisao1(dadosPrazos.dataLimiteRevisao1Sem || "");
-        setDataLimiteRevisao2(dadosPrazos.dataLimiteRevisao2Sem || "");
+        setDataLimiteCriacao(
+          formatarDataParaInput(dadosPrazos.dataLimiteCriacaoPEI)
+        );
+        setDataLimiteRevisao1(
+          formatarDataParaInput(dadosPrazos.dataLimiteRevisao1Sem)
+        );
+        setDataLimiteRevisao2(
+          formatarDataParaInput(dadosPrazos.dataLimiteRevisao2Sem)
+        );
         exibirMensagem(
           "sucesso",
           `Prazos para o ano letivo de ${anoLetivoSelecionado} carregados.`
         );
       } else {
-        // Se não encontrar, limpa os campos para exibir como vazio
         setDataLimiteCriacao("");
         setDataLimiteRevisao1("");
         setDataLimiteRevisao2("");
@@ -74,26 +153,15 @@ function VisualizacaoPrazosPEIProfessor() {
     } finally {
       setCarregando(false);
     }
-  }, [anoLetivoSelecionado, exibirMensagem]);
+  }, [anoLetivoSelecionado, exibirMensagem]); // Dependências: anoLetivoSelecionado e exibirMensagem
 
-  // --- Efeito para carregar prazos e verificar permissão ---
+  // Chama buscarPrazos quando o ano letivo selecionado muda ou após a permissão ser verificada
   useEffect(() => {
-    const usuario = JSON.parse(localStorage.getItem("usuarioLogado")) || {};
-    // Verifica se o usuário tem permissão de 'professor' ou 'aee' ou 'gestao' para visualizar
-    if (
-      usuario.perfil !== "professor" &&
-      usuario.perfil !== "aee" &&
-      usuario.perfil !== "gestao"
-    ) {
-      exibirMensagem(
-        "erro",
-        "Você não tem permissão para acessar esta página."
-      );
-      navigate("/"); // Redireciona para a Home
-      return;
+    // Garante que o usuário está autorizado antes de buscar os prazos
+    if (perfisComPermissaoDeVisualizacao.includes(usuarioLogado.perfil)) {
+      buscarPrazos();
     }
-    buscarPrazos();
-  }, [buscarPrazos, navigate, exibirMensagem]);
+  }, [buscarPrazos, perfisComPermissaoDeVisualizacao, usuarioLogado.perfil]);
 
   // --- Renderização ---
   return (
@@ -117,7 +185,6 @@ function VisualizacaoPrazosPEIProfessor() {
           <label style={estilos.label} htmlFor="anoLetivoSelect">
             Ano Letivo:
           </label>
-          {/* Professor pode selecionar o ano para ver prazos de anos anteriores/futuros */}
           <select
             id="anoLetivoSelect"
             value={anoLetivoSelecionado}
@@ -146,7 +213,7 @@ function VisualizacaoPrazosPEIProfessor() {
             id="dataLimiteCriacao"
             value={dataLimiteCriacao}
             style={estilos.input}
-            disabled // <--- Desabilitado para edição pelo professor
+            disabled // Desabilitado para edição pelo professor
           />
         </div>
         <div style={estilos.inputGroup}>
@@ -158,7 +225,7 @@ function VisualizacaoPrazosPEIProfessor() {
             id="dataLimiteRevisao1"
             value={dataLimiteRevisao1}
             style={estilos.input}
-            disabled // <--- Desabilitado para edição pelo professor
+            disabled // Desabilitado para edição pelo professor
           />
         </div>
         <div style={estilos.inputGroup}>
@@ -170,7 +237,7 @@ function VisualizacaoPrazosPEIProfessor() {
             id="dataLimiteRevisao2"
             value={dataLimiteRevisao2}
             style={estilos.input}
-            disabled // <--- Desabilitado para edição pelo professor
+            disabled // Desabilitado para edição pelo professor
           />
         </div>
 
@@ -191,7 +258,6 @@ function VisualizacaoPrazosPEIProfessor() {
 }
 
 // --- Estilos para VisualizacaoPrazosPEIProfessor (pode reutilizar ou adaptar de GestaoPrazosPEI) ---
-// É uma boa prática reutilizar os estilos, mas copiei aqui para facilitar a visualização
 const estilos = {
   container: {
     background: "#f4f7f6",
@@ -258,5 +324,3 @@ const estilos = {
     fontStyle: "italic",
   },
 };
-
-export default VisualizacaoPrazosPEIProfessor;

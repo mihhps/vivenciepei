@@ -96,9 +96,11 @@ export default function PainelAee() {
         >
           Avaliação Inicial
         </button>
+        {/* BOTÃO "VER PEIs" REMOVIDO AQUI:
         <button style={estiloBotao} onClick={() => navigate("/ver-peis")}>
           Ver PEIs
         </button>
+        */}
         <button style={estiloBotao} onClick={() => navigate("/criar-pei")}>
           Criar PEI
         </button>
@@ -133,7 +135,7 @@ export default function PainelAee() {
         {/* --- NOVO BOTÃO: Acompanhamento de Prazos PEI --- */}
         {/* Renderiza o botão apenas se o perfil do usuário (formatado) estiver na lista de perfis permitidos */}
         {usuarioLogado &&
-          perfisComAcessoAcompanhamento.includes(perfilUsuarioFormatado) && ( // <<<<< AQUI ESTÁ A CORREÇÃO!
+          perfisComAcessoAcompanhamento.includes(perfilUsuarioFormatado) && (
             <button
               style={estiloBotao}
               onClick={() => navigate("/acompanhamento-prazos-pei")}

@@ -24,6 +24,8 @@ export default function AcompanhamentoPrazosPei() {
   const usuario = useMemo(() => {
     try {
       const user = JSON.parse(localStorage.getItem("usuarioLogado"));
+      // Normaliza o perfil para comparação consistente
+      const perfilNormalizado = user?.perfil?.toLowerCase()?.trim();
       const escolasVinculadas =
         user?.escolas && typeof user.escolas === "object"
           ? Object.keys(user.escolas).map((id) => ({
@@ -31,7 +33,7 @@ export default function AcompanhamentoPrazosPei() {
               nome: user.escolas[id] || id,
             }))
           : [];
-      return { ...user, escolasVinculadas };
+      return { ...user, perfil: perfilNormalizado, escolasVinculadas };
     } catch (e) {
       console.error(
         "Erro ao parsear dados do usuário logado no localStorage:",
@@ -49,30 +51,8 @@ export default function AcompanhamentoPrazosPei() {
       return;
     }
 
-    if (
-      usuario.perfil !== "desenvolvedor" &&
-      (!usuario.escolasVinculadas || usuario.escolasVinculadas.length === 0)
-    ) {
-      setFetchError(
-        "Seu perfil não está vinculado a nenhuma escola. Por favor, entre em contato com o administrador para vincular escolas ao seu perfil."
-      );
-      setLoading(false);
-      return;
-    }
-
-    if (!escolaAtivaId) {
-      if (usuario.perfil === "desenvolvedor") {
-        setEscolaAtivaId("TODAS"); // Opção "Todas as Escolas" para desenvolvedores
-      } else if (usuario.escolasVinculadas.length > 0) {
-        setEscolaAtivaId(usuario.escolasVinculadas[0].id); // Primeira escola vinculada como padrão
-      }
-    }
-  }, [usuario, navigate, escolaAtivaId]);
-
-  // Efeito para carregar todas as escolas (apenas para desenvolvedores, uma vez)
-  useEffect(() => {
     const fetchTodasEscolas = async () => {
-      if (usuario?.perfil === "desenvolvedor" && todasAsEscolas.length === 0) {
+      if (usuario.perfil === "desenvolvedor" && todasAsEscolas.length === 0) {
         try {
           const qTodasEscolas = collection(db, "escolas");
           const todasEscolasSnap = await getDocs(qTodasEscolas);
@@ -88,12 +68,43 @@ export default function AcompanhamentoPrazosPei() {
       }
     };
     fetchTodasEscolas();
-  }, [usuario?.perfil, todasAsEscolas.length]);
+
+    if (
+      usuario.perfil !== "desenvolvedor" &&
+      (!usuario.escolasVinculadas || usuario.escolasVinculadas.length === 0)
+    ) {
+      setFetchError(
+        "Seu perfil não está vinculado a nenhuma escola. Por favor, entre em contato com o administrador para vincular escolas ao seu perfil."
+      );
+      setLoading(false);
+      return;
+    }
+
+    if (!escolaAtivaId) {
+      if (usuario.perfil === "desenvolvedor") {
+        setEscolaAtivaId("TODAS");
+      } else if (usuario.escolasVinculadas.length > 0) {
+        setEscolaAtivaId(usuario.escolasVinculadas[0].id);
+      }
+    }
+  }, [usuario, navigate, escolaAtivaId, todasAsEscolas.length]);
 
   // Efeito principal para CARREGAR OS DADOS DO RESUMO PRÉ-CALCULADO
   useEffect(() => {
     if (!usuario || !isAuthorized(usuario.perfil)) return;
-    if (usuario.perfil !== "desenvolvedor" && !escolaAtivaId) return;
+    if (usuario.perfil !== "desenvolvedor" && !escolaAtivaId) {
+      if (
+        usuario.perfil === "professor" &&
+        (!usuario.escolasVinculadas || usuario.escolasVinculadas.length === 0)
+      ) {
+        setLoading(false);
+        return;
+      }
+      if (!escolaAtivaId) {
+        setLoading(true);
+        return;
+      }
+    }
 
     const carregarResumoPEI = async () => {
       setLoading(true);
@@ -101,33 +112,27 @@ export default function AcompanhamentoPrazosPei() {
       setNoDataMessage(null);
 
       try {
-        let professoresQuery = collection(db, "acompanhamentoPrazosPEIResumo");
+        let professoresQueryRef = collection(
+          db,
+          "acompanhamentoPrazosPEIResumo"
+        );
 
-        // NOVO: NÃO USAMOS MAIS 'where("escolaId", "==", filterBySchoolId)' DIRETAMENTE AQUI
-        // Porque o 'escolaId' no resumo agora é 'null'.
-        // Em vez disso, vamos pegar TODOS os professores e filtrar em memória.
-
-        // Opcional: Ordenar para que os professores atrasados apareçam primeiro
-        professoresQuery = query(
-          professoresQuery,
+        professoresQueryRef = query(
+          professoresQueryRef,
           orderBy("statusGeral", "desc")
         );
 
-        const snapshot = await getDocs(professoresQuery);
+        const snapshot = await getDocs(professoresQueryRef);
         let professoresResumo = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
 
-        // --- NOVA LÓGICA DE FILTRAGEM EM MEMÓRIA (AQUI!) ---
         let professoresFiltradosParaExibir = [];
 
-        // 1. Se o usuário é desenvolvedor e selecionou "TODAS" as escolas
         if (usuario.perfil === "desenvolvedor" && escolaAtivaId === "TODAS") {
           professoresFiltradosParaExibir = professoresResumo;
-        }
-        // 2. Se o usuário é desenvolvedor e selecionou uma escola específica
-        else if (usuario.perfil === "desenvolvedor" && escolaAtivaId) {
+        } else if (usuario.perfil === "desenvolvedor" && escolaAtivaId) {
           professoresFiltradosParaExibir = professoresResumo.filter(
             (prof) =>
               prof.alunosDetalhesPrazos &&
@@ -135,10 +140,12 @@ export default function AcompanhamentoPrazosPei() {
                 (aluno) => aluno.escolaId === escolaAtivaId
               )
           );
-        }
-        // 3. Se o usuário NÃO é desenvolvedor (ex: SEME, Diretor, Professor)
-        else if (
-          usuario.perfil !== "desenvolvedor" &&
+        } else if (usuario.perfil === "professor") {
+          // Professor deve ver APENAS SEUS PRÓPRIOS DADOS
+          professoresFiltradosParaExibir = professoresResumo.filter(
+            (prof) => prof.id === usuario.id
+          );
+        } else if (
           usuario.escolasVinculadas &&
           usuario.escolasVinculadas.length > 0
         ) {
@@ -152,36 +159,52 @@ export default function AcompanhamentoPrazosPei() {
                 escolasPermitidasIds.includes(aluno.escolaId)
               )
           );
+        } else {
+          professoresFiltradosParaExibir = [];
         }
-        // 4. Caso contrário (ex: sem escolas vinculadas, ou erro na lógica)
-        else {
-          professoresFiltradosParaExibir = []; // Nenhuma escola para filtrar, então nenhum professor.
-        }
-        // --- FIM DA NOVA LÓGICA DE FILTRAGEM EM MEMÓRIA ---
 
         setProfessoresComStatus(professoresFiltradosParaExibir);
-
+        console.log(
+          "DEBUG AcompanhamentoPrazosPei: Professores após filtragem:",
+          JSON.stringify(professoresFiltradosParaExibir, null, 2)
+        );
+        // --- Lógica revisada para setar a mensagem 'noDataMessage' ---
         if (professoresFiltradosParaExibir.length === 0) {
-          const schoolName =
-            todasAsEscolas.find((e) => e.id === escolaAtivaId)?.nome ||
-            escolaAtivaId ||
-            "a escola selecionada";
-          setNoDataMessage(
-            `Nenhum dado de acompanhamento encontrado para professores ${
-              escolaAtivaId && escolaAtivaId !== "TODAS"
-                ? `da escola "${schoolName}"`
-                : "das escolas vinculadas ao seu perfil"
-            }.`
-          );
-        } else if (
-          professoresFiltradosParaExibir.every(
-            (p) => p.alunosAtrasadosCount === 0
-          )
-        ) {
-          setNoDataMessage(
-            "Todos os professores e seus alunos estão em dia com os prazos do PEI para a escola selecionada. Não há atrasos a serem exibidos."
-          );
+          let message = "Nenhum dado de acompanhamento encontrado.";
+          if (usuario.perfil === "professor") {
+            message =
+              "Você ainda não possui dados de acompanhamento de PEI. Verifique se seus alunos têm PEIs cadastrados ou se o resumo foi processado.";
+          } else if (escolaAtivaId && escolaAtivaId !== "TODAS") {
+            const schoolName =
+              todasAsEscolas.find((e) => e.id === escolaAtivaId)?.nome ||
+              escolaAtivaId;
+            message = `Nenhum dado de acompanhamento encontrado para professores da escola "${schoolName}".`;
+          } else if (
+            usuario.escolasVinculadas &&
+            usuario.escolasVinculadas.length > 0
+          ) {
+            message =
+              "Nenhum dado de acompanhamento encontrado para professores das escolas vinculadas ao seu perfil.";
+          }
+          setNoDataMessage(message);
+        } else {
+          // Se há professores para exibir (professoresFiltradosParaExibir.length > 0)
+          // Apenas definimos noDataMessage se TODOS os professores exibidos estiverem em dia E o perfil não for 'professor'.
+          // Para o professor, queremos que a tabela apareça mesmo que ele esteja em dia.
+          if (
+            professoresFiltradosParaExibir.every(
+              (p) => p.alunosAtrasadosCount === 0
+            ) &&
+            usuario.perfil !== "professor"
+          ) {
+            setNoDataMessage(
+              "Todos os professores e seus alunos estão em dia com os prazos do PEI para a escola selecionada. Não há atrasos a serem exibidos."
+            );
+          } else {
+            setNoDataMessage(null); // Limpa a mensagem, para que a tabela seja exibida
+          }
         }
+        // --- Fim da lógica revisada para setar a mensagem 'noDataMessage' ---
       } catch (err) {
         console.error(
           "Erro ao carregar dados de acompanhamento do resumo:",
@@ -197,14 +220,13 @@ export default function AcompanhamentoPrazosPei() {
     };
 
     carregarResumoPEI();
-  }, [usuario, navigate, escolaAtivaId, todasAsEscolas.length]); // Depende do perfil e do estado para evitar recargas desnecessárias
+  }, [usuario, escolaAtivaId, todasAsEscolas.length, isAuthorized]);
 
   // Função para navegar para os detalhes (mantém a mesma)
   const handleVerDetalhes = (professorData) => {
     navigate(`/acompanhamento-pei/${professorData.id}`, {
       state: {
-        professorNome: professorData.professorNome, // Mudei para professorNome do resumo
-        // O detalhesAtraso já vem do resumo, não precisa de professorData.nome
+        professorNome: professorData.professorNome,
         detalhesAtraso: professorData.detalhesAtraso,
       },
     });
@@ -275,7 +297,7 @@ export default function AcompanhamentoPrazosPei() {
         </p>
 
         {/* Condicionalmente renderiza a mensagem "sem dados" ou a tabela */}
-        {noDataMessage ? (
+        {noDataMessage && professoresComStatus.length === 0 ? ( // Adicionado condição para que a mensagem só apareça se não houver dados para a tabela
           <div className="no-data-message" style={estilos.noDataMessage}>
             {noDataMessage}
           </div>
@@ -303,7 +325,6 @@ export default function AcompanhamentoPrazosPei() {
                   <tr key={prof.id}>
                     <td className="acompanhamento-td" style={estilos.td}>
                       {prof.professorNome}{" "}
-                      {/* Mudei de prof.nome para prof.professorNome */}
                     </td>
                     <td className="acompanhamento-td" style={estilos.td}>
                       <span
@@ -341,6 +362,9 @@ export default function AcompanhamentoPrazosPei() {
               ) : (
                 <tr>
                   <td colSpan="4" style={estilos.td}>
+                    {/* Esta linha agora é uma fallback se por algum motivo
+                        professoresComStatus.length for 0, mas noDataMessage
+                        não foi setado. Idealmente, noDataMessage já cuidaria disso. */}
                     Nenhum professor encontrado para a escola selecionada.
                   </td>
                 </tr>

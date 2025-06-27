@@ -126,17 +126,15 @@ export default function PainelDev() {
   };
 
   const botoes = [
-    { label: "Cadastrar Aluno", rota: "/cadastrar-aluno" },
-    { label: "Cadastrar Usuário", rota: "/cadastro-usuario" },
-    { label: "Importar Alunos", rota: "/importar-alunos" },
-    { label: "Ver Alunos", rota: "/ver-alunos" },
-    { label: "Ver PEIs", rota: "/ver-peis" },
-    { label: "Criar PEI", rota: "/criar-pei" },
     { label: "Avaliação Inicial", rota: "/avaliacao-inicial" },
+    { label: "Criar PEI", rota: "/criar-pei" },
     { label: "Anamnese", rota: "/anamnese-completa" },
-    { label: "Acompanhamento Escolar", rota: "/acompanhamento" },
-    { label: "Acompanhar Prazos PEI", rota: "/acompanhamento-prazos-pei" },
     { label: "Gerenciar Prazos PEI", rota: "/gestao-prazos-pei" },
+    { label: "Acompanhar Prazos PEI", rota: "/acompanhamento-prazos-pei" },
+    { label: "Acompanhamento Escolar", rota: "/acompanhamento" },
+    { label: "Ver Alunos", rota: "/ver-alunos" },
+    { label: "Importar Alunos", rota: "/importar-alunos" },
+    { label: "Cadastrar Usuário", rota: "/cadastro-usuario" },
     { label: "Vincular Turmas a Professores", rota: "/vincular-professores" },
     { label: "Vincular Escolas a Professores", rota: "/vincular-escolas" },
   ];

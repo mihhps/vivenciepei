@@ -163,6 +163,7 @@ export const verificarPrazosPEI = async (anoLetivoAtual, professorId) => {
         collection(db, "peis"),
         where("alunoId", "==", aluno.id),
         where("anoLetivo", "==", anoLetivoAtual),
+        where("professorId", "==", professorId),
         orderBy("dataCriacao", "desc"), // CORREÇÃO APLICADA
         limit(1)
       );

@@ -1,6 +1,6 @@
 // src/pages/MeuAcompanhamentoProfessor.jsx
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { db } from "../firebase";
 import {
@@ -13,9 +13,9 @@ import {
 } from "firebase/firestore";
 import BotaoVoltar from "../components/BotaoVoltar";
 import Loader from "../components/Loader";
-import { isAuthorized } from "../utils/authUtils";
+import { useAuth } from "../context/AuthContext";
 
-// Função auxiliar para formatar datas para exibição
+// Função auxiliar para formatar datas (mantida como está)
 const formatDate = (date) => {
   if (!date) return "N/A";
   if (typeof date === "string") {
@@ -34,99 +34,55 @@ const formatDate = (date) => {
   });
 };
 
-/**
- * Componente que permite a um professor logado visualizar o status de PEI de seus próprios alunos.
- * Filtra alunos com base nas turmas e escolas vinculadas ao perfil do professor logado.
- */
 export default function MeuAcompanhamentoProfessor() {
   const navigate = useNavigate();
-  const [professorLogado, setProfessorLogado] = useState(null);
+  const { user, loading: authLoading } = useAuth(); // user é o objeto do usuário logado do AuthContext
+
   const [alunosComStatusPei, setAlunosComStatusPei] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Controla o carregamento dos dados da página
   const [error, setError] = useState(null);
 
-  const usuario = useMemo(() => {
-    try {
-      const user = JSON.parse(localStorage.getItem("usuarioLogado"));
-      const escolasVinculadas =
-        user?.escolas && typeof user.escolas === "object"
-          ? Object.keys(user.escolas).map((id) => ({
-              id,
-              nome: user.escolas[id] || id,
-            }))
-          : [];
-      const turmasVinculadas =
-        user?.turmas && typeof user.turmas === "object"
-          ? Object.keys(user.turmas)
-          : [];
-      return { ...user, escolasVinculadas, turmasVinculadas };
-    } catch (e) {
-      console.error("Erro ao parsear dados do usuário logado:", e);
-      return null;
-    }
-  }, []);
-
   useEffect(() => {
-    console.log("Valor de usuario no useEffect:", usuario);
-    if (
-      !usuario ||
-      usuario.perfil !== "professor" ||
-      !isAuthorized(usuario.perfil)
-    ) {
-      alert(
-        "Você não tem permissão para acessar esta página. Acesso restrito a professores."
-      );
-      navigate("/");
+    // 1. Verifique se o AuthContext ainda está carregando ou se o usuário é nulo.
+    // Se user é null E authLoading é false, significa que o usuário NÃO está logado.
+    if (authLoading) {
+      setLoading(true); // Mantém o loading ativo enquanto a autenticação carrega
       return;
     }
-    setProfessorLogado(usuario);
 
-    if (!usuario.escolasVinculadas || usuario.escolasVinculadas.length === 0) {
-      setError(
-        "Seu perfil de professor não está vinculado a nenhuma escola. Por favor, entre em contato com o administrador."
-      );
-      setLoading(false);
-      return;
+    // 2. Verificação de permissão: Agora, de forma mais robusta
+    // user?.perfil?.trim() garante que perfil existe e remove espaços.
+    // user.perfil !== "professor" verifica se o perfil não é "professor".
+    if (!user || user.perfil?.trim() !== "professor") {
+      alert("Acesso negado. Esta página é restrita a professores.");
+      navigate("/");
+      return; // Interrompe a execução do useEffect
     }
-    if (!usuario.turmasVinculadas || usuario.turmasVinculadas.length === 0) {
+
+    // A partir daqui, sabemos que user está carregado e tem o perfil "professor".
+    setLoading(true); // Inicia o loading para os dados da página
+
+    // Extrai as informações diretamente do objeto 'user' do contexto
+    const escolasVinculadas = user.escolas ? Object.keys(user.escolas) : [];
+    const turmasVinculadas = user.turmas ? Object.keys(user.turmas) : [];
+
+    if (escolasVinculadas.length === 0 || turmasVinculadas.length === 0) {
       setError(
-        "Seu perfil de professor não está vinculado a nenhuma turma. Por favor, entre em contato com o administrador."
+        "Seu perfil de professor não está vinculado a nenhuma escola ou turma."
       );
       setLoading(false);
       return;
     }
 
     const carregarMeusDetalhes = async () => {
-      setLoading(true);
-      setError(null);
+      setError(null); // Limpa erros anteriores
       try {
         const anoAtual = new Date().getFullYear();
         const hoje = new Date();
         hoje.setHours(0, 0, 0, 0);
 
-        let escolaIdsParaQuery = usuario.escolasVinculadas.map((e) => e.id);
-        if (escolaIdsParaQuery.length > 10) {
-          console.warn(
-            `[MeuAcompanhamento] Professor tem ${escolaIdsParaQuery.length} escolas. A query 'in' será limitada às primeiras 10 escolas.`
-          );
-          escolaIdsParaQuery = escolaIdsParaQuery.slice(0, 10);
-        }
-
-        let turmasParaQuery = usuario.turmasVinculadas;
-        if (turmasParaQuery.length > 10) {
-          console.warn(
-            `[MeuAcompanhamento] Professor tem ${turmasParaQuery.length} turmas. A query 'in' será limitada às primeiras 10 turmas.`
-          );
-          turmasParaQuery = turmasParaQuery.slice(0, 10);
-        }
-
-        if (escolaIdsParaQuery.length === 0 || turmasParaQuery.length === 0) {
-          setError(
-            "Erro: Seu perfil de professor não tem escolas ou turmas válidas vinculadas. Não é possível carregar os alunos."
-          );
-          setLoading(false);
-          return;
-        }
+        const escolasParaQuery = escolasVinculadas.slice(0, 30);
+        const turmasParaQuery = turmasVinculadas.slice(0, 30);
 
         const qPrazos = query(
           collection(db, "prazosPEIAnuais"),
@@ -140,79 +96,58 @@ export default function MeuAcompanhamentoProfessor() {
 
         if (!prazoAnualDoc) {
           setError(
-            `Não foi encontrada uma configuração de prazos anual para o PEI do ano de ${anoAtual}. Por favor, entre em contato com a gestão.`
+            `Nenhuma configuração de prazos encontrada para ${anoAtual}.`
           );
           setLoading(false);
           return;
         }
+
         const dataLimiteCriacaoPEI =
-          prazoAnualDoc.dataLimiteCriacaoPEI &&
-          typeof prazoAnualDoc.dataLimiteCriacaoPEI.toDate === "function"
-            ? prazoAnualDoc.dataLimiteCriacaoPEI.toDate()
-            : null;
+          prazoAnualDoc.dataLimiteCriacaoPEI?.toDate();
         const dataLimiteRevisao1Sem =
-          prazoAnualDoc.dataLimiteRevisao1Sem &&
-          typeof prazoAnualDoc.dataLimiteRevisao1Sem.toDate === "function"
-            ? prazoAnualDoc.dataLimiteRevisao1Sem.toDate()
-            : null;
+          prazoAnualDoc.dataLimiteRevisao1Sem?.toDate();
         const dataLimiteRevisao2Sem =
-          prazoAnualDoc.dataLimiteRevisao2Sem &&
-          typeof prazoAnualDoc.dataLimiteRevisao2Sem.toDate === "function"
-            ? prazoAnualDoc.dataLimiteRevisao2Sem.toDate()
-            : null;
+          prazoAnualDoc.dataLimiteRevisao2Sem?.toDate();
 
-        const todosPrazosDefinidos = [
-          dataLimiteCriacaoPEI,
-          dataLimiteRevisao1Sem,
-          dataLimiteRevisao2Sem,
-        ].filter(Boolean);
-        if (todosPrazosDefinidos.length === 0) {
-          setError(
-            `Nenhum prazo válido foi definido para o PEI do ano de ${anoAtual}. Por favor, entre em contato com a gestão.`
-          );
-          setLoading(false);
-          return;
-        }
-
-        console.log(
-          `[MeuAcompanhamento] Buscando alunos para turmas: ${turmasParaQuery.join(
-            ", "
-          )} e escolas: ${escolaIdsParaQuery.join(", %20")}`
-        ); // <<<< NOVO LOG 1
         const qAlunos = query(
           collection(db, "alunos"),
-          where("turma", "in", turmasParaQuery), // Alunos das turmas do professor
-          where("escolaId", "in", escolaIdsParaQuery) // Alunos das escolas do professor
+          where("turma", "in", turmasParaQuery),
+          where("escolaId", "in", escolasParaQuery)
         );
         const alunosSnap = await getDocs(qAlunos);
+
+        if (alunosSnap.empty) {
+          setError("Nenhum aluno encontrado para suas turmas e escolas.");
+          setLoading(false);
+          return;
+        }
+
         const alunosList = alunosSnap.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
 
-        console.log(
-          `[MeuAcompanhamento] ${alunosList.length} alunos encontrados pela query.`
-        ); // <<<< NOVO LOG 2
-
-        if (alunosList.length === 0) {
-          setError(
-            "Nenhum aluno encontrado para suas turmas e escolas vinculadas."
-          );
-          setLoading(false);
-          return;
-        }
-
-        // 5. Para cada aluno, verificar o status do PEI e das revisões detalhadamente
-        // ✅ MUDANÇA: Inicializar alunosComStatus aqui para evitar ReferenceError
-        let alunosComStatus = [];
-        alunosComStatus = await Promise.all(
+        const alunosComStatus = await Promise.all(
           alunosList.map(async (aluno) => {
+            const qPei = query(
+              collection(db, "peis"),
+              where("alunoId", "==", aluno.id),
+              where("anoLetivo", "==", anoAtual),
+              // IMPORTANTE: Garante que o professor só busque PEIs que ele mesmo criou
+              // ou que ele está autorizado a ver (depende de como 'professorId' é armazenado no PEI)
+              // Se 'professorId' no PEI for o UID, então user.uid está correto aqui.
+              where("criadorId", "==", user.email), // Assumindo que criadorId no PEI é o email
+              orderBy("dataCriacao", "desc"), // Usar dataCriacao para ordernar, ou o campo que você usa
+              limit(1)
+            );
+            const peiSnap = await getDocs(qPei);
+
             let statusPeiGeral = "Não iniciado";
             let statusRevisao1 = "N/A";
             let statusRevisao2 = "N/A";
             let dataUltimaAtualizacaoPei = null;
+            let isAtrasadoRealmenteLocal = false; // Flag para status real de atraso
 
-            // Função auxiliar para zerar a hora (duplicada da CF, mas necessária aqui)
             const resetTimeLocal = (date) => {
               if (date instanceof Date) {
                 const newDate = new Date(date.getTime());
@@ -224,26 +159,10 @@ export default function MeuAcompanhamentoProfessor() {
 
             const hojeZeradoLocal = resetTimeLocal(new Date());
 
-            console.log(
-              `[MeuAcompanhamento] Buscando PEI para aluno ${aluno.nome} (ID: ${aluno.id}) no ano ${anoAtual} e escola: ${aluno.escolaId}`
-            ); // <<<< NOVO LOG 3
-            const qPei = query(
-              collection(db, "peis"),
-              where("alunoId", "==", aluno.id),
-              where("anoLetivo", "==", anoAtual),
-              where("escolaId", "in", escolaIdsParaQuery),
-              orderBy("criadoEm", "desc"),
-              limit(1)
-            );
-            const peiSnap = await getDocs(qPei);
-
             if (peiSnap.empty) {
-              console.log(
-                `[MeuAcompanhamento] PEI NÃO encontrado para ${aluno.nome}.`
-              ); // <<<< NOVO LOG 4
               if (
                 dataLimiteCriacaoPEI &&
-                hojeZeradoLocal >= dataLimiteCriacaoPEI
+                hojeZeradoLocal >= resetTimeLocal(dataLimiteCriacaoPEI)
               ) {
                 statusPeiGeral = "Atrasado - Sem PEI";
               } else {
@@ -251,63 +170,62 @@ export default function MeuAcompanhamentoProfessor() {
               }
               if (
                 dataLimiteRevisao1Sem &&
-                hojeZeradoLocal >= dataLimiteRevisao1Sem
+                hojeZeradoLocal >= resetTimeLocal(dataLimiteRevisao1Sem)
               )
                 statusRevisao1 = "Atrasado (PEI não criado)";
               if (
                 dataLimiteRevisao2Sem &&
-                hojeZeradoLocal >= dataLimiteRevisao2Sem
+                hojeZeradoLocal >= resetTimeLocal(dataLimiteRevisao2Sem)
               )
                 statusRevisao2 = "Atrasado (PEI não criado)";
             } else {
               const peiData = peiSnap.docs[0].data();
-              console.log(
-                `[MeuAcompanhamento] PEI encontrado para ${aluno.nome}. Dados:`,
-                peiData
-              ); // <<<< NOVO LOG 5
 
-              // ✅ CORREÇÃO DE DATAS: Tratar criadoEm e dataUltimaRevisao como string ou Timestamp
+              // Tratamento de datas
               const dataCriacaoPei =
-                peiData.criadoEm instanceof Date
-                  ? peiData.criadoEm
-                  : peiData.criadoEm?.toDate instanceof Function
-                    ? peiData.criadoEm.toDate()
-                    : typeof peiData.criadoEm === "string"
-                      ? new Date(peiData.criadoEm)
+                peiData?.dataCriacao instanceof Date // Se já é Date
+                  ? peiData.dataCriacao
+                  : peiData?.dataCriacao?.toDate instanceof Function // Se é Timestamp
+                    ? peiData.dataCriacao.toDate()
+                    : typeof peiData.dataCriacao === "string" // Se é string
+                      ? new Date(peiData.dataCriacao)
                       : null;
 
               dataUltimaAtualizacaoPei =
-                peiData.dataUltimaRevisao instanceof Date
+                peiData?.dataUltimaRevisao instanceof Date
                   ? peiData.dataUltimaRevisao
-                  : peiData.dataUltimaRevisao?.toDate instanceof Function
+                  : peiData?.dataUltimaRevisao?.toDate instanceof Function
                     ? peiData.dataUltimaRevisao.toDate()
                     : typeof peiData.dataUltimaRevisao === "string"
                       ? new Date(peiData.dataUltimaRevisao)
                       : null;
 
               dataUltimaAtualizacaoPei =
-                dataUltimaAtualizacaoPei || dataCriacaoPei; // Fallback
+                dataUltimaAtualizacaoPei || dataCriacaoPei;
 
               // --- LÓGICA DE STATUS REPLICADA DA CLOUD FUNCTION ---
               if (dataLimiteCriacaoPEI) {
-                if (hoje >= dataLimiteCriacaoPEI) {
+                if (hojeZeradoLocal >= resetTimeLocal(dataLimiteCriacaoPEI)) {
                   if (
                     dataCriacaoPei &&
-                    dataCriacaoPei <= dataLimiteCriacaoPEI
+                    resetTimeLocal(dataCriacaoPei) <=
+                      resetTimeLocal(dataLimiteCriacaoPEI)
                   ) {
                     statusPeiGeral = "Criado no Prazo";
                   } else if (
                     dataCriacaoPei &&
-                    dataCriacaoPei > dataLimiteCriacaoPEI
+                    resetTimeLocal(dataCriacaoPei) >
+                      resetTimeLocal(dataLimiteCriacaoPEI)
                   ) {
                     statusPeiGeral = "Criado (Atrasado)";
                   } else {
-                    statusPeiGeral = "Atrasado - Sem PEI";
+                    statusPeiGeral =
+                      "Atrasado - Sem PEI (Dados Inconsistentes)";
                   }
                 } else {
-                  statusPeiGeral = "Aguardando Criação";
-                  if (dataCriacaoPei)
-                    statusPeiGeral = "Criado (antes do prazo final)";
+                  statusPeiGeral = dataCriacaoPei
+                    ? "Criado (antes do prazo final)"
+                    : "Aguardando Criação";
                 }
               } else {
                 statusPeiGeral = dataCriacaoPei
@@ -319,94 +237,94 @@ export default function MeuAcompanhamentoProfessor() {
                 // Só avalia revisões se o PEI foi criado
                 // Revisão 1
                 if (dataLimiteRevisao1Sem) {
-                  if (hoje >= dataLimiteRevisao1Sem) {
+                  if (
+                    hojeZeradoLocal >= resetTimeLocal(dataLimiteRevisao1Sem)
+                  ) {
                     if (
                       dataUltimaAtualizacaoPei &&
-                      dataUltimaAtualizacaoPei >= dataLimiteRevisao1Sem
+                      resetTimeLocal(dataUltimaAtualizacaoPei) >=
+                        resetTimeLocal(dataLimiteRevisao1Sem)
                     ) {
                       statusRevisao1 = "Em dia (Feita)";
                     } else {
                       statusRevisao1 = "Atrasado";
                     }
                   } else {
-                    statusRevisao1 = "Aguardando";
-                    if (
+                    statusRevisao1 =
                       dataUltimaAtualizacaoPei &&
-                      dataUltimaAtualizacaoPei >= dataLimiteCriacaoPEI
-                    ) {
-                      statusRevisao1 = "Feita (Aguardando prazo)";
-                    }
+                      resetTimeLocal(dataUltimaAtualizacaoPei) >=
+                        resetTimeLocal(dataCriacaoPei)
+                        ? "Feita (Aguardando prazo)"
+                        : "Aguardando";
                   }
                 }
 
                 // Revisão 2
                 if (dataLimiteRevisao2Sem) {
-                  if (hoje >= dataLimiteRevisao2Sem) {
+                  if (
+                    hojeZeradoLocal >= resetTimeLocal(dataLimiteRevisao2Sem)
+                  ) {
                     if (
                       dataUltimaAtualizacaoPei &&
-                      dataUltimaAtualizacaoPei >= dataLimiteRevisao2Sem
+                      resetTimeLocal(dataUltimaAtualizacaoPei) >=
+                        resetTimeLocal(dataLimiteRevisao2Sem)
                     ) {
                       statusRevisao2 = "Em dia (Feita)";
                     } else {
                       statusRevisao2 = "Atrasado";
                     }
                   } else {
-                    statusRevisao2 = "Aguardando";
-                    if (
+                    statusRevisao2 =
                       dataUltimaAtualizacaoPei &&
-                      dataUltimaAtualizacaoPei >= dataLimiteRevisao1Sem
-                    ) {
-                      statusRevisao2 = "Feita (Aguardando prazo)";
-                    }
+                      resetTimeLocal(dataUltimaAtualizacaoPei) >=
+                        resetTimeLocal(dataCriacaoPei) &&
+                      (!dataLimiteRevisao1Sem ||
+                        resetTimeLocal(dataUltimaAtualizacaoPei) >=
+                          resetTimeLocal(dataLimiteRevisao1Sem))
+                        ? "Feita (Aguardando prazo)"
+                        : "Aguardando";
                   }
                 }
               }
             } // Fim do if (peiSnap.empty) / else
 
-            // ✅ LÓGICA FINAL PARA isAtrasadoRealmenteLocal (REPLICADA DA CLOUD FUNCTION)
-            let isAtrasadoRealmenteLocal = false; // Declaração dentro do escopo certo para esta lógica
-
+            // Lógica para determinar se o aluno está REALMENTE atrasado
             if (
-              statusPeiGeral === "Atrasado - Sem PEI" ||
-              statusPeiGeral === "Atrasado - Sem PEI (Dados Inconsistentes)" ||
+              statusPeiGeral.includes("Atrasado") ||
               statusRevisao1 === "Atrasado" ||
-              statusRevisao1 === "Atrasado (PEI não criado)" ||
-              statusRevisao2 === "Atrasado" ||
-              statusRevisao2 === "Atrasado (PEI não criado)"
+              statusRevisao2 === "Atrasado"
             ) {
               isAtrasadoRealmenteLocal = true;
             }
-            // Retorna o objeto completo com a flag
+
             return {
               ...aluno,
               statusPeiGeral,
               statusRevisao1,
               statusRevisao2,
-              dataUltimaAtualizacaoPei,
+              dataUltimaAtualizacaoPei: dataUltimaAtualizacaoPei
+                ? formatDate(dataUltimaAtualizacaoPei)
+                : "N/A",
               isAtrasadoRealmente: isAtrasadoRealmenteLocal,
             };
           })
         );
-        // Filtra a lista final para exibir apenas os alunos com pendência real
-        const alunosRealmenteAtrasados = alunosComStatus.filter(
-          (aluno) => aluno.isAtrasadoRealmente
-        );
-        setAlunosComStatusPei(alunosRealmenteAtrasados); // Atualiza o estado com a lista FILTRADA
+        setAlunosComStatusPei(alunosComStatus); // Exibe TODOS os alunos para o professor
       } catch (err) {
-        console.error("Erro ao carregar detalhes do professor:", err);
-        setError(
-          "Ocorreu um erro ao carregar seus dados de acompanhamento. Por favor, tente novamente. Detalhes: " +
-            err.message
-        );
+        console.error("Erro ao carregar acompanhamento:", err);
+        setError("Ocorreu um erro ao carregar seus dados: " + err.message);
       } finally {
         setLoading(false);
       }
     };
 
     carregarMeusDetalhes();
-  }, [usuario, navigate]);
+  }, [user, authLoading, navigate]); // Dependências
 
-  if (loading) return <Loader />;
+  // Renderização condicional para carregamento
+  if (authLoading || loading) return <Loader />;
+
+  // Renderização condicional para erro
   if (error) return <div style={estilos.errorMessage}>{error}</div>;
 
   const temAlunosParaExibir = alunosComStatusPei.length > 0;
@@ -416,20 +334,17 @@ export default function MeuAcompanhamentoProfessor() {
       <div style={estilos.content}>
         <BotaoVoltar />
         <h1 style={estilos.title}>Meu Acompanhamento de PEIs</h1>
-        {professorLogado && (
-          <h2 style={estilos.subtitle}>Professor: {professorLogado.nome}</h2>
-        )}
+        {user && <h2 style={estilos.subtitle}>Professor: {user.nome}</h2>}
 
         <p style={{ marginBottom: "20px" }}>
           Status detalhado dos PEIs de seus alunos, com base nos prazos de
           criação e revisões.
         </p>
 
-        {!temAlunosParaExibir && !loading ? (
+        {!temAlunosParaExibir ? (
           <div style={estilos.mensagemAviso}>
-            Nenhum aluno encontrado para suas turmas e escolas vinculadas neste
-            ano letivo, ou nenhum PEI criado/revisado para eles. Verifique suas
-            vinculações de turmas e escolas.
+            Nenhum aluno com PEI encontrado para suas turmas e escolas
+            vinculadas.
           </div>
         ) : (
           <table style={estilos.table}>
@@ -443,7 +358,6 @@ export default function MeuAcompanhamentoProfessor() {
               </tr>
             </thead>
             <tbody>
-              {/* Renderiza a lista FILTRADA de alunos com pendência real */}
               {alunosComStatusPei.map((aluno) => (
                 <tr key={aluno.id}>
                   <td style={estilos.td}>{aluno.nome}</td>
@@ -452,11 +366,10 @@ export default function MeuAcompanhamentoProfessor() {
                       style={{
                         fontWeight: "bold",
                         color: aluno.statusPeiGeral.includes("Atrasado")
-                          ? "#dc3545" // Vermelho
-                          : aluno.statusPeiGeral.includes("Em dia") ||
-                              aluno.statusPeiGeral.includes("Criado")
-                            ? "#28a745" // Verde
-                            : "#ffc107", // Amarelo
+                          ? "#dc3545"
+                          : aluno.statusPeiGeral.includes("Criado")
+                            ? "#28a745"
+                            : "#ffc107",
                       }}
                     >
                       {aluno.statusPeiGeral}
@@ -468,8 +381,7 @@ export default function MeuAcompanhamentoProfessor() {
                         fontWeight: "bold",
                         color: aluno.statusRevisao1.includes("Atrasado")
                           ? "#dc3545"
-                          : aluno.statusRevisao1.includes("Em dia") ||
-                              aluno.statusRevisao1.includes("Feita")
+                          : aluno.statusRevisao1.includes("Feita")
                             ? "#28a745"
                             : "#ffc107",
                       }}
@@ -483,8 +395,7 @@ export default function MeuAcompanhamentoProfessor() {
                         fontWeight: "bold",
                         color: aluno.statusRevisao2.includes("Atrasado")
                           ? "#dc3545"
-                          : aluno.statusRevisao2.includes("Em dia") ||
-                              aluno.statusRevisao2.includes("Feita")
+                          : aluno.statusRevisao2.includes("Feita")
                             ? "#28a745"
                             : "#ffc107",
                       }}
@@ -493,7 +404,8 @@ export default function MeuAcompanhamentoProfessor() {
                     </span>
                   </td>
                   <td style={estilos.td}>
-                    {formatDate(aluno.dataUltimaAtualizacaoPei)}
+                    {/* Aqui a data já vem formatada da lógica */}
+                    {aluno.dataUltimaAtualizacaoPei}
                   </td>
                 </tr>
               ))}
@@ -505,7 +417,7 @@ export default function MeuAcompanhamentoProfessor() {
   );
 }
 
-// Estilos (reutilizados dos outros componentes para consistência)
+// Seus estilos (mantidos como estão)
 const estilos = {
   container: {
     minHeight: "100vh",

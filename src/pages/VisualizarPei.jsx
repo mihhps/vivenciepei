@@ -10,7 +10,7 @@ const coresPorNivel = {
   AL: "#cce5ff",
   AG: "#d0f0c0",
   AV: "#eeeeee",
-  I: "#f0ccff"
+  I: "#f0ccff",
 };
 
 function calcularIdadeEFaixa(nascimento) {
@@ -20,15 +20,24 @@ function calcularIdadeEFaixa(nascimento) {
   let idade = hoje.getFullYear() - nasc.getFullYear();
   const m = hoje.getMonth() - nasc.getMonth();
   if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) idade--;
-  let faixa = idade <= 3 ? "0-3 anos" : idade <= 5 ? "4-5 anos" : idade <= 8 ? "6-8 anos" : idade <= 11 ? "9-11 anos" : "12+ anos";
+  let faixa =
+    idade <= 3
+      ? "0-3 anos"
+      : idade <= 5
+        ? "4-5 anos"
+        : idade <= 8
+          ? "6-8 anos"
+          : idade <= 11
+            ? "9-11 anos"
+            : "12+ anos";
   return [idade, faixa];
 }
 
 function formatarData(dataISO) {
   if (!dataISO) return "-";
   const data = new Date(dataISO);
-  const dia = String(data.getDate()).padStart(2, '0');
-  const mes = String(data.getMonth() + 1).padStart(2, '0');
+  const dia = String(data.getDate()).padStart(2, "0");
+  const mes = String(data.getMonth() + 1).padStart(2, "0");
   const ano = data.getFullYear();
   return `${dia}-${mes}-${ano}`;
 }
@@ -68,13 +77,16 @@ export default function VisualizarPei() {
     return <div style={{ padding: "40px" }}>Carregando PEI...</div>;
   }
 
-  const aluno = alunos.find(a => a.nome === pei.aluno);
-  const [idade, faixa] = aluno ? calcularIdadeEFaixa(aluno.nascimento) : ["-", "-"];
+  const aluno = alunos.find((a) => a.nome === pei.aluno);
+  const [idade, faixa] = aluno
+    ? calcularIdadeEFaixa(aluno.nascimento)
+    : ["-", "-"];
 
   const metasAgrupadas = {};
-  pei.resumoPEI?.forEach(meta => {
+  pei.resumoPEI?.forEach((meta) => {
     if (!metasAgrupadas[meta.area]) metasAgrupadas[meta.area] = {};
-    if (!metasAgrupadas[meta.area][meta.subarea]) metasAgrupadas[meta.area][meta.subarea] = [];
+    if (!metasAgrupadas[meta.area][meta.subarea])
+      metasAgrupadas[meta.area][meta.subarea] = [];
     metasAgrupadas[meta.area][meta.subarea].push(meta);
   });
 
@@ -85,13 +97,28 @@ export default function VisualizarPei() {
         <h2 style={estilos.titulo}>Plano Educacional Individualizado (PEI)</h2>
 
         <div style={estilos.infoAluno}>
-          <p><strong>Aluno:</strong> {pei.aluno}</p>
-          <p><strong>Idade:</strong> {idade} anos ({faixa})</p>
-          <p><strong>Turma:</strong> {pei.turma}</p>
-          <p><strong>Diagnóstico:</strong> {aluno?.diagnostico || "-"}</p>
-          <p><strong>Início:</strong> {formatarData(pei.inicio)}</p>
-          <p><strong>Próxima Avaliação:</strong> {formatarData(pei.proximaAvaliacao)}</p>
-          <p><strong>Criado por:</strong> {pei.nomeCriador || "-"}</p>
+          <p>
+            <strong>Aluno:</strong> {pei.aluno}
+          </p>
+          <p>
+            <strong>Idade:</strong> {idade} anos ({faixa})
+          </p>
+          <p>
+            <strong>Turma:</strong> {pei.turma}
+          </p>
+          <p>
+            <strong>Diagnóstico:</strong> {aluno?.diagnostico || "-"}
+          </p>
+          <p>
+            <strong>Início:</strong> {formatarData(pei.inicio)}
+          </p>
+          <p>
+            <strong>Próxima Avaliação:</strong>{" "}
+            {formatarData(pei.proximaAvaliacao)}
+          </p>
+          <p>
+            <strong>Criado por:</strong> {pei.nomeCriador || "-"}
+          </p>
         </div>
 
         <hr style={{ margin: "30px 0" }} />
@@ -114,7 +141,13 @@ export default function VisualizarPei() {
                   </thead>
                   <tbody>
                     {metas.map((meta, k) => (
-                      <tr key={k} style={{ backgroundColor: coresPorNivel[meta.nivel] || "#ffffff" }}>
+                      <tr
+                        key={k}
+                        style={{
+                          backgroundColor:
+                            coresPorNivel[meta.nivel] || "#ffffff",
+                        }}
+                      >
                         <td style={estilos.cell}>{meta.objetivos}</td>
                         <td style={estilos.cell}>{meta.estrategias}</td>
                         <td style={estilos.cell}>{meta.nivel}</td>
@@ -128,7 +161,10 @@ export default function VisualizarPei() {
         ))}
 
         <div style={{ marginTop: "50px", textAlign: "right" }}>
-          <p><strong>Elaborado por:</strong> {usuario?.nome || "-"} ({usuario?.cargo || "-"})</p>
+          <p>
+            <strong>Elaborado por:</strong> {usuario?.nome || "-"} (
+            {usuario?.cargo || "-"})
+          </p>
         </div>
       </div>
     </div>
@@ -141,7 +177,7 @@ const estilos = {
     justifyContent: "center",
     padding: "150px",
     fontFamily: "'Segoe UI', sans-serif",
-    backgroundColor: "#f8f9fa"
+    backgroundColor: "#f8f9fa",
   },
   card: {
     width: "100%",
@@ -160,12 +196,12 @@ const estilos = {
   subtitulo: {
     fontSize: "20px",
     marginBottom: "15px",
-    color: "#333"
+    color: "#333",
   },
   tituloSubarea: {
     fontSize: "17px",
     color: "#457b9d",
-    marginBottom: "10px"
+    marginBottom: "10px",
   },
   infoAluno: {
     fontSize: "16px",
@@ -176,7 +212,7 @@ const estilos = {
     padding: "20px",
     border: "1px solid #ddd",
     borderRadius: "12px",
-    backgroundColor: "#fafafa"
+    backgroundColor: "#fafafa",
   },
   tabela: {
     width: "100%",
@@ -186,6 +222,6 @@ const estilos = {
     border: "1px solid #ccc",
     padding: "10px",
     verticalAlign: "top",
-    whiteSpace: "pre-wrap"
-  }
+    whiteSpace: "pre-wrap",
+  },
 };

@@ -70,7 +70,7 @@ function DetalhesEscolaPEIs({ escolaId, nomeEscola, anoLetivo, onVoltar }) {
         );
 
         const peisEscolaQuery = query(
-          collection(db, "PEIs"),
+          collection(db, "peis"), // <<< CORRIGIDO PARA MINÚSCULAS,
           where("escolaId", "==", escolaId),
           where("anoLetivo", "==", anoLetivo)
         );
@@ -192,10 +192,10 @@ function DetalhesEscolaPEIs({ escolaId, nomeEscola, anoLetivo, onVoltar }) {
                     item.statusPEI === "Concluído"
                       ? "status-concluido"
                       : item.ehAtrasado
-                      ? "status-atrasado"
-                      : item.statusPEI === "Pendente de Criação"
-                      ? "status-pendente"
-                      : ""
+                        ? "status-atrasado"
+                        : item.statusPEI === "Pendente de Criação"
+                          ? "status-pendente"
+                          : ""
                   }`}
                 >
                   {item.statusPEI}

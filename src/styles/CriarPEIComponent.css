@@ -1,177 +1,645 @@
 /* src/styles/CriarPEIComponent.css */
 
+/* ==================================== */
+/* 1. VARIÁVEIS CSS (CUSTOM PROPERTIES) */
+/* ==================================== */
+:root {
+  /* Cores Principais */
+  --color-primary: #1d3557; /* Azul Escuro */
+  --color-secondary: #457b9d; /* Azul Médio */
+  --color-tertiary: #2a9d8f; /* Verde Água (para sucesso/botões) */
+  --color-error: #e63946; /* Vermelho */
+
+  /* Cores de Fundo */
+  --bg-page: var(--color-primary); /* Mesmo da primaria, para o container */
+  --bg-card: #ffffff;
+  --bg-selector: #f1f1f1;
+  --bg-meta: #f9f9f9;
+  --bg-subarea: #fafafa;
+  --bg-box-summary: #f4f4f4;
+  --bg-button-neutral: #f0f0f0; /* Cinza para botões inativos */
+  --bg-success-light: #e6fff2; /* Fundo para mensagem de sucesso */
+  --bg-error-light: #ffe6e6; /* Fundo para mensagem de erro */
+  --bg-info-light: #e7f3fe; /* Fundo para texto de informação */
+  --bg-objective: #e8f5e9; /* Fundo para objetivo da meta */
+
+  /* Cores de Texto */
+  --text-primary: var(--color-primary);
+  --text-secondary: var(--color-secondary);
+  --text-success: var(--color-tertiary);
+  --text-error: var(--color-error);
+  --text-light: #fff;
+  --text-neutral: #666; /* Para textos de placeholder/info */
+  --text-dark-green: #388e3c; /* Para texto do objetivo */
+  --text-dark-blue: #0d47a1; /* Para texto de informação */
+
+  /* Bordas */
+  --border-color-default: #ccc;
+  --border-color-meta: #ddd;
+  --border-color-success: var(--color-tertiary);
+  --border-color-error: var(--color-error);
+  --border-color-objective: #4caf50; /* Borda esquerda do objetivo */
+  --border-color-info: #2196f3; /* Borda esquerda da info */
+
+  /* Espaçamentos (prefixo `space-` é comum) */
+  --space-xxs: 4px;
+  --space-xs: 8px;
+  --space-sm: 10px;
+  --space-md: 15px;
+  --space-lg: 20px;
+  --space-xl: 30px;
+  --space-xxl: 40px;
+
+  /* Tamanhos de Fonte (prefixo `font-size-` é comum) */
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-md: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 20px;
+  --font-size-xxl: 22px;
+  --font-size-title: 26px; /* Renomeado para mais clareza */
+
+  /* Border Radius (prefixo `radius-` é comum) */
+  --radius-xs: 3px; /* Para checkboxes */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --radius-card: 16px;
+  --radius-button: 20px; /* Para botões arredondados */
+
+  /* Sombras */
+  --shadow-card: 0 4px 15px rgba(0, 0, 0, 0.1);
+  --shadow-card-alt: 0 0 25px rgba(22, 1, 114, 0.2);
+
+  /* Fontes */
+  --font-family-base: "Segoe UI", sans-serif; /* Renomeado */
+
+  /* Transições */
+  --transition-fast: 0.2s ease-in-out;
+  --transition-normal: 0.3s ease;
+
+  /* Para rgba() em box-shadow ou outros lugares onde a cor primária é usada com opacidade */
+  --color-primary-rgb: 29, 53, 87; /* RGB de #1d3557 */
+}
+
+/* ================== */
+/* 2. ESTILOS GERAIS  */
+/* ================== */
+body {
+  margin: 0; /* Boas práticas: remover margem padrão do body */
+  font-family: var(--font-family-base);
+  background: var(
+    --bg-page
+  ); /* Garante que o fundo da página siga a variável */
+}
+
 .container {
-  background: #1d3557;
   min-height: 100vh;
   width: 100vw;
-  padding: 30px;
+  padding: var(--space-xl);
   box-sizing: border-box;
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  font-family: "Segoe UI", sans-serif;
+  font-family: var(--font-family-base); /* Consistência */
 }
 
 .card {
-  background: #fff;
+  background: var(--bg-card);
   max-width: 1000px;
   width: 100%;
   margin: 0 auto;
-  padding: 30px;
-  border-radius: 16px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  padding: var(--space-xl);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
   display: flex;
   flex-direction: column;
+  position: relative; /* Necessário para posicionar o botão "Ver PEIs" */
 }
 
 .titulo {
   text-align: center;
-  color: #1d3557;
-  margin-bottom: 25px;
-  font-size: 26px;
+  color: var(--text-primary);
+  margin-bottom: var(--space-lg);
+  font-size: var(--font-size-title); /* Usando a variável renomeada */
   font-weight: 600;
 }
 
-.seletor-aluno {
-  /* Nova classe para o seletorAluno */
-  margin-bottom: 30px;
-  background-color: #f1f1f1;
-  padding: 20px;
-  border-radius: 12px;
+.form-label {
+  display: block;
+  margin-bottom: var(--space-xs);
+  font-weight: bold;
+  color: var(--text-primary);
 }
 
-.filter-label {
-  /* Nova classe para filterLabel */
-  font-weight: bold;
-  margin-bottom: 8px;
-  display: block;
-  color: #1d3557;
+.textarea-form {
+  width: 100%;
+  min-height: 80px;
+  padding: var(--space-xs);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color-default);
+  font-size: var(--font-size-sm);
+  resize: vertical;
+  box-sizing: border-box;
+  margin-top: var(--space-xs);
+  margin-bottom: var(--space-sm);
+  font-family: var(--font-family-base);
+  color: var(--text-primary); /* Garante cor do texto */
+}
+/* Estilo para placeholder */
+.textarea-form::placeholder {
+  color: var(--text-neutral);
+}
+
+.info-text {
+  text-align: center;
+  font-style: italic;
+  color: var(--text-dark-blue); /* Ajustado para variável mais adequada */
+  background-color: var(--bg-info-light); /* Usando variável */
+  border-left: 4px solid var(--border-color-info); /* Usando variável */
+  padding: var(--space-md); /* Ajustado para variável */
+  margin: var(--space-lg) 0;
+  border-radius: var(--radius-sm); /* Ajustado para variável */
+}
+
+/* ======================= */
+/* 3. COMPONENTE: SELETOR  */
+/* ======================= */
+.seletor-aluno {
+  margin-bottom: var(--space-xl);
+  background-color: var(--bg-selector);
+  padding: var(--space-lg);
+  border-radius: var(--radius-xl);
 }
 
 .filter-select {
-  /* Nova classe para filterSelect */
   width: 100%;
-  padding: 10px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  background-color: #fff;
-  font-size: 16px;
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color-default);
+  background-color: var(--bg-card);
+  font-size: var(--font-size-md);
+  box-sizing: border-box;
+  color: var(--text-primary); /* Garante cor do texto */
+}
+
+/* ============================== */
+/* 4. COMPONENTE: BOTÕES DE ÁREA  */
+/* ============================== */
+.area-buttons-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
 }
 
 .area-button {
-  /* Nova classe para areaButton */
-  padding: 10px 18px;
-  border-radius: 20px;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-button);
   border: none;
-  margin: 4px;
-  background-color: #f0f0f0;
+  background-color: var(--bg-button-neutral);
+  color: var(--text-primary);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--transition-normal); /* Usando variável */
   white-space: nowrap;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  flex-grow: 1; /* Permite que os botões cresçam e preencham o espaço */
+  flex-basis: auto; /* Define a base de tamanho automática */
+  min-width: 80px; /* Garante um tamanho mínimo para botões pequenos */
 }
 
 .area-button-ativa {
-  /* Nova classe para areaButtonAtiva */
-  background-color: #1d3557;
-  color: #fff;
+  background-color: var(--color-primary);
+  color: var(--text-light);
   font-weight: bold;
+}
+
+.area-button:hover:not(.area-button-ativa) {
+  background-color: #e0e0e0;
+}
+
+/* =========================== */
+/* 5. COMPONENTE: METAS / PEI  */
+/* =========================== */
+.section-content {
+  margin-top: var(--space-lg);
 }
 
 .meta-card {
-  /* Nova classe para metaCard */
-  background: #f9f9f9;
-  border: 1px solid #ddd;
-  border-radius: 12px;
-  padding: 15px;
-  margin-bottom: 15px;
+  background: var(--bg-meta);
+  border: 1px solid var(--border-color-meta);
+  border-radius: var(--radius-xl); /* Mantido radius-xl, ou use radius-card */
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
 }
 
-.textarea {
-  width: calc(100% - 16px);
-  min-height: 80px;
-  margin: 8px 0;
-  padding: 8px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  font-size: 14px;
-  resize: vertical;
-  box-sizing: border-box;
+.meta-card h3 {
+  color: var(--text-primary);
+  margin-top: 0;
+  margin-bottom: var(--space-xs);
+  font-size: var(--font-size-lg);
+  border-bottom: 1px solid #eee; /* Poderia ser uma variável de borda também */
+  padding-bottom: var(
+    --space-xs
+  ); /* Adicionado padding para separar o título */
 }
 
-.botao-salvar {
-  /* Nova classe para botaoSalvar */
-  background-color: #2a9d8f;
-  color: #fff;
-  padding: 14px 24px;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
+.meta-card p {
+  margin-bottom: var(--space-xs);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+}
+
+.meta-card strong {
   font-weight: bold;
-  display: block;
-  margin: 30px auto 0;
-  cursor: pointer;
-  transition: background-color 0.3s;
 }
 
+.meta-objective {
+  background: var(--bg-objective); /* Usando variável */
+  border-left: 4px solid var(--border-color-objective); /* Usando variável */
+  padding: var(--space-sm) var(--space-md); /* Ajustei para ser mais consistente, antes era 10px 15px */
+  margin-top: var(--space-sm);
+  margin-bottom: var(--space-md); /* Ajustado para variável */
+  border-radius: var(--radius-sm);
+  font-style: italic;
+  color: var(--text-dark-green); /* Usando variável */
+  font-size: var(--font-size-sm); /* Consistência */
+}
+
+.meta-fieldset {
+  border: 1px solid var(--border-color-default);
+  border-radius: var(--radius-sm);
+  padding: var(--space-md);
+  margin-top: var(--space-sm);
+}
+
+.meta-fieldset legend {
+  font-weight: bold;
+  color: var(--text-primary);
+  padding: 0 var(--space-xxs);
+}
+
+/* ================================== */
+/* 6. COMPONENTE: ESTRATÉGIAS (CHECKBOX) */
+/* ================================== */
+/* ================================== */
+/* 6. COMPONENTE: ESTRATÉGIAS (CHECKBOX) */
+/* ================================== */
+
+/* O container do checkbox agora é o <label> que envolve o input e o texto */
+.checkbox-container {
+  display: flex;
+  align-items: center; /* Alinha o checkbox e o texto centralmente */
+  margin-bottom: var(--space-xs);
+  cursor: pointer;
+  position: relative; /* Essencial para o posicionamento absoluto do .checkmark */
+  padding-left: calc(
+    var(--font-size-md) + var(--space-md)
+  ); /* Espaço para o checkbox customizado + um pouco de margem */
+  user-select: none; /* Impede que o texto seja selecionado ao clicar repetidamente */
+  color: var(--text-primary); /* Cor padrão do texto do label */
+  font-size: var(--font-size-sm); /* Tamanho padrão da fonte */
+  line-height: 1.4; /* Espaçamento da linha para o texto do label */
+}
+
+/* Esconde o checkbox original do navegador */
+.checkbox-container input[type="checkbox"] {
+  position: absolute;
+  opacity: 0; /* Torna o input invisível, mas funcional */
+  height: 0;
+  width: 0;
+  cursor: pointer; /* Mantém o cursor de ponteiro */
+}
+
+/* O elemento span que será o visual do nosso checkbox */
+.checkmark {
+  position: absolute;
+  left: 0;
+  /* Top 50% e transform para alinhamento vertical perfeito */
+  top: 50%;
+  transform: translateY(-50%);
+  height: 18px; /* Tamanho do quadrado do checkbox */
+  width: 18px;
+  background-color: var(
+    --bg-button-neutral
+  ); /* Cor de fundo padrão (cinza claro) */
+  border: 1px solid var(--border-color-default); /* Borda */
+  border-radius: var(--radius-xs); /* Cantos levemente arredondados */
+  transition: all var(--transition-fast); /* Transição suave para mudanças de estado */
+}
+
+/* Estilo do checkmark (o 'V') */
+.checkmark:after {
+  content: "";
+  position: absolute;
+  display: none; /* Escondido por padrão */
+  left: 6px;
+  top: 3px;
+  width: 5px;
+  height: 10px;
+  border: solid var(--text-light); /* Cor branca para o 'V' */
+  border-width: 0 2px 2px 0; /* Apenas bordas direita e inferior para o 'V' */
+  transform: rotate(45deg); /* Gira para formar o 'V' */
+}
+
+/* Mostra o checkmark (o 'V') quando o input está marcado */
+.checkbox-container input[type="checkbox"]:checked ~ .checkmark:after {
+  display: block;
+}
+
+/* Muda a cor de fundo e borda do checkbox customizado quando o input está marcado */
+.checkbox-container input[type="checkbox"]:checked ~ .checkmark {
+  background-color: var(--color-primary); /* Azul escuro do tema */
+  border-color: var(--color-primary);
+}
+
+/* Estilo de hover para o checkbox customizado */
+.checkbox-container:hover input[type="checkbox"]:not(:disabled) ~ .checkmark {
+  background-color: #d1d1d1; /* Um cinza um pouco mais escuro no hover */
+  border-color: #a0a0a0;
+}
+
+/* Estilo de hover para o checkbox customizado QUANDO JÁ MARCADO */
+.checkbox-container:hover
+  input[type="checkbox"]:checked:not(:disabled)
+  ~ .checkmark {
+  background-color: var(--color-tertiary); /* Verde água no hover de marcado */
+  border-color: var(--color-tertiary);
+}
+
+/* Estilos quando o checkbox está desabilitado */
+.checkbox-container input[type="checkbox"]:disabled ~ .checkmark {
+  opacity: 0.5; /* Reduz a opacidade */
+  background-color: #e0e0e0; /* Fundo mais neutro */
+  border-color: #bbb;
+  cursor: not-allowed;
+}
+
+.checkbox-container input[type="checkbox"]:disabled ~ .checkbox-label {
+  opacity: 0.7; /* Reduz a opacidade do texto do label */
+  cursor: not-allowed;
+}
+
+/* Estilo para o texto do label que acompanha o checkbox customizado */
+/* Não precisamos mais de 'flex: 1' ou outros 'flex-basis' aqui diretamente,
+   pois o flexbox do container já lida com o alinhamento e o padding-left/position:absolute
+   se encarregam do espaçamento. */
+.checkbox-label {
+  /* Pode ser usado para estilos específicos do texto se necessário,
+     mas muitos já virão do .checkbox-container */
+}
+
+/* Estilos de foco para acessibilidade */
+.checkbox-container input[type="checkbox"]:focus-visible ~ .checkmark {
+  box-shadow:
+    0 0 0 3px rgba(var(--color-primary-rgb), 0.4),
+    inset 0 0 0 1px var(--color-primary);
+  border-color: var(--color-primary);
+}
+/* Sugestão: Adicione aqui uma variável para a cor RGB primária se for usar rgba() */
+/* Ex: --color-primary-rgb: 29, 53, 87; */
+
+/* =========================== */
+/* 7. COMPONENTE: BOTÃO SALVAR */
+/* =========================== */
+.botao-salvar {
+  background-color: var(--color-tertiary);
+  color: var(--text-light);
+  padding: var(--space-md) var(--space-lg);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-md);
+  font-weight: bold;
+  display: block; /* Para centralizar com margin: auto */
+  margin: var(--space-xl) auto 0;
+  cursor: pointer;
+  transition: background-color var(--transition-normal); /* Usando variável */
+}
+
+.botao-salvar:hover {
+  background-color: #217e75; /* Manter cor específica ou criar variável para hover */
+}
+
+.botao-salvar:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* =========================== */
+/* 8. MENSAGENS E ESTADOS     */
+/* =========================== */
 .mensagem-erro {
-  /* Nova classe para mensagemErro */
-  color: #e63946;
-  margin: 15px 0;
+  color: var(--text-error);
+  margin: var(--space-md) 0;
   text-align: center;
   font-weight: bold;
-  background-color: #ffe6e6;
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid #e63946;
+  background-color: var(--bg-error-light); /* Usando variável */
+  padding: var(--space-sm);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color-error); /* Usando variável */
 }
 
 .mensagem-sucesso {
-  /* Nova classe para mensagemSucesso */
-  color: #2a9d8f;
-  margin: 15px 0;
+  color: var(--text-success);
+  margin: var(--space-md) 0;
   text-align: center;
   font-weight: bold;
-  background-color: #e6fff2;
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid #2a9d8f;
+  background-color: var(--bg-success-light); /* Usando variável */
+  padding: var(--space-sm);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color-success); /* Usando variável */
 }
 
 .loading {
-  /* Nova classe para loading */
   text-align: center;
-  margin: 20px 0;
-  color: #1d3557;
+  margin: var(--space-lg) 0;
+  color: var(--text-primary);
+  font-size: var(--font-size-md);
 }
 
-/* === REGRAS CSS FINAIS PARA ALINHAMENTO CHECKBOX E FRASE === */
-/* Estas regras devem garantir o alinhamento esperado. */
-/* Se ainda não funcionar, podemos tentar adicionar !important aqui. */
+/* ================================= */
+/* 9. RESPONSIVIDADE BÁSICA        */
+/* ================================= */
+@media (max-width: 768px) {
+  .container {
+    padding: var(--space-lg) var(--space-md);
+  }
 
+  .card {
+    padding: var(--space-lg);
+  }
+
+  .titulo {
+    font-size: var(--font-size-xxl);
+    margin-bottom: var(--space-md);
+  }
+
+  .seletor-aluno {
+    padding: var(--space-md);
+  }
+
+  .meta-card h3 {
+    font-size: var(--font-size-md);
+  }
+
+  .form-label,
+  .meta-card p,
+  .meta-objective,
+  .meta-fieldset legend,
+  .custom-checkbox-label,
+  .textarea-form {
+    font-size: var(--font-size-sm);
+  }
+
+  .botao-salvar {
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--font-size-sm);
+  }
+
+  /* Ajustes para botões de área em telas menores */
+  .area-button {
+    flex-grow: 1; /* Permite que cresçam para ocupar o espaço */
+    flex-basis: calc(50% - var(--space-xs) / 2); /* 2 colunas */
+    font-size: var(--font-size-xs);
+  }
+  /* Para 3 colunas em telas menores */
+  @media (min-width: 481px) and (max-width: 768px) {
+    .area-button {
+      flex-basis: calc(
+        33.333% - (var(--space-xs) * 2) / 3
+      ); /* Ajuste para 3 colunas */
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .card {
+    padding: var(--space-md);
+  }
+
+  .titulo {
+    font-size: var(--font-size-xl);
+  }
+
+  .area-button {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: var(--font-size-xs);
+    flex-basis: 100%; /* Cada botão em uma linha */
+  }
+
+  .custom-checkbox-input {
+    width: 16px;
+    height: 16px;
+  }
+
+  .custom-checkbox-input:checked::before {
+    top: 2px;
+    left: 2px;
+    width: 7px;
+    height: 3px;
+    border-width: 0 0 1.5px 1.5px;
+  }
+}
+
+/* =========================== */
+/* 10. COMPONENTE: BOTÃO VOLTAR */
+/* =========================== */
+.botao-voltar {
+  background-color: var(--color-secondary);
+  color: var(--text-light);
+  padding: var(--space-xs) var(--space-md);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  font-weight: bold;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-lg);
+  text-decoration: none;
+  transition: background-color var(--transition-fast); /* Usando variável */
+  width: fit-content;
+}
+
+.botao-voltar:hover {
+  background-color: #3a688a;
+}
+
+.botao-voltar-icone {
+  font-size: var(--font-size-sm);
+}
+
+.card .botao-voltar {
+  align-self: flex-start;
+  /* Posicionamento absoluto se quiser fixar no canto superior esquerdo do card */
+  /* position: absolute; */
+  /* top: var(--space-lg); */
+  /* left: var(--space-xl); */
+}
+
+.botao-ver-peis {
+  width: auto;
+  padding: 8px 16px;
+  margin-left: auto; /* Empurra o botão para a direita */
+  margin-right: 0; /* Remove margem direita (opcional) */
+  display: block; /* Permite que margin-left: auto funcione */
+  /* Ou use display: flex + justify-content: flex-end no container */
+}
+/* src/styles/CriarPEIComponent.css */
+
+/* ... (seus estilos anteriores) ... */
+
+/* Adicione esta seção para o cabeçalho do card */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center; /* Alinha verticalmente os itens */
+  margin-bottom: var(--space-lg); /* Ou ajuste conforme preferir */
+}
+
+/* Ajuste o botão de ver PEIs (já tinha um nome parecido, mas agora é uma classe) */
+.botao-ver-peis {
+  padding: var(--space-sm) var(--space-md); /* Use variáveis */
+  border-radius: var(--radius-md); /* Use variáveis */
+  border: none;
+  background-color: var(--color-tertiary); /* Use variáveis */
+  color: var(--text-light); /* Use variáveis */
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color var(--transition-normal);
+}
+
+.botao-ver-peis:hover {
+  background-color: #217e75; /* Manter cor específica ou criar variável para hover */
+}
+
+/* Ajuste fino para o checkbox (já tínhamos discutido, mas revisando) */
 .checkbox-container {
   display: flex;
-  align-items: flex-start; /* Alinha o topo do checkbox com o topo da frase */
-  margin-bottom: 8px; /* Espaçamento entre cada item de estratégia */
-  width: 100%; /* Garante que o container ocupe a largura total disponível */
-  /* Remove flex-wrap do HTML diretamente para que ele esteja aqui no CSS se necessário */
-  flex-wrap: wrap;
+  align-items: flex-start;
+  margin-bottom: var(--space-xs);
+  width: 100%;
 }
 
-.checkbox-input {
-  flex-shrink: 0; /* Impede que o checkbox encolha */
-  margin-right: 8px; /* Espaçamento entre o checkbox e a frase */
-  margin-top: 4px; /* Ajuste vertical para alinhar o checkbox (pode ser ajustado) */
-  /* Remove display: block ou inline-block se forçado por outros CSS */
+.custom-checkbox-input {
+  /* ... (seus estilos existentes) ... */
+  margin-top: 2px; /* Ajuste este valor se o alinhamento não estiver perfeito.
+                       Comece com 0px e aumente de 1 em 1 até ficar bom. */
 }
 
-.checkbox-label {
-  flex: 1; /* flex-grow:1, flex-shrink:1, flex-basis:0% */
-  word-wrap: break-word; /* Garante que palavras longas quebrem */
-  overflow-wrap: break-word; /* Compatibilidade para quebra de palavras */
-  line-height: 1.4; /* Melhora a legibilidade em múltiplas linhas */
-  font-size: 14px; /* Mantém o tamanho da fonte */
-  white-space: normal; /* CRUCIAL: Garante que o texto quebre normalmente */
-  margin-left: 0; /* Zera qualquer margin-left inesperado */
-  max-width: none; /* Garante que não haja um max-width limitando-o */
-  min-width: 0; /* Permite que o label encolha se necessário */
+.custom-checkbox-label {
+  /* ... (seus estilos existentes) ... */
+  flex-grow: 1;
+  flex-shrink: 1;
+  flex-basis: auto;
 }
+
+/* Remova a propriedade flex-wrap do .checkbox-container se ela estiver lá
+   e a ideia é que o label quebre mas o checkbox não vá para a próxima linha.
+   Se você quiser que o checkbox também quebre (raro), mantenha. */
+/* .checkbox-container {
+  flex-wrap: wrap; // REMOVER OU MANTER DEPENDENDO DO COMPORTAMENTO DESEJADO
+} */

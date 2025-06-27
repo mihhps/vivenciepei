@@ -1,8 +1,12 @@
+// src/pages/PainelProfessor.jsx
+
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import BotaoSair from "../components/BotaoSair";
 import TrocarEscola from "../components/TrocarEscola"; // Assumindo que este componente existe e está correto
 import { verificarPrazosPEI } from "../src/services/peiStatusChecker"; // Importa o serviço criado no Passo 1
+import { ToastContainer, toast } from "react-toastify"; // Import Toastify
+import "react-toastify/dist/ReactToastify.css"; // Import CSS for Toastify
 
 export default function PainelProfessor() {
   const navigate = useNavigate();
@@ -32,6 +36,7 @@ export default function PainelProfessor() {
       setAvisosPEI({
         erro: "Não foi possível carregar o perfil do usuário logado.",
       });
+      toast.error("Erro ao carregar perfil do usuário."); // Notificação de erro
       return;
     }
 
@@ -41,20 +46,28 @@ export default function PainelProfessor() {
       setAvisosPEI({
         erro: "Acesso restrito a professores ou perfil inválido.",
       });
+      toast.warn("Acesso restrito. Faça login como professor."); // Notificação de aviso
       return;
     }
 
-    // *** CORREÇÃO AQUI: Usando currentUser.id (ID do documento Firestore) ***
+    // Usando currentUser.id (ID do documento Firestore)
     const idProfessor = currentUser.id || null;
     const anoLetivoAtual = new Date().getFullYear();
 
     if (idProfessor) {
-      const status = await verificarPrazosPEI(anoLetivoAtual, idProfessor);
-      setAvisosPEI(status);
+      try {
+        const status = await verificarPrazosPEI(anoLetivoAtual, idProfessor);
+        setAvisosPEI(status);
+      } catch (error) {
+        console.error("Erro ao verificar prazos PEI:", error);
+        setAvisosPEI({ erro: "Falha ao verificar prazos dos PEIs." });
+        toast.error("Erro ao verificar prazos dos PEIs."); // Notificação de erro
+      }
     } else {
       setAvisosPEI({
         erro: "ID do professor não encontrado no perfil de usuário logado. Verifique os dados do seu perfil.",
       });
+      toast.error("ID do professor não encontrada."); // Notificação de erro
     }
     setCarregandoAvisos(false);
   }, []);
@@ -125,24 +138,39 @@ export default function PainelProfessor() {
           >
             Criar PEI
           </button>
-          <button
+          {/* Botão "Ver PEIs" Removido */}
+          {/* <button
             style={estilos.botaoPrimario}
             onClick={() => irPara("/ver-peis")}
           >
             Ver PEIs
-          </button>
+          </button> */}
           <button
             style={estilos.botaoPrimario}
             onClick={() => irPara("/ver-avaliacoes")}
           >
             Ver Avaliações Iniciais
           </button>
+          {/* Botão "Anamnese Completa" Removido */}
+          {/* <button
+            style={estilos.botaoPrimario}
+            onClick={() => irPara("/anamnese-completa")}
+          >
+            Anamnese Completa
+          </button> */}
           <button
             style={estilos.botaoPrimario}
             onClick={() => irPara("/prazos-professor")}
           >
             Ver Prazos Anuais do PEI
           </button>
+          {/* Botão "Meu Acompanhamento PEI" Removido */}
+          {/* <button
+            style={estilos.botaoPrimario}
+            onClick={() => irPara("/meu-acompanhamento-pei")}
+          >
+            Meu Acompanhamento PEI
+          </button> */}
         </div>
 
         <div style={estilos.botoesSecundarios}>
@@ -150,6 +178,8 @@ export default function PainelProfessor() {
           <BotaoSair style={estilos.botaoSair} />
         </div>
       </div>
+      <ToastContainer position="bottom-right" autoClose={3000} />{" "}
+      {/* Adiciona o ToastContainer */}
     </div>
   );
 }

@@ -1,20 +1,21 @@
 // src/utils/gerarPDFCompleto.js
 
 import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable"; // Importe autoTable diretamente
+import autoTable from "jspdf-autotable";
 import {
   collection,
   query,
   where,
   getDocs,
-  doc as firestoreDoc, // <--- Mude aqui!
+  doc as firestoreDoc,
   getDoc,
+  orderBy, // Adicionado import para orderBy
 } from "firebase/firestore";
 import { db } from "../firebase";
 
-// Configurações de estilo para o PDF
+// --- Constantes e Estilos (Mantidos, pois já estão bem definidos) ---
 const styles = {
-  font: "times", // Fonte Times New Roman para o PDF
+  font: "times",
   fontSize: {
     small: 8,
     medium: 10,
@@ -29,22 +30,20 @@ const styles = {
     yellow: [255, 255, 0],
     blue: [0, 0, 255],
     magenta: [255, 0, 255],
-    purple: [128, 0, 128], // Adicionado roxo
-    green: [0, 128, 0], // Adicionado verde
+    purple: [128, 0, 128],
+    green: [0, 128, 0],
   },
 };
 
-// Cores para os níveis de avaliação
 const coresPorNivel = {
-  NR: styles.colors.red, // Não realizou
-  AF: styles.colors.yellow, // Apoio físico
-  AG: styles.colors.purple, // Apoio gestual
-  AV: styles.colors.grayLight, // Apoio verbal
-  AVi: styles.colors.green, // Apoio visual
-  I: styles.colors.magenta, // Independente
+  NR: styles.colors.red,
+  AF: styles.colors.yellow,
+  AG: styles.colors.purple,
+  AV: styles.colors.grayLight,
+  AVi: styles.colors.green,
+  I: styles.colors.magenta,
 };
 
-// Legenda dos níveis de avaliação
 const legendaNiveis = {
   NR: "Não realizou",
   AF: "Apoio físico",
@@ -54,34 +53,29 @@ const legendaNiveis = {
   I: "Independente",
 };
 
-// Função para formatar datas de forma robusta para exibição no PDF
+// --- Funções Auxiliares (Refatoradas ou Mantidas) ---
+
+/**
+ * Formata um objeto de data ou string para o formato DD/MM/AAAA.
+ * @param {firebase.firestore.Timestamp|Date|string} data - A data a ser formatada.
+ * @returns {string} Data formatada ou "-" se inválido.
+ */
 function formatarData(data) {
   if (!data) return "-";
 
   try {
     let dateObj;
     if (typeof data.toDate === "function") {
-      // Firestore Timestamp
       dateObj = data.toDate();
     } else if (data instanceof Date) {
-      // Objeto Date nativo
       dateObj = data;
     } else if (typeof data === "string") {
-      // String (ISO ou YYYY-MM-DD)
-      if (data.includes("T")) {
-        // Tenta parsear formato ISO (com 'T')
-        dateObj = new Date(data);
-      } else {
-        // Assume YYYY-MM-DD
-        const [year, month, day] = data.split("-").map(Number);
-        dateObj = new Date(year, month - 1, day);
-      }
+      dateObj = new Date(data);
     } else {
-      // Caso de dado inesperado
       return "-";
     }
 
-    if (isNaN(dateObj.getTime())) return "-"; // Verifica se a data é válida
+    if (isNaN(dateObj.getTime())) return "-";
 
     const dia = dateObj.getDate().toString().padStart(2, "0");
     const mes = (dateObj.getMonth() + 1).toString().padStart(2, "0");
@@ -94,7 +88,11 @@ function formatarData(data) {
   }
 }
 
-// Função para adicionar rodapé em todas as páginas do PDF
+/**
+ * Adiciona o rodapé padrão a uma página do PDF.
+ * @param {jsPDF} doc - Instância do jsPDF.
+ * @param {number} pageHeight - Altura da página do PDF.
+ */
 function addFooter(doc, pageHeight) {
   doc.setFont(styles.font, "normal");
   doc.setFontSize(styles.fontSize.small);
@@ -116,174 +114,109 @@ function addFooter(doc, pageHeight) {
   );
 }
 
-// Função principal para gerar o PDF completo do PEI
-export async function gerarPDFCompleto(aluno, usuarioLogado) {
-  if (!aluno?.id || !aluno?.nome) {
-    console.error("ID ou nome do aluno não definido para gerar o PDF!");
-    return;
+/**
+ * Garante que há espaço suficiente na página ou adiciona uma nova página.
+ * @param {jsPDF} doc - Instância do jsPDF.
+ * @param {number} currentY - Posição Y atual no documento.
+ * @param {number} requiredSpace - Espaço mínimo necessário para o próximo conteúdo.
+ * @param {number} [footerHeight=25] - Altura aproximada do rodapé.
+ * @returns {number} Nova posição Y.
+ */
+function ensurePageSpace(doc, currentY, requiredSpace, footerHeight = 25) {
+  const pageHeight = doc.internal.pageSize.getHeight();
+  if (currentY + requiredSpace > pageHeight - footerHeight) {
+    doc.addPage();
+    addFooter(doc, pageHeight); // Adiciona rodapé na página anterior antes de adicionar nova
+    return 20; // Y inicial da nova página
   }
-  console.log("ID da Escola do Aluno:", aluno.escolaId);
-  const doc = new jsPDF();
-  let y = 45; // Posição vertical inicial
+  return currentY;
+}
 
-  // --- Seção: Cabeçalho do Documento ---
-  doc.addImage("/logo.jpg", "JPEG", 10, 10, 128, 25); // Adiciona o logo
-  doc.setFont(styles.font, "bold");
-  doc.setFontSize(styles.fontSize.title);
-  doc.text("PLANO EDUCACIONAL INDIVIDUALIZADO (PEI)", 105, y, {
-    align: "center",
-  });
-  y += 10;
-
-  // --- Seção: Buscar Dados da Escola ---
-  let nomeEscola = "-";
-  if (aluno.escolaId) {
-    try {
-      // CORRIGIDO: Usando 'doc' importado diretamente
-      const escolaRef = firestoreDoc(db, "escolas", aluno.escolaId);
-      const escolaSnap = await getDoc(escolaRef);
-      if (escolaSnap.exists()) {
-        nomeEscola = escolaSnap.data().nome || "-";
-      }
-    } catch (err) {
-      console.error("Erro ao buscar nome da escola:", err);
-    }
-  }
-
-  // --- Seção: Buscar Avaliação Inicial do Aluno ---
-  let avaliacao = {};
+/**
+ * Busca os PEIs de um aluno no Firestore.
+ * Prioriza 'pei_contribuicoes' e fallback para 'peis'.
+ * @param {string} alunoId - ID do aluno.
+ * @param {string} alunoNome - Nome do aluno (para fallback).
+ * @returns {Promise<Array<Object>>} Lista de PEIs.
+ */
+async function fetchPeis(alunoId, alunoNome) {
   try {
-    const queryAvaliacao = query(
-      collection(db, "avaliacoesIniciais"),
-      where("alunoId", "==", aluno.id) // Preferir alunoId para buscar a avaliação
+    let peis = [];
+    const newCollectionRef = collection(db, "pei_contribuicoes");
+    const oldCollectionRef = collection(db, "peis");
+
+    // Tentar buscar na nova coleção: pei_contribuicoes
+    let qNew = query(
+      newCollectionRef,
+      where("alunoId", "==", alunoId),
+      orderBy("dataCriacao", "desc")
     );
-    let snapAvaliacao = await getDocs(queryAvaliacao);
+    let snapNew = await getDocs(qNew);
 
-    // Fallback: Se não encontrar por alunoId, tentar por nome (para compatibilidade)
-    if (snapAvaliacao.empty) {
-      const queryAvaliacaoNome = query(
-        collection(db, "avaliacoesIniciais"),
-        where("aluno", "==", aluno.nome)
+    if (!snapNew.empty) {
+      console.log("[PDF_DEBUG] PEIs encontrados em 'pei_contribuicoes'.");
+      peis = snapNew.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    } else {
+      console.log(
+        "[PDF_DEBUG] Nenhum PEI encontrado em 'pei_contribuicoes', tentando 'peis' (coleção antiga)."
       );
-      snapAvaliacao = await getDocs(queryAvaliacaoNome);
-    }
+      // Fallback para a coleção antiga: peis
+      let qOld = query(
+        oldCollectionRef,
+        where("alunoId", "==", alunoId),
+        orderBy("dataCriacao", "desc")
+      );
+      let snapOld = await getDocs(qOld);
 
-    if (!snapAvaliacao.empty) {
-      const avaliacaoData = snapAvaliacao.docs[0].data();
-      if (avaliacaoData.respostas || avaliacaoData.habilidades) {
-        avaliacao = avaliacaoData;
+      if (snapOld.empty) {
+        // Segundo fallback para nome (caso alunoId não estivesse na coleção antiga)
+        qOld = query(
+          oldCollectionRef,
+          where("aluno", "==", alunoNome),
+          orderBy("dataCriacao", "desc")
+        );
+        snapOld = await getDocs(qOld);
+      }
+
+      if (!snapOld.empty) {
+        console.log("[PDF_DEBUG] PEIs encontrados em 'peis' (coleção antiga).");
+        peis = snapOld.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
       } else {
-        console.warn(
-          "Avaliação encontrada, mas sem estrutura esperada (respostas/habilidades):",
-          avaliacaoData
+        console.log(
+          "[PDF_DEBUG] Nenhum PEI encontrado em nenhuma das coleções."
         );
       }
-    } else {
-      console.warn(
-        "Nenhuma avaliação inicial encontrada para o aluno:",
-        aluno.nome
-      );
     }
-  } catch (err) {
-    console.error("Erro ao buscar avaliação inicial:", err);
-  }
-
-  // --- Seção: Buscar Todos os PEIs do Aluno ---
-  let todosPeis = [];
-  try {
-    // Buscar PEIs por alunoId (mais confiável)
-    let queryPeis = query(
-      collection(db, "peis"),
-      where("alunoId", "==", aluno.id)
-    );
-    let snapPeis = await getDocs(queryPeis);
-
-    // Fallback: Se não encontrar por alunoId, tenta pelo nome (para compatibilidade com dados antigos)
-    if (snapPeis.empty) {
-      queryPeis = query(
-        collection(db, "peis"),
-        where("aluno", "==", aluno.nome)
-      );
-      snapPeis = await getDocs(queryPeis);
-    }
-
-    todosPeis = snapPeis.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    return peis;
   } catch (err) {
     console.error("Erro ao buscar PEIs:", err);
+    return [];
   }
+}
 
-  // Ordena os PEIs por data de criação (do mais antigo para o mais recente)
-  const peisOrdenados = [...todosPeis].sort((a, b) => {
-    const dataA = a.criadoEm?.toDate?.() || new Date(a.criadoEm);
-    const dataB = b.criadoEm?.toDate?.() || new Date(b.criadoEm);
-    return dataA.getTime() - dataB.getTime(); // Comparar timestamps numéricos
-  });
+/**
+ * Adiciona o cabeçalho e informações do aluno ao PDF.
+ * @param {jsPDF} doc - Instância do jsPDF.
+ * @param {Object} aluno - Objeto do aluno.
+ * @param {Object} avaliacao - Objeto da avaliação inicial.
+ * @param {string} nomeEscola - Nome da escola.
+ * @param {number} y - Posição Y atual.
+ * @returns {number} Nova posição Y.
+ */
+function addStudentAndHeaderInfo(doc, aluno, avaliacao, nomeEscola, y) {
+  const imgWidth = 128;
+  const imgHeight = 25;
+  const imgX = 10;
+  const imgY = 10;
 
-  // Se não houver PEIs, gera um PDF básico e encerra
-  if (peisOrdenados.length === 0) {
-    console.warn("Nenhum PEI encontrado para o aluno, gerando PDF básico.");
-    doc.text(
-      "Nenhum Plano Educacional Individualizado (PEI) encontrado para este aluno.",
-      25,
-      y
-    );
-    addFooter(doc, doc.internal.pageSize.getHeight()); // Adiciona rodapé antes de salvar
-    doc.save(`PEI_${aluno.nome.replace(/\s+/g, "_")}.pdf`);
-    return;
-  }
+  doc.addImage("/logo.jpg", "JPEG", imgX, imgY, imgWidth, imgHeight);
+  y = imgY + imgHeight + 10; // Margem abaixo da imagem
 
-  // --- Lógica de Organização dos PEIs para Exibição no PDF ---
-  let peisParaExibir = [];
-  const peiMaisRecente = peisOrdenados[peisOrdenados.length - 1];
-
-  // Perfis ou Cargos que podem criar um PEI "base"
-  const criadoresDeBase = [
-    "PROFESSOR",
-    "PROFESSORA AEE", // Exemplo de Cargo
-    "AEE", // Exemplo de Perfil
-    "DIRETOR",
-    "DIRETOR ADJUNTO",
-    "ORIENTADOR PEDAGÓGICO",
-    "GESTAO",
-    "SEME",
-    "DESENVOLVEDOR", // Adicionado, se desenvolvedores também criam PEIs base
-  ];
-
-  let peiBaseEncontrado = null;
-  for (const pei of peisOrdenados) {
-    const cargo = pei.cargoCriador?.toUpperCase();
-    const perfil = pei.criadorPerfil?.toUpperCase();
-    if (criadoresDeBase.includes(cargo) || criadoresDeBase.includes(perfil)) {
-      peiBaseEncontrado = pei;
-      break;
-    }
-  }
-
-  const idsJaAdicionados = new Set();
-  if (peiBaseEncontrado) {
-    peisParaExibir.push(peiBaseEncontrado);
-    idsJaAdicionados.add(peiBaseEncontrado.id);
-  }
-
-  const outrosPeisHistorico = peisOrdenados.filter(
-    (pei) => !idsJaAdicionados.has(pei.id) && pei.id !== peiMaisRecente.id
-  );
-  outrosPeisHistorico.forEach((pei) => peisParaExibir.push(pei));
-
-  if (!idsJaAdicionados.has(peiMaisRecente.id)) {
-    peisParaExibir.push(peiMaisRecente);
-  }
-
-  // --- Seção: Informações do Aluno ---
   doc.setFont(styles.font, "normal");
   doc.setFontSize(styles.fontSize.large);
 
   const dataNascTexto = formatarData(aluno.nascimento);
   const dataAvaliacaoTexto = formatarData(avaliacao?.inicio);
-  const proximaAvaliacaoTexto =
-    formatarData(avaliacao?.proximaAvaliacao) ||
-    formatarData(peiMaisRecente?.proximaAvaliacao) ||
-    "-";
 
   const infoAluno = [
     `Escola: ${nomeEscola}`,
@@ -291,120 +224,134 @@ export async function gerarPDFCompleto(aluno, usuarioLogado) {
     `Data de Nascimento: ${dataNascTexto}`,
     `Diagnóstico: ${aluno.diagnostico || "-"}`,
     `Data da Avaliação Inicial: ${dataAvaliacaoTexto}`,
-    `Data da Próxima Avaliação: ${proximaAvaliacaoTexto}`,
+    `Data da Próxima Avaliação: ${formatarData(avaliacao?.proximaAvaliacao) || "-"}`,
   ];
 
   infoAluno.forEach((info) => {
     doc.text(info, 20, y);
     y += 6;
   });
-  y += 4;
+  return y + 4;
+}
 
-  // --- Seção: Avaliação Inicial ---
-  if (avaliacao.respostas || avaliacao.habilidades) {
-    if (y + 30 > doc.internal.pageSize.getHeight()) {
-      doc.addPage();
-      y = 20;
-    }
-    doc.setFont(styles.font, "bold");
-    doc.setFontSize(styles.fontSize.large);
-    doc.text("Avaliação Inicial", 20, y);
-    y += 8;
+/**
+ * Adiciona a seção de Avaliação Inicial ao PDF.
+ * @param {jsPDF} doc - Instância do jsPDF.
+ * @param {Object} avaliacao - Objeto da avaliação inicial.
+ * @param {number} y - Posição Y atual.
+ * @returns {number} Nova posição Y.
+ */
+function addInitialAssessment(doc, avaliacao, y) {
+  const dadosAvaliacao = avaliacao?.respostas || avaliacao?.habilidades;
 
-    const dadosAvaliacao = avaliacao.respostas || avaliacao.habilidades;
-
-    for (const area in dadosAvaliacao) {
-      const habilidades = dadosAvaliacao[area];
-      const linhasDaArea = [];
-
-      for (const habilidade in habilidades) {
-        const nivel = habilidades[habilidade];
-        if (nivel !== "NA" && nivel !== "I") {
-          linhasDaArea.push([habilidade, nivel, legendaNiveis[nivel] || "-"]);
-        }
-      }
-
-      if (linhasDaArea.length === 0) continue;
-
-      if (y + 30 > doc.internal.pageSize.getHeight()) {
-        doc.addPage();
-        y = 20;
-      }
-
-      doc.setFont(styles.font, "bold");
-      doc.setFontSize(styles.fontSize.medium);
-      doc.text(area, 20, y);
-      y += 6;
-
-      autoTable(doc, {
-        startY: y,
-        head: [["Habilidade", "Nível", "Descrição"]],
-        body: linhasDaArea,
-        styles: {
-          font: styles.font,
-          fontSize: styles.fontSize.small,
-          cellPadding: 1.5,
-          valign: "middle",
-          textColor: styles.colors.black,
-          fillColor: styles.colors.white,
-          lineColor: styles.colors.black,
-          lineWidth: 0.1,
-        },
-        headStyles: {
-          fillColor: styles.colors.white,
-          textColor: styles.colors.black,
-          fontStyle: "bold",
-          halign: "center",
-        },
-        columnStyles: {
-          0: { cellWidth: 90 },
-          1: { cellWidth: 18, halign: "center" },
-          2: { cellWidth: 75 },
-        },
-        margin: { bottom: 25 },
-        didParseCell: (data) => {
-          if (data.column.index === 1 && coresPorNivel[data.cell.text]) {
-            data.cell.styles.fillColor = coresPorNivel[data.cell.text];
-          }
-        },
-        didDrawPage: (data) => {
-          addFooter(doc, doc.internal.pageSize.getHeight());
-        },
-      });
-
-      y = doc.lastAutoTable.finalY + 10;
-    }
-  } else {
+  if (!dadosAvaliacao || Object.keys(dadosAvaliacao).length === 0) {
     doc.text(
       "Nenhuma avaliação inicial detalhada encontrada ou com dados incompletos.",
       25,
       y
     );
-    y += 10;
+    return y + 10;
   }
 
-  // --- Seção: Exibição dos PEIs (Histórico) ---
-  peisParaExibir.forEach((peiItem, index) => {
-    const resumo = peiItem.resumoPEI || peiItem.areas || [];
+  y = ensurePageSpace(doc, y, 30);
+  doc.setFont(styles.font, "bold");
+  doc.setFontSize(styles.fontSize.large);
+  doc.text("Avaliação Inicial", 20, y);
+  y += 8;
 
-    if (y + 60 > doc.internal.pageSize.getHeight()) {
-      doc.addPage();
-      y = 20;
+  for (const area in dadosAvaliacao) {
+    const habilidades = dadosAvaliacao[area];
+    const linhasDaArea = [];
+
+    for (const habilidade in habilidades) {
+      const nivel = habilidades[habilidade];
+      if (nivel !== "NA" && nivel !== "I") {
+        linhasDaArea.push([habilidade, nivel, legendaNiveis[nivel] || "-"]);
+      }
     }
 
-    doc.setFont(styles.font, "bold");
-    doc.setFontSize(styles.fontSize.large);
-    doc.text(
-      `Plano Educacional Individualizado (PEI)`,
-      doc.internal.pageSize.getWidth() / 2,
-      y,
-      {
-        align: "center",
-      }
-    );
-    y += 8;
+    if (linhasDaArea.length === 0) continue;
 
-    const linhasPEI = resumo.map((item) => [
+    y = ensurePageSpace(doc, y, 30);
+    doc.setFont(styles.font, "bold");
+    doc.setFontSize(styles.fontSize.medium);
+    doc.text(area, 20, y);
+    y += 6;
+
+    autoTable(doc, {
+      startY: y,
+      head: [["Habilidade", "Nível", "Descrição"]],
+      body: linhasDaArea,
+      styles: {
+        font: styles.font,
+        fontSize: styles.fontSize.small,
+        cellPadding: 1.5,
+        valign: "middle",
+        textColor: styles.colors.black,
+        fillColor: styles.colors.white,
+        lineColor: styles.colors.black,
+        lineWidth: 0.1,
+      },
+      headStyles: {
+        fillColor: styles.colors.white,
+        textColor: styles.colors.black,
+        fontStyle: "bold",
+        halign: "center",
+      },
+      columnStyles: {
+        0: { cellWidth: 90 },
+        1: { cellWidth: 18, halign: "center" },
+        2: { cellWidth: 75 },
+      },
+      margin: { bottom: 25 },
+      didParseCell: (data) => {
+        if (data.column.index === 1 && coresPorNivel[data.cell.text]) {
+          data.cell.styles.fillColor = coresPorNivel[data.cell.text];
+        }
+      },
+      didDrawPage: (data) => {
+        addFooter(doc, doc.internal.pageSize.getHeight());
+      },
+    });
+    y = doc.lastAutoTable.finalY + 10;
+  }
+  return y;
+}
+
+/**
+ * Adiciona a seção de PEIs consolidados ao PDF.
+ * @param {jsPDF} doc - Instância do jsPDF.
+ * @param {Array<Object>} peisParaExibir - PEIs a serem exibidos.
+ * @param {number} y - Posição Y atual.
+ * @returns {number} Nova posição Y.
+ */
+function addConsolidatedPeiSection(doc, peisParaExibir, y) {
+  const allPeiTableRows = [];
+  let totalPeiContributions = 0;
+
+  peisParaExibir.forEach((peiItem) => {
+    const resumo = peiItem.resumoPEI || peiItem.areas || [];
+    if (resumo.length === 0) return;
+
+    totalPeiContributions++;
+
+    // Linha de separação para identificar o colaborador e o PEI
+    allPeiTableRows.push([
+      {
+        content: `Elaborado por: ${peiItem.nomeCriador || "Desconhecido"} - Cargo: ${peiItem.cargoCriador || "Não Informado"}`, // <--- Linha ALTERADA
+        colSpan: 6,
+        styles: {
+          fontStyle: "bold",
+          fillColor: styles.colors.grayLight,
+          textColor: styles.colors.black,
+          halign: "center",
+          cellPadding: 2,
+        },
+      },
+    ]);
+
+    // Adiciona as linhas com as habilidades e estratégias deste PEI
+    const linhasDoPeiAtual = resumo.map((item) => [
       item.area || "-",
       item.habilidade || "-",
       typeof item.objetivo === "string" ? item.objetivo : "-",
@@ -416,170 +363,125 @@ export async function gerarPDFCompleto(aluno, usuarioLogado) {
       item.nivel || "-",
       item.nivelAlmejado || "-",
     ]);
+    allPeiTableRows.push(...linhasDoPeiAtual);
 
-    const larguraPagina = doc.internal.pageSize.getWidth();
-    const margemPEI = (larguraPagina - 195) / 2;
-
-    autoTable(doc, {
-      startY: y,
-      head: [
-        [
-          "Área",
-          "Habilidade",
-          "Objetivo",
-          "Estratégias",
-          "Nível",
-          "Nível Almejado",
-        ],
-      ],
-      body: linhasPEI,
-      styles: {
-        font: styles.font,
-        fontSize: styles.fontSize.small,
-        textColor: styles.colors.black,
-        fillColor: styles.colors.white,
-        lineColor: styles.colors.black,
-        lineWidth: 0.1,
-        cellPadding: 2,
-        valign: "middle",
-      },
-      headStyles: {
-        fillColor: styles.colors.white,
-        textColor: styles.colors.black,
-        fontStyle: "bold",
-        halign: "center",
-      },
-      columnStyles: {
-        0: { cellWidth: 25 },
-        1: { cellWidth: 35 },
-        2: { cellWidth: 45 },
-        3: { cellWidth: 45 },
-        4: { cellWidth: 20, halign: "center" },
-        5: { cellWidth: 25, halign: "center" },
-      },
-      margin: { left: margemPEI, bottom: 25 },
-      didParseCell: (data) => {
-        const nivel = data.cell.text;
-        if ([4, 5].includes(data.column.index)) {
-          data.cell.styles.fillColor =
-            coresPorNivel[nivel] || styles.colors.white;
-        }
-      },
-      didDrawPage: (data) => {
-        addFooter(doc, doc.internal.pageSize.getHeight());
-      },
-    });
-
-    y = doc.lastAutoTable.finalY + 10;
-
-    // Atividade Aplicada (se existir)
+    // *** AQUI É O PONTO CHAVE PARA AS ATIVIDADES APLICADAS POR COLABORADOR ***
+    // Atividade Aplicada para este PEI (se existir), logo abaixo das estratégias e ainda
+    // sob o "cabeçalho" do colaborador.
     if (peiItem.atividadeAplicada?.trim()) {
-      const margemAtividade = (larguraPagina - 170) / 2;
-      autoTable(doc, {
-        startY: y,
-        head: [["Atividade Aplicada"]],
-        body: [[peiItem.atividadeAplicada]],
-        styles: {
-          font: styles.font,
-          fontSize: styles.fontSize.medium,
-          textColor: styles.colors.black,
-          fillColor: styles.colors.white,
-          lineColor: styles.colors.black,
-          lineWidth: 0.1,
-          cellPadding: 5,
-          valign: "top",
+      allPeiTableRows.push([
+        {
+          content: `Atividade Aplicada: ${peiItem.atividadeAplicada}`,
+          colSpan: 6, // Mescla todas as colunas para a atividade
+          styles: {
+            fontStyle: "italic", // Estilo para diferenciar
+            fontSize: styles.fontSize.small,
+            cellPadding: 2,
+            valign: "top",
+            lineColor: styles.colors.black,
+            lineWidth: 0.1,
+            fillColor: styles.colors.white,
+          },
         },
-        headStyles: {
-          fillColor: styles.colors.white,
-          textColor: styles.colors.black,
-          fontStyle: "bold",
-          halign: "center",
-        },
-        columnStyles: {
-          0: { cellWidth: 170 },
-        },
-        margin: { left: margemAtividade, bottom: 25 },
-        didDrawPage: (data) => {
-          addFooter(doc, doc.internal.pageSize.getHeight());
-        },
-      });
-      y = doc.lastAutoTable.finalY + 10;
+      ]);
     }
-
-    // Acompanhamento (se existir)
-    if (
-      resumo.length > 0 &&
-      peiItem.acompanhamento &&
-      typeof peiItem.acompanhamento === "object"
-    ) {
-      const dadosAcompanhamento = resumo.map((item) => {
-        const dados = peiItem.acompanhamento[item.habilidade] || {};
-        return [
-          item.habilidade || "-",
-          item.nivelAlmejado || "-",
-          dados.status || "-",
-          dados.observacoes || "-",
-        ];
-      });
-
-      autoTable(doc, {
-        startY: y,
-        head: [["Habilidade", "Nível Almejado", "Alcançado?", "Observações"]],
-        body: dadosAcompanhamento,
-        styles: {
-          font: styles.font,
-          fontSize: styles.fontSize.small,
-          textColor: styles.colors.black,
-          fillColor: styles.colors.white,
-          lineColor: styles.colors.black,
-          lineWidth: 0.1,
-          cellPadding: 2,
-          valign: "middle",
-        },
-        headStyles: {
-          fillColor: styles.colors.white,
-          textColor: styles.colors.black,
-          fontStyle: "bold",
-          halign: "center",
-        },
-        columnStyles: {
-          0: { cellWidth: 60 },
-          1: { cellWidth: 30, halign: "center" },
-          2: { cellWidth: 30, halign: "center" },
-          3: { cellWidth: 70 },
-        },
-        margin: { bottom: 25 },
-        didDrawPage: (data) => {
-          addFooter(doc, doc.internal.pageSize.getHeight());
-        },
-      });
-
-      y = doc.lastAutoTable.finalY + 10;
-    }
-
-    // Assinatura do criador do PEI
-    doc.setFont(styles.font, "normal");
-    doc.setFontSize(styles.fontSize.medium);
-    doc.text(`Elaborado por: ${peiItem.nomeCriador || "Desconhecido"}`, 20, y);
-    doc.text(`Cargo: ${peiItem.cargoCriador || "Não Informado"}`, 20, y + 5);
-    y += 15;
+    // NOTA: Acompanhamento não foi incluído diretamente na tabela consolidada por complexidade.
+    // Se necessário, uma solução personalizada para o acompanhamento dentro da célula ou
+    // uma sub-tabela dedicada precisaria ser implementada.
   });
 
-  // --- Seção: Legenda Final ---
+  if (totalPeiContributions === 0) {
+    doc.text(
+      "Nenhum Plano Educacional Individualizado (PEI) com estratégias detalhadas encontrado para este aluno.",
+      25,
+      y
+    );
+    return y + 10;
+  }
+
+  y = ensurePageSpace(doc, y, 60);
+  doc.setFont(styles.font, "bold");
+  doc.setFontSize(styles.fontSize.large);
+  doc.text(
+    "Plano Educacional Individualizado (PEI) Consolidado",
+    doc.internal.pageSize.getWidth() / 2,
+    y,
+    { align: "center" }
+  );
+  y += 8;
+
+  const larguraPagina = doc.internal.pageSize.getWidth();
+  const margemPEI = (larguraPagina - 195) / 2;
+
+  autoTable(doc, {
+    startY: y,
+    head: [
+      [
+        "Área",
+        "Habilidade",
+        "Objetivo",
+        "Estratégias",
+        "Nível",
+        "Nível Almejado",
+      ],
+    ],
+    body: allPeiTableRows,
+    styles: {
+      font: styles.font,
+      fontSize: styles.fontSize.small,
+      textColor: styles.colors.black,
+      fillColor: styles.colors.white,
+      lineColor: styles.colors.black,
+      lineWidth: 0.1,
+      cellPadding: 2,
+      valign: "middle",
+    },
+    headStyles: {
+      fillColor: styles.colors.white,
+      textColor: styles.colors.black,
+      fontStyle: "bold",
+      halign: "center",
+    },
+    columnStyles: {
+      0: { cellWidth: 25 },
+      1: { cellWidth: 35 },
+      2: { cellWidth: 45 },
+      3: { cellWidth: 45 },
+      4: { cellWidth: 20, halign: "center" },
+      5: { cellWidth: 25, halign: "center" },
+    },
+    margin: { left: margemPEI, bottom: 25 },
+    didParseCell: (data) => {
+      const nivel = data.cell.text;
+      if ([4, 5].includes(data.column.index)) {
+        data.cell.styles.fillColor =
+          coresPorNivel[nivel] || styles.colors.white;
+      }
+    },
+    didDrawPage: (data) => {
+      // O rodapé já é adicionado pelo ensurePageSpace ou pela última chamada.
+      // É importante ter cuidado para não adicionar duas vezes.
+    },
+  });
+  return doc.lastAutoTable.finalY + 10;
+}
+
+/**
+ * Adiciona a seção de Legenda dos Níveis ao PDF.
+ * @param {jsPDF} doc - Instância do jsPDF.
+ * @param {number} y - Posição Y atual.
+ * @returns {number} Nova posição Y.
+ */
+function addLegendSection(doc, y) {
   const pageHeight = doc.internal.pageSize.getHeight();
   const footerArea = 25;
   const minSpaceAboveFooter = 30;
 
-  if (
-    y >
-    pageHeight -
-      footerArea -
-      minSpaceAboveFooter -
-      Object.keys(legendaNiveis).length * 7
-  ) {
-    doc.addPage();
-    y = 20;
-  }
+  y = ensurePageSpace(
+    doc,
+    y,
+    Object.keys(legendaNiveis).length * 7 + minSpaceAboveFooter
+  );
 
   doc.setFont(styles.font, "bold");
   doc.setFontSize(styles.fontSize.large);
@@ -589,24 +491,26 @@ export async function gerarPDFCompleto(aluno, usuarioLogado) {
   doc.setFontSize(styles.fontSize.small);
 
   Object.entries(legendaNiveis).forEach(([sigla, descricao]) => {
-    if (y > pageHeight - footerArea - 10) {
-      doc.addPage();
-      y = 20;
-    }
+    // ensurePageSpace já cuida da quebra de página
     const cor = coresPorNivel[sigla] || styles.colors.white;
     doc.setFillColor(...cor);
     doc.rect(22, y - 4, 8, 6, "F");
     doc.text(`${sigla} – ${descricao}`, 32, y);
     y += 7;
   });
-  y += 10;
+  return y + 10;
+}
 
-  // --- Seção: Assinatura do Responsável (usuário logado) ---
+/**
+ * Adiciona a seção de Assinatura do Responsável ao PDF.
+ * @param {jsPDF} doc - Instância do jsPDF.
+ * @param {Object} usuarioLogado - Objeto do usuário logado.
+ * @param {number} y - Posição Y atual.
+ * @returns {number} Nova posição Y.
+ */
+function addLoggedInUserSignature(doc, usuarioLogado, y) {
   const signatureBlockHeight = 50;
-  if (y > pageHeight - footerArea - signatureBlockHeight) {
-    doc.addPage();
-    y = 20;
-  }
+  y = ensurePageSpace(doc, y, signatureBlockHeight);
 
   doc.setFont(styles.font, "normal");
   doc.setFontSize(styles.fontSize.medium);
@@ -623,9 +527,18 @@ export async function gerarPDFCompleto(aluno, usuarioLogado) {
   );
   y += 6;
   doc.text(`Cargo: ${usuarioLogado?.cargo || ""}`, 20, y);
-  y += 10;
+  return y + 10;
+}
 
-  // --- Seção: Tabela de Assinaturas de Profissionais ---
+/**
+ * Adiciona a tabela de assinaturas de profissionais ao PDF.
+ * @param {jsPDF} doc - Instância do jsPDF.
+ * @param {Object} aluno - Objeto do aluno.
+ * @param {Object} usuarioLogado - Objeto do usuário logado.
+ * @param {number} y - Posição Y atual.
+ * @returns {Promise<number>} Nova posição Y.
+ */
+async function addProfessionalSignaturesTable(doc, aluno, usuarioLogado, y) {
   const perfisParaTabelaAssinaturas = [
     "gestao",
     "aee",
@@ -633,109 +546,235 @@ export async function gerarPDFCompleto(aluno, usuarioLogado) {
     "diretor",
     "diretor adjunto",
     "orientador pedagógico",
-    "desenvolvedor", // Adicionado o perfil 'desenvolvedor'
+    "desenvolvedor",
   ];
 
   if (
-    perfisParaTabelaAssinaturas.includes(usuarioLogado?.perfil?.toLowerCase())
+    !perfisParaTabelaAssinaturas.includes(usuarioLogado?.perfil?.toLowerCase())
   ) {
-    try {
-      const perfisParaQuery = [
-        "professor",
-        "aee",
-        "diretor",
-        "diretor adjunto",
-        "orientador pedagógico",
-        "desenvolvedor", // Adicionado também na query para buscar os devs que podem assinar
-      ];
+    return y; // Não gera a tabela se o usuário logado não tem perfil adequado
+  }
 
-      const professoresComAssinaturaQuery = query(
-        collection(db, "usuarios"),
-        where("perfil", "in", perfisParaQuery)
-      );
-      const professoresSnap = await getDocs(professoresComAssinaturaQuery);
+  try {
+    const perfisParaQuery = [
+      "professor",
+      "aee",
+      "diretor",
+      "diretor adjunto",
+      "orientador pedagógico",
+      "desenvolvedor",
+    ];
+    const professoresComAssinaturaQuery = query(
+      collection(db, "usuarios"),
+      where("perfil", "in", perfisParaQuery)
+    );
+    const professoresSnap = await getDocs(professoresComAssinaturaQuery);
 
-      const professoresVinculados = professoresSnap.docs
-        .map((doc) => ({ id: doc.id, ...doc.data() }))
-        .filter((prof) => {
-          const estaNaEscolaDoAluno = Object.keys(prof.escolas || {}).includes(
-            aluno.escolaId
-          );
-
-          const profTurmas = Object.keys(prof.turmas || {});
-          const estaNaTurmaDoAluno =
-            aluno.turma && profTurmas.includes(aluno.turma); // Verifica se aluno tem turma e prof tem essa turma
-
-          const perfilLower = prof.perfil?.toLowerCase();
-
-          if (["professor", "aee"].includes(perfilLower)) {
-            // Professores e AEE: precisa estar na escola E, se o aluno tem turma, na turma.
-            // Se o aluno NÃO TEM turma (aluno.turma é falso), a condição da turma é ignorada (true).
-            return estaNaEscolaDoAluno && (!aluno.turma || estaNaTurmaDoAluno);
-          } else {
-            // Diretores, Orientadores, Desenvolvedores, Gestão, SEME: basta estar na escola.
-            return estaNaEscolaDoAluno;
-          }
-        });
-
-      if (professoresVinculados.length > 0) {
-        if (y + 30 > doc.internal.pageSize.getHeight() - footerArea) {
-          doc.addPage();
-          y = 20;
-        }
-
-        doc.setFont(styles.font, "bold");
-        doc.setFontSize(styles.fontSize.large);
-        doc.text("Assinaturas dos Profissionais", 20, y); // Título mais abrangente
-        y += 8;
-
-        const linhasAssinaturas = professoresVinculados.map((p) => [
-          p.nome,
-          p.cargo || p.perfil?.toUpperCase(), // Usa cargo se existir, senão perfil
-          "_______________________________", // Linha para assinatura
-        ]);
-
-        autoTable(doc, {
-          startY: y,
-          head: [["Nome Completo", "Cargo/Função", "Assinatura"]],
-          body: linhasAssinaturas,
-          styles: {
-            font: styles.font,
-            fontSize: styles.fontSize.medium,
-            textColor: styles.colors.black,
-            fillColor: styles.colors.white,
-            lineColor: styles.colors.black,
-            lineWidth: 0.1,
-            cellPadding: 2,
-          },
-          headStyles: {
-            fillColor: styles.colors.white,
-            textColor: styles.colors.black,
-            fontStyle: "bold",
-            halign: "center",
-          },
-          columnStyles: {
-            0: { cellWidth: 70 }, // Nome
-            1: { cellWidth: 60, halign: "center" }, // Cargo
-            2: { cellWidth: 60 }, // Assinatura
-          },
-          margin: { bottom: 25 },
-          didDrawPage: (data) => {
-            addFooter(doc, doc.internal.pageSize.getHeight());
-          },
-        });
-        y = doc.lastAutoTable.finalY + 10; // Atualiza 'y' após a tabela
-      } else {
-        console.warn(
-          "Nenhum profissional encontrado após a filtragem para a tabela de assinaturas. A tabela não será gerada."
+    const professoresVinculados = professoresSnap.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }))
+      .filter((prof) => {
+        const estaNaEscolaDoAluno = Object.keys(prof.escolas || {}).includes(
+          aluno.escolaId
         );
+        const profTurmas = Object.keys(prof.turmas || {});
+        const estaNaTurmaDoAluno =
+          aluno.turma && profTurmas.includes(aluno.turma);
+        const perfilLower = prof.perfil?.toLowerCase();
+
+        if (["professor", "aee"].includes(perfilLower)) {
+          return estaNaEscolaDoAluno && (!aluno.turma || estaNaTurmaDoAluno);
+        }
+        return estaNaEscolaDoAluno;
+      });
+
+    if (professoresVinculados.length === 0) {
+      console.warn(
+        "Nenhum profissional encontrado para a tabela de assinaturas."
+      );
+      return y;
+    }
+
+    y = ensurePageSpace(doc, y, 30);
+    doc.setFont(styles.font, "bold");
+    doc.setFontSize(styles.fontSize.large);
+    doc.text("Assinaturas dos Profissionais", 20, y);
+    y += 8;
+
+    const linhasAssinaturas = professoresVinculados.map((p) => [
+      p.nome,
+      p.cargo || p.perfil?.toUpperCase(),
+      "_______________________________",
+    ]);
+
+    autoTable(doc, {
+      startY: y,
+      head: [["Nome Completo", "Cargo/Função", "Assinatura"]],
+      body: linhasAssinaturas,
+      styles: {
+        font: styles.font,
+        fontSize: styles.fontSize.medium,
+        textColor: styles.colors.black,
+        fillColor: styles.colors.white,
+        lineColor: styles.colors.black,
+        lineWidth: 0.1,
+        cellPadding: 2,
+      },
+      headStyles: {
+        fillColor: styles.colors.white,
+        textColor: styles.colors.black,
+        fontStyle: "bold",
+        halign: "center",
+      },
+      columnStyles: {
+        0: { cellWidth: 70 },
+        1: { cellWidth: 60, halign: "center" },
+        2: { cellWidth: 60 },
+      },
+      margin: { bottom: 25 },
+      didDrawPage: (data) => {
+        // Rodapé já é adicionado por ensurePageSpace ou no final
+      },
+    });
+    return doc.lastAutoTable.finalY + 10;
+  } catch (err) {
+    console.error("Erro ao buscar profissionais para assinatura:", err);
+    return y;
+  }
+}
+
+// --- Função Principal: gerarPDFCompleto (Refatorada) ---
+
+export async function gerarPDFCompleto(
+  aluno,
+  avaliacao,
+  usuarioLogado,
+  peisParaGeral = null
+) {
+  const doc = new jsPDF();
+  let y = 20; // Posição Y inicial para o conteúdo
+
+  console.log("[PDF_DEBUG] Início da geração do PDF.");
+  console.log("[PDF_DEBUG] Aluno:", JSON.stringify(aluno, null, 2));
+  console.log("Usuario Logado:", JSON.stringify(usuarioLogado, null, 2));
+  console.log("Avaliação:", JSON.stringify(avaliacao, null, 2));
+  console.log(
+    "[PDF_DEBUG] PEIs passados para Geral (se aplicável):",
+    JSON.stringify(peisParaGeral, null, 2)
+  );
+
+  // --- 1. Validações Iniciais ---
+  if (!aluno || !aluno.nome || !aluno.id) {
+    console.error("gerarPDFCompleto: Dados do aluno são incompletos.");
+    doc.text("Erro: Dados do aluno incompletos.", 20, y);
+    addFooter(doc, doc.internal.pageSize.getHeight());
+    doc.save(`Erro_Dados_Aluno_Incompletos.pdf`);
+    return;
+  }
+
+  // --- 2. Busca e Preparação dos PEIs ---
+  let peisParaProcessar;
+  if (Array.isArray(peisParaGeral) && peisParaGeral.length > 0) {
+    peisParaProcessar = peisParaGeral;
+    console.log("[PDF_DEBUG] Usando PEIs passados como peisParaGeral.");
+  } else {
+    peisParaProcessar = await fetchPeis(aluno.id, aluno.nome);
+  }
+
+  // Ordena os PEIs para exibição (do mais novo para o mais antigo, por data de criação)
+  const peisOrdenados = peisParaProcessar.sort((a, b) => {
+    const dataA = a.dataCriacao?.toDate
+      ? a.dataCriacao.toDate()
+      : new Date(a.dataCriacao);
+    const dataB = b.dataCriacao?.toDate
+      ? b.dataCriacao.toDate()
+      : new Date(b.dataCriacao);
+    return dataB.getTime() - dataA.getTime();
+  });
+
+  // Lógica de organização dos PEIs para exibição (base + histórico)
+  let peisParaExibir = [];
+  if (peisParaGeral === null) {
+    // Se não foi pedido um PDF "geral" com PEIs específicos, filtra o principal
+    let peiBaseEncontrado = null;
+    const criadoresDeBase = [
+      "PROFESSOR REGENTE",
+      "PROFESSOR DE SUPORTE",
+      "AEE",
+      "GESTAO",
+      "SEME",
+      "DESENVOLVEDOR",
+    ];
+    for (const peiItem of peisOrdenados) {
+      const cargo = peiItem.cargoCriador?.toUpperCase();
+      const perfil = peiItem.criadorPerfil?.toUpperCase();
+      if (criadoresDeBase.includes(cargo) || criadoresDeBase.includes(perfil)) {
+        peiBaseEncontrado = peiItem;
+        break;
+      }
+    }
+
+    const idsJaAdicionados = new Set();
+    if (peiBaseEncontrado) {
+      peisParaExibir.push(peiBaseEncontrado);
+      idsJaAdicionados.add(peiBaseEncontrado.id);
+    }
+    const outrosPeisHistorico = peisOrdenados.filter(
+      (peiItem) => !idsJaAdicionados.has(peiItem.id)
+    );
+    peisParaExibir.push(...outrosPeisHistorico);
+  } else {
+    // Se `peisParaGeral` foi fornecido, usa-o diretamente como `peisParaExibir`
+    peisParaExibir = peisOrdenados; // Já está ordenado.
+  }
+
+  console.log(
+    "[PDF_DEBUG] PEIs para exibir (final):",
+    JSON.stringify(peisParaExibir, null, 2)
+  );
+
+  if (
+    peisParaExibir.length === 0 &&
+    (!avaliacao || Object.keys(avaliacao).length === 0)
+  ) {
+    console.warn(
+      "Nenhum PEI ou avaliação encontrado para o aluno, gerando PDF básico informativo."
+    );
+    doc.text(
+      "Nenhum Plano Educacional Individualizado (PEI) ou Avaliação Inicial encontrado para este aluno.",
+      25,
+      y
+    );
+    addFooter(doc, doc.internal.pageSize.getHeight());
+    doc.save(`PEI_${aluno.nome.replace(/\s+/g, "_")}_Sem_Dados.pdf`);
+    return;
+  }
+
+  // --- 3. Busca Nome da Escola ---
+  let nomeEscola = "-";
+  if (aluno.escolaId) {
+    try {
+      const escolaRef = firestoreDoc(db, "escolas", aluno.escolaId);
+      const escolaSnap = await getDoc(escolaRef);
+      if (escolaSnap.exists()) {
+        nomeEscola = escolaSnap.data().nome || "-";
+      } else {
+        console.warn(`Escola não encontrada para o ID: ${aluno.escolaId}`);
       }
     } catch (err) {
-      console.error("Erro ao buscar profissionais para assinatura:", err);
+      console.error("Erro ao buscar nome da escola:", err);
     }
   }
 
-  // --- Finalização e Salvamento do PDF ---
-  addFooter(doc, doc.internal.pageSize.getHeight());
-  doc.save(`PEI_${aluno.nome.replace(/\s+/g, "_")}.pdf`);
+  // --- 4. Geração das Seções do PDF ---
+  y = addStudentAndHeaderInfo(doc, aluno, avaliacao, nomeEscola, y);
+  y = addInitialAssessment(doc, avaliacao, y);
+  y = addConsolidatedPeiSection(doc, peisParaExibir, y);
+  y = addLegendSection(doc, y);
+  y = addLoggedInUserSignature(doc, usuarioLogado, y);
+  y = await addProfessionalSignaturesTable(doc, aluno, usuarioLogado, y);
+
+  // --- 5. Finalização e Salvamento do PDF ---
+  addFooter(doc, doc.internal.pageSize.getHeight()); // Garante que o rodapé esteja na última página também
+  doc.save(`PEI_${aluno.nome.replace(/\s+/g, "_")}_Completo.pdf`);
+  console.log("[PDF_DEBUG] Geração do PDF concluída.");
 }

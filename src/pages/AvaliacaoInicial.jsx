@@ -1,18 +1,19 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 
-// Dados estáticos da avaliação
+// Dados estáticos da avaliação - Certifique-se de que este caminho está correto
 import { avaliacaoInicial } from "../data/avaliacaoInicialData";
 
 // Hooks customizados que encapsulam a lógica
 import { useAlunos } from "../hooks/useAlunos";
-import { useAvaliacaoForm } from "../hooks/useAvaliacaoForm";
+import { useAvaliacaoForm } from "../hooks/useAvaliacaoForm"; // Verifique se este hook retorna 'avaliacaoExiste'
 
 // Componentes de UI reutilizáveis
 import SelecaoAluno from "../components/SelecaoAluno";
 import AreaPerguntas from "../components/AreaPerguntas";
-import AvaliacaoHeader from "../components/AvaliacaoHeader";
+import AvaliacaoHeader from "../components/AvaliacaoHeader"; // Certifique-se de que BotaoVoltar está dentro de AvaliacaoHeader ou é importado separadamente
 import { gerarPDFAvaliacaoInicialParaPreencher } from "../utils/gerarPDFAvaliacaoInicial";
+import { gerarPDFAvaliacaoInicialPreenchida } from "../utils/gerarPDFAvaliacaoInicialPreenchida"; // Você precisará criar esta função utilitária
 
 // Estilos específicos da página
 import "../styles/AvaliacaoInicial.css";
@@ -47,7 +48,9 @@ function AvaliacaoInicial() {
     carregando: carregandoAlunos,
     erro: erroAlunos,
   } = useAlunos();
-  const form = useAvaliacaoForm(alunos); // Hook para todo o formulário
+
+  // Certifique-se que useAvaliacaoForm retorna 'avaliacaoExiste'
+  const form = useAvaliacaoForm(alunos);
 
   // --- Estado local da UI ---
   const [areaSelecionada, setAreaSelecionada] = useState("");
@@ -65,8 +68,15 @@ function AvaliacaoInicial() {
   );
 
   const onSalvarClick = useCallback(async () => {
+    // Adiciona a validação antes de salvar
+    if (!form.inicio || !form.proximaAvaliacao) {
+      alert("Por favor, preencha as datas de Início e Próxima Avaliação.");
+      return;
+    }
+
     const sucesso = await form.handleSalvar(usuarioLogado);
     if (sucesso) {
+      // Pequeno atraso para a mensagem de sucesso ser visível antes de navegar
       setTimeout(() => navigate("/ver-avaliacoes"), 1500);
     }
   }, [form, usuarioLogado, navigate]);
@@ -88,7 +98,32 @@ function AvaliacaoInicial() {
     [form.setObservacoes]
   );
 
-  // Flag consolidada para desabilitar elementos durante carregamentos
+  const handleGerarPDFAvaliacaoPreenchida = useCallback(() => {
+    if (form.alunoSelecionado && form.avaliacaoExiste) {
+      gerarPDFAvaliacaoInicialPreenchida(
+        form.alunoSelecionado,
+        form.inicio,
+        form.proximaAvaliacao,
+        form.respostas,
+        form.observacoes,
+        usuarioLogado // Passa o usuário logado se precisar de informações do criador no PDF
+      );
+    } else {
+      alert(
+        "Selecione um aluno com avaliação inicial preenchida para gerar o PDF."
+      );
+    }
+  }, [
+    form.alunoSelecionado,
+    form.avaliacaoExiste,
+    form.inicio,
+    form.proximaAvaliacao,
+    form.respostas,
+    form.observacoes,
+    usuarioLogado,
+  ]);
+
+  // Flag consolidada para desabilitar elementos durante carregamentos e salvamentos
   const carregandoGeral =
     carregandoAlunos || form.estado.carregandoAvaliacao || form.estado.salvando;
 
@@ -100,7 +135,7 @@ function AvaliacaoInicial() {
         disabled={carregandoGeral}
       />
 
-      {/* Área de Mensagens e Carregamento */}
+      {/* Área de Mensagens de Erro/Sucesso */}
       {erroAlunos && <div className="mensagem-erro">{erroAlunos}</div>}
       {form.estado.erro && (
         <div className="mensagem-erro">{form.estado.erro}</div>
@@ -109,8 +144,9 @@ function AvaliacaoInicial() {
         <div className="mensagem-sucesso">{form.estado.sucesso}</div>
       )}
 
+      {/* Seção de Seleção de Aluno */}
       {carregandoAlunos ? (
-        <div className="loading">Carregando alunos...</div>
+        <div className="loading-message">Carregando alunos...</div>
       ) : (
         <SelecaoAluno
           alunos={alunos}
@@ -120,23 +156,44 @@ function AvaliacaoInicial() {
         />
       )}
 
+      {/* Mensagens de Carregamento de Avaliação */}
       {form.estado.carregandoAvaliacao && (
-        <div className="loading">Carregando avaliação...</div>
+        <div className="loading-message">Carregando avaliação...</div>
       )}
 
-      {/* Conteúdo da Avaliação (só aparece após selecionar um aluno) */}
+      {/* Conteúdo Principal da Avaliação (visível apenas após selecionar um aluno) */}
       {form.alunoSelecionado && (
         <>
-          <p style={{ fontWeight: "bold" }}>Idade: {form.idade} anos</p>
+          <p className="aluno-idade">
+            Idade: <strong>{form.idade}</strong> anos
+          </p>
 
-          <button onClick={gerarPDFAvaliacaoInicialParaPreencher}>
-            Baixar PDF para Preenchimento
-          </button>
+          {/* Botões de Geração de PDF */}
+          <div className="pdf-buttons-container">
+            <button
+              onClick={gerarPDFAvaliacaoInicialParaPreencher}
+              disabled={carregandoGeral}
+              className="pdf-button"
+            >
+              Baixar PDF (Modelo Vazio)
+            </button>
+            {form.avaliacaoExiste && (
+              <button
+                onClick={handleGerarPDFAvaliacaoPreenchida}
+                disabled={carregandoGeral}
+                className="pdf-button filled-pdf-button" // Nova classe para diferenciar
+              >
+                Baixar PDF (Preenchido)
+              </button>
+            )}
+          </div>
 
+          {/* Datas da Avaliação */}
           <div className="date-inputs-container">
             <div className="date-input-group">
-              <label>Data de Início:</label>
+              <label htmlFor="dataInicio">Data de Início:</label>
               <input
+                id="dataInicio"
                 type="date"
                 value={form.inicio}
                 onChange={(e) => form.setInicio(e.target.value)}
@@ -144,8 +201,9 @@ function AvaliacaoInicial() {
               />
             </div>
             <div className="date-input-group">
-              <label>Próxima Avaliação:</label>
+              <label htmlFor="proximaAvaliacao">Próxima Avaliação:</label>
               <input
+                id="proximaAvaliacao"
                 type="date"
                 value={form.proximaAvaliacao}
                 onChange={(e) => form.setProximaAvaliacao(e.target.value)}
@@ -154,6 +212,15 @@ function AvaliacaoInicial() {
             </div>
           </div>
 
+          {/* Mensagem para Avaliação Nova */}
+          {!form.avaliacaoExiste && (
+            <p className="info-message">
+              Nenhuma avaliação inicial encontrada para este aluno. Preencha o
+              formulário para **criar uma nova avaliação**.
+            </p>
+          )}
+
+          {/* Abas das Áreas de Conhecimento */}
           <div className="area-tabs-container">
             {areas.map((area) => (
               <button
@@ -167,6 +234,7 @@ function AvaliacaoInicial() {
             ))}
           </div>
 
+          {/* Área de Perguntas da Aba Selecionada */}
           {areaSelecionada && (
             <AreaPerguntas
               area={areaSelecionada}
@@ -179,6 +247,7 @@ function AvaliacaoInicial() {
             />
           )}
 
+          {/* Botão Salvar Avaliação */}
           <button
             onClick={onSalvarClick}
             className="botao-salvar"
