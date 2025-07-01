@@ -1,26 +1,22 @@
 // src/pages/VerAlunos.jsx
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import Modal from "react-modal";
 import { db } from "../firebase";
 import {
   collection,
   getDocs,
   doc,
-  updateDoc,
   deleteDoc,
-  addDoc,
   query,
   where,
   getDoc,
   orderBy,
 } from "firebase/firestore";
-import BotaoVoltar from "../components/BotaoVoltar";
+// BotaoVoltar não é mais importado como componente React, pois faremos um botão customizado
+// com navegação condicional. Se você o usa em outros lugares, mantenha o arquivo BotaoVoltar.jsx/js.
 import { FaPencilAlt, FaTrashAlt, FaPlus } from "react-icons/fa";
 import Loader from "../components/Loader";
-
-// Define o elemento raiz do seu aplicativo para acessibilidade do modal
-Modal.setAppElement("#root");
+import { useNavigate } from "react-router-dom"; // Adicionado useNavigate
 
 // Função utilitária para obter dados do localStorage de forma segura
 const getLocalStorageSafe = (key, defaultValue = null) => {
@@ -36,7 +32,7 @@ const getLocalStorageSafe = (key, defaultValue = null) => {
   }
 };
 
-// Estilos JSX (pode ser movido para um arquivo CSS dedicado se preferir)
+// Estilos JSX (mantidos para o layout principal)
 const styles = {
   container: {
     minHeight: "100vh",
@@ -131,64 +127,7 @@ const styles = {
     justifyContent: "center",
     transition: "background-color 0.3s ease",
   },
-  modalContent: {
-    top: "50%",
-    left: "50%",
-    right: "auto",
-    bottom: "auto",
-    transform: "translate(-50%, -50%)",
-    padding: "30px",
-    borderRadius: "10px",
-    width: "450px",
-    maxWidth: "95%",
-    boxShadow: "0 5px 25px rgba(0,0,0,0.15)",
-    backgroundColor: "white",
-  },
-  inputField: {
-    margin: "0 0 15px 0",
-    padding: "12px 10px",
-    width: "100%",
-    border: "1px solid #ddd",
-    borderRadius: "6px",
-    boxSizing: "border-box",
-  },
-  modalActions: {
-    marginTop: 25,
-    display: "flex",
-    gap: 10,
-    justifyContent: "flex-end",
-  },
-  saveButton: {
-    background: "#4CAF50",
-    color: "#fff",
-    border: "none",
-    padding: "10px 20px",
-    borderRadius: 6,
-    cursor: "pointer",
-    transition: "background-color 0.3s ease",
-  },
-  cancelButton: {
-    background: "#ccc",
-    color: "#333",
-    border: "none",
-    padding: "10px 20px",
-    borderRadius: 6,
-    cursor: "pointer",
-    transition: "background-color 0.3s ease",
-  },
-  formFieldContainer: {
-    marginBottom: "15px",
-  },
-  label: {
-    display: "block",
-    marginBottom: "5px",
-    fontWeight: "500",
-    color: "#333",
-  },
-  requiredAsterisk: {
-    color: "red",
-    marginLeft: "3px",
-  },
+  // REMOVIDOS estilos de modal: modalContent, inputField, modalActions, saveButton, cancelButton, formFieldContainer, label, requiredAsterisk
 };
 
 // Função auxiliar para calcular idade com base na data de nascimento
@@ -212,14 +151,15 @@ const calcularIdade = (dataNascimento) => {
 };
 
 export default function VerAlunos() {
+  const navigate = useNavigate(); // Hook de navegação
+
   // Estados do componente
   const [alunos, setAlunos] = useState([]);
   const [escolas, setEscolas] = useState([]); // Todas as escolas disponíveis no sistema
   const [escolaSelecionada, setEscolaSelecionada] = useState(null); // ID da escola atualmente selecionada/visualizada
-  const [modalAberto, setModalAberto] = useState(false);
-  const [formulario, setFormulario] = useState(null); // Dados do aluno para o formulário (edição/criação)
+  // REMOVIDOS estados de modal: modalAberto, formulario
   const [loading, setLoading] = useState(true); // Estado de carregamento principal da tela
-  const [loadingSalvar, setLoadingSalvar] = useState(false); // Estado de carregamento para operações de salvar/excluir
+  const [loadingSalvar, setLoadingSalvar] = useState(false); // Estado de carregamento para operações de exclusão
   const [error, setError] = useState(null); // Estado para exibir mensagens de erro
 
   // Novos estados para armazenar escolas e turmas permitidas para o usuário logado
@@ -317,6 +257,7 @@ export default function VerAlunos() {
           "diretor",
           "diretor adjunto",
           "orientador pedagógico",
+          "seme", // Adicionado SEME aqui para ver todas as escolas por padrão
         ].includes(usuario.perfil)
       ) {
         // Para perfis de gestão/desenvolvedor/diretores, eles podem ver todas as escolas inicialmente
@@ -326,7 +267,7 @@ export default function VerAlunos() {
         if (escolasListadas.length > 0 && escolaSelecionada === null) {
           setEscolaSelecionada(escolasListadas[0]?.id || null);
           console.log(
-            "VERALUNOS DEBUG: Escola selecionada inicial (Gestão/Dev/Diretor):",
+            "VERALUNOS DEBUG: Escola selecionada inicial (Gestão/Dev/Diretor/SEME):",
             escolasListadas[0]?.id
           );
         }
@@ -391,8 +332,10 @@ export default function VerAlunos() {
             );
           } else {
             console.warn(
-              "Atenção: AEE tem mais de 10 turmas vinculadas. Alunos serão filtrados no cliente."
+              "Atenção: AEE tem mais de 10 turmas vinculadas. Alunos serão filtrados no cliente (NÃO RECOMENDADO PARA GRANDES VOLUMES)."
             );
+            // Neste caso, você pode considerar uma estrutura de dados diferente ou Cloud Functions
+            // para lidar com filtros de muitas turmas.
           }
         }
 
@@ -404,7 +347,7 @@ export default function VerAlunos() {
 
         if (usuario.perfil === "aee" && tempTurmasPermitidas.length > 10) {
           fetchedAlunos = fetchedAlunos.filter((aluno) =>
-            turmasPermitidasParaUsuario.includes(aluno.turma)
+            tempTurmasPermitidas.includes(aluno.turma)
           );
         }
         alunosParaExibir = fetchedAlunos;
@@ -443,52 +386,7 @@ export default function VerAlunos() {
     carregarTodosOsDados();
   }, [carregarTodosOsDados]); // Dispara a função carregarTodosOsDados na montagem e quando ela muda
 
-  // --- Funções de Manipulação de Dados (Salvar/Excluir Aluno) ---
-
-  const handleSalvar = useCallback(async () => {
-    if (!formulario?.nome?.trim() || !formulario?.nascimento) {
-      alert("Nome e Data de Nascimento são obrigatórios.");
-      return;
-    }
-
-    let escolaIdParaSalvar = formulario.escolaId;
-    if (!escolaIdParaSalvar && escolaSelecionada) {
-      escolaIdParaSalvar = escolaSelecionada;
-    }
-
-    if (!escolaIdParaSalvar) {
-      alert("Não foi possível determinar a escola para salvar o aluno.");
-      return;
-    }
-
-    setLoadingSalvar(true);
-    try {
-      const dadosAlunoParaSalvar = {
-        nome: formulario.nome.trim(),
-        nascimento: formulario.nascimento,
-        turma: formulario.turma?.trim() || "",
-        turno: formulario.turno?.trim() || "",
-        diagnostico: formulario.diagnostico?.trim() || "",
-        escolaId: escolaIdParaSalvar,
-      };
-
-      if (formulario.id) {
-        await updateDoc(doc(db, "alunos", formulario.id), dadosAlunoParaSalvar);
-      } else {
-        await addDoc(collection(db, "alunos"), dadosAlunoParaSalvar);
-      }
-
-      await carregarTodosOsDados();
-      setModalAberto(false);
-      setFormulario(null);
-    } catch (error) {
-      console.error("Erro ao salvar aluno:", error);
-      setError(`Erro ao salvar: ${error.message || "Ocorreu um problema."}`);
-    } finally {
-      setLoadingSalvar(false);
-    }
-  }, [formulario, escolaSelecionada, carregarTodosOsDados]);
-
+  // --- Função de Exclusão de Aluno (Mantida) ---
   const handleExcluir = useCallback(
     async (idAluno) => {
       if (loadingSalvar) return;
@@ -503,7 +401,7 @@ export default function VerAlunos() {
       setLoadingSalvar(true);
       try {
         await deleteDoc(doc(db, "alunos", idAluno));
-        await carregarTodosOsDados();
+        await carregarTodosOsDados(); // Recarrega a lista após exclusão
       } catch (error) {
         console.error("Erro ao excluir aluno:", error);
         setError("Erro ao excluir aluno. Por favor, tente novamente.");
@@ -519,7 +417,7 @@ export default function VerAlunos() {
     return alunos;
   }, [alunos]);
 
-  // --- Renderização Condicional da UI (CORRIGIDA) ---
+  // --- Renderização Condicional da UI ---
 
   // Exibe um loader global enquanto a tela principal está carregando
   if (loading && !error) {
@@ -530,7 +428,44 @@ export default function VerAlunos() {
   if (error && !loading) {
     return (
       <div style={styles.container}>
-        <BotaoVoltar />
+        {/* Botão Voltar personalizado */}
+        <button
+          onClick={() => {
+            const perfilUsuario = usuario?.perfil?.toLowerCase();
+            if (perfilUsuario === "desenvolvedor") {
+              navigate("/painel-dev");
+            } else if (
+              [
+                "gestao",
+                "diretor",
+                "diretor adjunto",
+                "orientador pedagógico",
+                "seme",
+              ].includes(perfilUsuario)
+            ) {
+              navigate("/painel-gestao");
+            } else if (perfilUsuario === "aee") {
+              navigate("/painel-aee");
+            } else if (perfilUsuario === "professor") {
+              navigate("/painel-professor");
+            } else {
+              navigate("/");
+            }
+          }}
+          style={{
+            background: "none",
+            border: "1px solid #ccc",
+            padding: "8px 15px",
+            borderRadius: "5px",
+            cursor: "pointer",
+            marginBottom: "20px",
+            alignSelf: "flex-start",
+            color: "#1d3557",
+            fontWeight: "bold",
+          }}
+        >
+          Voltar
+        </button>
         <p
           style={{
             color: "red",
@@ -551,7 +486,44 @@ export default function VerAlunos() {
   if (!loading && escolas.length === 0 && usuario?.perfil !== "aee") {
     return (
       <div style={styles.container}>
-        <BotaoVoltar />
+        {/* Botão Voltar personalizado */}
+        <button
+          onClick={() => {
+            const perfilUsuario = usuario?.perfil?.toLowerCase();
+            if (perfilUsuario === "desenvolvedor") {
+              navigate("/painel-dev");
+            } else if (
+              [
+                "gestao",
+                "diretor",
+                "diretor adjunto",
+                "orientador pedagógico",
+                "seme",
+              ].includes(perfilUsuario)
+            ) {
+              navigate("/painel-gestao");
+            } else if (perfilUsuario === "aee") {
+              navigate("/painel-aee");
+            } else if (perfilUsuario === "professor") {
+              navigate("/painel-professor");
+            } else {
+              navigate("/");
+            }
+          }}
+          style={{
+            background: "none",
+            border: "1px solid #ccc",
+            padding: "8px 15px",
+            borderRadius: "5px",
+            cursor: "pointer",
+            marginBottom: "20px",
+            alignSelf: "flex-start",
+            color: "#1d3557",
+            fontWeight: "bold",
+          }}
+        >
+          Voltar
+        </button>
         <p
           style={{
             color: "orange",
@@ -574,12 +546,45 @@ export default function VerAlunos() {
   return (
     <div style={styles.container}>
       <div style={styles.content}>
-        <BotaoVoltar
-          estiloPersonalizado={{
-            alignSelf: "flex-start",
-            marginBottom: "20px",
+        {/* Botão Voltar personalizado */}
+        <button
+          onClick={() => {
+            const perfilUsuario = usuario?.perfil?.toLowerCase();
+            if (perfilUsuario === "desenvolvedor") {
+              navigate("/painel-dev");
+            } else if (
+              [
+                "gestao",
+                "diretor",
+                "diretor adjunto",
+                "orientador pedagógico",
+                "seme",
+              ].includes(perfilUsuario)
+            ) {
+              navigate("/painel-gestao");
+            } else if (perfilUsuario === "aee") {
+              navigate("/painel-aee");
+            } else if (perfilUsuario === "professor") {
+              navigate("/painel-professor");
+            } else {
+              navigate("/");
+            }
           }}
-        />
+          style={{
+            background: "none",
+            border: "1px solid #ccc",
+            padding: "8px 15px",
+            borderRadius: "5px",
+            cursor: "pointer",
+            marginBottom: "20px",
+            alignSelf: "flex-start",
+            color: "#1d3557",
+            fontWeight: "bold",
+          }}
+        >
+          Voltar
+        </button>
+
         <div style={styles.header}>
           <h2 style={styles.title}>Alunos Cadastrados</h2>
           {podeEditar && (
@@ -589,7 +594,7 @@ export default function VerAlunos() {
 
                 if (
                   !targetEscolaId &&
-                  !["desenvolvedor", "gestao"].includes(usuario.perfil)
+                  !["desenvolvedor", "gestao", "seme"].includes(usuario.perfil) // Adicionado SEME aqui também
                 ) {
                   alert(
                     "Por favor, selecione uma escola primeiro para adicionar um novo aluno."
@@ -597,15 +602,8 @@ export default function VerAlunos() {
                   return;
                 }
 
-                setFormulario({
-                  nome: "",
-                  nascimento: "",
-                  turma: "",
-                  turno: "",
-                  diagnostico: "",
-                  escolaId: targetEscolaId,
-                });
-                setModalAberto(true);
+                // Redireciona para a página de cadastro de aluno
+                navigate("/cadastrar-aluno");
               }}
               style={styles.buttonPrimary}
               disabled={loadingSalvar || loading}
@@ -695,10 +693,7 @@ export default function VerAlunos() {
                 {podeEditar && (
                   <div style={styles.actionButtons}>
                     <button
-                      onClick={() => {
-                        setFormulario(aluno);
-                        setModalAberto(true);
-                      }}
+                      onClick={() => navigate(`/editar-aluno/${aluno.id}`)}
                       style={styles.editButton}
                       aria-label={`Editar ${aluno.nome}`}
                       disabled={loadingSalvar}
@@ -719,92 +714,6 @@ export default function VerAlunos() {
             ))}
           </div>
         )}
-
-        {/* Modal de Adição/Edição de Aluno */}
-        <Modal
-          isOpen={modalAberto}
-          onRequestClose={() => {
-            if (!loadingSalvar) {
-              setModalAberto(false);
-              setFormulario(null);
-            }
-          }}
-          style={{
-            content: styles.modalContent,
-            overlay: { backgroundColor: "rgba(0, 0, 0, 0.75)", zIndex: 1000 },
-          }}
-          contentLabel={
-            formulario?.id ? "Modal de Edição de Aluno" : "Modal de Novo Aluno"
-          }
-          ariaHideApp={false}
-        >
-          <h3 style={{ color: "#1d3557", marginBottom: "20px" }}>
-            {formulario?.id ? "Editar Aluno" : "Novo Aluno"}
-          </h3>
-          {[
-            {
-              label: "Nome Completo",
-              field: "nome",
-              type: "text",
-              required: true,
-            },
-            {
-              label: "Data de Nascimento",
-              field: "nascimento",
-              type: "date",
-              required: true,
-            },
-            { label: "Turma", field: "turma", type: "text" },
-            { label: "Turno", field: "turno", type: "text" },
-            { label: "Diagnóstico (CID)", field: "diagnostico", type: "text" },
-          ].map(({ label, field, type, required }) => (
-            <div key={field} style={styles.formFieldContainer}>
-              <label htmlFor={field} style={styles.label}>
-                {label}
-                {required && <span style={styles.requiredAsterisk}>*</span>}
-              </label>
-              <input
-                id={field}
-                type={type}
-                value={formulario?.[field] || ""}
-                onChange={(e) =>
-                  setFormulario((prev) => ({
-                    ...prev,
-                    [field]: e.target.value,
-                  }))
-                }
-                style={styles.inputField}
-                required={required}
-                disabled={loadingSalvar}
-              />
-            </div>
-          ))}
-          <div style={styles.modalActions}>
-            <button
-              onClick={() => {
-                if (!loadingSalvar) {
-                  setModalAberto(false);
-                  setFormulario(null);
-                }
-              }}
-              style={styles.cancelButton}
-              disabled={loadingSalvar}
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={handleSalvar}
-              style={styles.saveButton}
-              disabled={loadingSalvar}
-            >
-              {loadingSalvar
-                ? formulario?.id
-                  ? "Salvando..."
-                  : "Criando..."
-                : "Salvar"}
-            </button>
-          </div>
-        </Modal>
       </div>
     </div>
   );

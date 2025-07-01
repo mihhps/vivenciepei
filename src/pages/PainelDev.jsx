@@ -1,10 +1,7 @@
-// src/pages/PainelDev.jsx
-
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BotaoSair from "../components/BotaoSair";
-// import { httpsCallable } from "firebase/functions"; // REMOVER: não é mais necessário para onRequest
-import { auth, functions } from "../firebase"; // Manter 'auth' e 'functions' (para 'auth.currentUser' e o URL base da função)
+import { auth, functions } from "../firebase";
 
 export default function PainelDev() {
   const navigate = useNavigate();
@@ -15,7 +12,7 @@ export default function PainelDev() {
     const verificarClaims = async () => {
       const user = auth.currentUser;
       if (user) {
-        const idTokenResult = await user.getIdTokenResult(true); // força atualização
+        const idTokenResult = await user.getIdTokenResult(true);
         console.log("Claims ativas (useEffect):", idTokenResult.claims);
       } else {
         console.log("Nenhum usuário logado (useEffect).");
@@ -32,13 +29,12 @@ export default function PainelDev() {
     verificarClaims();
   }, []);
 
-  // ✅ FUNÇÃO handleRecalcularTodosPrazos AGORA PARA onRequest
   const handleRecalcularTodosPrazos = async () => {
     setLoadingRecalculo(true);
     try {
       const user = await new Promise((resolve) => {
         const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
-          unsubscribe(); // Desinscreve após a primeira notificação
+          unsubscribe();
           resolve(firebaseUser);
         });
       });
@@ -48,7 +44,6 @@ export default function PainelDev() {
         return;
       }
 
-      // ✅ Obter o token de ID mais recente (MANDATÓRIO PARA onRequest)
       const idToken = await user.getIdToken(true);
 
       console.log(
@@ -58,35 +53,28 @@ export default function PainelDev() {
       console.log(
         "DEBUG FINAL: Token de ID para a chamada da função:",
         idToken.substring(0, 30) + "..."
-      ); // Logar só o começo do token
+      );
 
-      // Construir o URL da função onRequest
-      // IMPORTANTE: O nome da função no URL é 'recalcularTodosPrazos'
       const functionUrl = `https://southamerica-east1-${auth.app.options.projectId}.cloudfunctions.net/recalcularTodosPrazos`;
 
-      // ✅ Payload da requisição (mesmo formato que httpsCallable enviava)
       const payloadData = { userId: user.uid };
 
       console.log(
         "Iniciando recalculo de prazos PEI (enviando UID: " + user.uid + ")..."
       );
 
-      // ✅ Usar fetch API para a requisição HTTP POST
       const response = await fetch(functionUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`, // ✅ ENVIANDO O TOKEN AQUI
+          Authorization: `Bearer ${idToken}`,
         },
-        body: JSON.stringify({ data: payloadData }), // ✅ ENVIANDO O PAYLOAD AQUI
+        body: JSON.stringify({ data: payloadData }),
       });
 
-      // ✅ Tratar a resposta da requisição
       const responseData = await response.json();
 
       if (!response.ok) {
-        // Se o status não for 2xx (ex: 401, 403, 500)
-        // A função onRequest retornará JSON com 'error' em caso de falha
         throw new Error(
           responseData.error || "Erro desconhecido na resposta da função."
         );
@@ -98,7 +86,7 @@ export default function PainelDev() {
       console.error(
         "Erro ao recalcular prazos PEI (frontend fetch):",
         error.message,
-        error // Log o objeto erro completo
+        error
       );
       let errorMessage = "Ocorreu um erro ao recalcular. Verifique o console.";
       if (error.message.includes("Não autorizado: Token Bearer ausente.")) {
@@ -117,7 +105,7 @@ export default function PainelDev() {
         errorMessage =
           "Erro de comunicação: O ID do usuário não foi enviado corretamente para a função.";
       } else {
-        errorMessage = `Erro: ${error.message}`; // Mostra a mensagem do erro capturado
+        errorMessage = `Erro: ${error.message}`;
       }
       alert(errorMessage);
     } finally {
@@ -137,6 +125,8 @@ export default function PainelDev() {
     { label: "Cadastrar Usuário", rota: "/cadastro-usuario" },
     { label: "Vincular Turmas a Professores", rota: "/vincular-professores" },
     { label: "Vincular Escolas a Professores", rota: "/vincular-escolas" },
+    // NOVO BOTÃO AQUI!
+    { label: "Cadastrar Turma", rota: "/cadastro-turmas" }, // Adicionado o novo botão
   ];
 
   const estiloBotao = {

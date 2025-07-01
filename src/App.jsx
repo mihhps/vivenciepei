@@ -28,7 +28,8 @@ const AvaliacaoInicial = lazy(() => import("./pages/AvaliacaoInicial"));
 const ImportarAlunos = lazy(() => import("./pages/ImportarAlunos"));
 const AnamneseCompleta = lazy(() => import("./pages/AnamneseCompleta"));
 const EditarPei = lazy(() => import("./pages/EditarPei"));
-const EditarAluno = lazy(() => import("./pages/EditarAluno"));
+// CORRIGIDO AQUI: Aponta para o arquivo .jsx com a capitalização correta
+const EditarAluno = lazy(() => import("./pages/editaraluno.jsx"));
 const ContinuarPei = lazy(() => import("./pages/ContinuarPei"));
 const CadastrarUsuario = lazy(() => import("./pages/CadastrarUsuario"));
 const VerAvaliacoes = lazy(() => import("./pages/VerAvaliacoes"));
@@ -55,6 +56,9 @@ const VisualizacaoPrazosPEIProfessor = lazy(
 const MeuAcompanhamentoProfessor = lazy(
   () => import("./pages/MeuAcompanhamentoProfessor")
 );
+
+// NOVO: Importe o componente CadastroTurma
+const CadastroTurma = lazy(() => import("./pages/CadastroTurma")); // Certifique-se de que o caminho está correto!
 
 // PDF.js Worker para importação de PDFs
 import * as pdfjsLib from "pdfjs-dist/build/pdf";
@@ -97,6 +101,8 @@ export default function App() {
                 path="/vincular-professores"
                 element={<VincularProfessoresTurmas />}
               />
+              {/* NOVO: Rota para Cadastro de Turma */}
+              <Route path="/cadastro-turmas" element={<CadastroTurma />} />
 
               {/* Avaliações */}
               <Route path="/ver-alunos" element={<VerAlunos />} />

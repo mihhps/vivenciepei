@@ -1,15 +1,18 @@
+// src/pages/CadastroAluno.js (MODIFICADO)
+
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
-import BotaoVoltar from "../components/BotaoVoltar"; // Presumindo que este componente existe e funciona
-import { db } from "../firebase"; // Ajuste o caminho se necessário
+import BotaoVoltar from "../components/BotaoVoltar";
+import { db } from "../firebase";
 import {
   collection,
   addDoc,
   serverTimestamp,
   getDocs,
+  query,
 } from "firebase/firestore";
 
-// --- Styled Components ---
+// --- Styled Components (Mantenha os mesmos que você já tem ou do exemplo anterior) ---
 const PageContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -27,19 +30,20 @@ const FormContainer = styled.div`
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   width: 100%;
   max-width: 600px;
+  position: relative;
 `;
 
 const Titulo = styled.h2`
   text-align: center;
   margin-bottom: 25px;
-  color: #1d3557; // Azul SEME
+  color: #1d3557;
   font-size: 1.8em;
 `;
 
 const StyledForm = styled.form`
   display: flex;
   flex-direction: column;
-  gap: 18px; // Espaçamento entre os campos
+  gap: 18px;
 `;
 
 const Input = styled.input`
@@ -48,7 +52,7 @@ const Input = styled.input`
   border-radius: 6px;
   border: 1px solid #ccc;
   font-size: 1em;
-  box-sizing: border-box; /* Para o padding não aumentar a largura total */
+  box-sizing: border-box;
 
   &:focus {
     border-color: #007bff;
@@ -76,7 +80,7 @@ const Select = styled.select`
 const BotaoSalvar = styled.button`
   width: 100%;
   padding: 15px;
-  background-color: #28a745; // Verde sucesso
+  background-color: #28a745;
   color: #fff;
   border: none;
   border-radius: 6px;
@@ -88,16 +92,20 @@ const BotaoSalvar = styled.button`
   &:hover {
     background-color: #218838;
   }
+
+  &:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+  }
 `;
 
 const MensagemIdade = styled.p`
   font-size: 0.9em;
   color: #555;
-  margin: -10px 0 5px 0; // Ajusta o espaçamento
+  margin: -10px 0 5px 0;
 `;
 // --- Fim Styled Components ---
 
-// Função para criar o PEI placeholder (pode ser movida para um arquivo de utils se usada em mais lugares)
 async function criarPEIPlaceholderParaAluno(
   alunoId,
   escolaIdDoAluno,
@@ -109,18 +117,16 @@ async function criarPEIPlaceholderParaAluno(
       escolaIdDoAluno,
       anoLetivo,
     });
-    // Poderia lançar um erro ou retornar um status de falha
     return;
   }
   const dadosPEIPlaceholder = {
     alunoId: alunoId,
     escolaId: escolaIdDoAluno,
-    anoLetivo: Number(anoLetivo), // Garante que seja número se vier de um input/select
+    anoLetivo: Number(anoLetivo),
     status: "Pendente de Criação",
     criadoEm: serverTimestamp(),
     ultimaModificacao: serverTimestamp(),
-    resumoPEI: [], // Ou uma estrutura inicial padrão
-    // Adicione outros campos padrão que um PEI possa ter
+    resumoPEI: [],
   };
   try {
     const peiDocRef = await addDoc(collection(db, "peis"), dadosPEIPlaceholder);
@@ -129,8 +135,6 @@ async function criarPEIPlaceholderParaAluno(
     );
   } catch (e) {
     console.error("Erro ao criar PEI Placeholder: ", e);
-    // Importante: Decidir como lidar com este erro. O aluno foi criado, mas o PEI não.
-    // Talvez mostrar uma mensagem específica ao usuário ou logar para admin verificar.
     alert(
       "Aluno cadastrado, mas houve um erro ao criar o PEI inicial. Por favor, verifique ou contate o suporte."
     );
@@ -141,21 +145,25 @@ function CadastroAluno() {
   const [nome, setNome] = useState("");
   const [nascimento, setNascimento] = useState("");
   const [diagnostico, setDiagnostico] = useState("");
-  const [turma, setTurma] = useState("");
-  const [turno, setTurno] = useState("");
+  const [turmaSelecionadaId, setTurmaSelecionadaId] = useState(""); // Agora guarda o ID da turma
+  const [turnoExibido, setTurnoExibido] = useState(""); // Exibe o turno da turma selecionada
   const [idade, setIdade] = useState("");
   const [escolaIdSelecionada, setEscolaIdSelecionada] = useState("");
   const [listaEscolas, setListaEscolas] = useState([]);
+  const [turmasDisponiveis, setTurmasDisponiveis] = useState([]); // Lista de objetos { id, nome, turno }
   const [loadingEscolas, setLoadingEscolas] = useState(true);
+  const [loadingTurmas, setLoadingTurmas] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
-  // Buscar escolas para o dropdown
+  // --- Efeito para carregar Escolas ---
   useEffect(() => {
     const fetchEscolas = async () => {
+      setLoadingEscolas(true);
       try {
         const escolasSnapshot = await getDocs(collection(db, "escolas"));
         const escolasData = escolasSnapshot.docs.map((doc) => ({
           id: doc.id,
-          nome: doc.data().nome || "Escola sem nome", // Garante que há um nome
+          nome: doc.data().nome || "Escola sem nome",
         }));
         setListaEscolas(escolasData);
       } catch (error) {
@@ -168,6 +176,62 @@ function CadastroAluno() {
     fetchEscolas();
   }, []);
 
+  // --- Efeito para carregar Turmas baseadas na Escola Selecionada ---
+  useEffect(() => {
+    const fetchTurmas = async () => {
+      if (!escolaIdSelecionada) {
+        setTurmasDisponiveis([]);
+        setTurmaSelecionadaId("");
+        setTurnoExibido("");
+        return;
+      }
+      setLoadingTurmas(true);
+      try {
+        // Busca turmas da SUBCOLEÇÃO 'turmas' dentro da escola selecionada
+        const turmasQuery = collection(
+          db,
+          "escolas",
+          escolaIdSelecionada,
+          "turmas"
+        );
+        const turmasSnapshot = await getDocs(turmasQuery);
+        const turmasData = turmasSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          nome: doc.data().nome,
+          turno: doc.data().turno, // Importante: pegar o turno da turma
+        }));
+        setTurmasDisponiveis(
+          turmasData.sort((a, b) => a.nome.localeCompare(b.nome))
+        );
+        setTurmaSelecionadaId(""); // Reseta a seleção da turma
+        setTurnoExibido(""); // Limpa o turno ao mudar a escola
+      } catch (error) {
+        console.error("Erro ao buscar turmas:", error);
+        alert("Não foi possível carregar as turmas para a escola selecionada.");
+        setTurmasDisponiveis([]);
+      } finally {
+        setLoadingTurmas(false);
+      }
+    };
+
+    fetchTurmas();
+  }, [escolaIdSelecionada]);
+
+  // --- Efeito para preencher o Turno automaticamente ao selecionar a Turma ---
+  useEffect(() => {
+    if (turmaSelecionadaId && turmasDisponiveis.length > 0) {
+      const turma = turmasDisponiveis.find((t) => t.id === turmaSelecionadaId);
+      if (turma) {
+        setTurnoExibido(turma.turno);
+      } else {
+        setTurnoExibido("");
+      }
+    } else {
+      setTurnoExibido(""); // Limpa se nenhuma turma estiver selecionada
+    }
+  }, [turmaSelecionadaId, turmasDisponiveis]);
+
+  // --- Funções de Manipulação ---
   const calcularIdade = (dataNasc) => {
     if (!dataNasc) return "";
     const hoje = new Date();
@@ -189,43 +253,48 @@ function CadastroAluno() {
 
   const handleSalvar = async (e) => {
     e.preventDefault();
+    setIsSaving(true);
+
+    const turmaSelecionadaObj = turmasDisponiveis.find(
+      (t) => t.id === turmaSelecionadaId
+    );
 
     if (
       !nome ||
       !nascimento ||
       !diagnostico ||
-      !turma ||
-      !turno ||
+      !turmaSelecionadaId || // Agora verificamos o ID da turma
+      !turnoExibido || // Verificamos se o turno foi preenchido automaticamente
       !escolaIdSelecionada
     ) {
-      alert("Preencha todos os campos obrigatórios, incluindo a escola!");
+      alert(
+        "Preencha todos os campos obrigatórios, incluindo a escola, turma e turno!"
+      );
+      setIsSaving(false);
       return;
     }
 
-    const anoLetivoParaCadastro = new Date().getFullYear(); // Ou de um seletor/contexto global
+    const anoLetivoParaCadastro = new Date().getFullYear();
 
     try {
       const dadosAlunoParaSalvar = {
         nome: nome.trim(),
-        nascimento, // Formato YYYY-MM-DD
+        nascimento,
         diagnostico: diagnostico.trim(),
-        turma: turma.trim(),
-        turno,
+        // Salva o NOME da turma e o TURNO associado a ela
+        turma: turmaSelecionadaObj.nome,
+        turno: turnoExibido,
         escolaId: escolaIdSelecionada,
         anoLetivoAtivo: anoLetivoParaCadastro,
         dataCadastro: serverTimestamp(),
-        // O campo 'idade' é calculado, geralmente não se salva idade, mas sim data de nascimento.
-        // Se quiser salvar a idade no momento do cadastro:
-        // idadeNoCadastro: idade,
       };
 
       const alunoDocRef = await addDoc(
         collection(db, "alunos"),
-        dadosAlunoParaSalvar
+        dadosAlunoParaSalvos
       );
       console.log("Aluno cadastrado com ID: ", alunoDocRef.id);
 
-      // Criação automática do PEI Placeholder
       await criarPEIPlaceholderParaAluno(
         alunoDocRef.id,
         dadosAlunoParaSalvar.escolaId,
@@ -238,22 +307,23 @@ function CadastroAluno() {
       setNome("");
       setNascimento("");
       setDiagnostico("");
-      setTurma("");
-      setTurno("");
+      setTurmaSelecionadaId("");
+      setTurnoExibido("");
       setIdade("");
-      setEscolaIdSelecionada("");
+      // setEscolaIdSelecionada(""); // Descomente se quiser limpar a escola também
     } catch (error) {
       console.error("Erro ao salvar aluno no Firestore:", error);
       alert(
         "Erro ao salvar aluno. Verifique o console para mais detalhes e tente novamente."
       );
+    } finally {
+      setIsSaving(false);
     }
   };
 
   return (
     <PageContainer>
       <FormContainer>
-        {/* BotaoVoltar pode precisar de um estilo que combine com o PageContainer */}
         <div style={{ position: "absolute", top: "20px", left: "20px" }}>
           <BotaoVoltar />
         </div>
@@ -265,13 +335,15 @@ function CadastroAluno() {
             value={nome}
             onChange={(e) => setNome(e.target.value)}
             required
+            disabled={isSaving}
           />
           <Input
-            type="date" // O navegador já oferece um seletor de data
+            type="date"
             value={nascimento}
             onChange={handleNascimentoChange}
             required
             aria-label="Data de Nascimento"
+            disabled={isSaving}
           />
           {idade && (
             <MensagemIdade>
@@ -284,12 +356,17 @@ function CadastroAluno() {
             placeholder="Diagnóstico (se houver)"
             value={diagnostico}
             onChange={(e) => setDiagnostico(e.target.value)}
+            disabled={isSaving}
           />
           <Select
             value={escolaIdSelecionada}
-            onChange={(e) => setEscolaIdSelecionada(e.target.value)}
+            onChange={(e) => {
+              setEscolaIdSelecionada(e.target.value);
+              setTurmaSelecionadaId(""); // Reseta a turma ao mudar a escola
+              setTurnoExibido(""); // Reseta o turno
+            }}
             required
-            disabled={loadingEscolas}
+            disabled={loadingEscolas || isSaving}
           >
             <option value="">
               {loadingEscolas ? "Carregando escolas..." : "Selecione a Escola"}
@@ -301,27 +378,42 @@ function CadastroAluno() {
             ))}
           </Select>
 
-          <Input
-            type="text"
-            placeholder="Turma"
-            value={turma}
-            onChange={(e) => setTurma(e.target.value)}
-            required
-          />
-
+          {/* Select para Turma (Agora busca da subcoleção da escola) */}
           <Select
-            value={turno}
-            onChange={(e) => setTurno(e.target.value)}
+            value={turmaSelecionadaId} // Usa o ID da turma selecionada
+            onChange={(e) => setTurmaSelecionadaId(e.target.value)}
             required
+            disabled={!escolaIdSelecionada || loadingTurmas || isSaving}
           >
-            <option value="">Selecione o turno</option>
-            <option value="Matutino">Matutino</option>
-            <option value="Vespertino">Vespertino</option>
-            <option value="Integral">Integral</option>{" "}
-            {/* Adicionei Integral como opção */}
+            <option value="">
+              {!escolaIdSelecionada
+                ? "Selecione uma escola primeiro"
+                : loadingTurmas
+                  ? "Carregando turmas..."
+                  : turmasDisponiveis.length === 0
+                    ? "Nenhuma turma cadastrada para esta escola"
+                    : "Selecione a Turma"}
+            </option>
+            {turmasDisponiveis.map((turma) => (
+              <option key={turma.id} value={turma.id}>
+                {turma.nome}
+              </option>
+            ))}
           </Select>
 
-          <BotaoSalvar type="submit">Salvar Aluno</BotaoSalvar>
+          {/* Campo de Turno (Apenas para exibição, preenchido automaticamente) */}
+          <Input
+            type="text"
+            placeholder="Turno (automático)"
+            value={turnoExibido}
+            readOnly // Não permite edição manual
+            disabled={true} // Mantém desabilitado
+            style={{ backgroundColor: "#f0f0f0", cursor: "not-allowed" }} // Estilo para indicar que é readOnly
+          />
+
+          <BotaoSalvar type="submit" disabled={isSaving}>
+            {isSaving ? "Salvando..." : "Salvar Aluno"}
+          </BotaoSalvar>
         </StyledForm>
       </FormContainer>
     </PageContainer>
