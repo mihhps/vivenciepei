@@ -412,7 +412,7 @@ async function addStudentAndHeaderInfo(
       [{ content: `Escola: ${nomeEscola || "-"}`, colSpan: 3 }],
       // Linha 3: D.N. | Idade | Turma (3 colunas iguais)
       [
-        `D.N. ${dataNascTexto}`,
+        `Data de Nasc.: ${dataNascTexto}`,
         `Idade: ${alunoIdade} anos`,
         `Turma: ${aluno.turma || "-"}`,
       ],
