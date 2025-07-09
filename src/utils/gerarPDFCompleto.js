@@ -1,5 +1,3 @@
-// src/utils/gerarPDFCompleto.js
-
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import {
@@ -9,22 +7,22 @@ import {
   getDocs,
   doc as firestoreDoc,
   getDoc,
-  orderBy, // Adicionado import para orderBy
+  orderBy,
 } from "firebase/firestore";
 import { db } from "../firebase";
 
-// --- Constantes e Estilos (Mantidos, pois já estão bem definidos) ---
+// --- Constantes e Estilos ---
 const styles = {
   font: "times",
   fontSize: {
     small: 8,
     medium: 10,
     large: 12,
-    title: 14,
+    title: 18, // Aumentado o tamanho do título para 18
   },
   colors: {
     black: [0, 0, 0],
-    white: [255, 255, 255],
+    white: [255, 255, 255], // Cor branca para preenchimento de fundo
     grayLight: [200, 200, 200],
     red: [255, 0, 0],
     yellow: [255, 255, 0],
@@ -32,14 +30,24 @@ const styles = {
     magenta: [255, 0, 255],
     purple: [128, 0, 128],
     green: [0, 128, 0],
+    // As cores para professores e criadores não serão usadas para colorir texto,
+    // mas a definição de cores gerais pode ser útil em outros contextos.
+    orange: [255, 165, 0],
+    teal: [0, 128, 128],
+    darkBlue: [0, 0, 128],
+    maroon: [128, 0, 0],
+    olive: [128, 128, 0],
+    pink: [255, 192, 203],
+    cyan: [0, 255, 255],
   },
 };
 
+// Cores por Nível - Estas serão usadas para o fillColor das células de nível
 const coresPorNivel = {
   NR: styles.colors.red,
   AF: styles.colors.yellow,
   AG: styles.colors.purple,
-  AV: styles.colors.grayLight,
+  AV: styles.colors.grayLight, // Este é o cinza CLARO que pode estar confundindo com o padrão do autoTable
   AVi: styles.colors.green,
   I: styles.colors.magenta,
 };
@@ -53,7 +61,15 @@ const legendaNiveis = {
   I: "Independente",
 };
 
-// --- Funções Auxiliares (Refatoradas ou Mantidas) ---
+// --- Mapeamento de Cores para Criadores (DESATIVADO PARA COLORIR TEXTO DE ESTRATÉGIAS) ---
+const availableCreatorColors = [];
+const creatorColorMap = new Map();
+let currentColorIndex = 0;
+
+function getCreatorColor(criadorInfoKey) {
+  return styles.colors.black;
+}
+// --- FIM DA SEÇÃO DE CORES PARA CRIADORES ---
 
 /**
  * Formata um objeto de data ou string para o formato DD/MM/AAAA.
@@ -77,9 +93,9 @@ function formatarData(data) {
 
     if (isNaN(dateObj.getTime())) return "-";
 
-    const dia = dateObj.getDate().toString().padStart(2, "0");
-    const mes = (dateObj.getMonth() + 1).toString().padStart(2, "0");
-    const ano = dateObj.getFullYear();
+    const dia = dateObj.getUTCDate().toString().padStart(2, "0");
+    const mes = (dateObj.getUTCMonth() + 1).toString().padStart(2, "0"); // Mês é 0-indexado
+    const ano = dateObj.getUTCFullYear();
 
     return `${dia}/${mes}/${ano}`;
   } catch (e) {
@@ -126,7 +142,7 @@ function ensurePageSpace(doc, currentY, requiredSpace, footerHeight = 25) {
   const pageHeight = doc.internal.pageSize.getHeight();
   if (currentY + requiredSpace > pageHeight - footerHeight) {
     doc.addPage();
-    addFooter(doc, pageHeight); // Adiciona rodapé na página anterior antes de adicionar nova
+    addFooter(doc, pageHeight);
     return 20; // Y inicial da nova página
   }
   return currentY;
@@ -195,43 +211,320 @@ async function fetchPeis(alunoId, alunoNome) {
 }
 
 /**
- * Adiciona o cabeçalho e informações do aluno ao PDF.
+ * Adiciona o cabeçalho principal do documento, incluindo o título, logo e informações do aluno.
+ * Replicando o layout do DOCX.
  * @param {jsPDF} doc - Instância do jsPDF.
  * @param {Object} aluno - Objeto do aluno.
  * @param {Object} avaliacao - Objeto da avaliação inicial.
  * @param {string} nomeEscola - Nome da escola.
- * @param {number} y - Posição Y atual.
+ * @param {number} yStart - Posição Y inicial para este bloco de conteúdo.
  * @returns {number} Nova posição Y.
  */
-function addStudentAndHeaderInfo(doc, aluno, avaliacao, nomeEscola, y) {
+async function addStudentAndHeaderInfo(
+  doc,
+  aluno,
+  avaliacao,
+  nomeEscola,
+  yStart
+) {
+  let y = yStart; // Começa no Y passado (20mm do topo)
+
   const imgWidth = 128;
   const imgHeight = 25;
   const imgX = 10;
-  const imgY = 10;
+  const imgY = 10; // Posição Y da imagem (10mm da margem superior)
 
+  // 1. Adiciona a imagem
   doc.addImage("/logo.jpg", "JPEG", imgX, imgY, imgWidth, imgHeight);
-  y = imgY + imgHeight + 10; // Margem abaixo da imagem
+  y = imgY + imgHeight + 10; // Atualiza Y para o conteúdo abaixo da imagem
 
-  doc.setFont(styles.font, "normal");
-  doc.setFontSize(styles.fontSize.large);
+  // 2. Adiciona o TÍTULO PRINCIPAL "Plano Educacional Individualizado (PEI)"
+  doc.setFont(styles.font, "bold");
+  doc.setFontSize(styles.fontSize.title);
+  doc.text(
+    "Plano Educacional Individualizado (PEI)",
+    doc.internal.pageSize.getWidth() / 2,
+    y,
+    { align: "center" }
+  );
+  y += 10; // Espaço após o título principal
+
+  // 3. Adiciona a tabela de Orientações (AGORA COMO UMA autoTable DE 2 COLUNAS)
+  y = ensurePageSpace(doc, y, 30); // Garante espaço para a tabela de orientações
+
+  const orientationTitle = "Orientações para aplicação do PEI:";
+  const orientationTextContent =
+    "Todas as estratégias elencadas no PEI devem ser contextualizadas nas atividades propostas no plano diário.";
+
+  autoTable(doc, {
+    startY: y, // Começa a tabela no Y atual
+    head: [], // Sem cabeçalho explícito para a tabela
+    body: [
+      [
+        {
+          content: orientationTitle,
+          styles: {
+            fontStyle: "bold", // Frase em negrito
+            fontSize: styles.fontSize.medium,
+            cellPadding: 2,
+            valign: "top",
+          },
+        },
+        {
+          content: orientationTextContent,
+          styles: {
+            fontStyle: "normal",
+            fontSize: styles.fontSize.medium,
+            cellPadding: 2,
+            valign: "top",
+          },
+        },
+      ],
+    ],
+    styles: {
+      font: styles.font,
+      textColor: styles.colors.black,
+      fillColor: styles.colors.white, // GARANTIR BRANCO NO ESTILO GERAL DA TABELA
+      lineColor: styles.colors.black,
+      lineWidth: 0.1,
+    },
+    headStyles: {
+      fillColor: styles.colors.white, // GARANTIR BRANCO NO ESTILO DO CABEÇALHO (se houvesse um)
+    },
+    columnStyles: {
+      0: { cellWidth: 60, overflow: "linebreak" }, // Largura para o título "Orientações..."
+      1: {
+        cellWidth: doc.internal.pageSize.getWidth() - 60 - 40,
+        overflow: "linebreak",
+      }, // Largura restante para o conteúdo (página - col0 - margens)
+    },
+    margin: { left: 20, right: 20 }, // Margens fixas de 20mm
+    didDrawPage: (data) => {
+      // Rodapé é adicionado ao final do PDF, não a cada página desenhada aqui para evitar duplicidade.
+    },
+    didParseCell: (data) => {
+      data.cell.styles.fillColor = styles.colors.white; // GARANTIR BRANCO EM CADA CÉLULA
+    },
+  });
+  y = doc.lastAutoTable.finalY + 5; // Atualiza Y após a tabela de orientações
+
+  // --- DADOS E CÁLCULOS PARA AS TABELAS DE INFORMAÇÕES DO ALUNO E INTERVENÇÃO ---
+  const availablePageWidth = doc.internal.pageSize.getWidth() - 40; // Largura total da página menos margens de 20mm de cada lado
 
   const dataNascTexto = formatarData(aluno.nascimento);
   const dataAvaliacaoTexto = formatarData(avaliacao?.inicio);
+  const dataProximaAvaliacaoTexto = formatarData(avaliacao?.proximaAvaliacao);
 
-  const infoAluno = [
-    `Escola: ${nomeEscola}`,
-    `Nome: ${aluno.nome}`,
-    `Data de Nascimento: ${dataNascTexto}`,
-    `Diagnóstico: ${aluno.diagnostico || "-"}`,
-    `Data da Avaliação Inicial: ${dataAvaliacaoTexto}`,
-    `Data da Próxima Avaliação: ${formatarData(avaliacao?.proximaAvaliacao) || "-"}`,
-  ];
+  // Calcula a idade do aluno de forma mais robusta
+  let alunoIdade = "-";
+  if (aluno.nascimento) {
+    let birthDateObj;
+    if (typeof aluno.nascimento.toDate === "function") {
+      // Se for Timestamp
+      birthDateObj = aluno.nascimento.toDate();
+    } else if (aluno.nascimento instanceof Date) {
+      // Se já for Date
+      birthDateObj = aluno.nascimento;
+    } else if (typeof aluno.nascimento === "string") {
+      // Se for string
+      birthDateObj = new Date(aluno.nascimento);
+    }
 
-  infoAluno.forEach((info) => {
-    doc.text(info, 20, y);
-    y += 6;
+    if (birthDateObj && !isNaN(birthDateObj.getTime())) {
+      const today = new Date();
+      let age = today.getFullYear() - birthDateObj.getFullYear();
+      const m = today.getMonth() - birthDateObj.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDateObj.getDate())) {
+        age--;
+      }
+      alunoIdade = age;
+    }
+  }
+
+  // --- BUSCA OS PROFESSORES DA TURMA E ESCOLA ---
+  let professoresNomes = "Não informado"; // Valor padrão para professores
+  if (aluno.escolaId && aluno.turma) {
+    try {
+      const professoresQuery = query(
+        collection(db, "usuarios"),
+        where(`escolas.${aluno.escolaId}`, "==", true), // Vinculação à escola
+        where("perfil", "in", ["professor", "aee"]) // Filtra por perfil
+      );
+      const professoresSnap = await getDocs(professoresQuery);
+
+      const nomesEncontrados = [];
+      professoresSnap.docs.forEach((doc) => {
+        const userData = doc.data();
+        if (userData.turmas && userData.turmas[aluno.turma]) {
+          // Filtra localmente por turma (map)
+          nomesEncontrados.push(userData.nome);
+        } else if (
+          Array.isArray(userData.turmas) &&
+          userData.turmas.includes(aluno.turma)
+        ) {
+          // Fallback para array de turmas
+          nomesEncontrados.push(userData.nome);
+        }
+      });
+
+      if (nomesEncontrados.length > 0) {
+        professoresNomes = nomesEncontrados.join(", ");
+      } else {
+        // Fallback se a consulta exata não retornar, tenta por IDs se existir no aluno
+        if (Array.isArray(aluno.professores) && aluno.professores.length > 0) {
+          const profDetailsPromises = aluno.professores.map(
+            async (profRefId) => {
+              // Assume que profRefId é um ID de documento na coleção 'usuarios'
+              const profDoc = await getDoc(
+                firestoreDoc(db, "usuarios", profRefId)
+              );
+              return profDoc.exists() ? profDoc.data().nome : null;
+            }
+          );
+          const resolvedNames = (await Promise.all(profDetailsPromises)).filter(
+            Boolean
+          );
+          if (resolvedNames.length > 0)
+            professoresNomes = resolvedNames.join(", ");
+        }
+      }
+    } catch (error) {
+      console.error(
+        "Erro ao buscar professores na função addStudentAndHeaderInfo:",
+        error
+      );
+      professoresNomes = "Erro ao carregar professores";
+    }
+  }
+
+  // --- FIM DOS DADOS E CÁLCULOS ---
+
+  // 4. TABELA DE INFORMAÇÕES DO ALUNO (COM 3 LINHAS E COLUNAS MESCLADAS)
+  y = ensurePageSpace(doc, y, 40); // Garante espaço para a tabela
+
+  autoTable(doc, {
+    startY: y,
+    head: [], // Sem cabeçalho explícito
+    body: [
+      // Linha 1: Nome do Aluno (ocupa todas as 3 colunas)
+      [{ content: `Aluno(a): ${aluno.nome || "-"}`, colSpan: 3 }],
+      // Linha 2: Nome da Escola (ocupa todas as 3 colunas)
+      [{ content: `Escola: ${nomeEscola || "-"}`, colSpan: 3 }],
+      // Linha 3: D.N. | Idade | Turma (3 colunas iguais)
+      [
+        `D.N. ${dataNascTexto}`,
+        `Idade: ${alunoIdade} anos`,
+        `Turma: ${aluno.turma || "-"}`,
+      ],
+    ],
+    styles: {
+      font: styles.font,
+      fontSize: styles.fontSize.large,
+      textColor: styles.colors.black,
+      fillColor: styles.colors.white, // GARANTIR BRANCO NO ESTILO GERAL DA TABELA
+      lineColor: styles.colors.black,
+      lineWidth: 0.1,
+      cellPadding: 2,
+      valign: "middle",
+    },
+    headStyles: {
+      fillColor: styles.colors.white, // REMOVER O CINZA CLARO DOS CABEÇALHOS AQUI!
+    },
+    // Definir 3 colunas de largura igual para a tabela base.
+    columnStyles: {
+      0: { cellWidth: availablePageWidth / 3 }, // Primeira coluna (1/3)
+      1: { cellWidth: availablePageWidth / 3 }, // Segunda coluna (1/3)
+      2: { cellWidth: availablePageWidth / 3 }, // Terceira coluna (1/3)
+    },
+    margin: { left: 20, right: 20 },
+    didParseCell: (data) => {
+      data.cell.styles.fillColor = styles.colors.white; // GARANTIR BRANCO EM CADA CÉLULA DO BODY
+    },
   });
-  return y + 4;
+  y = doc.lastAutoTable.finalY + 5; // Espaço após a tabela de informações do aluno.
+
+  // 5. TABELA DE DETALHES DA INTERVENÇÃO (Professor, Período, Próxima Avaliação)
+  y = ensurePageSpace(doc, y, 40); // Garante espaço para a tabela de intervenção
+
+  autoTable(doc, {
+    startY: y,
+    head: [],
+    body: [
+      // Linha 1: Professor(a) - ocupa a largura total da tabela
+      [{ content: `Professor(a): ${professoresNomes}`, colSpan: 2 }],
+      // Linha 2: Período e Próxima Avaliação - dividem a largura
+      [
+        `Período de intervenção: ${
+          avaliacao?.periodoIntervencao || "Médio prazo"
+        }`,
+        `Data prevista para a próxima avaliação: ${dataProximaAvaliacaoTexto}`,
+      ],
+    ],
+    styles: {
+      font: styles.font,
+      fontSize: styles.fontSize.large,
+      textColor: styles.colors.black,
+      fillColor: styles.colors.white,
+      lineColor: styles.colors.black,
+      lineWidth: 0.1,
+      cellPadding: 2,
+      valign: "middle",
+    },
+    headStyles: {
+      fillColor: styles.colors.white,
+    },
+    // Definir 2 colunas para a tabela. A mesclagem no didParseCell cuida da primeira linha.
+    columnStyles: {
+      0: { cellWidth: availablePageWidth / 2 },
+      1: { cellWidth: availablePageWidth / 2 },
+    },
+    didParseCell: (data) => {
+      data.cell.styles.fillColor = styles.colors.white; // GARANTIR BRANCO EM CADA CÉLULA DO BODY
+    },
+    margin: { left: 20, right: 20 },
+  });
+  y = doc.lastAutoTable.finalY + 5; // Espaço após esta tabela
+
+  // 6. NOVA TABELA SEPARADA PARA "Plano gerado a partir avaliação realizada em:"
+  y = ensurePageSpace(doc, y, 15); // Garante espaço para a nova tabela
+
+  autoTable(doc, {
+    startY: y,
+    head: [],
+    body: [
+      [
+        {
+          content: `Plano gerado a partir avaliação realizada em: ${dataAvaliacaoTexto}`,
+          styles: {
+            halign: "center", // Centraliza o texto
+          },
+        },
+      ],
+    ],
+    styles: {
+      font: styles.font,
+      fontSize: styles.fontSize.large,
+      textColor: styles.colors.black,
+      fillColor: styles.colors.white,
+      lineColor: styles.colors.black,
+      lineWidth: 0.1,
+      cellPadding: 2,
+      valign: "middle",
+    },
+    headStyles: {
+      fillColor: styles.colors.white,
+    },
+    columnStyles: {
+      0: { cellWidth: availablePageWidth }, // Ocupa a largura total da tabela
+    },
+    didParseCell: (data) => {
+      data.cell.styles.fillColor = styles.colors.white;
+    },
+    margin: { left: 20, right: 20 },
+  });
+  y = doc.lastAutoTable.finalY + 10; // Espaço após esta tabela
+
+  return y;
 }
 
 /**
@@ -266,7 +559,7 @@ function addInitialAssessment(doc, avaliacao, y) {
     for (const habilidade in habilidades) {
       const nivel = habilidades[habilidade];
       if (nivel !== "NA" && nivel !== "I") {
-        linhasDaArea.push([habilidade, nivel, legendaNiveis[nivel] || "-"]);
+        linhasDaArea.push([habilidade, nivel]);
       }
     }
 
@@ -280,7 +573,7 @@ function addInitialAssessment(doc, avaliacao, y) {
 
     autoTable(doc, {
       startY: y,
-      head: [["Habilidade", "Nível", "Descrição"]],
+      head: [["Habilidade", "Nível"]],
       body: linhasDaArea,
       styles: {
         font: styles.font,
@@ -288,25 +581,28 @@ function addInitialAssessment(doc, avaliacao, y) {
         cellPadding: 1.5,
         valign: "middle",
         textColor: styles.colors.black,
-        fillColor: styles.colors.white,
+        fillColor: styles.colors.white, // Sem cor de fundo
         lineColor: styles.colors.black,
         lineWidth: 0.1,
       },
       headStyles: {
-        fillColor: styles.colors.white,
+        fillColor: styles.colors.white, // REMOVER O CINZA CLARO DOS CABEÇALHOS AQUI!
         textColor: styles.colors.black,
         fontStyle: "bold",
         halign: "center",
       },
       columnStyles: {
-        0: { cellWidth: 90 },
-        1: { cellWidth: 18, halign: "center" },
-        2: { cellWidth: 75 },
+        0: { cellWidth: 150 },
+        1: { cellWidth: 20, halign: "center" },
       },
       margin: { bottom: 25 },
       didParseCell: (data) => {
-        if (data.column.index === 1 && coresPorNivel[data.cell.text]) {
-          data.cell.styles.fillColor = coresPorNivel[data.cell.text];
+        // Aplica cor de fundo para os níveis
+        const nivel = data.cell.text;
+        if (data.column.index === 1 && coresPorNivel[nivel]) {
+          data.cell.styles.fillColor = coresPorNivel[nivel]; // Aplicar cor do nível
+        } else {
+          data.cell.styles.fillColor = styles.colors.white; // Garantir branco para outras células
         }
       },
       didDrawPage: (data) => {
@@ -320,150 +616,287 @@ function addInitialAssessment(doc, avaliacao, y) {
 
 /**
  * Adiciona a seção de PEIs consolidados ao PDF.
+ * A tabela de atividades aplicadas não inclui 'Área' nem 'Habilidade' e
+ * garante que cada atividade seja listada apenas uma vez.
+ * O texto das estratégias será preto padrão.
  * @param {jsPDF} doc - Instância do jsPDF.
  * @param {Array<Object>} peisParaExibir - PEIs a serem exibidos.
  * @param {number} y - Posição Y atual.
  * @returns {number} Nova posição Y.
  */
 function addConsolidatedPeiSection(doc, peisParaExibir, y) {
-  const allPeiTableRows = [];
-  let totalPeiContributions = 0;
+  const allPeiTableRows = []; // Para a tabela de Estratégias
+  const allActivitiesTableRows = []; // Para a tabela de Atividades Aplicadas (sem duplicatas)
+  const uniqueActivitiesSet = new Set(); // Para controlar atividades únicas
+
+  // Mapa para agrupar habilidades por Área e Habilidade para estratégias
+  // Voltando à consolidação por habilidade, onde a célula de estratégias é uma única string.
+  const consolidatedSkills = new Map();
 
   peisParaExibir.forEach((peiItem) => {
     const resumo = peiItem.resumoPEI || peiItem.areas || [];
     if (resumo.length === 0) return;
 
-    totalPeiContributions++;
+    const criadorInfo = `(${peiItem.nomeCriador || "Desconhecido"} - ${
+      peiItem.cargoCriador || "Não Informado"
+    })`;
 
-    // Linha de separação para identificar o colaborador e o PEI
-    allPeiTableRows.push([
-      {
-        content: `Elaborado por: ${peiItem.nomeCriador || "Desconhecido"} - Cargo: ${peiItem.cargoCriador || "Não Informado"}`, // <--- Linha ALTERADA
-        colSpan: 6,
-        styles: {
-          fontStyle: "bold",
-          fillColor: styles.colors.grayLight,
-          textColor: styles.colors.black,
-          halign: "center",
-          cellPadding: 2,
-        },
-      },
-    ]);
+    resumo.forEach((item) => {
+      const key = `${item.area || "-"}|${item.habilidade || "-"}`;
+      if (!consolidatedSkills.has(key)) {
+        consolidatedSkills.set(key, {
+          area: item.area || "-",
+          habilidade: item.habilidade || "-",
+          objetivo: item.objetivo || "-",
+          estrategiasTextList: [], // Lista de strings de estratégia já formatadas com criador
+          nivel: item.nivel || "-",
+          nivelAlmejado: item.nivelAlmejado || "-",
+        });
+      }
 
-    // Adiciona as linhas com as habilidades e estratégias deste PEI
-    const linhasDoPeiAtual = resumo.map((item) => [
-      item.area || "-",
-      item.habilidade || "-",
-      typeof item.objetivo === "string" ? item.objetivo : "-",
-      Array.isArray(item.estrategias)
-        ? item.estrategias.filter(Boolean).join(", ")
-        : typeof item.estrategias === "string"
-          ? item.estrategias
-          : "-",
-      item.nivel || "-",
-      item.nivelAlmejado || "-",
-    ]);
-    allPeiTableRows.push(...linhasDoPeiAtual);
+      const skillEntry = consolidatedSkills.get(key);
 
-    // *** AQUI É O PONTO CHAVE PARA AS ATIVIDADES APLICADAS POR COLABORADOR ***
-    // Atividade Aplicada para este PEI (se existir), logo abaixo das estratégias e ainda
-    // sob o "cabeçalho" do colaborador.
-    if (peiItem.atividadeAplicada?.trim()) {
-      allPeiTableRows.push([
-        {
-          content: `Atividade Aplicada: ${peiItem.atividadeAplicada}`,
-          colSpan: 6, // Mescla todas as colunas para a atividade
-          styles: {
-            fontStyle: "italic", // Estilo para diferenciar
-            fontSize: styles.fontSize.small,
-            cellPadding: 2,
-            valign: "top",
-            lineColor: styles.colors.black,
-            lineWidth: 0.1,
-            fillColor: styles.colors.white,
-          },
-        },
-      ]);
-    }
-    // NOTA: Acompanhamento não foi incluído diretamente na tabela consolidada por complexidade.
-    // Se necessário, uma solução personalizada para o acompanhamento dentro da célula ou
-    // uma sub-tabela dedicada precisaria ser implementada.
+      let estrategiasDoItem = [];
+      if (Array.isArray(item.estrategias)) {
+        estrategiasDoItem = item.estrategias
+          .filter(Boolean)
+          .map((est) => est.trim());
+      } else if (typeof item.estrategias === "string") {
+        const regexSplit = /(?=\s*\([^)]+\)\s*(?=\s*\([^)]+\)|$))/;
+        const parts = item.estrategias.split(regexSplit);
+        parts.forEach((part) => {
+          const trimmedPart = part.trim();
+          if (trimmedPart) {
+            estrategiasDoItem.push(trimmedPart);
+          }
+        });
+        if (
+          estrategiasDoItem.length === 0 &&
+          item.estrategias.trim().length > 0
+        ) {
+          estrategiasDoItem.push(item.estrategias.trim());
+        }
+      }
+
+      // Adiciona cada estratégia (com o info do criador) ao array de estratégias da habilidade consolidada
+      if (estrategiasDoItem.length > 0) {
+        estrategiasDoItem.forEach((strategyText) => {
+          skillEntry.estrategiasTextList.push(
+            `* ${strategyText} ${criadorInfo}`
+          );
+        });
+      }
+
+      // Adiciona atividades aplicadas à lista separada, garantindo unicidade
+      const activityText = item.atividadeAplicada?.trim();
+      if (activityText) {
+        const uniqueKey = `${activityText}|${criadorInfo}`;
+        if (!uniqueActivitiesSet.has(uniqueKey)) {
+          uniqueActivitiesSet.add(uniqueKey);
+          allActivitiesTableRows.push([activityText, criadorInfo]);
+        }
+      } else if (peiItem.atividadeAplicada?.trim() && !item.atividadeAplicada) {
+        const activityTextFromPei = peiItem.atividadeAplicada.trim();
+        const uniqueKey = `${activityTextFromPei}|${criadorInfo}`;
+        if (!uniqueActivitiesSet.has(uniqueKey)) {
+          uniqueActivitiesSet.add(uniqueKey);
+          allActivitiesTableRows.push([activityTextFromPei, criadorInfo]);
+        }
+      }
+
+      // Atualiza o nível e nível almejado, sempre pegando o último (mais recente)
+      skillEntry.nivel = item.nivel || skillEntry.nivel;
+      skillEntry.nivelAlmejado = item.nivelAlmejado || skillEntry.nivelAlmejado;
+    });
   });
 
-  if (totalPeiContributions === 0) {
+  // Converte o mapa de habilidades consolidadas em linhas para o corpo da tabela de Estratégias
+  // Cada linha será uma habilidade com suas estratégias consolidadas em uma única célula de string.
+  consolidatedSkills.forEach((skillEntry) => {
+    // Une todas as estratégias da habilidade em uma única string, separadas por duas quebras de linha
+    const combinedStrategiesText = skillEntry.estrategiasTextList.join("\n\n");
+
+    allPeiTableRows.push([
+      skillEntry.area || "-",
+      skillEntry.habilidade || "-",
+      skillEntry.objetivo || "-",
+      combinedStrategiesText || "Nenhuma estratégia definida.", // Conteúdo como STRING SIMPLES
+      skillEntry.nivel || "-",
+      skillEntry.nivelAlmejado || "-",
+    ]);
+  });
+
+  // --- Tabela de Plano Educacional Individualizado (Estratégias) ---
+  if (allPeiTableRows.length > 0) {
+    y = ensurePageSpace(doc, y, 60);
+    doc.setFont(styles.font, "bold");
+    doc.setFontSize(styles.fontSize.large);
     doc.text(
-      "Nenhum Plano Educacional Individualizado (PEI) com estratégias detalhadas encontrado para este aluno.",
+      "Plano Educacional Individualizado (PEI)",
+      doc.internal.pageSize.getWidth() / 2,
+      y,
+      { align: "center" }
+    );
+    y += 8;
+
+    const larguraPagina = doc.internal.pageSize.getWidth();
+    // Definir as larguras fixas para as primeiras colunas e os níveis
+    const areaWidth = 25;
+    const habilidadeWidth = 35;
+    const objetivoWidth = 45;
+    const nivelWidth = 12; // Largura para Nível (muito menor)
+    const nivelAlmejadoWidth = 15; // Largura para Nível Almejado (muito menor)
+
+    // Margens laterais padrão para autoTable (20mm de cada lado = 40mm total)
+    const defaultMarginLeft = 20;
+    const defaultMarginRight = 20;
+    const defaultTotalHorizontalMargin = defaultMarginLeft + defaultMarginRight;
+
+    // Calcular o espaço restante para a coluna de Estratégias
+    const fixedColumnsTotalWidth =
+      areaWidth +
+      habilidadeWidth +
+      objetivoWidth +
+      nivelWidth +
+      nivelAlmejadoWidth;
+    const availableWidthForStrategies =
+      larguraPagina - defaultTotalHorizontalMargin - fixedColumnsTotalWidth;
+
+    // Garanta que Estratégias tenha um mínimo razoável (ex: 70mm), e não seja negativo
+    const estrategiasWidth = Math.max(70, availableWidthForStrategies);
+
+    const totalColumnWidthUsed =
+      areaWidth +
+      habilidadeWidth +
+      objetivoWidth +
+      estrategiasWidth +
+      nivelWidth +
+      nivelAlmejadoWidth;
+    // Calcular a margem esquerda para centralizar a tabela
+    const margemPEI = (larguraPagina - totalColumnWidthUsed) / 2;
+
+    autoTable(doc, {
+      startY: y,
+      head: [
+        [
+          "Área",
+          "Habilidade",
+          "Objetivo",
+          "Estratégias",
+          "Nível Atual",
+          "Nível Almejado",
+        ],
+      ],
+      body: allPeiTableRows, // Agora allPeiTableRows contém strings simples
+      styles: {
+        font: styles.font,
+        fontSize: styles.fontSize.small,
+        textColor: styles.colors.black, // O texto será preto padrão
+        fillColor: styles.colors.white, // GARANTIR BRANCO NO ESTILO GERAL DA TABELA
+        lineColor: styles.colors.black,
+        lineWidth: 0.1,
+        cellPadding: 2,
+        valign: "top",
+      },
+      headStyles: {
+        fillColor: styles.colors.white, // REMOVER O CINZA CLARO DOS CABEÇALHOS AQUI!
+        textColor: styles.colors.black,
+        fontStyle: "bold",
+        halign: "center",
+      },
+      columnStyles: {
+        0: { cellWidth: areaWidth },
+        1: { cellWidth: habilidadeWidth },
+        2: { cellWidth: objetivoWidth },
+        3: { cellWidth: estrategiasWidth, overflow: "linebreak" },
+        4: { cellWidth: nivelWidth, halign: "center" }, // Nível (índice 4)
+        5: { cellWidth: nivelAlmejadoWidth, halign: "center" }, // Nível Almejado (índice 5)
+      },
+      margin: { left: margemPEI, bottom: 25 },
+      didParseCell: (data) => {
+        // Aplica cor de fundo para os níveis
+        const nivel = data.cell.text;
+        if ([4, 5].includes(data.column.index) && coresPorNivel[nivel]) {
+          data.cell.styles.fillColor = coresPorNivel[nivel]; // Aplicar cor do nível
+        } else {
+          data.cell.styles.fillColor = styles.colors.white; // Garantir branco para outras células
+        }
+      },
+    });
+    y = doc.lastAutoTable.finalY + 10;
+  } else {
+    doc.text(
+      "Nenhuma estratégia de Plano Educacional Individualizado (PEI) detalhada encontrada para este aluno.",
+      25,
+      y
+    );
+    y += 10;
+  }
+
+  // --- Tabela de Atividades Aplicadas ---
+  if (allActivitiesTableRows.length > 0) {
+    y = ensurePageSpace(doc, y, 40);
+    doc.setFont(styles.font, "bold");
+    doc.setFontSize(styles.fontSize.large);
+    doc.text("Atividades Aplicadas", doc.internal.pageSize.getWidth() / 2, y, {
+      align: "center",
+    });
+    y += 8;
+
+    const larguraPagina = doc.internal.pageSize.getWidth();
+    const tableWidth = 175;
+    const margemAtividades = (larguraPagina - tableWidth) / 2;
+
+    autoTable(doc, {
+      startY: y,
+      head: [["Atividade Aplicada", "Responsável"]],
+      body: allActivitiesTableRows,
+      styles: {
+        font: styles.font,
+        fontSize: styles.fontSize.small,
+        textColor: styles.colors.black,
+        fillColor: styles.colors.white, // GARANTIR BRANCO NO ESTILO GERAL DA TABELA
+        lineColor: styles.colors.black,
+        lineWidth: 0.1,
+        cellPadding: 2,
+        valign: "top",
+      },
+      headStyles: {
+        fillColor: styles.colors.white, // REMOVER O CINZA CLARO DOS CABEÇALHOS AQUI!
+        textColor: styles.colors.black,
+        fontStyle: "bold",
+        halign: "center",
+      },
+      columnStyles: {
+        0: { cellWidth: tableWidth * 0.7, overflow: "linebreak" },
+        1: { cellWidth: tableWidth * 0.3, halign: "center" },
+      },
+      margin: { left: margemAtividades, bottom: 25 },
+      didParseCell: (data) => {
+        data.cell.styles.fillColor = styles.colors.white; // GARANTIR BRANCO EM CADA CÉLULA DO BODY
+      },
+    });
+    y = doc.lastAutoTable.finalY + 10;
+  } else {
+    doc.text(
+      "Nenhuma atividade aplicada detalhada encontrada para este aluno.",
+      25,
+      y
+    );
+    y += 10;
+  }
+
+  // Se nenhuma das tabelas foi gerada
+  if (allPeiTableRows.length === 0 && allActivitiesTableRows.length === 0) {
+    doc.text(
+      "Nenhum Plano Educacional Individualizado (PEI) ou atividade aplicada encontrada para este aluno.",
       25,
       y
     );
     return y + 10;
   }
 
-  y = ensurePageSpace(doc, y, 60);
-  doc.setFont(styles.font, "bold");
-  doc.setFontSize(styles.fontSize.large);
-  doc.text(
-    "Plano Educacional Individualizado (PEI) Consolidado",
-    doc.internal.pageSize.getWidth() / 2,
-    y,
-    { align: "center" }
-  );
-  y += 8;
-
-  const larguraPagina = doc.internal.pageSize.getWidth();
-  const margemPEI = (larguraPagina - 195) / 2;
-
-  autoTable(doc, {
-    startY: y,
-    head: [
-      [
-        "Área",
-        "Habilidade",
-        "Objetivo",
-        "Estratégias",
-        "Nível",
-        "Nível Almejado",
-      ],
-    ],
-    body: allPeiTableRows,
-    styles: {
-      font: styles.font,
-      fontSize: styles.fontSize.small,
-      textColor: styles.colors.black,
-      fillColor: styles.colors.white,
-      lineColor: styles.colors.black,
-      lineWidth: 0.1,
-      cellPadding: 2,
-      valign: "middle",
-    },
-    headStyles: {
-      fillColor: styles.colors.white,
-      textColor: styles.colors.black,
-      fontStyle: "bold",
-      halign: "center",
-    },
-    columnStyles: {
-      0: { cellWidth: 25 },
-      1: { cellWidth: 35 },
-      2: { cellWidth: 45 },
-      3: { cellWidth: 45 },
-      4: { cellWidth: 20, halign: "center" },
-      5: { cellWidth: 25, halign: "center" },
-    },
-    margin: { left: margemPEI, bottom: 25 },
-    didParseCell: (data) => {
-      const nivel = data.cell.text;
-      if ([4, 5].includes(data.column.index)) {
-        data.cell.styles.fillColor =
-          coresPorNivel[nivel] || styles.colors.white;
-      }
-    },
-    didDrawPage: (data) => {
-      // O rodapé já é adicionado pelo ensurePageSpace ou pela última chamada.
-      // É importante ter cuidado para não adicionar duas vezes.
-    },
-  });
-  return doc.lastAutoTable.finalY + 10;
+  return y;
 }
 
 /**
@@ -491,11 +924,10 @@ function addLegendSection(doc, y) {
   doc.setFontSize(styles.fontSize.small);
 
   Object.entries(legendaNiveis).forEach(([sigla, descricao]) => {
-    // ensurePageSpace já cuida da quebra de página
-    const cor = coresPorNivel[sigla] || styles.colors.white;
-    doc.setFillColor(...cor);
-    doc.rect(22, y - 4, 8, 6, "F");
-    doc.text(`${sigla} – ${descricao}`, 32, y);
+    const cor = coresPorNivel[sigla] || styles.colors.white; // Pega a cor correspondente ou branco padrão
+    doc.setFillColor(...cor); // Define a cor de preenchimento
+    doc.rect(22, y - 4, 8, 6, "F"); // Desenha um retângulo preenchido (cor)
+    doc.text(`${sigla} – ${descricao}`, 32, y); // Adiciona o texto da legenda
     y += 7;
   });
   return y + 10;
@@ -534,7 +966,6 @@ function addLoggedInUserSignature(doc, usuarioLogado, y) {
  * Adiciona a tabela de assinaturas de profissionais ao PDF.
  * @param {jsPDF} doc - Instância do jsPDF.
  * @param {Object} aluno - Objeto do aluno.
- * @param {Object} usuarioLogado - Objeto do usuário logado.
  * @param {number} y - Posição Y atual.
  * @returns {Promise<number>} Nova posição Y.
  */
@@ -563,6 +994,8 @@ async function addProfessionalSignaturesTable(doc, aluno, usuarioLogado, y) {
       "diretor adjunto",
       "orientador pedagógico",
       "desenvolvedor",
+      "gestao",
+      "seme",
     ];
     const professoresComAssinaturaQuery = query(
       collection(db, "usuarios"),
@@ -570,7 +1003,7 @@ async function addProfessionalSignaturesTable(doc, aluno, usuarioLogado, y) {
     );
     const professoresSnap = await getDocs(professoresComAssinaturaQuery);
 
-    const professoresVinculados = professoresSnap.docs
+    const profissionaisVinculados = professoresSnap.docs
       .map((doc) => ({ id: doc.id, ...doc.data() }))
       .filter((prof) => {
         const estaNaEscolaDoAluno = Object.keys(prof.escolas || {}).includes(
@@ -585,11 +1018,12 @@ async function addProfessionalSignaturesTable(doc, aluno, usuarioLogado, y) {
           return estaNaEscolaDoAluno && (!aluno.turma || estaNaTurmaDoAluno);
         }
         return estaNaEscolaDoAluno;
-      });
+      })
+      .sort((a, b) => a.nome.localeCompare(b.nome));
 
-    if (professoresVinculados.length === 0) {
+    if (profissionaisVinculados.length === 0) {
       console.warn(
-        "Nenhum profissional encontrado para a tabela de assinaturas."
+        "Nenhum profissional encontrado para a tabela de assinaturas gerais."
       );
       return y;
     }
@@ -597,10 +1031,10 @@ async function addProfessionalSignaturesTable(doc, aluno, usuarioLogado, y) {
     y = ensurePageSpace(doc, y, 30);
     doc.setFont(styles.font, "bold");
     doc.setFontSize(styles.fontSize.large);
-    doc.text("Assinaturas dos Profissionais", 20, y);
+    doc.text("Assinaturas dos Profissionais Envolvidos", 20, y);
     y += 8;
 
-    const linhasAssinaturas = professoresVinculados.map((p) => [
+    const linhasAssinaturas = profissionaisVinculados.map((p) => [
       p.nome,
       p.cargo || p.perfil?.toUpperCase(),
       "_______________________________",
@@ -614,13 +1048,13 @@ async function addProfessionalSignaturesTable(doc, aluno, usuarioLogado, y) {
         font: styles.font,
         fontSize: styles.fontSize.medium,
         textColor: styles.colors.black,
-        fillColor: styles.colors.white,
+        fillColor: styles.colors.white, // GARANTIR BRANCO NO ESTILO GERAL DA TABELA
         lineColor: styles.colors.black,
         lineWidth: 0.1,
         cellPadding: 2,
       },
       headStyles: {
-        fillColor: styles.colors.white,
+        fillColor: styles.colors.white, // REMOVER O CINZA CLARO DOS CABEÇALHOS AQUI!
         textColor: styles.colors.black,
         fontStyle: "bold",
         halign: "center",
@@ -631,8 +1065,8 @@ async function addProfessionalSignaturesTable(doc, aluno, usuarioLogado, y) {
         2: { cellWidth: 60 },
       },
       margin: { bottom: 25 },
-      didDrawPage: (data) => {
-        // Rodapé já é adicionado por ensurePageSpace ou no final
+      didParseCell: (data) => {
+        data.cell.styles.fillColor = styles.colors.white; // GARANTIR BRANCO EM CADA CÉLULA DO BODY
       },
     });
     return doc.lastAutoTable.finalY + 10;
@@ -642,7 +1076,7 @@ async function addProfessionalSignaturesTable(doc, aluno, usuarioLogado, y) {
   }
 }
 
-// --- Função Principal: gerarPDFCompleto (Refatorada) ---
+// --- Função Principal: gerarPDFCompleto ---
 
 export async function gerarPDFCompleto(
   aluno,
@@ -667,7 +1101,7 @@ export async function gerarPDFCompleto(
     console.error("gerarPDFCompleto: Dados do aluno são incompletos.");
     doc.text("Erro: Dados do aluno incompletos.", 20, y);
     addFooter(doc, doc.internal.pageSize.getHeight());
-    doc.save(`Erro_Dados_Aluno_Incompletos.pdf`);
+    doc.save(`PEI_${aluno.nome.replace(/\s+/g, "_")}_Sem_Dados.pdf`);
     return;
   }
 
@@ -691,41 +1125,7 @@ export async function gerarPDFCompleto(
     return dataB.getTime() - dataA.getTime();
   });
 
-  // Lógica de organização dos PEIs para exibição (base + histórico)
-  let peisParaExibir = [];
-  if (peisParaGeral === null) {
-    // Se não foi pedido um PDF "geral" com PEIs específicos, filtra o principal
-    let peiBaseEncontrado = null;
-    const criadoresDeBase = [
-      "PROFESSOR REGENTE",
-      "PROFESSOR DE SUPORTE",
-      "AEE",
-      "GESTAO",
-      "SEME",
-      "DESENVOLVEDOR",
-    ];
-    for (const peiItem of peisOrdenados) {
-      const cargo = peiItem.cargoCriador?.toUpperCase();
-      const perfil = peiItem.criadorPerfil?.toUpperCase();
-      if (criadoresDeBase.includes(cargo) || criadoresDeBase.includes(perfil)) {
-        peiBaseEncontrado = peiItem;
-        break;
-      }
-    }
-
-    const idsJaAdicionados = new Set();
-    if (peiBaseEncontrado) {
-      peisParaExibir.push(peiBaseEncontrado);
-      idsJaAdicionados.add(peiBaseEncontrado.id);
-    }
-    const outrosPeisHistorico = peisOrdenados.filter(
-      (peiItem) => !idsJaAdicionados.has(peiItem.id)
-    );
-    peisParaExibir.push(...outrosPeisHistorico);
-  } else {
-    // Se `peisParaGeral` foi fornecido, usa-o diretamente como `peisParaExibir`
-    peisParaExibir = peisOrdenados; // Já está ordenado.
-  }
+  let peisParaExibir = peisOrdenados;
 
   console.log(
     "[PDF_DEBUG] PEIs para exibir (final):",
@@ -766,15 +1166,15 @@ export async function gerarPDFCompleto(
   }
 
   // --- 4. Geração das Seções do PDF ---
-  y = addStudentAndHeaderInfo(doc, aluno, avaliacao, nomeEscola, y);
+  y = await addStudentAndHeaderInfo(doc, aluno, avaliacao, nomeEscola, y);
   y = addInitialAssessment(doc, avaliacao, y);
   y = addConsolidatedPeiSection(doc, peisParaExibir, y);
-  y = addLegendSection(doc, y);
+  y = addLegendSection(doc, y); // AQUI A FUNÇÃO addLegendSection FOI ATUALIZADA
   y = addLoggedInUserSignature(doc, usuarioLogado, y);
   y = await addProfessionalSignaturesTable(doc, aluno, usuarioLogado, y);
 
   // --- 5. Finalização e Salvamento do PDF ---
-  addFooter(doc, doc.internal.pageSize.getHeight()); // Garante que o rodapé esteja na última página também
+  addFooter(doc, doc.internal.pageSize.getHeight());
   doc.save(`PEI_${aluno.nome.replace(/\s+/g, "_")}_Completo.pdf`);
   console.log("[PDF_DEBUG] Geração do PDF concluída.");
 }

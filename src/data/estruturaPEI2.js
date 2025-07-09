@@ -1,7 +1,7 @@
 const estruturaPEI = {
   "Desenvolvimento Global": {
     "Motricidade Grossa": {
-      "Anda com segurança e corre com coordenação": {
+      "Andar com segurança e correr com coordenação": {
         NR: {
           objetivo:
             "Iniciar a marcha independente e a exploração do espaço, com apoio físico e verbal intensivo, visando estabilidade e controle.",
@@ -35,7 +35,6 @@ const estruturaPEI = {
           ],
         },
         AG: {
-          // Apoio Gestual
           objetivo:
             "Estimular a marcha autônoma e o início de corridas com mudanças de direção, respondendo a comandos gestuais e visuais do professor.",
           estrategias: [
@@ -52,7 +51,6 @@ const estruturaPEI = {
           ],
         },
         AV: {
-          // Apoio Verbal
           objetivo:
             "Aprimorar a coordenação em corridas com variações de velocidade e direção, seguindo instruções verbais para generalização de movimentos.",
           estrategias: [
@@ -69,7 +67,6 @@ const estruturaPEI = {
           ],
         },
         AVi: {
-          // Apoio Visual
           objetivo:
             "Generalizar a marcha segura e a corrida coordenada em diferentes ambientes, utilizando pistas visuais para auto-orientação e adaptação.",
           estrategias: [
@@ -86,7 +83,6 @@ const estruturaPEI = {
           ],
         },
         I: {
-          // Independente
           objetivo:
             "Demonstrar marcha segura e coordenação plena em corridas, adaptando-se a diferentes velocidades, direções e terrenos de forma autônoma e criativa.",
           estrategias: [
@@ -103,10 +99,8 @@ const estruturaPEI = {
           ],
         },
       },
-
-      "Salta com os dois pés juntos e sobe/desce escadas alternando-os": {
+      "Saltar com os dois pés juntos e subir/descer escadas alternando-os": {
         NR: {
-          // Não Realizou
           objetivo:
             "Iniciar o movimento de saltar e de transpor degraus com apoio físico e instrução verbal contínua, visando a consciência corporal.",
           estrategias: [
@@ -123,7 +117,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover o salto com dois pés de forma assistida e a subida/descida de escadas com apoio físico, buscando estabilidade e coordenação inicial.",
           estrategias: [
@@ -140,7 +133,6 @@ const estruturaPEI = {
           ],
         },
         AG: {
-          // Apoio Gestual
           objetivo:
             "Estimular o salto com dois pés e a transposição de escadas com alternância, respondendo a gestos indicativos de movimento e sequência.",
           estrategias: [
@@ -157,7 +149,6 @@ const estruturaPEI = {
           ],
         },
         AV: {
-          // Apoio Verbal
           objetivo:
             "Aprimorar o salto com dois pés e a subida/descida de escadas alternando-os, seguindo instruções verbais para coordenação e segurança.",
           estrategias: [
@@ -174,7 +165,6 @@ const estruturaPEI = {
           ],
         },
         AVi: {
-          // Apoio Visual
           objetivo:
             "Generalizar o salto com dois pés e a subida/descida de escadas alternando-os, utilizando pistas visuais para orientação e refinamento da técnica.",
           estrategias: [
@@ -191,7 +181,6 @@ const estruturaPEI = {
           ],
         },
         I: {
-          // Independente
           objetivo:
             "Demonstrar habilidade autônoma em saltar com os dois pés juntos e em subir/descer escadas alternando-os, adaptando-se a diferentes alturas e contextos.",
           estrategias: [
@@ -208,10 +197,8 @@ const estruturaPEI = {
           ],
         },
       },
-
-      "Arremessa e recebe bola com coordenação": {
+      "Arremessar e receber bola com coordenação": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar o contato inicial com a bola e a tentativa de movimento para arremessar/receber, com apoio físico e verbal constante.",
           estrategias: [
@@ -228,7 +215,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover o arremesso e a recepção da bola com apoio físico pontual, visando o controle corporal e a direção inicial do movimento.",
           estrategias: [
@@ -245,7 +231,6 @@ const estruturaPEI = {
           ],
         },
         AG: {
-          // Apoio Gestual
           objetivo:
             "Estimular o arremesso e a recepção da bola com base em comandos gestuais, aprimorando a imitação e a compreensão da ação.",
           estrategias: [
@@ -262,7 +247,6 @@ const estruturaPEI = {
           ],
         },
         AV: {
-          // Apoio Verbal
           objetivo:
             "Aprimorar o arremesso e a recepção da bola com base em instruções verbais, desenvolvendo a precisão e a antecipação do movimento.",
           estrategias: [
@@ -279,7 +263,6 @@ const estruturaPEI = {
           ],
         },
         AVi: {
-          // Apoio Visual
           objetivo:
             "Generalizar o arremesso e a recepção da bola em diferentes contextos, utilizando pistas visuais para orientação espacial e precisão.",
           estrategias: [
@@ -296,7 +279,6 @@ const estruturaPEI = {
           ],
         },
         I: {
-          // Independente
           objetivo:
             "Demonstrar coordenação plena no arremesso e recepção da bola, adaptando-se a diferentes tamanhos, velocidades e contextos de jogo de forma autônoma.",
           estrategias: [
@@ -314,13 +296,9 @@ const estruturaPEI = {
         },
       },
     },
-    // --- FIM DA SUBÁREA: "Motricidade Grossa" ---
-
-    // --- INÍCIO DA SUBÁREA: "Equilíbrio e Ritmo" ---
     "Equilíbrio e Ritmo": {
-      "Mantém equilíbrio em um pé por pelo menos 5 segundos": {
+      "Manter equilíbrio em um pé por pelo menos 5 segundos": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar a sustentação do peso corporal em uma perna com apoio intensivo, desenvolvendo a percepção de equilíbrio.",
           estrategias: [
@@ -337,7 +315,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover a manutenção do equilíbrio em um pé com apoio físico pontual, visando o fortalecimento muscular e o controle postural.",
           estrategias: [
@@ -354,7 +331,6 @@ const estruturaPEI = {
           ],
         },
         AG: {
-          // Apoio Gestual
           objetivo:
             "Estimular a manutenção do equilíbrio em um pé através de comandos gestuais, incentivando a imitação e a consciência corporal.",
           estrategias: [
@@ -371,7 +347,6 @@ const estruturaPEI = {
           ],
         },
         AV: {
-          // Apoio Verbal
           objetivo:
             "Aprimorar a capacidade de manter o equilíbrio em um pé, seguindo instruções verbais para prolongar o tempo de sustentação.",
           estrategias: [
@@ -388,7 +363,6 @@ const estruturaPEI = {
           ],
         },
         AVi: {
-          // Apoio Visual
           objetivo:
             "Generalizar a manutenção do equilíbrio em um pé, utilizando pistas visuais para auto-orientação e estabilidade postural.",
           estrategias: [
@@ -405,7 +379,6 @@ const estruturaPEI = {
           ],
         },
         I: {
-          // Independente
           objetivo:
             "Demonstrar autonomia e controle no equilíbrio em um pé por pelo menos 5 segundos, adaptando-se a diferentes superfícies e contextos de movimento.",
           estrategias: [
@@ -422,10 +395,8 @@ const estruturaPEI = {
           ],
         },
       },
-
-      "Realiza movimentos ritmados com o corpo (pular, marchar, dançar)": {
+      "Realizar movimentos ritmados com o corpo (pular, marchar, dançar)": {
         NR: {
-          // Não Realizou
           objetivo:
             "Introduzir a percepção de ritmo através de movimentos corporais simples, com apoio físico e verbal constante.",
           estrategias: [
@@ -442,7 +413,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover a execução de movimentos corporais ritmados com apoio físico pontual, visando a coordenação e a sincronia básica.",
           estrategias: [
@@ -459,7 +429,6 @@ const estruturaPEI = {
           ],
         },
         AG: {
-          // Apoio Gestual
           objetivo:
             "Estimular a realização de movimentos corporais ritmados através de comandos gestuais, incentivando a imitação e a expressão corporal.",
           estrategias: [
@@ -476,7 +445,6 @@ const estruturaPEI = {
           ],
         },
         AV: {
-          // Apoio Verbal
           objetivo:
             "Aprimorar a execução de movimentos ritmados com o corpo, seguindo instruções verbais para variação de ritmo e complexidade.",
           estrategias: [
@@ -493,7 +461,6 @@ const estruturaPEI = {
           ],
         },
         AVi: {
-          // Apoio Visual
           objetivo:
             "Generalizar a realização de movimentos ritmados em diversos contextos, utilizando pistas visuais para orientação e autoajuste.",
           estrategias: [
@@ -510,7 +477,6 @@ const estruturaPEI = {
           ],
         },
         I: {
-          // Independente
           objetivo:
             "Demonstrar autonomia e criatividade na execução de movimentos ritmados com o corpo, adaptando-se a diferentes ritmos, estilos e ambientes.",
           estrategias: [
@@ -528,12 +494,10 @@ const estruturaPEI = {
         },
       },
     },
-
     "Motricidade Fina": {
-      "Realiza traçados básicos (retas, curvas, formas geométricas) com controle":
+      "Realizar traçados básicos (retas, curvas, formas geométricas) com controle":
         {
           NR: {
-            // Não Realizou
             objetivo:
               "Incentivar o contato com materiais de escrita e a experimentação de movimentos de preensão, com apoio físico intensivo.",
             estrategias: [
@@ -550,7 +514,6 @@ const estruturaPEI = {
             ],
           },
           AF: {
-            // Apoio Físico
             objetivo:
               "Promover a execução de traçados básicos e formas geométricas com apoio físico pontual, visando o controle do movimento e a precisão inicial.",
             estrategias: [
@@ -567,7 +530,6 @@ const estruturaPEI = {
             ],
           },
           AG: {
-            // Apoio Gestual
             objetivo:
               "Estimular a realização de traçados e formas geométricas através de comandos gestuais, incentivando a imitação e a coordenação viso-motora.",
             estrategias: [
@@ -584,7 +546,6 @@ const estruturaPEI = {
             ],
           },
           AV: {
-            // Apoio Verbal
             objetivo:
               "Aprimorar a execução de traçados e formas geométricas com controle, seguindo instruções verbais para precisão e complexidade.",
             estrategias: [
@@ -601,7 +562,6 @@ const estruturaPEI = {
             ],
           },
           AVi: {
-            // Apoio Visual
             objetivo:
               "Generalizar a realização de traçados e formas geométricas em diferentes contextos, utilizando pistas visuais para auto-orientação e refinamento.",
             estrategias: [
@@ -618,7 +578,6 @@ const estruturaPEI = {
             ],
           },
           I: {
-            // Independente
             objetivo:
               "Demonstrar autonomia e precisão na realização de traçados básicos e formas geométricas, aplicando estas habilidades em contextos diversos.",
             estrategias: [
@@ -635,10 +594,8 @@ const estruturaPEI = {
             ],
           },
         },
-
-      "Corta com tesoura acompanhando traçado simples": {
+      "Cortar com tesoura acompanhando traçado simples": {
         NR: {
-          // Não Realizou
           objetivo:
             "Introduzir o manuseio da tesoura e o movimento de abrir/fechar, com apoio físico intensivo, visando a preensão e força da mão.",
           estrategias: [
@@ -655,7 +612,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover o corte com tesoura seguindo um traçado simples com apoio físico pontual, buscando a coordenação olho-mão e a precisão.",
           estrategias: [
@@ -672,7 +628,6 @@ const estruturaPEI = {
           ],
         },
         AG: {
-          // Apoio Gestual
           objetivo:
             "Estimular o corte com tesoura acompanhando traçados simples através de comandos gestuais, incentivando a imitação e o controle motor.",
           estrategias: [
@@ -689,7 +644,6 @@ const estruturaPEI = {
           ],
         },
         AV: {
-          // Apoio Verbal
           objetivo:
             "Aprimorar o corte com tesoura acompanhando traçados simples, seguindo instruções verbais para precisão e fluidez do movimento.",
           estrategias: [
@@ -706,7 +660,6 @@ const estruturaPEI = {
           ],
         },
         AVi: {
-          // Apoio Visual
           objetivo:
             "Generalizar o corte com tesoura acompanhando traçados simples, utilizando pistas visuais para auto-orientação e refinamento da técnica.",
           estrategias: [
@@ -723,7 +676,6 @@ const estruturaPEI = {
           ],
         },
         I: {
-          // Independente
           objetivo:
             "Demonstrar autonomia e precisão no corte com tesoura acompanhando traçados simples, aplicando esta habilidade em atividades funcionais.",
           estrategias: [
@@ -740,10 +692,8 @@ const estruturaPEI = {
           ],
         },
       },
-
-      "Colore dentro dos limites do contorno": {
+      "Colorir dentro dos limites do contorno": {
         NR: {
-          // Não Realizou
           objetivo:
             "Estimular o uso de materiais de colorir e a experimentação de movimentos de preenchimento, com apoio físico intensivo.",
           estrategias: [
@@ -760,7 +710,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover o preenchimento de espaços com cor com apoio físico pontual, visando o controle motor e a percepção de limites.",
           estrategias: [
@@ -777,7 +726,6 @@ const estruturaPEI = {
           ],
         },
         AG: {
-          // Apoio Gestual
           objetivo:
             "Estimular o colorir dentro dos limites do contorno através de comandos gestuais, incentivando a imitação e a atenção aos detalhes.",
           estrategias: [
@@ -794,7 +742,6 @@ const estruturaPEI = {
           ],
         },
         AV: {
-          // Apoio Verbal
           objetivo:
             "Aprimorar a capacidade de colorir dentro dos limites do contorno, seguindo instruções verbais para precisão e uniformidade.",
           estrategias: [
@@ -811,7 +758,6 @@ const estruturaPEI = {
           ],
         },
         AVi: {
-          // Apoio Visual
           objetivo:
             "Generalizar a habilidade de colorir dentro dos limites do contorno, utilizando pistas visuais para auto-orientação e refinamento.",
           estrategias: [
@@ -828,7 +774,6 @@ const estruturaPEI = {
           ],
         },
         I: {
-          // Independente
           objetivo:
             "Demonstrar autonomia e precisão ao colorir dentro dos limites do contorno, aplicando esta habilidade em atividades artísticas e escolares.",
           estrategias: [
@@ -846,11 +791,9 @@ const estruturaPEI = {
         },
       },
     },
-
     "Percepção e Organização Visual": {
-      "Encaixa peças de quebra-cabeça e monta sequências com blocos/formas": {
+      "Encaixar peças de quebra-cabeça e montar sequências com blocos/formas": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar o contato com materiais visuais e a manipulação de objetos, com apoio físico intensivo, desenvolvendo a exploração sensorial.",
           estrategias: [
@@ -867,7 +810,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover o encaixe de peças de quebra-cabeça e a montagem de sequências simples com apoio físico pontual, buscando o reconhecimento de formas e padrões.",
           estrategias: [
@@ -884,7 +826,6 @@ const estruturaPEI = {
           ],
         },
         AG: {
-          // Apoio Gestual
           objetivo:
             "Estimular o encaixe de peças e a montagem de sequências através de comandos gestuais, incentivando a observação e a imitação visual.",
           estrategias: [
@@ -901,7 +842,6 @@ const estruturaPEI = {
           ],
         },
         AV: {
-          // Apoio Verbal
           objetivo:
             "Aprimorar o encaixe de peças de quebra-cabeça e a montagem de sequências, seguindo instruções verbais para precisão e estratégia.",
           estrategias: [
@@ -918,7 +858,6 @@ const estruturaPEI = {
           ],
         },
         AVi: {
-          // Apoio Visual
           objetivo:
             "Generalizar o encaixe de peças de quebra-cabeça e a montagem de sequências, utilizando pistas visuais para auto-orientação e solução de problemas.",
           estrategias: [
@@ -935,7 +874,6 @@ const estruturaPEI = {
           ],
         },
         I: {
-          // Independente
           objetivo:
             "Demonstrar autonomia e raciocínio na resolução de quebra-cabeças e na montagem de sequências, aplicando estas habilidades em contextos complexos.",
           estrategias: [
@@ -953,12 +891,9 @@ const estruturaPEI = {
         },
       },
     },
-
-    // --- INÍCIO DA SUBÁREA: "Compreensão e Linguagem" ---
     "Compreensão e Linguagem": {
-      "Compreende e executa ordens simples (uma ou duas etapas)": {
+      "Compreender e executar ordens simples (uma ou duas etapas)": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar a atenção a estímulos sonoros e a tentativa de resposta a ordens simples, com apoio físico e gestual intensivo.",
           estrategias: [
@@ -975,7 +910,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover a compreensão e execução de ordens simples com apoio físico pontual, visando a associação entre comando verbal e ação.",
           estrategias: [
@@ -992,7 +926,6 @@ const estruturaPEI = {
           ],
         },
         AG: {
-          // Apoio Gestual
           objetivo:
             "Estimular a compreensão e execução de ordens simples através de comandos gestuais, incentivando a imitação e a interpretação.",
           estrategias: [
@@ -1009,7 +942,6 @@ const estruturaPEI = {
           ],
         },
         AV: {
-          // Apoio Verbal
           objetivo:
             "Aprimorar a compreensão e execução de ordens simples com uma ou duas etapas, seguindo instruções verbais para precisão e autonomia.",
           estrategias: [
@@ -1026,7 +958,6 @@ const estruturaPEI = {
           ],
         },
         AVi: {
-          // Apoio Visual
           objetivo:
             "Generalizar a compreensão e execução de ordens simples em diferentes contextos, utilizando pistas visuais para reforço e autoajuste.",
           estrategias: [
@@ -1043,7 +974,6 @@ const estruturaPEI = {
           ],
         },
         I: {
-          // Independente
           objetivo:
             "Demonstrar autonomia e fluidez na compreensão e execução de ordens simples (uma ou duas etapas), adaptando-se a novos comandos e contextos.",
           estrategias: [
@@ -1060,10 +990,8 @@ const estruturaPEI = {
           ],
         },
       },
-
-      "Nomeia cores, objetos e pessoas familiares": {
+      "Nomear cores, objetos e pessoas familiares": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar a atenção a estímulos visuais e a vocalização inicial, com apoio físico e verbal constante para associação de nomes.",
           estrategias: [
@@ -1080,7 +1008,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover a nomeação de cores, objetos e pessoas familiares com apoio físico pontual, visando a emissão verbal ou resposta indicativa.",
           estrategias: [
@@ -1097,7 +1024,6 @@ const estruturaPEI = {
           ],
         },
         AG: {
-          // Apoio Gestual
           objetivo:
             "Estimular a nomeação de cores, objetos e pessoas familiares através de comandos gestuais, incentivando a imitação e a resposta correta.",
           estrategias: [
@@ -1114,7 +1040,6 @@ const estruturaPEI = {
           ],
         },
         AV: {
-          // Apoio Verbal
           objetivo:
             "Aprimorar a nomeação de cores, objetos e pessoas familiares com clareza e precisão, seguindo instruções verbais e prompts.",
           estrategias: [
@@ -1131,7 +1056,6 @@ const estruturaPEI = {
           ],
         },
         AVi: {
-          // Apoio Visual
           objetivo:
             "Generalizar a nomeação de cores, objetos e pessoas familiares em diferentes contextos, utilizando pistas visuais para reforço e autoajuste.",
           estrategias: [
@@ -1148,7 +1072,6 @@ const estruturaPEI = {
           ],
         },
         I: {
-          // Independente
           objetivo:
             "Demonstrar autonomia na nomeação de cores, objetos e pessoas familiares, aplicando esta habilidade em comunicação espontânea e contextualizada.",
           estrategias: [
@@ -1165,10 +1088,8 @@ const estruturaPEI = {
           ],
         },
       },
-
-      "Forma frases simples (sujeito + verbo) e responde perguntas básicas": {
+      "Formar frases simples (sujeito + verbo) e responder perguntas básicas": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar a vocalização e a imitação de palavras isoladas ou sons, com apoio físico e verbal constante, focando na intenção comunicativa.",
           estrategias: [
@@ -1185,7 +1106,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover a formação de frases simples e a resposta a perguntas básicas com apoio físico pontual, visando a estrutura inicial da comunicação.",
           estrategias: [
@@ -1202,7 +1122,6 @@ const estruturaPEI = {
           ],
         },
         AG: {
-          // Apoio Gestual
           objetivo:
             "Estimular a formação de frases simples e a resposta a perguntas básicas através de comandos gestuais, incentivando a imitação e a interpretação.",
           estrategias: [
@@ -1219,7 +1138,6 @@ const estruturaPEI = {
           ],
         },
         AV: {
-          // Apoio Verbal
           objetivo:
             "Aprimorar a formação de frases simples e a resposta a perguntas básicas com clareza e precisão, seguindo prompts verbais.",
           estrategias: [
@@ -1236,7 +1154,6 @@ const estruturaPEI = {
           ],
         },
         AVi: {
-          // Apoio Visual
           objetivo:
             "Generalizar a formação de frases simples e a resposta a perguntas básicas, utilizando pistas visuais para estruturação e compreensão.",
           estrategias: [
@@ -1253,7 +1170,6 @@ const estruturaPEI = {
           ],
         },
         I: {
-          // Independente
           objetivo:
             "Demonstrar autonomia e fluidez na formação de frases simples e na resposta a perguntas básicas, aplicando esta habilidade em comunicação espontânea.",
           estrategias: [
@@ -1271,13 +1187,9 @@ const estruturaPEI = {
         },
       },
     },
-    // --- FIM DA SUBÁREA: "Compreensão e Linguagem" ---
-
-    // --- INÍCIO DA SUBÁREA: "Matemática Inicial" ---
     "Matemática Inicial": {
-      "Conta até 10 com apoio visual": {
+      "Contar até 10 com apoio visual": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar a atenção a estímulos quantitativos e a vocalização de números, com apoio físico e verbal constante.",
           estrategias: [
@@ -1287,7 +1199,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover a contagem de objetos até 10 com apoio físico pontual, visando a associação um a um e o reconhecimento de quantidades.",
           estrategias: [
@@ -1297,7 +1208,6 @@ const estruturaPEI = {
           ],
         },
         AG: {
-          // Apoio Gestual
           objetivo:
             "Estimular a contagem de objetos até 10 através de comandos gestuais, incentivando a imitação e a interpretação visual da quantidade.",
           estrategias: [
@@ -1307,7 +1217,6 @@ const estruturaPEI = {
           ],
         },
         AV: {
-          // Apoio Verbal
           objetivo:
             "Aprimorar a contagem de objetos até 10, seguindo instruções verbais para precisão e fluidez na sequência numérica.",
           estrategias: [
@@ -1317,7 +1226,6 @@ const estruturaPEI = {
           ],
         },
         AVi: {
-          // Apoio Visual
           objetivo:
             "Generalizar a contagem até 10 em diferentes contextos, utilizando pistas visuais para reforço e auto-organização.",
           estrategias: [
@@ -1327,7 +1235,6 @@ const estruturaPEI = {
           ],
         },
         I: {
-          // Independente
           objetivo:
             "Demonstrar autonomia na contagem até 10, aplicando esta habilidade em situações cotidianas e em diferentes materiais.",
           estrategias: [
@@ -1337,10 +1244,8 @@ const estruturaPEI = {
           ],
         },
       },
-
-      "Ordena objetos por cor, forma ou tamanho": {
+      "Ordenar objetos por cor, forma ou tamanho": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar a atenção a atributos básicos de objetos (cor, forma, tamanho) e a manipulação exploratória, com apoio físico intensivo.",
           estrategias: [
@@ -1350,7 +1255,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover a ordenação de objetos por cor, forma ou tamanho com apoio físico pontual, visando o reconhecimento e a categorização.",
           estrategias: [
@@ -1360,7 +1264,6 @@ const estruturaPEI = {
           ],
         },
         AG: {
-          // Apoio Gestual
           objetivo:
             "Estimular a ordenação de objetos por cor, forma ou tamanho através de comandos gestuais, incentivando a imitação e a interpretação visual.",
           estrategias: [
@@ -1370,7 +1273,6 @@ const estruturaPEI = {
           ],
         },
         AV: {
-          // Apoio Verbal
           objetivo:
             "Aprimorar a ordenação de objetos por cor, forma ou tamanho, seguindo instruções verbais para precisão e fluidez na categorização.",
           estrategias: [
@@ -1380,7 +1282,6 @@ const estruturaPEI = {
           ],
         },
         AVi: {
-          // Apoio Visual
           objetivo:
             "Generalizar a ordenação de objetos por cor, forma ou tamanho em diferentes contextos, utilizando pistas visuais para auto-organização.",
           estrategias: [
@@ -1390,7 +1291,6 @@ const estruturaPEI = {
           ],
         },
         I: {
-          // Independente
           objetivo:
             "Demonstrar autonomia na ordenação de objetos por cor, forma ou tamanho, aplicando esta habilidade em situações cotidianas e em novos materiais.",
           estrategias: [
@@ -1401,12 +1301,9 @@ const estruturaPEI = {
         },
       },
     },
-    // --- FIM DA SUBÁREA: "Matemática Inicial" ---
-
     "Pré-leitura e Reconhecimento": {
-      "Reconhece números e letras em contexto (ex: nome, idade)": {
+      "Reconhecer números e letras em contexto (ex: nome, idade)": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar a atenção a símbolos visuais (números e letras) e a vocalização de sons ou sílabas, com apoio físico e verbal constante.",
           estrategias: [
@@ -1423,7 +1320,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover o reconhecimento de números e letras em contexto com apoio físico pontual, visando a associação símbolo-nome.",
           estrategias: [
@@ -1440,7 +1336,6 @@ const estruturaPEI = {
           ],
         },
         AG: {
-          // Apoio Gestual
           objetivo:
             "Estimular o reconhecimento de números e letras em contexto através de comandos gestuais, incentivando a imitação e a interpretação visual.",
           estrategias: [
@@ -1457,7 +1352,6 @@ const estruturaPEI = {
           ],
         },
         AV: {
-          // Apoio Verbal
           objetivo:
             "Aprimorar o reconhecimento de números e letras em contexto, seguindo instruções verbais para precisão e fluidez.",
           estrategias: [
@@ -1474,7 +1368,6 @@ const estruturaPEI = {
           ],
         },
         AVi: {
-          // Apoio Visual
           objetivo:
             "Generalizar o reconhecimento de números e letras em contexto, utilizando pistas visuais para reforço e autoajuste.",
           estrategias: [
@@ -1491,7 +1384,6 @@ const estruturaPEI = {
           ],
         },
         I: {
-          // Independente
           objetivo:
             "Demonstrar autonomia no reconhecimento de números e letras em diferentes contextos, aplicando esta habilidade em situações cotidianas.",
           estrategias: [
@@ -1512,7 +1404,7 @@ const estruturaPEI = {
   },
   "Acadêmico e Socioemocional": {
     "Funções Executivas": {
-      "Organiza e gerencia seu material escolar de forma autônoma": {
+      "Organizar e gerenciar seu material escolar de forma autônoma": {
         NR: {
           objetivo:
             "Incentivar o contato e a manipulação dos materiais escolares, com apoio físico e verbal contínuo, para familiarização.",
@@ -1610,8 +1502,7 @@ const estruturaPEI = {
           ],
         },
       },
-
-      "Gerencia o tempo para cumprir tarefas e prazos": {
+      "Gerenciar o tempo para cumprir tarefas e prazos": {
         NR: {
           objetivo:
             "Introduzir a noção de tempo e início/fim de atividades curtas, com apoio físico e verbal contínuo, focando na atenção compartilhada.",
@@ -1709,8 +1600,7 @@ const estruturaPEI = {
           ],
         },
       },
-
-      "Planeja etapas para realizar atividades com apoio leve": {
+      "Planejar etapas para realizar atividades com apoio leve": {
         NR: {
           objetivo:
             "Introduzir a noção de sequência em atividades muito simples, com apoio físico e verbal constante, focando na imitação.",
@@ -1808,8 +1698,7 @@ const estruturaPEI = {
           ],
         },
       },
-
-      "Segue instruções com mais de um passo": {
+      "Seguir instruções com mais de um passo": {
         NR: {
           objetivo:
             "Incentivar a atenção a comandos simples e a tentativa de execução, com apoio físico e gestual contínuo, focando na resposta imediata.",
@@ -1907,8 +1796,7 @@ const estruturaPEI = {
           ],
         },
       },
-
-      "Revisa seus trabalhos antes de entregar": {
+      "Revisar seus trabalhos antes de entregar": {
         NR: {
           objetivo:
             "Incentivar a atenção ao próprio trabalho e a percepção de finalização, com apoio físico e verbal contínuo, focando no toque e observação.",
@@ -2007,10 +1895,8 @@ const estruturaPEI = {
         },
       },
     },
-
     "Atenção e Concentração": {
-      "Consegue manter o foco em uma atividade por pelo menos 15 minutos": {
-        // ESTE NOME FOI CORRIGIDO!
+      "Conseguir manter o foco em uma atividade por pelo menos 15 minutos": {
         NR: {
           objetivo:
             "Incentivar a permanência em atividades de curta duração, com apoio físico e verbal contínuo, focando no contato visual e na interação.",
@@ -2067,9 +1953,8 @@ const estruturaPEI = {
         },
       },
     },
-
     "Autonomia Acadêmica": {
-      "Solicita ajuda quando encontra dificuldades acadêmicas": {
+      "Solicitar ajuda quando encontrar dificuldades acadêmicas": {
         NR: {
           objetivo:
             "Incentivar a comunicação de desconforto ou necessidade em atividades acadêmicas, com apoio físico e verbal constante, focando na atenção do professor.",
@@ -2169,7 +2054,7 @@ const estruturaPEI = {
       },
     },
     "Regulação Emocional": {
-      "Reconhece e nomeia suas emoções básicas": {
+      "Reconhecer e nomear suas emoções básicas": {
         NR: {
           objetivo:
             "Incentivar a percepção de sensações corporais associadas a emoções, com apoio físico e verbal constante, focando na consciência sensorial.",
@@ -2267,8 +2152,7 @@ const estruturaPEI = {
           ],
         },
       },
-
-      "Aceita correções ou feedbacks sem se desorganizar": {
+      "Aceitar correções ou feedbacks sem se desorganizar": {
         NR: {
           objetivo:
             "Incentivar a tolerância a pequenas mudanças e a presença do feedback, com apoio físico e verbal constante, focando na segurança.",
@@ -2366,8 +2250,7 @@ const estruturaPEI = {
           ],
         },
       },
-
-      "Tolera frustrações e lida com contratempos de forma adaptativa": {
+      "Tolerar frustrações e lidar com contratempos de forma adaptativa": {
         NR: {
           objetivo:
             "Incentivar a tolerância a pequenas interrupções e a presença de emoções negativas, com apoio físico e verbal constante, focando no conforto.",
@@ -2465,8 +2348,7 @@ const estruturaPEI = {
           ],
         },
       },
-
-      "Utiliza estratégias de autorregulação para lidar com sobrecarga ou estresse":
+      "Utilizar estratégias de autorregulação para lidar com sobrecarga ou estresse":
         {
           NR: {
             objetivo:
@@ -2565,7 +2447,7 @@ const estruturaPEI = {
             ],
           },
         },
-      "Se acalma após conflitos com mediação": {
+      "Se acalmar após conflitos com mediação": {
         NR: {
           objetivo:
             "Incentivar a interrupção do comportamento reativo durante conflitos, com apoio físico e verbal constante para acalmamento imediato.",
@@ -2664,9 +2546,8 @@ const estruturaPEI = {
         },
       },
     },
-
     "Habilidades Sociais": {
-      "Demonstra empatia em situações sociais": {
+      "Demonstrar empatia em situações sociais": {
         NR: {
           objetivo:
             "Incentivar a atenção a emoções expressas por outros, com apoio físico e verbal constante, focando na observação e resposta simples.",
@@ -2764,8 +2645,7 @@ const estruturaPEI = {
           ],
         },
       },
-
-      "Participa de atividades em grupo respeitando turnos e regras": {
+      "Participar de atividades em grupo respeitando turnos e regras": {
         NR: {
           objetivo:
             "Incentivar a permanência no grupo e a atenção aos materiais compartilhados, com apoio físico e verbal constante, focando na presença.",
@@ -2863,8 +2743,7 @@ const estruturaPEI = {
           ],
         },
       },
-
-      "Aguarda sua vez em interações e atividades de grupo": {
+      "Aguardar sua vez em interações e atividades de grupo": {
         NR: {
           objetivo:
             "Incentivar a tolerância à espera por períodos muito curtos, com apoio físico e verbal constante, focando na permanência.",
@@ -2962,8 +2841,7 @@ const estruturaPEI = {
           ],
         },
       },
-
-      "Respeita limites físicos e emocionais dos colegas": {
+      "Respeitar limites físicos e emocionais dos colegas": {
         NR: {
           objetivo:
             "Incentivar a percepção do próprio corpo e do espaço alheio, com apoio físico e verbal constante, focando na segurança e no contato adequado.",
@@ -3061,8 +2939,7 @@ const estruturaPEI = {
           ],
         },
       },
-
-      "Resolve conflitos com diálogo com apoio do adulto": {
+      "Resolver conflitos com diálogo com apoio do adulto": {
         NR: {
           objetivo:
             "Incentivar a interrupção do comportamento reativo durante conflitos, com apoio físico e verbal constante para acalmamento imediato.",
@@ -3160,8 +3037,7 @@ const estruturaPEI = {
           ],
         },
       },
-
-      "Compartilha materiais e espaços com colegas": {
+      "Compartilhar materiais e espaços com colegas": {
         NR: {
           objetivo:
             "Incentivar a percepção do material e espaço alheio, com apoio físico e verbal constante, focando no toque e na observação.",
@@ -3259,8 +3135,7 @@ const estruturaPEI = {
           ],
         },
       },
-
-      "Ajuda colegas em tarefas sem necessidade de solicitação": {
+      "Ajudar colegas em tarefas sem necessidade de solicitação": {
         NR: {
           objetivo:
             "Incentivar a atenção a sinais de dificuldade em colegas, com apoio físico e verbal constante, focando na observação e na aproximação.",
@@ -3359,7 +3234,6 @@ const estruturaPEI = {
         },
       },
     },
-
     "Cumpre regras coletivas mesmo sem supervisão direta": {
       NR: {
         objetivo:
@@ -3459,13 +3333,11 @@ const estruturaPEI = {
       },
     },
   },
-
   "Vida Prática e Autonomia Funcional": {
     "Cuidados Pessoais": {
-      "Realiza higiene pessoal básica (escovar dentes, lavar mãos, usar banheiro) com autonomia":
+      "Realizar higiene pessoal básica (escovar dentes, lavar mãos, usar banheiro) com autonomia":
         {
           NR: {
-            // Não Realizou
             objetivo:
               "Incentivar a tolerância e o contato com os materiais de higiene, com apoio físico e verbal constante, focando na aceitação da rotina.",
             estrategias: [
@@ -3482,7 +3354,6 @@ const estruturaPEI = {
             ],
           },
           AF: {
-            // Apoio Físico
             objetivo:
               "Promover a realização de higiene pessoal básica com apoio físico pontual, visando a sequência de ações e a autonomia assistida.",
             estrategias: [
@@ -3499,7 +3370,6 @@ const estruturaPEI = {
             ],
           },
           AG: {
-            // Apoio Gestual
             objetivo:
               "Estimular a realização de higiene pessoal básica através de comandos gestuais, incentivando a imitação e a interpretação de rotinas.",
             estrategias: [
@@ -3516,7 +3386,6 @@ const estruturaPEI = {
             ],
           },
           AV: {
-            // Apoio Verbal
             objetivo:
               "Aprimorar a realização de higiene pessoal básica, seguindo instruções verbais para precisão, sequência e autonomia.",
             estrategias: [
@@ -3533,7 +3402,6 @@ const estruturaPEI = {
             ],
           },
           AVi: {
-            // Apoio Visual
             objetivo:
               "Generalizar a realização de higiene pessoal básica em diferentes contextos, utilizando pistas visuais para auto-organização e cumprimento da rotina.",
             estrategias: [
@@ -3566,10 +3434,8 @@ const estruturaPEI = {
             ],
           },
         },
-
-      "Troca de roupa sozinho, incluindo abotoar e fechar zíper": {
+      "Trocar de roupa sozinho, incluindo abotoar e fechar zíper": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar a tolerância ao toque da roupa e a tentativa de manipulação de peças de vestuário, com apoio físico e verbal constante.",
           estrategias: [
@@ -3586,7 +3452,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover a troca de roupa com apoio físico pontual, visando a sequência de vestimenta e o manuseio de fechos simples.",
           estrategias: [
@@ -3667,10 +3532,8 @@ const estruturaPEI = {
           ],
         },
       },
-
-      "Usa lenço, papel higiênico ou toalha sem ser solicitado": {
+      "Usar lenço, papel higiênico ou toalha sem ser solicitado": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar a tolerância e o contato com os materiais de higiene específicos, com apoio físico e verbal constante, focando na aceitação.",
           estrategias: [
@@ -3687,7 +3550,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover o uso de lenço, papel higiênico ou toalha com apoio físico pontual, visando a iniciação do movimento e a higiene básica.",
           estrategias: [
@@ -3769,14 +3631,9 @@ const estruturaPEI = {
         },
       },
     },
-    // --- FIM DA SUBÁREA: "Cuidados Pessoais" ---
-
-    // --- INÍCIO DA SUBÁREA: "Autonomia Pessoal" ---
-
     "Autonomia Pessoal": {
-      "Cuida dos próprios pertences e mantém roupas limpas durante o turno": {
+      "Cuidar dos próprios pertences e manter roupas limpas durante o turno": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar a familiarização com os próprios pertences e a tolerância ao manuseio, com apoio físico e verbal constante, focando na posse.",
           estrategias: [
@@ -3793,7 +3650,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover o cuidado básico dos pertences e a manutenção da limpeza da roupa com apoio físico pontual, visando a organização inicial.",
           estrategias: [
@@ -3810,7 +3666,6 @@ const estruturaPEI = {
           ],
         },
         AG: {
-          // Apoio Gestual
           objetivo:
             "Estimular o cuidado dos pertences e a manutenção da limpeza da roupa através de comandos gestuais, incentivando a imitação e a interpretação de rotinas.",
           estrategias: [
@@ -3843,7 +3698,6 @@ const estruturaPEI = {
           ],
         },
         AVi: {
-          // Apoio Visual
           objetivo:
             "Generalizar o cuidado dos pertences e a manutenção da limpeza da roupa, utilizando pistas visuais para auto-organização e rotina.",
           estrategias: [
@@ -3860,7 +3714,6 @@ const estruturaPEI = {
           ],
         },
         I: {
-          // Independente
           objetivo:
             "Demonstrar autonomia e responsabilidade no cuidado dos próprios pertences e na manutenção da limpeza das roupas, aplicando esta habilidade em diferentes contextos.",
           estrategias: [
@@ -3877,10 +3730,8 @@ const estruturaPEI = {
           ],
         },
       },
-
-      "Inicia e termina tarefas com mínima mediação": {
+      "Iniciar e terminar tarefas com mínima mediação": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar a atenção ao início e fim de atividades, com apoio físico e verbal constante, focando na presença e na transição.",
           estrategias: [
@@ -3897,7 +3748,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover o início e a conclusão de tarefas com apoio físico pontual, visando a autonomia assistida nas transições.",
           estrategias: [
@@ -3946,7 +3796,6 @@ const estruturaPEI = {
           ],
         },
         AVi: {
-          // Apoio Visual
           objetivo:
             "Generalizar o início e a conclusão de tarefas, utilizando pistas visuais para auto-organização e gerenciamento da rotina.",
           estrategias: [
@@ -3963,7 +3812,6 @@ const estruturaPEI = {
           ],
         },
         I: {
-          // Independente
           objetivo:
             "Demonstrar autonomia e eficiência no início e conclusão de tarefas, adaptando-se a novas demandas e contextos com proatividade.",
           estrategias: [
@@ -3981,15 +3829,10 @@ const estruturaPEI = {
         },
       },
     },
-    // --- FIM DA SUBÁREA: "Autonomia Pessoal" ---
-
-    // --- INÍCIO DA SUBÁREA: "Rotina e Organização" ---
-
     "Rotina e Organização": {
-      "Identifica e cumpre sua rotina diária e lembra-se de compromissos simples":
+      "Identificar e cumprir sua rotina diária e lembrar-se de compromissos simples":
         {
           NR: {
-            // Não Realizou
             objetivo:
               "Incentivar a atenção a sequências simples de ações e a percepção de eventos recorrentes, com apoio físico e verbal constante.",
             estrategias: [
@@ -4006,7 +3849,6 @@ const estruturaPEI = {
             ],
           },
           AF: {
-            // Apoio Físico
             objetivo:
               "Promover a identificação e o cumprimento da rotina diária e o lembrete de compromissos simples com apoio físico pontual.",
             estrategias: [
@@ -4087,10 +3929,8 @@ const estruturaPEI = {
             ],
           },
         },
-
-      "Administra tempo para transitar entre atividades": {
+      "Administrar tempo para transitar entre atividades": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar a tolerância a transições e a atenção ao sinal de mudança de atividade, com apoio físico e verbal constante, focando na segurança.",
           estrategias: [
@@ -4107,7 +3947,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover a transição entre atividades com apoio físico pontual, visando a redução de resistência e a autonomia assistida.",
           estrategias: [
@@ -4188,10 +4027,8 @@ const estruturaPEI = {
           ],
         },
       },
-
-      "Usa agenda, alarme ou quadro de rotina para se organizar": {
+      "Usar agenda, alarme ou quadro de rotina para se organizar": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar a atenção a sinais visuais ou sonoros e a manipulação de ferramentas de organização, com apoio físico e verbal constante.",
           estrategias: [
@@ -4208,7 +4045,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover o uso de agenda, alarme ou quadro de rotina com apoio físico pontual, visando a associação ferramenta-ação.",
           estrategias: [
@@ -4290,14 +4126,9 @@ const estruturaPEI = {
         },
       },
     },
-    // --- FIM DA SUBÁREA: "Rotina e Organização" ---
-
-    // --- INÍCIO DA SUBÁREA: "Flexibilidade e Adaptação" ---
-
     "Flexibilidade e Adaptação": {
-      "Lida com mudanças imprevistas com orientação verbal": {
+      "Lidar com mudanças imprevistas com orientação verbal": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar a tolerância a pequenas variações e a percepção da presença do professor, com apoio físico e verbal constante, focando na segurança.",
           estrategias: [
@@ -4314,7 +4145,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover a lida com mudanças imprevistas com apoio físico pontual, visando a redução de resistência e a aceitação inicial.",
           estrategias: [
@@ -4396,15 +4226,10 @@ const estruturaPEI = {
         },
       },
     },
-    // --- FIM DA SUBÁREA: "Flexibilidade e Adaptação" ---
-
-    // --- INÍCIO DA SUBÁREA: "Consumo e Responsabilidade" ---
-
     "Consumo e Responsabilidade": {
-      "Gerencia pequenas transações financeiras (compras, troco) em contextos reais ou simulados":
+      "Gerenciar pequenas transações financeiras (compras, troco) em contextos reais ou simulados":
         {
           NR: {
-            // Não Realizou
             objetivo:
               "Incentivar o contato com dinheiro (cédulas/moedas) e a associação a 'dar' e 'receber', com apoio físico e verbal constante.",
             estrategias: [
@@ -4421,7 +4246,6 @@ const estruturaPEI = {
             ],
           },
           AF: {
-            // Apoio Físico
             objetivo:
               "Promover a realização de pequenas transações financeiras com apoio físico pontual, visando a entrega de dinheiro e a recepção de itens.",
             estrategias: [
@@ -4438,7 +4262,6 @@ const estruturaPEI = {
             ],
           },
           AG: {
-            // Apoio Gestual
             objetivo:
               "Estimular o gerenciamento de pequenas transações financeiras através de comandos gestuais, incentivando a imitação e a interpretação de ações de compra/venda.",
             estrategias: [
@@ -4455,7 +4278,6 @@ const estruturaPEI = {
             ],
           },
           AV: {
-            // Apoio Verbal
             objetivo:
               "Aprimorar o gerenciamento de pequenas transações financeiras, seguindo instruções verbais para precisão na contagem e troca.",
             estrategias: [
@@ -4472,7 +4294,6 @@ const estruturaPEI = {
             ],
           },
           AVi: {
-            // Apoio Visual
             objetivo:
               "Generalizar o gerenciamento de pequenas transações financeiras, utilizando pistas visuais para auto-organização e cálculo.",
             estrategias: [
@@ -4489,7 +4310,6 @@ const estruturaPEI = {
             ],
           },
           I: {
-            // Independente
             objetivo:
               "Demonstrar autonomia e precisão no gerenciamento de pequenas transações financeiras em contextos reais e simulados, incluindo o troco.",
             estrategias: [
@@ -4506,10 +4326,8 @@ const estruturaPEI = {
             ],
           },
         },
-
-      "Solicita ajuda em locais públicos de forma adequada": {
+      "Solicitar ajuda em locais públicos de forma adequada": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar a vocalização de 'ajuda' ou o contato com pessoas familiares em locais públicos, com apoio físico e verbal constante.",
           estrategias: [
@@ -4526,7 +4344,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover a solicitação de ajuda em locais públicos com apoio físico pontual, visando a expressão da necessidade e a aproximação segura.",
           estrategias: [
@@ -4608,14 +4425,9 @@ const estruturaPEI = {
         },
       },
     },
-    // --- FIM DA SUBÁREA: "Consumo e Responsabilidade" ---
-
-    // --- INÍCIO DA SUBÁREA: "Deslocamento com Segurança" ---
-
     "Deslocamento com Segurança": {
-      "Usa transporte escolar ou coletivo com supervisão leve": {
+      "Usar transporte escolar ou coletivo com supervisão leve": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar a tolerância e a permanência no transporte com apoio físico e verbal constante, focando na segurança e no conforto.",
           estrategias: [
@@ -4632,7 +4444,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover o uso de transporte escolar ou coletivo com apoio físico pontual, visando a entrada/saída e a permanência segura.",
           estrategias: [
@@ -4713,10 +4524,8 @@ const estruturaPEI = {
           ],
         },
       },
-
-      "Reconhece locais importantes (escola, casa, secretaria, banheiro)": {
+      "Reconhecer locais importantes (escola, casa, secretaria, banheiro)": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar a atenção a características visuais de locais e a permanência em ambientes familiares, com apoio físico e verbal constante.",
           estrategias: [
@@ -4733,7 +4542,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover o reconhecimento de locais importantes com apoio físico pontual, visando a associação nome-local e a navegação assistida.",
           estrategias: [
@@ -4814,11 +4622,9 @@ const estruturaPEI = {
           ],
         },
       },
-
-      "Demonstra comportamentos seguros ao se locomover (olhar antes de atravessar, andar em fila)":
+      "Demonstrar comportamentos seguros ao se locomover (olhar antes de atravessar, andar em fila)":
         {
           NR: {
-            // Não Realizou
             objetivo:
               "Incentivar a atenção a regras básicas de segurança e a permanência com o grupo, com apoio físico e verbal constante, focando na proteção.",
             estrategias: [
@@ -4835,7 +4641,6 @@ const estruturaPEI = {
             ],
           },
           AF: {
-            // Apoio Físico
             objetivo:
               "Promover a demonstração de comportamentos seguros com apoio físico pontual, visando a iniciação da ação e a conformidade básica.",
             estrategias: [
@@ -4918,15 +4723,10 @@ const estruturaPEI = {
         },
     },
   },
-  // Conteúdo parcial para src/data/estruturaPEI2.js
-  // IMPORTANTE: Cole este JSON no seu arquivo estruturaPEI2.js, no local correto.
-  // Substitua o que houver para "Comunicação Alternativa e Não Verbal" ou adicione.
-
   "Comunicação Alternativa e Não Verbal": {
     "Comunicação Expressiva (Verbal e Não Verbal)": {
-      "Inicia e mantém conversas espontaneamente": {
+      "Iniciar e manter conversas espontaneamente": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar a iniciação de contato visual e pequenas vocalizações/gestos direcionados, com apoio físico e verbal contínuo.",
           estrategias: [
@@ -4943,7 +4743,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover a iniciação de comunicação através de gestos ou uso de pranchas, com apoio físico pontual para seleção e direcionamento.",
           estrategias: [
@@ -4960,7 +4759,6 @@ const estruturaPEI = {
           ],
         },
         AG: {
-          // Apoio Gestual
           objetivo:
             "Estimular a iniciação de comunicação através de gestos ou pranchas, respondendo a gestos de indicação e pistas visuais.",
           estrategias: [
@@ -4977,7 +4775,6 @@ const estruturaPEI = {
           ],
         },
         AV: {
-          // Apoio Verbal
           objetivo:
             "Aprimorar a iniciação e manutenção de interações comunicativas através de vocalizações, palavras ou frases simples, com apoio verbal leve.",
           estrategias: [
@@ -4994,7 +4791,6 @@ const estruturaPEI = {
           ],
         },
         AVi: {
-          // Apoio Visual
           objetivo:
             "Generalizar a iniciação e manutenção de interações comunicativas, utilizando recursos visuais para estruturar a conversa e expressar pensamentos.",
           estrategias: [
@@ -5011,7 +4807,6 @@ const estruturaPEI = {
           ],
         },
         I: {
-          // Independente
           objetivo:
             "Demonstrar autonomia na iniciação e manutenção de conversas e interações sociais, adaptando a comunicação a diferentes parceiros e contextos.",
           estrategias: [
@@ -5028,9 +4823,8 @@ const estruturaPEI = {
           ],
         },
       },
-      "Responde adequadamente a perguntas simples e abertas": {
+      "Responder adequadamente a perguntas simples e abertas": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar a resposta a estímulos simples através de contato visual ou movimento corporal, com apoio físico e verbal contínuo.",
           estrategias: [
@@ -5047,7 +4841,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover a resposta a perguntas simples através de gestos ou seleção de imagens, com apoio físico para a escolha e direcionamento.",
           estrategias: [
@@ -5096,7 +4889,6 @@ const estruturaPEI = {
           ],
         },
         AVi: {
-          // Apoio Visual
           objetivo:
             "Generalizar a resposta a perguntas simples e abertas, utilizando recursos visuais para auxiliar a compreensão da pergunta e a formulação da resposta.",
           estrategias: [
@@ -5113,7 +4905,6 @@ const estruturaPEI = {
           ],
         },
         I: {
-          // Independente
           objetivo:
             "Demonstrar autonomia e clareza na resposta a perguntas simples e abertas, formulando respostas apropriadas e detalhadas em diversos contextos.",
           estrategias: [
@@ -5130,9 +4921,8 @@ const estruturaPEI = {
           ],
         },
       },
-      "Usa gestos para complementar a fala": {
+      "Usar gestos para complementar a fala": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar a imitação de gestos simples do professor, com apoio físico e verbal contínuo, para estabelecer um repertório básico.",
           estrategias: [
@@ -5149,7 +4939,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover o uso de gestos funcionais para complementar a fala, com apoio físico pontual na iniciação e execução do gesto.",
           estrategias: [
@@ -5198,7 +4987,6 @@ const estruturaPEI = {
           ],
         },
         AVi: {
-          // Apoio Visual
           objetivo:
             "Generalizar o uso de gestos para complementar a fala em diferentes contextos, utilizando pistas visuais para encorajar a comunicação multimodal.",
           estrategias: [
@@ -5215,7 +5003,6 @@ const estruturaPEI = {
           ],
         },
         I: {
-          // Independente
           objetivo:
             "Demonstrar autonomia e naturalidade no uso de gestos para complementar a fala, adaptando-os ao contexto e parceiro de comunicação para maior expressividade.",
           estrategias: [
@@ -5233,11 +5020,9 @@ const estruturaPEI = {
         },
       },
     },
-
     "Comunicação Receptiva (Compreensão)": {
-      "Entende expressões faciais e linguagem corporal": {
+      "Entender expressões faciais e linguagem corporal": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar a atenção ao rosto do comunicador, com apoio físico e verbal contínuo, para iniciar o reconhecimento de expressões básicas.",
           estrategias: [
@@ -5254,7 +5039,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover o reconhecimento de expressões faciais e corporais básicas, com apoio físico para a seleção e direcionamento da resposta.",
           estrategias: [
@@ -5335,9 +5119,8 @@ const estruturaPEI = {
           ],
         },
       },
-      "Responde a comandos simples com apoio visual ou gestual": {
+      "Responder a comandos simples com apoio visual ou gestual": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar a atenção a comandos simples, com apoio físico e verbal constante, buscando a resposta imediata a uma instrução.",
           estrategias: [
@@ -5354,7 +5137,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover a execução de comandos simples com apoio físico pontual, visando a compreensão e a resposta imediata à instrução.",
           estrategias: [
@@ -5437,10 +5219,9 @@ const estruturaPEI = {
       },
     },
     "Uso de Recursos Alternativos": {
-      "Utiliza prancha de comunicação ou figuras para interagir com colegas ou adultos":
+      "Utilizar prancha de comunicação ou figuras para interagir com colegas ou adultos":
         {
           NR: {
-            // Não Realizou
             objetivo:
               "Incentivar a atenção à prancha de comunicação/figuras, com apoio físico e verbal constante, para estabelecer o primeiro contato.",
             estrategias: [
@@ -5457,7 +5238,6 @@ const estruturaPEI = {
             ],
           },
           AF: {
-            // Apoio Físico
             objetivo:
               "Promover o uso de prancha de comunicação/figuras para expressar necessidades e desejos, com apoio físico pontual para seleção e direcionamento.",
             estrategias: [
@@ -5522,7 +5302,6 @@ const estruturaPEI = {
             ],
           },
           I: {
-            // Independente
             objetivo:
               "Demonstrar autonomia e fluidez no uso de prancha de comunicação ou figuras para interagir, expressar ideias e participar de conversas em diferentes contextos.",
             estrategias: [
@@ -5539,11 +5318,9 @@ const estruturaPEI = {
             ],
           },
         },
-
-      "Faz uso funcional de recursos como tablets, botões de fala ou softwares de comunicação":
+      "Fazer uso funcional de recursos como tablets, botões de fala ou softwares de comunicação":
         {
           NR: {
-            // Não Realizou
             objetivo:
               "Incentivar o contato inicial e a exploração de recursos tecnológicos de comunicação, com apoio físico e verbal contínuo.",
             estrategias: [
@@ -5560,7 +5337,6 @@ const estruturaPEI = {
             ],
           },
           AF: {
-            // Apoio Físico
             objetivo:
               "Promover o uso funcional de recursos tecnológicos de comunicação, com apoio físico pontual para seleção e acionamento.",
             estrategias: [
@@ -5609,7 +5385,6 @@ const estruturaPEI = {
             ],
           },
           AVi: {
-            // Apoio Visual
             objetivo:
               "Generalizar o uso de recursos tecnológicos de comunicação para diversas interações, utilizando pistas visuais para auto-seleção e formulação de mensagens.",
             estrategias: [
@@ -5626,7 +5401,6 @@ const estruturaPEI = {
             ],
           },
           I: {
-            // Independente
             objetivo:
               "Demonstrar autonomia e fluidez no uso de recursos tecnológicos de comunicação, adaptando-se a diferentes interfaces e contextos sociais.",
             estrategias: [
@@ -5645,10 +5419,9 @@ const estruturaPEI = {
         },
     },
     "Participação Social": {
-      "Participa de atividades em grupo usando meios não verbais (ex: apontar, gestos, símbolos)":
+      "Participar de atividades em grupo usando meios não verbais (ex: apontar, gestos, símbolos)":
         {
           NR: {
-            // Não Realizou
             objetivo:
               "Incentivar a presença e a atenção em atividades de grupo, com apoio físico e verbal contínuo, para iniciar o engajamento.",
             estrategias: [
@@ -5665,7 +5438,6 @@ const estruturaPEI = {
             ],
           },
           AF: {
-            // Apoio Físico
             objetivo:
               "Promover a participação em atividades de grupo através de meios não verbais, com apoio físico pontual para a interação e comunicação.",
             estrategias: [
@@ -5730,7 +5502,6 @@ const estruturaPEI = {
             ],
           },
           I: {
-            // Independente
             objetivo:
               "Demonstrar autonomia e iniciativa na participação em atividades de grupo usando meios não verbais, adaptando sua comunicação ao contexto e aos colegas.",
             estrategias: [
@@ -5748,12 +5519,10 @@ const estruturaPEI = {
           },
         },
     },
-
     "Expressão e Regulação Emocional (Não Verbal)": {
-      "Expressa emoções básicas por meio de expressões faciais, gestos ou recursos visuais":
+      "Expressar emoções básicas por meio de expressões faciais, gestos ou recursos visuais":
         {
           NR: {
-            // Não Realizou
             objetivo:
               "Incentivar o contato visual e a resposta reflexa a estímulos emocionais, com apoio físico e verbal contínuo, para iniciar o reconhecimento de emoções.",
             estrategias: [
@@ -5770,7 +5539,6 @@ const estruturaPEI = {
             ],
           },
           AF: {
-            // Apoio Físico
             objetivo:
               "Promover a expressão de emoções básicas através de gestos ou seleção de imagens/recursos visuais, com apoio físico pontual.",
             estrategias: [
@@ -5835,7 +5603,6 @@ const estruturaPEI = {
             ],
           },
           I: {
-            // Independente
             objetivo:
               "Demonstrar autonomia e adequação na expressão de emoções básicas através de meios não verbais, regulando-se e comunicando seus sentimentos de forma funcional.",
             estrategias: [
@@ -5854,9 +5621,8 @@ const estruturaPEI = {
         },
     },
     "Integração Sensorial": {
-      "Adapta-se a ambientes com estímulos sensoriais variados": {
+      "Adaptar-se a ambientes com estímulos sensoriais variados": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar a tolerância a estímulos sensoriais básicos, com apoio físico e verbal constante em ambiente controlado, para iniciar a adaptação.",
           estrategias: [
@@ -5953,10 +5719,8 @@ const estruturaPEI = {
           ],
         },
       },
-
-      "Tolera sons e ruídos inesperados com mediação": {
+      "Tolerar sons e ruídos inesperados com mediação": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar a tolerância inicial a sons e ruídos baixos e previsíveis, com apoio físico e verbal contínuo, em ambiente controlado.",
           estrategias: [
@@ -6053,10 +5817,8 @@ const estruturaPEI = {
           ],
         },
       },
-
-      "Participa de atividades em grupo mesmo com estímulos variados": {
+      "Participar de atividades em grupo mesmo com estímulos variados": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar a presença e a atenção inicial em atividades de grupo com apoio intenso, em ambiente com estímulos controlados.",
           estrategias: [
@@ -6073,7 +5835,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover a participação em atividades de grupo com estímulos variados, com apoio físico pontual para regulação e engajamento.",
           estrategias: [
@@ -6154,9 +5915,8 @@ const estruturaPEI = {
           ],
         },
       },
-      "Aceita diferentes texturas e materiais": {
+      "Aceitar diferentes texturas e materiais": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar o contato visual e a aproximação a diferentes texturas e materiais, com apoio físico e verbal constante, em ambiente controlado.",
           estrategias: [
@@ -6254,11 +6014,9 @@ const estruturaPEI = {
         },
       },
     },
-
     "Flexibilidade Cognitiva": {
-      "Aceita mudanças na rotina sem crise": {
+      "Aceitar mudanças na rotina sem crise": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar a tolerância a pequenas interrupções previsíveis na rotina, com apoio físico e verbal contínuo, em ambiente controlado.",
           estrategias: [
@@ -6275,7 +6033,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover a aceitação de mudanças planejadas na rotina com apoio físico pontual, visando a redução de reações de estresse.",
           estrategias: [
@@ -6356,9 +6113,8 @@ const estruturaPEI = {
           ],
         },
       },
-      "Alterna entre tarefas sem resistência excessiva": {
+      "Alternar entre tarefas sem resistência excessiva": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar a interrupção de uma atividade e a iniciação de outra com apoio físico e verbal contínuo, em ambiente controlado.",
           estrategias: [
@@ -6375,7 +6131,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover a alternância entre tarefas com apoio físico pontual, visando a redução da resistência e a fluidez na transição.",
           estrategias: [
@@ -6456,9 +6211,8 @@ const estruturaPEI = {
           ],
         },
       },
-      "Lida com imprevistos com apoio verbal leve": {
+      "Lidar com imprevistos com apoio verbal leve": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar a tolerância inicial a pequenas interrupções, com apoio físico e verbal contínuo, em ambiente seguro e previsível.",
           estrategias: [
@@ -6475,7 +6229,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover a aceitação de imprevistos com apoio físico pontual, visando a redução de reações de estresse ou desorganização.",
           estrategias: [
@@ -6558,9 +6311,8 @@ const estruturaPEI = {
       },
     },
     "Comportamentos Estereotipados": {
-      "Reduz estereotipias quando engajado em atividades funcionais": {
+      "Reduzir estereotipias quando engajado em atividades funcionais": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar a iniciação de atividades funcionais com apoio físico e verbal contínuo, associando-as à redução de estereotipias de forma assistida.",
           estrategias: [
@@ -6577,7 +6329,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover o engajamento em atividades funcionais, com apoio físico pontual para a transição e manutenção do foco, visando a redução de estereotipias.",
           estrategias: [
@@ -6658,10 +6409,8 @@ const estruturaPEI = {
           ],
         },
       },
-
-      "Demonstra consciência sobre seus comportamentos repetitivos": {
+      "Demonstrar consciência sobre seus comportamentos repetitivos": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar o contato visual e a atenção direcionada ao próprio corpo, com apoio físico e verbal constante, para iniciar a percepção de movimentos.",
           estrategias: [
@@ -6678,7 +6427,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover a percepção da ocorrência de comportamentos repetitivos, com apoio físico pontual para direcionamento da atenção e feedback.",
           estrategias: [
@@ -6761,9 +6509,8 @@ const estruturaPEI = {
       },
     },
     "Autonomia na Comunicação": {
-      "Solicita ajuda quando precisa": {
+      "Solicitar ajuda quando precisa": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar a sinalização de necessidade com apoio físico e verbal contínuo, para estabelecer o primeiro contato comunicativo.",
           estrategias: [
@@ -6780,7 +6527,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover a solicitação de ajuda com apoio físico pontual, visando a expressão clara de necessidade e a interação.",
           estrategias: [
@@ -6863,12 +6609,10 @@ const estruturaPEI = {
       },
     },
   },
-
   "Altas Habilidades": {
     "Linguagem Avançada": {
-      "Usa vocabulário avançado espontaneamente": {
+      "Usar vocabulário avançado espontaneamente": {
         NR: {
-          // Não Realizou (para altas habilidades, NR significa não demonstra ainda de forma explícita)
           objetivo:
             "Incentivar a expansão e o uso de vocabulário básico em contextos controlados, com apoio intensivo para expressão verbal.",
           estrategias: [
@@ -6885,7 +6629,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover o uso de vocabulário mais amplo com apoio físico, para a iniciação de frases e descrições simples.",
           estrategias: [
@@ -6950,7 +6693,6 @@ const estruturaPEI = {
           ],
         },
         I: {
-          // Independente
           objetivo:
             "Demonstrar autonomia e fluidez no uso espontâneo de vocabulário avançado, adaptando-o ao contexto e ao interlocutor para uma comunicação rica e precisa.",
           estrategias: [
@@ -6967,9 +6709,8 @@ const estruturaPEI = {
           ],
         },
       },
-      "Entende metáforas, provérbios e duplos sentidos": {
+      "Entender metáforas, provérbios e duplos sentidos": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar a compreensão literal de frases simples, com apoio intensivo, para estabelecer a base da interpretação de linguagem.",
           estrategias: [
@@ -6986,7 +6727,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover a compreensão de frases com múltiplos significados com apoio físico, introduzindo a ideia de interpretação de linguagem figurada.",
           estrategias: [
@@ -7069,10 +6809,9 @@ const estruturaPEI = {
       },
     },
     "Pensamento Abstrato": {
-      "Formula hipóteses, analogias e compreende ideias abstratas com facilidade":
+      "Formular hipóteses, analogias e compreender ideias abstratas com facilidade":
         {
           NR: {
-            // Não Realizou
             objetivo:
               "Incentivar a identificação de relações simples entre objetos concretos, com apoio intensivo, para estabelecer a base do raciocínio lógico.",
             estrategias: [
@@ -7089,7 +6828,6 @@ const estruturaPEI = {
             ],
           },
           AF: {
-            // Apoio Físico
             objetivo:
               "Promover a formulação de relações simples entre conceitos, com apoio físico para a comparação e a inferência básica.",
             estrategias: [
@@ -7171,11 +6909,9 @@ const estruturaPEI = {
           },
         },
     },
-
     "Raciocínio Lógico": {
-      "Argumenta de forma estruturada": {
+      "Argumentar de forma estruturada": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar a expressão de preferências básicas, com apoio intensivo, para estabelecer a base da comunicação de ideias.",
           estrategias: [
@@ -7192,7 +6928,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover a expressão de opiniões simples com apoio físico, introduzindo a ideia de justificar uma escolha ou afirmação.",
           estrategias: [
@@ -7275,10 +7010,9 @@ const estruturaPEI = {
       },
     },
     "Percepção Visual": {
-      "Reconhece padrões complexos em imagens e resolve problemas visuais com rapidez":
+      "Reconhecer padrões complexos em imagens e resolver problemas visuais com rapidez":
         {
           NR: {
-            // Não Realizou
             objetivo:
               "Incentivar a identificação de elementos básicos em imagens, com apoio intensivo, para estabelecer a base da percepção visual.",
             estrategias: [
@@ -7295,7 +7029,6 @@ const estruturaPEI = {
             ],
           },
           AF: {
-            // Apoio Físico
             objetivo:
               "Promover o reconhecimento de padrões simples e a resolução de problemas visuais básicos com apoio físico, para aprimorar a discriminação visual.",
             estrategias: [
@@ -7377,218 +7110,10 @@ const estruturaPEI = {
           },
         },
     },
-
-    "Raciocínio Lógico": {
-      "Argumenta de forma estruturada": {
-        NR: {
-          // Não Realizou
-          objetivo:
-            "Incentivar a expressão de preferências básicas, com apoio intensivo, para estabelecer a base da comunicação de ideias.",
-          estrategias: [
-            "Guiar fisicamente o aluno para apontar um item de preferência quando questionado (ex: 'Qual você quer, a bola ou o carro?', e guia a mão para a escolha), verbalizando o nome do item com clareza.",
-            "Utilizar perguntas binárias (sim/não) e dar apoio físico para a resposta adequada (ex: balançar a cabeça para 'sim' ou 'não' com apoio), para estabelecer uma forma de comunicação de escolha.",
-            "Promover a verbalização de 'quero' ou 'não quero' com apoio físico (ex: guiar a boca para a palavra) e reforço positivo imediato para cada tentativa de vocalização, mesmo que não clara.",
-            "Apresentar duas opções concretas e o professor guia a mão do aluno para tocar a preferida, verbalizando o nome e a escolha (ex: 'Você quer a maçã?').",
-            "Nomear a ação de 'escolher' enquanto o professor auxilia fisicamente o aluno a fazer uma seleção, para que ele compreenda o conceito de preferência.",
-            "Reforçar positivamente qualquer indicação de preferência, mesmo que não verbal (ex: um olhar direcionado, um movimento de corpo), com elogios e carinho, para construir uma associação positiva com a expressão de ideias.",
-            "Utilizar bonecos ou fantoches que 'expressam' preferências simples, e o professor auxilia fisicamente o aluno a manipular os bonecos ou tocar nos materiais enquanto o boneco 'escolhe'.",
-            "Criar um ambiente calmo com poucas distrações para as interações de escolha, com o professor presente para apoio constante.",
-            "Fazer 'jogos de imitação' onde o professor simula uma escolha e o aluno imita com apoio físico, reforçando a ação de preferência.",
-            "Apresentar objetos de diferentes cores ou tamanhos e o professor guia a mão do aluno para tocar no preferido, verbalizando o atributo.",
-          ],
-        },
-        AF: {
-          // Apoio Físico
-          objetivo:
-            "Promover a expressão de opiniões simples com apoio físico, introduzindo a ideia de justificar uma escolha ou afirmação.",
-          estrategias: [
-            "Conduzir a mão do aluno para selecionar a imagem de sua preferência (ex: um alimento, um brinquedo) e, com apoio físico pontual, apontar para o motivo visual (ex: 'Gosto porque é doce' apontando para um doce), introduzindo a justificativa.",
-            "Oferecer apoio físico para que o aluno articule uma palavra ou gesto que justifique uma escolha (ex: guiar a boca para dizer 'sim' e a mão para apontar para o motivo; guiar a mão para um 'polegar para cima' para 'bom'), incentivando a combinação.",
-            "Realizar atividades de 'escolha justificada' com o aluno fisicamente guiado a selecionar um item e a sua razão em um painel visual (ex: 'Qual blusa você prefere e por quê?', e guia a mão para a blusa e para a imagem da razão), promovendo a lógica básica.",
-            "Apresentar duas opções e pedir ao aluno para escolher uma, e o professor auxilia fisicamente a apontar para a escolha e depois para um motivo simples (ex: 'Este é grande', 'Este é macio').",
-            "Posicionar o professor estrategicamente próximo ao aluno para oferecer o apoio físico pontual na expressão da opinião e da justificativa, intervindo apenas para auxiliar a seleção ou a vocalização.",
-            "Modelar a justificação simples (ex: o professor aponta para a escolha e diz 'porque é vermelho!') e o professor auxilia fisicamente o aluno a imitar esse comportamento.",
-            "Reduzir gradualmente o apoio físico à medida que o aluno demonstra mais autonomia na expressão de opinião e justificativa.",
-            "Reforçar verbalmente e com um toque de aprovação a cada opinião justificada, mesmo com apoio físico ('Muito bem! Você escolheu e me disse o porquê!').",
-            "Propor 'mini-debates' (ex: 'Qual brinquedo é o melhor e por quê?'), com apoio físico para que o aluno se expresse e justifique.",
-            "Conduzir o aluno a um local de interação (ex: ir para a mesa de atividades com um colega) para praticar a expressão de opinião com justificativa com apoio físico.",
-          ],
-        },
-        AG: {
-          objetivo:
-            "Estimular a argumentação de forma simples através de comandos gestuais, incentivando a justificação de ideias.",
-          estrategias: [
-            "Demonstrar gestos de 'porquê?' (mãos abertas, expressão de dúvida) ou 'explique' (mão estendida, palma para cima) após uma afirmação do aluno, incentivando a elaboração gestual da justificativa.",
-            "Indicar gestualmente a sequência de uma argumentação (ex: problema -> solução; 'se' com um gesto -> 'então' com outro) para que o aluno siga a estrutura visual da lógica.",
-            "Utilizar mímica para expressar causa e efeito (ex: professor faz mímica de 'chuva', e depois mímica de 'guarda-chuva') e pedir que o aluno identifique a relação para justificar algo, interpretando a mímica.",
-            "Fazer gestos que representem 'gosto porque' (polegar para cima e depois apontar para o motivo) ou 'não gosto porque' (polegar para baixo e depois apontar para o motivo).",
-            "Sinalizar com a mão para um 'painel de justificativas' visual quando o aluno faz uma afirmação, incentivando-o a buscar uma razão visualmente.",
-            "Utilizar cartões com imagens de 'causa' e 'efeito' (ex: nuvem e guarda-chuva) e o professor gesticula a relação para que o aluno a verbalize ou aponte.",
-            "Propor 'mímica de problemas e soluções', onde o professor gesticula um problema e o aluno gesticula uma solução e a justifica.",
-            "Gesticular a ação de 'pensar' (dedo na têmpora) ou 'refletir' quando o professor faz uma pergunta que exige argumentação.",
-            "Fazer gestos de 'sinal verde' para a argumentação estruturada e 'sinal vermelho' para a argumentação desorganizada, como feedback não verbal.",
-            "Estimular o aluno a usar gestos para conectar suas ideias ou para indicar uma justificativa em sua fala.",
-          ],
-        },
-        AV: {
-          objetivo:
-            "Aprimorar a argumentação de forma estruturada, seguindo instruções verbais para organizar e apresentar ideias com justificativa.",
-          estrategias: [
-            "Dar dicas verbais para que o aluno use conectivos como 'porque', 'então', 'além disso', 'por exemplo', 'mas' ao argumentar, para estruturar o discurso ('Eu gosto de sorvete *porque* é gelado, *além disso* é doce!').",
-            "Fazer perguntas que exijam uma justificativa (ex: 'Por que você acha isso?', 'Me convença disso, qual sua razão?', 'Explique seu ponto de vista').",
-            "Utilizar cenários de 'problema e solução' e pedir para o aluno verbalizar sua proposta de forma estruturada ('O problema é que o brinquedo está quebrado. Então, a solução é colar, *porque* assim ele volta a funcionar.').",
-            "Reforçar verbalmente a argumentação estruturada ('Que bom que você me disse o porquê da sua ideia! Sua justificativa foi muito clara!'), elogiando a lógica e a clareza.",
-            "Fazer perguntas abertas que estimulem a elaboração (ex: 'O que mais você pode me dizer sobre isso?', 'Quais são os argumentos a favor?').",
-            "Propor jogos de 'argumento e contra-argumento' verbal em temas simples e divertidos (ex: 'É melhor ter um cachorro ou um gato? Justifique!').",
-            "Estimular o aluno a verbalizar sua linha de raciocínio (ex: 'Eu penso assim porque...').",
-            "Contar histórias ou ler textos que contenham debates ou situações de argumentação, discutindo verbalmente as estratégias usadas pelos personagens.",
-            "Incentivar o aluno a dar instruções verbais para o professor sobre como argumentar em uma situação simulada.",
-            "Realizar 'mini-debates' sobre temas de interesse do aluno, com o professor mediando e reforçando a argumentação estruturada.",
-          ],
-        },
-        AVi: {
-          objetivo:
-            "Generalizar a argumentação de forma estruturada, utilizando recursos visuais para organizar pensamentos e apresentar justificativas claras.",
-          estrategias: [
-            "Disponibilizar um 'gráfico de argumentos' visual (ideia principal, evidência 1, evidência 2, conclusão) para o aluno preencher com imagens ou palavras-chave, organizando seu pensamento.",
-            "Utilizar cartões com palavras-chave (causa, efeito, opinião, fato, porquê, conclusão) para ajudar a montar uma argumentação visualmente, sequenciando os cartões para formar a lógica.",
-            "Criar roteiros visuais de debates ou apresentações, mostrando a sequência lógica da argumentação (ex: 'Introdução' -> 'Argumento 1' -> 'Justificativa' -> 'Conclusão'), com ícones para cada parte.",
-            "Desenhar um 'mapa mental' com ramificações (ideia central e ideias de apoio) para organizar a argumentação visualmente.",
-            "Filmar o aluno argumentando e rever o vídeo, apontando visualmente a estrutura da argumentação e as áreas para melhoria na clareza.",
-            "Disponibilizar livros ou cartilhas ilustradas sobre pensamento crítico e argumentação, com foco visual na organização das ideias.",
-            "Criar um 'semáforo da argumentação' visual: verde para 'argumento claro', amarelo para 'precisa de mais detalhes', vermelho para 'confuso', para autoavaliação.",
-            "Utilizar aplicativos ou softwares de organização de ideias que permitem ao aluno criar fluxogramas ou diagramas para argumentar visualmente.",
-            "Apresentar gráficos visuais de progresso na argumentação estruturada, com estrelinhas ou adesivos, reforçando o comportamento.",
-            "Colocar imagens de 'setas de conexão' (ex: uma seta de 'porquê' entre duas ideias) em um painel, para que o aluno as use para conectar seus argumentos visualmente.",
-          ],
-        },
-        I: {
-          objetivo:
-            "Demonstrar autonomia e fluidez na argumentação de forma estruturada, apresentando ideias claras e justificadas em diferentes contextos discursivos.",
-          estrategias: [
-            "Propor a participação em debates ou discussões em grupo sobre temas relevantes, incentivando a argumentação crítica, a defesa de pontos de vista e o contra-argumento de forma autônoma e lógica.",
-            "Incentivar o aluno a escrever ensaios ou textos opinativos que exijam a apresentação de argumentos bem estruturados, com introdução, desenvolvimento de ideias e conclusão, demonstrando clareza e persuasão.",
-            "Observar e registrar a capacidade do aluno de argumentar de forma espontânea em situações sociais, defendendo suas ideias com clareza, lógica e respeito às opiniões alheias, sem necessidade de mediação.",
-            "Estimular o aluno a identificar falácias lógicas em argumentos alheios e a refutá-las de forma educada e estruturada.",
-            "Propor desafios de 'advogado do diabo', onde o aluno precisa argumentar a favor de uma ideia com a qual ele não concorda, desenvolvendo flexibilidade e profundidade de raciocínio.",
-            "Incentivar o aluno a ensinar os colegas sobre como argumentar de forma eficaz, compartilhando suas estratégias e tornando-se um modelo de raciocínio lógico.",
-            "Realizar 'sessões de autoavaliação' da argumentação, onde o aluno reflete sobre a clareza, a lógica e o impacto de seus argumentos.",
-            "Promover a participação em concursos de oratória, debates estudantis ou feiras de ciências, onde a argumentação estruturada é fundamental para o sucesso.",
-            "Estimular a escrita de 'cartas de opinião' para veículos de comunicação (jornal escolar, blog), onde o aluno argumenta sobre um tema de interesse.",
-            "Incentivar o aluno a criar seus próprios 'problemas lógicos' ou 'quebra-cabeças argumentativos' para os colegas resolverem, demonstrando criatividade e domínio do raciocínio lógico.",
-          ],
-        },
-      },
-    },
-    "Percepção Visual": {
-      "Reconhece padrões complexos em imagens e resolve problemas visuais com rapidez":
-        {
-          NR: {
-            // Não Realizou
-            objetivo:
-              "Incentivar a identificação de elementos básicos em imagens, com apoio intensivo, para estabelecer a base da percepção visual.",
-            estrategias: [
-              "Realizar atividades de pareamento de imagens idênticas (ex: parear duas figuras de um carro) com apoio físico e verbal contínuo, para ensinar a semelhança e a discriminação visual básica.",
-              "Apresentar imagens simples com um único objeto grande e claro e pedir para o aluno apontar ou nomear com apoio físico e verbal, focando na identificação do elemento central.",
-              "Promover o contato visual e a atenção direcionada a detalhes em imagens (ex: apontar para a asa do pássaro), com o professor apontando e nomeando o detalhe com apoio.",
-              "Nomear cores e formas simples em imagens (ex: 'Olha o círculo vermelho!') enquanto o professor auxilia fisicamente o aluno a tocar e observar, reforçando o vocabulário visual.",
-              "Apresentar figuras com texturas contrastantes e o professor guia a mão do aluno para sentir e observar visualmente as diferenças, com apoio.",
-              "Reforçar positivamente a atenção visual a elementos básicos, mesmo que breve, com elogios e carinho, para construir uma base sólida para a percepção.",
-              "Utilizar cartões com imagens grandes e claras e o professor guia o olhar do aluno para o ponto central da imagem com apoio físico.",
-              "Criar um ambiente calmo com poucas distrações para as interações visuais, com o professor presente para apoio constante.",
-              "Fazer 'jogos de imitação' onde o professor simula observar um detalhe em uma imagem e o aluno imita com apoio físico.",
-              "Apresentar objetos reais e depois suas imagens correspondentes e o professor guia o aluno a pareá-los, reforçando a representação visual.",
-            ],
-          },
-          AF: {
-            // Apoio Físico
-            objetivo:
-              "Promover o reconhecimento de padrões simples e a resolução de problemas visuais básicos com apoio físico, para aprimorar a discriminação visual.",
-            estrategias: [
-              "Conduzir fisicamente a mão do aluno para completar um quebra-cabeça de 2-3 peças grandes e simples, auxiliando a rotação e o encaixe das peças para formar a imagem.",
-              "Oferecer apoio físico para que o aluno encontre a diferença em duas imagens quase idênticas (com apenas 1 ou 2 diferenças claras), guiando o dedo para a diferença e incentivando a observação detalhada.",
-              "Realizar atividades de sequências visuais com 3-4 elementos (ex: círculo, quadrado, círculo, quadrado), guiando o aluno a identificar o próximo item com apoio físico na seleção ou posicionamento.",
-              "Apresentar um 'padrão' visual simples (ex: listras, bolinhas) e o professor guia a mão do aluno para seguir o padrão com o dedo em outra imagem.",
-              "Utilizar um ponteiro ou dedo-guia e o professor auxilia fisicamente o aluno a rastrear um caminho visual em um labirinto simples.",
-              "Posicionar o professor estrategicamente próximo ao aluno para oferecer o apoio físico pontual na resolução de problemas visuais, intervindo apenas para auxiliar a seleção ou o movimento.",
-              "Modelar a busca por padrões (ex: o professor aponta para um elemento que se repete) e o professor auxilia fisicamente o aluno a imitar esse comportamento.",
-              "Reduzir gradualmente o apoio físico à medida que o aluno demonstra mais autonomia no reconhecimento de padrões e na resolução de problemas visuais básicos.",
-              "Reforçar verbalmente e com um toque de aprovação a cada reconhecimento de padrão ou resolução de problema, mesmo com apoio físico ('Muito bem! Você achou a diferença!').",
-              "Propor 'mini-testes' visuais (ex: 'Onde está o erro?', com apoio físico para a identificação da área).",
-            ],
-          },
-          AG: {
-            objetivo:
-              "Estimular o reconhecimento de padrões e a resolução de problemas visuais, respondendo a comandos gestuais e pistas visuais para a análise de imagens.",
-            estrategias: [
-              "Demonstrar gestos de 'olhe com atenção' (mão na testa), 'compare' (mãos aproximando-se e afastando-se) ao apresentar um problema visual, incentivando a análise visual.",
-              "Indicar gestualmente a área da imagem onde o aluno deve procurar um padrão (ex: fazer um círculo com o dedo sobre a área do padrão) ou a solução para um problema (ex: apontar para a peça que falta).",
-              "Utilizar mímica para representar a ação de 'encontrar' (gesto de achar algo) ou 'resolver' (gesto de solução) ao lidar com desafios visuais, para que o aluno associe a ação à resolução.",
-              "Fazer gestos que representem a 'ordem' ou a 'sequência' de um padrão (ex: gesto de 'um, dois, um, dois' para padrão repetitivo).",
-              "Sinalizar com a mão para um 'painel de padrões' (ex: diferentes tipos de listras, xadrez) para que o aluno o consulte ao identificar um padrão em uma imagem.",
-              "Utilizar cartões com imagens de problemas visuais (ex: 'o que não pertence') e o professor gesticula a solução ou o intruso.",
-              "Propor 'mímica de problemas visuais', onde o professor gesticula um problema e o aluno gesticula a solução.",
-              "Gesticular a ação de 'escanear' a imagem com os olhos, incentivando a observação detalhada.",
-              "Fazer gestos de 'sinal verde' para o reconhecimento correto e 'sinal vermelho' para o erro, como feedback não verbal.",
-              "Estimular o aluno a usar gestos para indicar um padrão ou a solução para um problema visual.",
-            ],
-          },
-          AV: {
-            objetivo:
-              "Aprimorar o reconhecimento de padrões complexos e a resolução de problemas visuais, seguindo instruções verbais para a análise e interpretação de imagens.",
-            estrategias: [
-              "Dar instruções verbais sobre como analisar uma imagem ('Procure por formas que se repetem', 'Qual a peça que falta aqui?', 'Observe os detalhes das cores'), guiando o processo de observação.",
-              "Perguntar 'O que você vê que se repete?' ou 'Qual o problema nesta imagem?', 'Qual o próximo elemento nesta sequência?' para guiar a observação e a identificação de padrões e problemas visuais.",
-              "Discutir verbalmente as etapas para resolver um problema visual (ex: 'Primeiro olhe as cores, depois as formas, e então veja o tamanho'), ajudando o aluno a estruturar o raciocínio.",
-              "Reforçar verbalmente o raciocínio visual ('Que bom que você percebeu o padrão das bolinhas!', 'Você achou o erro muito rápido!'), elogiando a percepção e a rapidez.",
-              "Fazer perguntas abertas sobre as estratégias utilizadas (ex: 'Como você descobriu o padrão?', 'Qual sua dica para resolver esse quebra-cabeça?').",
-              "Propor jogos de 'detetive visual' verbal, onde o aluno descreve as pistas visuais que o levaram a uma conclusão.",
-              "Estimular o aluno a verbalizar as características de um padrão complexo (ex: 'É uma sequência de cores que vai do claro ao escuro').",
-              "Contar histórias ou ler livros que envolvam a resolução de mistérios visuais ou a identificação de padrões, discutindo verbalmente as soluções.",
-              "Incentivar o aluno a dar instruções verbais para o professor sobre como ele resolveria um problema visual.",
-              "Realizar 'checagem verbal' da percepção (ex: 'Você está certo sobre o padrão?'), incentivando a autoavaliação pela fala.",
-            ],
-          },
-          AVi: {
-            objetivo:
-              "Generalizar o reconhecimento de padrões complexos e a resolução de problemas visuais, utilizando recursos visuais para aprimorar a capacidade de análise e síntese.",
-            estrategias: [
-              "Disponibilizar quebra-cabeças complexos e desafiadores (com mais peças, imagens abstratas, ou sem imagem de referência na base), incentivando a auto-organização visual para a montagem.",
-              "Utilizar jogos visuais de 'encontre o intruso' ou 'continue o padrão' com elementos cada vez mais complexos (ex: diferentes formas geométricas, cores variadas, tamanhos diversos) para aprimorar a discriminação.",
-              "Criar diagramas ou fluxogramas visuais para a resolução de problemas, destacando os passos de análise visual (ex: 'observar', 'comparar', 'identificar', 'resolver'), para que o aluno os siga.",
-              "Organizar padrões visuais em 'categorias' ou 'famílias' (ex: padrões de linhas, padrões de cores) em um mural, para facilitar o reconhecimento e a generalização.",
-              "Filmar o aluno resolvendo problemas visuais e rever o vídeo, apontando visualmente as estratégias eficazes e os momentos de sucesso.",
-              "Disponibilizar livros ou cartilhas ilustradas sobre percepção visual e raciocínio lógico, com foco visual em padrões e problemas.",
-              "Criar um 'semáforo da resolução visual': verde para 'achei a solução', amarelo para 'preciso de mais tempo', vermelho para 'não consigo', para autoavaliação.",
-              "Utilizar aplicativos ou softwares com atividades interativas de reconhecimento de padrões e resolução de problemas visuais, oferecendo feedback visual.",
-              "Apresentar gráficos visuais de progresso na resolução de problemas visuais complexos, com estrelinhas ou adesivos, reforçando o comportamento.",
-              "Desenhar 'balões de pensamento' com estratégias visuais (ex: 'olhar as bordas', 'separar por cor') ao lado de problemas, para que o aluno visualize a solução.",
-            ],
-          },
-          I: {
-            objetivo:
-              "Demonstrar autonomia e rapidez no reconhecimento de padrões complexos em imagens e na resolução de problemas visuais, aplicando estas habilidades em contextos variados.",
-            estrategias: [
-              "Propor a criação de seus próprios quebra-cabeças ou jogos visuais para outros resolverem, demonstrando domínio da percepção visual e a capacidade de criar desafios.",
-              "Incentivar o aluno a identificar padrões em objetos do dia a dia, arquitetura, na natureza ou em obras de arte, e a descrevê-los com precisão, aplicando a habilidade em contextos reais.",
-              "Observar e registrar a capacidade do aluno de resolver problemas visuais em tempo reduzido em jogos de estratégia, desafios lógicos ou atividades acadêmicas (ex: diagramas, gráficos), demonstrando rapidez, precisão e autonomia.",
-              "Estimular o aluno a identificar e explicar a lógica por trás de padrões complexos (ex: padrões em sequências numéricas visuais, padrões em desenhos abstratos).",
-              "Propor desafios de 'design de padrões', onde o aluno precisa criar um novo padrão complexo usando diferentes elementos visuais.",
-              "Incentivar o aluno a ensinar os colegas sobre estratégias para reconhecer padrões e resolver problemas visuais, compartilhando seu conhecimento.",
-              "Realizar 'sessões de autoavaliação' da percepção visual, onde o aluno reflete sobre a eficácia de suas estratégias e o que pode melhorar em sua rapidez e precisão.",
-              "Promover a participação em concursos de lógica visual, olimpíadas de matemática ou robótica, onde a percepção visual é um componente chave para o sucesso.",
-              "Estimular a criação de 'jogos de lógica visual' para os colegas, desafiando a percepção visual dos outros.",
-              "Incentivar o aluno a explorar softwares de design gráfico ou programação visual para criar e analisar padrões complexos.",
-            ],
-          },
-        },
-    },
-
     Memória: {
-      "Lembra instruções verbais complexas e utiliza estratégias para memorizar":
+      "Lembrar instruções verbais complexas e utilizar estratégias para memorizar":
         {
           NR: {
-            // Não Realizou
             objetivo:
               "Incentivar a repetição de instruções verbais simples, com apoio intensivo, para estabelecer a base da memória auditiva.",
             estrategias: [
@@ -7605,7 +7130,6 @@ const estruturaPEI = {
             ],
           },
           AF: {
-            // Apoio Físico
             objetivo:
               "Promover a memorização de instruções verbais com dois a três passos, com apoio físico pontual e dicas para estratégias de memorização.",
             estrategias: [
@@ -7622,7 +7146,6 @@ const estruturaPEI = {
             ],
           },
           AG: {
-            // Apoio Gestual
             objetivo:
               "Estimular a memorização de instruções verbais complexas e o uso de estratégias de memorização, respondendo a comandos gestuais para organização.",
             estrategias: [
@@ -7639,7 +7162,6 @@ const estruturaPEI = {
             ],
           },
           AV: {
-            // Apoio Verbal
             objetivo:
               "Aprimorar a memorização de instruções verbais complexas e o uso de estratégias de memorização, seguindo instruções verbais para o planejamento e a execução.",
             estrategias: [
@@ -7656,7 +7178,6 @@ const estruturaPEI = {
             ],
           },
           AVi: {
-            // Apoio Visual
             objetivo:
               "Generalizar a memorização de instruções verbais complexas e o uso de estratégias, utilizando pistas visuais para organização, revisão e recordação.",
             estrategias: [
@@ -7673,7 +7194,6 @@ const estruturaPEI = {
             ],
           },
           I: {
-            // Independente
             objetivo:
               "Demonstrar autonomia na memorização de instruções verbais complexas e na aplicação de estratégias de memorização, adaptando-se a diferentes demandas.",
             estrategias: [
@@ -7691,11 +7211,9 @@ const estruturaPEI = {
           },
         },
     },
-
     "Funções Executivas": {
-      "Manipula informações em mente enquanto executa": {
+      "Manipular informações em mente enquanto executa": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar o foco em uma única instrução verbal, com apoio intensivo, para estabelecer a base da atenção sustentada.",
           estrategias: [
@@ -7712,7 +7230,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover a execução de tarefas com duas a três etapas, com apoio físico pontual para a manutenção da informação e a execução sequencial.",
           estrategias: [
@@ -7795,9 +7312,8 @@ const estruturaPEI = {
       },
     },
     "Raciocínio Matemático": {
-      "Faz cálculos mentais múltiplos": {
+      "Fazer cálculos mentais múltiplos": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar a identificação de quantidades e a contagem verbal, com apoio intensivo, para estabelecer a base do raciocínio numérico.",
           estrategias: [
@@ -7814,7 +7330,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover a realização de cálculos simples (adição/subtração com até 5) com apoio físico, introduzindo a ideia de cálculo mental assistido.",
           estrategias: [
@@ -7896,11 +7411,9 @@ const estruturaPEI = {
         },
       },
     },
-
     "Produção Acadêmica": {
-      "Copia textos com rapidez e precisão": {
+      "Copiar textos com rapidez e precisão": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar o traçado de letras e números com apoio intensivo, para estabelecer a base da cópia gráfica.",
           estrategias: [
@@ -7917,7 +7430,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover a cópia de palavras isoladas com apoio físico, visando a precisão no traçado e o espaçamento.",
           estrategias: [
@@ -8000,10 +7512,9 @@ const estruturaPEI = {
       },
     },
     "Eficiência Acadêmica": {
-      "Conclui tarefas escolares rapidamente com qualidade e identifica erros com facilidade":
+      "Concluir tarefas escolares rapidamente com qualidade e identificar erros com facilidade":
         {
           NR: {
-            // Não Realizou
             objetivo:
               "Incentivar a iniciação de tarefas simples e a atenção ao feedback, com apoio intensivo, para estabelecer a base da conclusão de atividades.",
             estrategias: [
@@ -8020,7 +7531,6 @@ const estruturaPEI = {
             ],
           },
           AF: {
-            // Apoio Físico
             objetivo:
               "Promover a conclusão de tarefas escolares com apoio físico, introduzindo a ideia de qualidade e a identificação de erros básicos.",
             estrategias: [
@@ -8101,9 +7611,8 @@ const estruturaPEI = {
             ],
           },
         },
-      "Completa listas ou testes de repetição em tempo reduzido": {
+      "Completar listas ou testes de repetição em tempo reduzido": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar o engajamento em tarefas repetitivas curtas, com apoio intensivo, para estabelecer a base da atenção e da persistência.",
           estrategias: [
@@ -8120,7 +7629,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover a conclusão de listas ou testes de repetição com apoio físico, introduzindo a ideia de velocidade e consistência na execução.",
           estrategias: [
@@ -8202,11 +7710,9 @@ const estruturaPEI = {
         },
       },
     },
-
     "Atenção Sustentada": {
-      "Mantém atenção sustentada em atividades longas": {
+      "Manter atenção sustentada em atividades longas": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar o contato visual e a atenção breve a estímulos selecionados, com apoio intensivo, para estabelecer a base da atenção.",
           estrategias: [
@@ -8223,7 +7729,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover a manutenção da atenção em atividades curtas com apoio físico, visando o aumento gradual do tempo de foco.",
           estrategias: [
@@ -8306,9 +7811,8 @@ const estruturaPEI = {
       },
     },
     "Interesse Especializado": {
-      "Demonstra interesse profundo por temas específicos": {
+      "Demonstrar interesse profundo por temas específicos": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar a exploração de estímulos e objetos, com apoio intensivo, para iniciar a identificação de preferências e interesses.",
           estrategias: [
@@ -8406,12 +7910,10 @@ const estruturaPEI = {
         },
       },
     },
-
     "Criatividade e Inovação": {
       "Cria projetos próprios com originalidade e inventa soluções inovadoras para problemas cotidianos":
         {
           NR: {
-            // Não Realizou
             objetivo:
               "Incentivar a manipulação livre de materiais diversos, com apoio intensivo, para estimular a exploração e a curiosidade.",
             estrategias: [
@@ -8428,7 +7930,6 @@ const estruturaPEI = {
             ],
           },
           AF: {
-            // Apoio Físico
             objetivo:
               "Promover a criação de produções simples com apoio físico, introduzindo a ideia de originalidade e de solução básica de problemas.",
             estrategias: [
@@ -8511,9 +8012,8 @@ const estruturaPEI = {
         },
     },
     "Expressão Artística": {
-      "Expressa-se artisticamente com fluidez": {
+      "Expressar-se artisticamente com fluidez": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar a exploração de materiais artísticos, com apoio intensivo, para iniciar o contato com a expressão criativa.",
           estrategias: [
@@ -8530,7 +8030,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover a expressão artística através de técnicas básicas, com apoio físico pontual para a manipulação de materiais e a forma inicial.",
           estrategias: [
@@ -8595,7 +8094,6 @@ const estruturaPEI = {
           ],
         },
         I: {
-          // Independente
           objetivo:
             "Demonstrar autonomia e maestria na expressão artística com fluidez, explorando diferentes mídias e comunicando ideias complexas através da arte.",
           estrategias: [
@@ -8614,9 +8112,8 @@ const estruturaPEI = {
       },
     },
     "Motivação por Desafios": {
-      "Prefere tarefas complexas e desafiadoras": {
+      "Preferir tarefas complexas e desafiadoras": {
         NR: {
-          // Não Realizou
           objetivo:
             "Incentivar o engajamento em tarefas simples e de curta duração, com apoio intensivo, para estabelecer a base da persistência.",
           estrategias: [
@@ -8633,7 +8130,6 @@ const estruturaPEI = {
           ],
         },
         AF: {
-          // Apoio Físico
           objetivo:
             "Promover o engajamento em tarefas com múltiplos passos, com apoio físico pontual para a superação de obstáculos e a persistência.",
           estrategias: [
