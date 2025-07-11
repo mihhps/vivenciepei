@@ -3,20 +3,17 @@ import { useParams, useNavigate } from "react-router-dom";
 import "../styles/AvaliacaoInteressesPage.css";
 
 // Firebase imports (db e auth são instâncias globais já inicializadas)
-import { db, auth } from "../firebase"; // Certifique-se de que este caminho está correto para seu projeto
+import { db, auth } from "../firebase";
 
 // Firestore imports
 import { doc, getDoc, setDoc, collection, getDocs } from "firebase/firestore";
 
 // Importar o hook useAlunos e o componente SelecaoAluno
-import { useAlunos } from "../hooks/useAlunos"; // Certifique-se de que este caminho está correto
-import SelecaoAluno from "../components/SelecaoAluno"; // Certifique-se de que este caminho está correto
+import { useAlunos } from "../hooks/useAlunos";
+import SelecaoAluno from "../components/SelecaoAluno";
 
 // Importar o hook useAuth do seu contexto de autenticação
-import { useAuth } from "../context/AuthContext"; // Certifique-se de que este caminho está correto
-
-// Importar a função gerarPDFCompleto
-import { gerarPDFCompleto } from "../utils/gerarPDFCompleto"; // Ajuste o caminho se necessário!
+import { useAuth } from "../context/AuthContext"; // ASSUMA QUE ESTE HOOK EXISTE E FORNECE userId e isAuthReady
 
 // --- Listas de Itens para Rádios ---
 const ATIVIDADES_FAVORITAS_LIST = [
@@ -85,7 +82,7 @@ function AvaliacaoInteressesPage() {
   const navigate = useNavigate();
 
   // Obter userId e isAuthReady do AuthContext
-  const { userId, isAuthReady, currentUser } = useAuth(); // Adicionado currentUser para pegar nome/perfil
+  const { userId, isAuthReady } = useAuth();
 
   const [aluno, setAluno] = useState(null); // Aluno cujos dados estão sendo exibidos/editados
   const [alunoSelecionadoDropdown, setAlunoSelecionadoDropdown] =
@@ -95,7 +92,6 @@ function AvaliacaoInteressesPage() {
   const [erro, setErro] = useState(null);
   const [sucesso, setSucesso] = useState(null);
   const [showViewButton, setShowViewButton] = useState(false);
-  const [usuarioLogadoCompleto, setUsuarioLogadoCompleto] = useState(null); // Estado para o objeto completo do usuário logado
 
   // Usar o hook useAlunos para buscar a lista de todos os alunos
   const {
@@ -131,41 +127,6 @@ function AvaliacaoInteressesPage() {
     preferenciaToqueEspaco: "",
     algoMaisParaAdicionar: "",
   });
-
-  // Efeito para buscar os detalhes completos do usuário logado (nome, perfil, etc.)
-  useEffect(() => {
-    const fetchUserDetails = async () => {
-      if (userId && isAuthReady) {
-        try {
-          const userDocRef = doc(db, "usuarios", userId);
-          const userDocSnap = await getDoc(userDocRef);
-          if (userDocSnap.exists()) {
-            setUsuarioLogadoCompleto({
-              id: userDocSnap.id,
-              ...userDocSnap.data(),
-            });
-          } else {
-            console.warn("Dados completos do usuário logado não encontrados.");
-            setUsuarioLogadoCompleto({
-              id: userId,
-              nome: currentUser?.displayName || "Usuário Desconhecido",
-              perfil: "desconhecido",
-            });
-          }
-        } catch (error) {
-          console.error("Erro ao buscar detalhes do usuário logado:", error);
-          setUsuarioLogadoCompleto({
-            id: userId,
-            nome: currentUser?.displayName || "Usuário Desconhecido",
-            perfil: "erro",
-          });
-        }
-      } else if (isAuthReady && !userId) {
-        setUsuarioLogadoCompleto(null); // Usuário não autenticado
-      }
-    };
-    fetchUserDetails();
-  }, [userId, isAuthReady, currentUser, db]);
 
   // --- Efeito para pré-selecionar o aluno do URL param no dropdown ---
   useEffect(() => {
@@ -435,40 +396,16 @@ function AvaliacaoInteressesPage() {
     [alunoSelecionadoDropdown, db, userId, formData]
   );
 
-  // NOVO: Função para gerar o PDF da Avaliação de Interesses
-  const handleGerarPDFInteresses = useCallback(async () => {
-    if (!alunoSelecionadoDropdown || !alunoSelecionadoDropdown.id) {
-      setErro("Não foi possível gerar o PDF: Aluno não identificado.");
-      return;
-    }
-    if (!usuarioLogadoCompleto) {
+  // Função para navegar para a página de visualização
+  const handleVisualizarAvaliacao = useCallback(() => {
+    if (alunoSelecionadoDropdown && alunoSelecionadoDropdown.id) {
+      navigate(`/visualizar-interesses/${alunoSelecionadoDropdown.id}`);
+    } else {
       setErro(
-        "Não foi possível gerar o PDF: Informações do usuário logado ausentes."
+        "Não foi possível visualizar a avaliação: Aluno não identificado."
       );
-      return;
     }
-
-    setSalvando(true); // Indica que algo está sendo processado (geração do PDF)
-    setSucesso("Gerando PDF da avaliação de interesses...");
-    setErro(null);
-
-    try {
-      await gerarPDFCompleto(
-        alunoSelecionadoDropdown, // objeto aluno
-        null, // avaliacaoInicial (passando null, pois esta é a página de interesses)
-        usuarioLogadoCompleto, // objeto usuarioLogado completo
-        null, // peisParaGeral (passando null, pois esta é a página de interesses)
-        formData // ESTE É O DADO DA AVALIAÇÃO DE INTERESSES!
-      );
-      setSucesso("PDF da avaliação de interesses gerado com sucesso!");
-      setTimeout(() => setSucesso(null), 3000);
-    } catch (error) {
-      console.error("Erro ao gerar PDF:", error);
-      setErro("Erro ao gerar PDF da avaliação. Tente novamente.");
-    } finally {
-      setSalvando(false);
-    }
-  }, [alunoSelecionadoDropdown, formData, usuarioLogadoCompleto]);
+  }, [alunoSelecionadoDropdown, navigate]);
 
   // NOVO: Função para navegar para a página de Ver Avaliações de Interesses
   const handleVerAvaliacoesInteresses = useCallback(() => {
@@ -478,11 +415,7 @@ function AvaliacaoInteressesPage() {
   }, [navigate]);
 
   // Flag consolidada para desabilitar elementos durante carregamentos e salvamentos
-  const carregandoGeral =
-    carregando ||
-    salvando ||
-    carregandoAlunosFromHook ||
-    !usuarioLogadoCompleto;
+  const carregandoGeral = carregando || salvando || carregandoAlunosFromHook;
 
   if (!isAuthReady) {
     return (
@@ -517,11 +450,11 @@ function AvaliacaoInteressesPage() {
           {showViewButton && alunoSelecionadoDropdown && (
             <button
               type="button"
-              onClick={handleGerarPDFInteresses} // Chamada para a nova função de gerar PDF
+              onClick={handleVisualizarAvaliacao}
               className="view-evaluation-button"
               disabled={salvando}
             >
-              Gerar PDF da Avaliação
+              Visualizar Avaliação Salva
             </button>
           )}
         </div>
@@ -566,10 +499,7 @@ function AvaliacaoInteressesPage() {
           {/* Seção 1: Interesses e Pontos Fortes */}
           <section className="form-section">
             <h2>Seção 1: Interesses e Pontos Fortes</h2>
-            <p className="section-description">
-              Esta seção visa descobrir o que a criança gosta de fazer e no que
-              ela se destaca.
-            </p>
+            <p className="section-description"></p>
 
             <div className="form-group">
               <label className="input-label">
@@ -698,11 +628,7 @@ function AvaliacaoInteressesPage() {
           {/* Seção 2: Gatilhos de Desregulação e Desconforto */}
           <section className="form-section">
             <h2>Seção 2: Gatilhos de Desregulação e Desconforto</h2>
-            <p className="section-description">
-              Esta seção busca identificar o que pode levar a criança a se
-              sentir sobrecarregada, irritada ou a ter comportamentos de
-              desregulação.
-            </p>
+            <p className="section-description"></p>
 
             <div className="form-group">
               <label className="input-label">
@@ -873,10 +799,7 @@ function AvaliacaoInteressesPage() {
           {/* Seção 3: Estratégias e Apoio */}
           <section className="form-section">
             <h2>Seção 3: Estratégias e Apoio</h2>
-            <p className="section-description">
-              Esta seção busca entender quais estratégias funcionam melhor para
-              a criança.
-            </p>
+            <p className="section-description"></p>
 
             <div className="form-group">
               <label className="input-label">
@@ -980,15 +903,15 @@ function AvaliacaoInteressesPage() {
             {salvando ? "Salvando..." : "Salvar Avaliação de Interesses"}
           </button>
 
-          {/* Botão de Gerar PDF da Avaliação - Agora com a nova função */}
+          {/* Botão de Visualizar Avaliação */}
           {showViewButton && alunoSelecionadoDropdown && (
             <button
               type="button"
-              onClick={handleGerarPDFInteresses}
+              onClick={handleVisualizarAvaliacao}
               className="view-evaluation-button"
-              disabled={salvando || !usuarioLogadoCompleto} // Desabilita se não tiver dados do usuário
+              disabled={salvando}
             >
-              Gerar PDF da Avaliação
+              Visualizar Avaliação Salva
             </button>
           )}
         </form>

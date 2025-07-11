@@ -140,32 +140,22 @@ function AvaliacaoInteressesPage() {
           const userDocRef = doc(db, "usuarios", userId);
           const userDocSnap = await getDoc(userDocRef);
           if (userDocSnap.exists()) {
-            setUsuarioLogadoCompleto({
-              id: userDocSnap.id,
-              ...userDocSnap.data(),
-            });
+            setUsuarioLogadoCompleto({ id: userDocSnap.id, ...userDocSnap.data() });
           } else {
             console.warn("Dados completos do usuário logado não encontrados.");
-            setUsuarioLogadoCompleto({
-              id: userId,
-              nome: currentUser?.displayName || "Usuário Desconhecido",
-              perfil: "desconhecido",
-            });
+            setUsuarioLogadoCompleto({ id: userId, nome: currentUser?.displayName || "Usuário Desconhecido", perfil: "desconhecido" });
           }
         } catch (error) {
           console.error("Erro ao buscar detalhes do usuário logado:", error);
-          setUsuarioLogadoCompleto({
-            id: userId,
-            nome: currentUser?.displayName || "Usuário Desconhecido",
-            perfil: "erro",
-          });
+          setUsuarioLogadoCompleto({ id: userId, nome: currentUser?.displayName || "Usuário Desconhecido", perfil: "erro" });
         }
       } else if (isAuthReady && !userId) {
-        setUsuarioLogadoCompleto(null); // Usuário não autenticado
+         setUsuarioLogadoCompleto(null); // Usuário não autenticado
       }
     };
     fetchUserDetails();
   }, [userId, isAuthReady, currentUser, db]);
+
 
   // --- Efeito para pré-selecionar o aluno do URL param no dropdown ---
   useEffect(() => {
@@ -442,9 +432,7 @@ function AvaliacaoInteressesPage() {
       return;
     }
     if (!usuarioLogadoCompleto) {
-      setErro(
-        "Não foi possível gerar o PDF: Informações do usuário logado ausentes."
-      );
+      setErro("Não foi possível gerar o PDF: Informações do usuário logado ausentes.");
       return;
     }
 
@@ -470,6 +458,7 @@ function AvaliacaoInteressesPage() {
     }
   }, [alunoSelecionadoDropdown, formData, usuarioLogadoCompleto]);
 
+
   // NOVO: Função para navegar para a página de Ver Avaliações de Interesses
   const handleVerAvaliacoesInteresses = useCallback(() => {
     // Navega para a página de visualização de interesses sem um ID específico.
@@ -478,11 +467,7 @@ function AvaliacaoInteressesPage() {
   }, [navigate]);
 
   // Flag consolidada para desabilitar elementos durante carregamentos e salvamentos
-  const carregandoGeral =
-    carregando ||
-    salvando ||
-    carregandoAlunosFromHook ||
-    !usuarioLogadoCompleto;
+  const carregandoGeral = carregando || salvando || carregandoAlunosFromHook || !usuarioLogadoCompleto;
 
   if (!isAuthReady) {
     return (

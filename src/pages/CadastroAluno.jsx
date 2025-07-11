@@ -291,7 +291,7 @@ function CadastroAluno() {
 
       const alunoDocRef = await addDoc(
         collection(db, "alunos"),
-        dadosAlunoParaSalvos
+        dadosAlunoParaSalvar // CORRIGIDO: Era 'dadosAlunoParaSalvos'
       );
       console.log("Aluno cadastrado com ID: ", alunoDocRef.id);
 

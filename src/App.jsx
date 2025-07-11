@@ -28,7 +28,6 @@ const AvaliacaoInicial = lazy(() => import("./pages/AvaliacaoInicial"));
 const ImportarAlunos = lazy(() => import("./pages/ImportarAlunos"));
 const AnamneseCompleta = lazy(() => import("./pages/AnamneseCompleta"));
 const EditarPei = lazy(() => import("./pages/EditarPei"));
-// CORRIGIDO AQUI: Aponta para o arquivo .jsx com a capitalização CORRETA ('E' maiúsculo)
 const EditarAluno = lazy(() => import("./pages/EditarAluno.jsx"));
 const ContinuarPei = lazy(() => import("./pages/ContinuarPei"));
 const CadastrarUsuario = lazy(() => import("./pages/CadastrarUsuario"));
@@ -57,8 +56,22 @@ const MeuAcompanhamentoProfessor = lazy(
   () => import("./pages/MeuAcompanhamentoProfessor")
 );
 
-// CORRIGIDO AQUI: Adicionado a extensão .jsx
 const CadastroTurma = lazy(() => import("./pages/CadastroTurma.jsx"));
+
+// NOVO: Importar a página de avaliação de interesses
+const AvaliacaoInteressesPage = lazy(
+  () => import("./pages/AvaliacaoInteressesPage")
+);
+
+// NOVO: Importar o componente de seleção de aluno para interesses
+const SelecionarAlunoParaInteresses = lazy(
+  () => import("./pages/SelecionarAlunoParaInteresses") // Caminho atualizado
+);
+
+// NOVO: Importar a página de visualização de interesses
+const VisualizarAvaliacaoInteressesPage = lazy(
+  () => import("./pages/VisualizarAvaliacaoInteressesPage")
+);
 
 // PDF.js Worker para importação de PDFs
 import * as pdfjsLib from "pdfjs-dist/build/pdf";
@@ -113,6 +126,25 @@ export default function App() {
               <Route
                 path="/editar-avaliacao/:id"
                 element={<EditarAvaliacao />}
+              />
+              {/* Rota para a página de seleção de aluno para avaliação de interesses */}
+              <Route
+                path="/selecionar-aluno-para-interesses"
+                element={<SelecionarAlunoParaInteresses />}
+              />
+              {/* Rota para a página de avaliação de interesses (com alunoId) */}
+              <Route
+                path="/nova-avaliacao/:alunoId"
+                element={<AvaliacaoInteressesPage />}
+              />
+              {/* NOVO: Rota para a página de visualização de interesses (com ou sem alunoId) */}
+              <Route
+                path="/visualizar-interesses"
+                element={<VisualizarAvaliacaoInteressesPage />}
+              />
+              <Route
+                path="/visualizar-interesses/:alunoId"
+                element={<VisualizarAvaliacaoInteressesPage />}
               />
 
               {/* PEI */}

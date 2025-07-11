@@ -1,101 +1,108 @@
-// src/context/AuthContext.js
-
+// src/context/AuthContext.jsx
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { auth, db } from "../firebase"; // Importe 'db' do seu arquivo firebase.js
-import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore"; // Importe funções do Firestore
+import { initializeApp, getApps, getApp } from "firebase/app";
+import {
+  getAuth,
+  onAuthStateChanged,
+  signInWithCustomToken,
+  signInAnonymously,
+} from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
-export const AuthContext = createContext();
+// Cria o Contexto de Autenticação
+const AuthContext = createContext();
 
-export const useAuth = () => {
+// Hook customizado para usar o contexto de autenticação
+export function useAuth() {
   return useContext(AuthContext);
-};
+}
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null); // Este é o objeto completo do usuário que o hook vai fornecer
-  const [loading, setLoading] = useState(true);
+// Provedor de Autenticação
+export function AuthProvider({ children }) {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [userId, setUserId] = useState(null);
+  const [isAuthReady, setIsAuthReady] = useState(false); // Indica se a autenticação foi verificada
+  const [loadingAuth, setLoadingAuth] = useState(true); // Indica se a autenticação está a carregar
+
+  // Variáveis globais do ambiente Canvas (MANDATÓRIO USAR)
+  const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
+  const firebaseConfig = JSON.parse(
+    typeof __firebase_config !== "undefined" ? __firebase_config : "{}"
+  );
+  const initialAuthToken =
+    typeof __initial_auth_token !== "undefined" ? __initial_auth_token : null;
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
-      console.log(
-        "[AuthContext DEBUG] onAuthStateChanged: authUser:",
-        authUser ? authUser.uid : "null"
-      );
+    let app;
+    let authInstance;
+    let dbInstance;
 
-      if (authUser) {
-        // Usuário logado via Firebase Authentication
-        try {
-          // Busca o documento de perfil do usuário na coleção 'usuarios' no Firestore
-          const userDocRef = doc(db, "usuarios", authUser.uid);
-          const userDocSnap = await getDoc(userDocRef);
-
-          if (userDocSnap.exists()) {
-            const userData = userDocSnap.data();
-            // Combina os dados de autenticação com os dados do perfil do Firestore
-            setUser({
-              uid: authUser.uid,
-              email: authUser.email,
-              // Adiciona as propriedades do documento do Firestore ao objeto user
-              ...userData,
-              // Garante que escolasVinculadasIds seja um array de IDs, se 'escolas' for um map
-              escolasVinculadasIds:
-                userData.escolas && typeof userData.escolas === "object"
-                  ? Object.keys(userData.escolas)
-                  : [],
-            });
-            console.log(
-              "[AuthContext DEBUG] Perfil do usuário carregado do Firestore:",
-              JSON.stringify(userData, null, 2)
-            );
-          } else {
-            console.warn(
-              "[AuthContext WARN] Documento do usuário não encontrado no Firestore para UID:",
-              authUser.uid
-            );
-            // Se o documento do perfil não existe, ainda assim fornece um user básico
-            setUser({
-              uid: authUser.uid,
-              email: authUser.email,
-              perfil: null,
-              nome: "Usuário Desconhecido",
-              escolasVinculadasIds: [],
-            });
-          }
-        } catch (error) {
-          console.error(
-            "[AuthContext ERROR] Erro ao buscar dados do usuário no Firestore:",
-            error
-          );
-          // Em caso de erro, ainda fornece um user básico
-          setUser({
-            uid: authUser.uid,
-            email: authUser.email,
-            perfil: null,
-            nome: "Erro no Perfil",
-            escolasVinculadasIds: [],
-          });
-        }
+    try {
+      // Inicializa o Firebase App se ainda não estiver inicializado
+      if (!getApps().length) {
+        app = initializeApp(firebaseConfig);
       } else {
-        // Usuário deslogado
-        console.log("[AuthContext INFO] Usuário deslogado.");
-        setUser(null);
+        app = getApp();
       }
-      setLoading(false); // Sinaliza que o carregamento da autenticação e do perfil está completo
-    });
 
-    return () => unsubscribe(); // Limpeza do listener
-  }, []);
+      authInstance = getAuth(app);
+      dbInstance = getFirestore(app);
 
-  // O valor fornecido pelo contexto agora é o 'user' completo com dados do Firestore
+      // Observador do estado de autenticação
+      const unsubscribe = onAuthStateChanged(authInstance, async (user) => {
+        if (user) {
+          // Usuário autenticado
+          setCurrentUser(user);
+          setUserId(user.uid);
+          setIsAuthReady(true);
+          setLoadingAuth(false);
+        } else {
+          // Usuário não autenticado, tentar login com token personalizado ou anonimamente
+          try {
+            if (initialAuthToken) {
+              await signInWithCustomToken(authInstance, initialAuthToken);
+            } else {
+              await signInAnonymously(authInstance);
+            }
+            // Após o login, o onAuthStateChanged será disparado novamente com o usuário
+          } catch (error) {
+            console.error("Erro ao tentar autenticação inicial:", error);
+            // Em caso de erro na autenticação inicial, ainda assim definimos isAuthReady como true
+            // para que a aplicação possa continuar (talvez para uma tela de login)
+            setCurrentUser(null);
+            setUserId(null);
+            setIsAuthReady(true);
+            setLoadingAuth(false);
+          }
+        }
+      });
+
+      // Retorna a função de limpeza para desinscrever o observador
+      return () => unsubscribe();
+    } catch (error) {
+      console.error("Erro na inicialização do Firebase ou AuthContext:", error);
+      // Se houver um erro na inicialização, ainda assim defina isAuthReady para true
+      // para evitar que a aplicação fique presa no estado de carregamento
+      setIsAuthReady(true);
+      setLoadingAuth(false);
+    }
+  }, []); // Executa apenas uma vez na montagem
+
+  // O valor do contexto que será fornecido aos componentes filhos
   const value = {
-    user, // Agora 'user' terá 'uid', 'email', 'perfil', 'nome', 'escolas', etc.
-    loading,
+    currentUser,
+    userId,
+    isAuthReady,
+    loadingAuth,
+    // Você pode adicionar outras funções de autenticação aqui, se necessário (ex: logout)
+    authInstance: getAuth(getApps().length ? getApp() : null), // Fornece a instância de auth
+    dbInstance: getFirestore(getApps().length ? getApp() : null), // Fornece a instância de db
   };
 
   return (
     <AuthContext.Provider value={value}>
-      {/* Renderiza os filhos somente após o carregamento inicial */}
-      {!loading && children}
+      {/* Renderiza os filhos apenas quando a autenticação estiver pronta */}
+      {children}
     </AuthContext.Provider>
   );
-};
+}

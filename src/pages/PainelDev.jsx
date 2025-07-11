@@ -115,6 +115,13 @@ export default function PainelDev() {
 
   const botoes = [
     { label: "Avaliação Inicial", rota: "/avaliacao-inicial" },
+    // ATENÇÃO: Substitua 'SEU_ALUNO_ID_EXISTENTE_AQUI' pelo ID real de um aluno do seu Firestore para testar.
+    // Para um ambiente de produção, é recomendado usar a rota /selecionar-aluno-para-interesses
+    // para que o usuário possa escolher um aluno.
+    {
+      label: "Avaliação de Interesses",
+      rota: "/nova-avaliacao/SEU_ALUNO_ID_EXISTENTE_AQUI", // Rota atualizada aqui
+    },
     { label: "Criar PEI", rota: "/criar-pei" },
     { label: "Anamnese", rota: "/anamnese-completa" },
     { label: "Gerenciar Prazos PEI", rota: "/gestao-prazos-pei" },
@@ -125,8 +132,7 @@ export default function PainelDev() {
     { label: "Cadastrar Usuário", rota: "/cadastro-usuario" },
     { label: "Vincular Turmas a Professores", rota: "/vincular-professores" },
     { label: "Vincular Escolas a Professores", rota: "/vincular-escolas" },
-    // NOVO BOTÃO AQUI!
-    { label: "Cadastrar Turma", rota: "/cadastro-turmas" }, // Adicionado o novo botão
+    { label: "Cadastrar Turma", rota: "/cadastro-turmas" },
   ];
 
   const estiloBotao = {

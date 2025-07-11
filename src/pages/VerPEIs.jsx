@@ -13,6 +13,11 @@ import {
   orderBy,
   limit,
 } from "firebase/firestore";
+import {
+  fetchAvaliacaoInteresses, // Importação necessária para buscar a avaliação de interesses
+  fetchAlunoById,
+  fetchPeisByAluno,
+} from "../utils/firebaseUtils";
 
 const calcularIdadeEFaixa = (nascimento) => {
   if (!nascimento) return ["-", "-"];
@@ -338,11 +343,48 @@ export default function VerPEIs() {
         return;
       }
 
+      // --- INÍCIO DA CORREÇÃO: BUSCAR E PASSAR A AVALIAÇÃO DE INTERESSES ---
+      let avaliacaoInteressesData = null;
+      try {
+        console.log(
+          `[PDF_DEBUG] Buscando avaliação de interesses para alunoId: ${alunoCompleto.id} e userId: ${usuarioLogado.id}`
+        );
+        // AQUI ESTÁ A CORREÇÃO: Passando usuarioLogado.id como segundo argumento
+        const interessesDoc = await fetchAvaliacaoInteresses(
+          alunoCompleto.id,
+          usuarioLogado.id
+        );
+        if (interessesDoc) {
+          avaliacaoInteressesData = interessesDoc;
+          console.log(
+            "[PDF_DEBUG] Avaliação de Interesses encontrada:",
+            JSON.stringify(avaliacaoInteressesData, null, 2)
+          );
+        } else {
+          console.warn(
+            "[PDF_DEBUG] Nenhuma avaliação de interesses encontrada para este aluno."
+          );
+        }
+      } catch (err) {
+        console.error("Erro ao buscar avaliação de interesses:", err);
+        // Continua mesmo com erro, o PDF será gerado sem a seção de interesses
+      }
+      // --- FIM DA CORREÇÃO ---
+
       console.log(
         "Chamando gerarPDFCompleto com alunoCompleto (individual PEI):",
         JSON.stringify(alunoCompleto, null, 2)
       );
-      await gerarPDFCompleto(alunoCompleto, avaliacao, usuarioLogado);
+
+      await gerarPDFCompleto(
+        alunoCompleto,
+        avaliacao,
+        usuarioLogado,
+        // Passando um array vazio de PEIs, pois a função gerarPDFCompleto buscará os PEIs internamente
+        // para garantir que todos os PEIs do aluno sejam incluídos, e não apenas o 'pei' individual do botão.
+        [],
+        avaliacaoInteressesData // <--- AQUI ESTÁ A AVALIAÇÃO DE INTERESSES AGORA!
+      );
       console.log("--- DEBUG handleGerarPDF END ---");
     } catch (error) {
       console.error("Erro ao gerar PDF:", error);
@@ -606,11 +648,48 @@ export default function VerPEIs() {
                                 return;
                               }
 
+                              // --- INÍCIO DA CORREÇÃO: BUSCAR E PASSAR A AVALIAÇÃO DE INTERESSES ---
+                              let avaliacaoInteressesData = null;
+                              try {
+                                console.log(
+                                  `[PDF_DEBUG] Buscando avaliação de interesses para alunoId: ${alunoDaAba.id} e userId: ${usuarioLogado.id}`
+                                );
+                                // AQUI ESTÁ A CORREÇÃO: Passando usuarioLogado.id como segundo argumento
+                                const interessesDoc =
+                                  await fetchAvaliacaoInteresses(
+                                    alunoDaAba.id,
+                                    usuarioLogado.id
+                                  );
+                                if (interessesDoc) {
+                                  avaliacaoInteressesData = interessesDoc;
+                                  console.log(
+                                    "[PDF_DEBUG] Avaliação de Interesses encontrada:",
+                                    JSON.stringify(
+                                      avaliacaoInteressesData,
+                                      null,
+                                      2
+                                    )
+                                  );
+                                } else {
+                                  console.warn(
+                                    "[PDF_DEBUG] Nenhuma avaliação de interesses encontrada para este aluno."
+                                  );
+                                }
+                              } catch (err) {
+                                console.error(
+                                  "Erro ao buscar avaliação de interesses:",
+                                  err
+                                );
+                                // Continua mesmo com erro, o PDF será gerado sem a seção de interesses
+                              }
+                              // --- FIM DA CORREÇÃO ---
+
                               await gerarPDFCompleto(
                                 alunoDaAba,
                                 avaliacaoDoAluno,
                                 usuarioLogado,
-                                peisDoAlunoParaPDF
+                                peisDoAlunoParaPDF,
+                                avaliacaoInteressesData // <--- AQUI ESTÁ A AVALIAÇÃO DE INTERESSES AGORA!
                               );
                             } catch (erro) {
                               console.error("Erro ao gerar PDF:", erro);

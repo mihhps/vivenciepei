@@ -1,29 +1,13 @@
-import { useState, useCallback } from "react";
-import { Timestamp } from "firebase/firestore";
-import {
-  fetchAvaliacaoPorAluno,
-  salvarAvaliacao,
-} from "../src/services/avaliacaoService";
+import { useState, useEffect, useCallback, useMemo } from "react";
+// Importe seu serviço de dados (Firebase, API, etc.)
+// import { getAvaliacao, saveAvaliacao } from "../services/avaliacaoService"; // Exemplo
 
-const calcularIdade = (nascimento) => {
-  if (!nascimento) return null;
-  const hoje = new Date();
-  const nascDate = new Date(nascimento);
-  let idade = hoje.getFullYear() - nascDate.getFullYear();
-  const m = hoje.getMonth() - nascDate.getMonth();
-  if (m < 0 || (m === 0 && hoje.getDate() < nascDate.getDate())) {
-    idade--;
-  }
-  return idade;
-};
-
-export const useAvaliacaoForm = (alunos) => {
+export function useAvaliacaoForm(alunos) {
   const [alunoSelecionado, setAlunoSelecionado] = useState(null);
-  const [idade, setIdade] = useState(null);
-  const [respostas, setRespostas] = useState({});
-  const [observacoes, setObservacoes] = useState({});
   const [inicio, setInicio] = useState("");
   const [proximaAvaliacao, setProximaAvaliacao] = useState("");
+  const [respostas, setRespostas] = useState({});
+  const [observacoes, setObservacoes] = useState({});
 
   const [estado, setEstado] = useState({
     carregandoAvaliacao: false,
@@ -32,107 +16,204 @@ export const useAvaliacaoForm = (alunos) => {
     sucesso: null,
   });
 
-  const exibirMensagem = (tipo, texto) => {
+  const avaliacaoExiste = useMemo(() => {
+    return (
+      Object.keys(respostas).length > 0 || Object.keys(observacoes).length > 0
+    );
+  }, [respostas, observacoes]);
+
+  const idade = useMemo(() => {
+    if (alunoSelecionado && alunoSelecionado.dataNascimento) {
+      const hoje = new Date();
+      const nascimento = new Date(alunoSelecionado.dataNascimento);
+      let idadeCalculada = hoje.getFullYear() - nascimento.getFullYear();
+      const mes = hoje.getMonth() - nascimento.getMonth();
+      if (mes < 0 || (mes === 0 && hoje.getDate() < nascimento.getDate())) {
+        idadeCalculada--;
+      }
+      return idadeCalculada;
+    }
+    return "";
+  }, [alunoSelecionado]);
+
+  // Função para carregar a avaliação do aluno
+  const carregarAvaliacaoDoAluno = useCallback(async (alunoNome) => {
+    if (!alunoNome) {
+      setRespostas({});
+      setObservacoes({});
+      setInicio("");
+      setProximaAvaliacao("");
+      return;
+    }
+
     setEstado((prev) => ({
       ...prev,
-      [tipo]: texto,
-      [tipo === "erro" ? "sucesso" : "erro"]: null,
+      carregandoAvaliacao: true,
+      erro: null,
+      sucesso: null,
     }));
-    setTimeout(() => setEstado((prev) => ({ ...prev, [tipo]: null })), 5000);
-  };
+    try {
+      const avaliacoesSalvas =
+        JSON.parse(localStorage.getItem("avaliacoes")) || [];
+      const avaliacaoEncontrada = avaliacoesSalvas.find(
+        (a) => a.aluno.nome === alunoNome
+      );
 
-  const resetarFormulario = useCallback(() => {
-    setRespostas({});
-    setObservacoes({});
-    setInicio("");
-    setProximaAvaliacao("");
-    setIdade(null);
-    setAlunoSelecionado(null);
+      if (avaliacaoEncontrada) {
+        // --- INÍCIO DA CORREÇÃO ---
+        // Lógica para garantir que as datas sejam strings YYYY-MM-DD
+        let loadedInicio = avaliacaoEncontrada.inicio;
+        let loadedProximaAvaliacao = avaliacaoEncontrada.proximaAvaliacao;
+
+        let formattedInicio = "";
+        let formattedProximaAvaliacao = "";
+
+        // Tenta converter de objeto Firebase Timestamp-like para string
+        if (
+          loadedInicio &&
+          typeof loadedInicio === "object" &&
+          loadedInicio.seconds !== undefined
+        ) {
+          formattedInicio = new Date(loadedInicio.seconds * 1000)
+            .toISOString()
+            .split("T")[0];
+        } else if (loadedInicio instanceof Date) {
+          // Se for um objeto Date JS
+          formattedInicio = loadedInicio.toISOString().split("T")[0];
+        } else if (typeof loadedInicio === "string") {
+          // Se já for uma string (esperado)
+          formattedInicio = loadedInicio;
+        }
+
+        if (
+          loadedProximaAvaliacao &&
+          typeof loadedProximaAvaliacao === "object" &&
+          loadedProximaAvaliacao.seconds !== undefined
+        ) {
+          formattedProximaAvaliacao = new Date(
+            loadedProximaAvaliacao.seconds * 1000
+          )
+            .toISOString()
+            .split("T")[0];
+        } else if (loadedProximaAvaliacao instanceof Date) {
+          formattedProximaAvaliacao = loadedProximaAvaliacao
+            .toISOString()
+            .split("T")[0];
+        } else if (typeof loadedProximaAvaliacao === "string") {
+          formattedProximaAvaliacao = loadedProximaAvaliacao;
+        }
+        // --- FIM DA CORREÇÃO ---
+
+        setInicio(formattedInicio);
+        setProximaAvaliacao(formattedProximaAvaliacao);
+        setRespostas(avaliacaoEncontrada.respostas || {});
+        setObservacoes(avaliacaoEncontrada.observacoes || {});
+      } else {
+        setRespostas({});
+        setObservacoes({});
+        setInicio("");
+        setProximaAvaliacao("");
+      }
+      setEstado((prev) => ({
+        ...prev,
+        carregandoAvaliacao: false,
+        sucesso: null,
+      }));
+    } catch (error) {
+      console.error("Erro ao carregar avaliação:", error);
+      setEstado((prev) => ({
+        ...prev,
+        carregandoAvaliacao: false,
+        erro: "Erro ao carregar avaliação. Tente novamente.",
+      }));
+    }
   }, []);
 
+  // Handler para selecionar o aluno
   const handleSelecionarAluno = useCallback(
     async (alunoNome) => {
-      resetarFormulario();
       const aluno = alunos.find((a) => a.nome === alunoNome);
-      if (!aluno) return;
-
-      setAlunoSelecionado(aluno);
-      setIdade(calcularIdade(aluno.nascimento));
-      setEstado((prev) => ({ ...prev, carregandoAvaliacao: true }));
-
-      try {
-        const avaliacao = await fetchAvaliacaoPorAluno(aluno.id);
-        if (avaliacao) {
-          setRespostas(avaliacao.respostas || {});
-          setObservacoes(avaliacao.observacoes || {});
-          if (avaliacao.inicio)
-            setInicio(avaliacao.inicio.toDate().toISOString().split("T")[0]);
-          if (avaliacao.proximaAvaliacao)
-            setProximaAvaliacao(
-              avaliacao.proximaAvaliacao.toDate().toISOString().split("T")[0]
-            );
-          exibirMensagem("sucesso", "Avaliação existente carregada.");
-        } else {
-          exibirMensagem(
-            "sucesso",
-            "Inicie uma nova avaliação para este aluno."
-          );
-        }
-      } catch (error) {
-        console.error("Erro ao carregar avaliação:", error);
-        exibirMensagem("erro", "Falha ao carregar dados da avaliação.");
-      } finally {
-        setEstado((prev) => ({ ...prev, carregandoAvaliacao: false }));
-      }
+      setAlunoSelecionado(aluno || null);
+      await carregarAvaliacaoDoAluno(alunoNome);
     },
-    [alunos, resetarFormulario]
+    [alunos, carregarAvaliacaoDoAluno]
   );
 
-  const handleSalvar = async (usuarioLogado) => {
-    if (!alunoSelecionado) {
-      exibirMensagem("erro", "Por favor, selecione um aluno.");
-      return false;
-    }
+  // Handler para salvar a avaliação
+  const handleSalvar = useCallback(
+    async (usuarioLogado) => {
+      if (!alunoSelecionado || !inicio || !proximaAvaliacao) {
+        setEstado((prev) => ({
+          ...prev,
+          erro: "Por favor, preencha todos os campos e selecione um aluno.",
+        }));
+        return false;
+      }
 
-    setEstado((prev) => ({ ...prev, salvando: true }));
-    const avaliacaoData = {
-      idade,
-      respostas,
-      observacoes,
-      inicio: inicio
-        ? Timestamp.fromDate(new Date(`${inicio}T00:00:00`))
-        : null,
-      proximaAvaliacao: proximaAvaliacao
-        ? Timestamp.fromDate(new Date(`${proximaAvaliacao}T00:00:00`))
-        : null,
-    };
+      setEstado((prev) => ({
+        ...prev,
+        salvando: true,
+        erro: null,
+        sucesso: null,
+      }));
+      try {
+        const novaAvaliacao = {
+          id: alunoSelecionado.id, // Ou um ID gerado
+          aluno: alunoSelecionado,
+          inicio, // Já é uma string YYYY-MM-DD
+          proximaAvaliacao, // Já é uma string YYYY-MM-DD
+          respostas,
+          observacoes,
+          criadoPor: usuarioLogado.nome,
+          dataCriacao: new Date().toISOString(),
+        };
 
-    try {
-      await salvarAvaliacao(avaliacaoData, alunoSelecionado, usuarioLogado);
-      exibirMensagem("sucesso", "Avaliação salva com sucesso!");
-      return true; // Indica sucesso
-    } catch (error) {
-      console.error("Erro ao salvar:", error);
-      exibirMensagem("erro", `Erro ao salvar: ${error.message}`);
-      return false; // Indica falha
-    } finally {
-      setEstado((prev) => ({ ...prev, salvando: false }));
-    }
-  };
+        let avaliacoes = JSON.parse(localStorage.getItem("avaliacoes")) || [];
+        const index = avaliacoes.findIndex(
+          (a) => a.aluno.nome === alunoSelecionado.nome
+        );
+
+        if (index > -1) {
+          avaliacoes[index] = novaAvaliacao;
+        } else {
+          avaliacoes.push(novaAvaliacao);
+        }
+        localStorage.setItem("avaliacoes", JSON.stringify(avaliacoes));
+
+        setEstado((prev) => ({
+          ...prev,
+          salvando: false,
+          sucesso: "Avaliação salva com sucesso!",
+          erro: null,
+        }));
+        return true;
+      } catch (error) {
+        console.error("Erro ao salvar avaliação:", error);
+        setEstado((prev) => ({
+          ...prev,
+          salvando: false,
+          erro: "Erro ao salvar avaliação. Tente novamente.",
+        }));
+        return false;
+      }
+    },
+    [alunoSelecionado, inicio, proximaAvaliacao, respostas, observacoes]
+  );
 
   return {
     alunoSelecionado,
-    idade,
-    respostas,
-    setRespostas,
-    observacoes,
-    setObservacoes,
+    handleSelecionarAluno,
     inicio,
     setInicio,
     proximaAvaliacao,
     setProximaAvaliacao,
-    estado,
-    handleSelecionarAluno,
+    respostas,
+    setRespostas,
+    observacoes,
+    setObservacoes,
     handleSalvar,
+    idade,
+    avaliacaoExiste,
+    estado,
   };
-};
+}

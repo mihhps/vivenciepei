@@ -5,11 +5,11 @@ import {
   query,
   where,
   getDocs,
-  doc as firestoreDoc,
+  doc as firestoreDoc, // Renomeado para evitar conflito com 'doc' do jspdf
   getDoc,
   orderBy,
 } from "firebase/firestore";
-import { db } from "../firebase";
+import { db } from "../firebase"; // Certifique-se de que este caminho está correto para seu projeto
 
 // --- Constantes e Estilos ---
 const styles = {
@@ -18,11 +18,11 @@ const styles = {
     small: 8,
     medium: 10,
     large: 12,
-    title: 18, // Aumentado o tamanho do título para 18
+    title: 18,
   },
   colors: {
     black: [0, 0, 0],
-    white: [255, 255, 255], // Cor branca para preenchimento de fundo
+    white: [255, 255, 255],
     grayLight: [200, 200, 200],
     red: [255, 0, 0],
     yellow: [255, 255, 0],
@@ -30,26 +30,27 @@ const styles = {
     magenta: [255, 0, 255],
     purple: [128, 0, 128],
     green: [0, 128, 0],
-    // As cores para professores e criadores não serão usadas para colorir texto,
-    // mas a definição de cores gerais pode ser útil em outros contextos.
     orange: [255, 165, 0],
     teal: [0, 128, 128],
     darkBlue: [0, 0, 128],
-    maroon: [128, 0, 0],
+    maroon: [128, 128, 0],
     olive: [128, 128, 0],
     pink: [255, 192, 203],
     cyan: [0, 255, 255],
   },
 };
 
-// Cores por Nível - Estas serão usadas para o fillColor das células de nível
 const coresPorNivel = {
   NR: styles.colors.red,
   AF: styles.colors.yellow,
   AG: styles.colors.purple,
-  AV: styles.colors.grayLight, // Este é o cinza CLARO que pode estar confundindo com o padrão do autoTable
+  AV: styles.colors.grayLight,
   AVi: styles.colors.green,
   I: styles.colors.magenta,
+  // Cores para Sim/Não/NA na avaliação de interesses
+  Sim: [76, 175, 80], // Verde
+  Não: [230, 57, 70], // Vermelho
+  NA: [173, 181, 189], // Cinza
 };
 
 const legendaNiveis = {
@@ -61,24 +62,68 @@ const legendaNiveis = {
   I: "Independente",
 };
 
-// --- Mapeamento de Cores para Criadores (DESATIVADO PARA COLORIR TEXTO DE ESTRATÉGIAS) ---
-const availableCreatorColors = [];
-const creatorColorMap = new Map();
-let currentColorIndex = 0;
+// --- Listas de Itens para Rádios (Copiadas de AvaliacaoInteressesPage.jsx) ---
+const ATIVIDADES_FAVORITAS_LIST = [
+  "Brincadeiras ao ar livre (parque, bicicleta, bola)",
+  "Brincadeiras dentro de casa (quebra-cabeças, jogos de tabuleiro, blocos)",
+  "Assistir TV/Filmes/Desenhos",
+  "Jogar videogames/aplicativos no tablet",
+  "Desenhar/Pintar/Esculpir (atividades artísticas)",
+  "Ouvir música/Cantar/Dançar",
+  "Ler livros/Folhear revistas",
+  "Brincar com água/Areia",
+  "Brincadeiras de faz de conta (bonecas, carrinhos, super-heróis)",
+  "Interagir com animais",
+  "Explorar a natureza",
+  "Atividades sensoriais (massinha, geleca, objetos com texturas diferentes)",
+];
 
+const SINAIS_DESREGULACAO_LIST = [
+  "Irritabilidade/Frustração",
+  "Choro excessivo",
+  "Gritos/Resmungos",
+  "Bater/Morder/Chutar (em si mesma ou em outros)",
+  "Se jogar no chão",
+  "Correr/Andar de um lado para o outro",
+  "Tentar se esconder ou fugir",
+  "Ficar paralisada/Congelada",
+  "Repetir falas ou movimentos (ecolalia, estereotipias)",
+  "Recusar-se a obedecer",
+  "Dificuldade para se comunicar/Expressar",
+  "Dificuldade para transicionar entre atividades",
+];
+
+const SITUACOES_DESREGULACAO_LIST = [
+  "Mudanças inesperadas na rotina",
+  "Ambientes muito barulhentos (festas, shoppings, shows)",
+  "Ambientes com muita gente/muito movimento",
+  "Luzes muito fortes ou piscantes",
+  "Cheiros fortes ou incomuns",
+  "Texturas específicas (roupas, alimentos, objetos)",
+  "Sede ou fome",
+  "Cansaço",
+  "Doença/Dor",
+  "Frustração ao não conseguir algo",
+  "Excesso de estímulos (visuais, auditivos, táteis)",
+  "Ser tocada inesperadamente",
+  "Pressão para fazer algo que não quer",
+  "Transições entre atividades ou locais",
+  "Separação de pessoas familiares",
+  "Ser contrariada",
+];
+
+// As variáveis availableCreatorColors e creatorColorMap não estão sendo usadas,
+// então as mantive comentadas ou removi para manter o código limpo,
+// mas a função getCreatorColor permanece para evitar erros.
 function getCreatorColor(criadorInfoKey) {
-  return styles.colors.black;
+  return styles.colors.black; // Retorna sempre preto, como padrão atual
 }
-// --- FIM DA SEÇÃO DE CORES PARA CRIADORES ---
 
-/**
- * Formata um objeto de data ou string para o formato DD/MM/AAAA.
- * @param {firebase.firestore.Timestamp|Date|string} data - A data a ser formatada.
- * @returns {string} Data formatada ou "-" se inválido.
- */
+const HEADER_AREA_HEIGHT = 40;
+const FOOTER_AREA_HEIGHT = 25;
+
 function formatarData(data) {
   if (!data) return "-";
-
   try {
     let dateObj;
     if (typeof data.toDate === "function") {
@@ -90,13 +135,10 @@ function formatarData(data) {
     } else {
       return "-";
     }
-
     if (isNaN(dateObj.getTime())) return "-";
-
     const dia = dateObj.getUTCDate().toString().padStart(2, "0");
-    const mes = (dateObj.getUTCMonth() + 1).toString().padStart(2, "0"); // Mês é 0-indexado
+    const mes = (dateObj.getUTCMonth() + 1).toString().padStart(2, "0");
     const ano = dateObj.getUTCFullYear();
-
     return `${dia}/${mes}/${ano}`;
   } catch (e) {
     console.error("Erro ao formatar data:", e);
@@ -104,12 +146,40 @@ function formatarData(data) {
   }
 }
 
-/**
- * Adiciona o rodapé padrão a uma página do PDF.
- * @param {jsPDF} doc - Instância do jsPDF.
- * @param {number} pageHeight - Altura da página do PDF.
- */
-function addFooter(doc, pageHeight) {
+function formatarMesPorExtenso(data) {
+  if (!data) return "-";
+  try {
+    let dateObj;
+    if (typeof data.toDate === "function") {
+      dateObj = data.toDate();
+    } else if (data instanceof Date) {
+      dateObj = data;
+    } else if (typeof data === "string") {
+      dateObj = new Date(data);
+    } else {
+      return "-";
+    }
+    if (isNaN(dateObj.getTime())) return "-";
+    const options = {
+      month: "long",
+    };
+    const mes = dateObj.toLocaleDateString("pt-BR", options);
+    return mes.charAt(0).toUpperCase() + mes.slice(1);
+  } catch (e) {
+    console.error("Erro ao formatar mês por extenso:", e);
+    return "-";
+  }
+}
+
+function addHeaderAndFooter(doc) {
+  const imgWidth = 128;
+  const imgHeight = 25;
+  const imgX = 10;
+  const imgY = 10;
+  const pageHeight = doc.internal.pageSize.getHeight();
+
+  doc.addImage("/logo.jpg", "JPEG", imgX, imgY, imgWidth, imgHeight);
+
   doc.setFont(styles.font, "normal");
   doc.setFontSize(styles.fontSize.small);
 
@@ -130,38 +200,28 @@ function addFooter(doc, pageHeight) {
   );
 }
 
-/**
- * Garante que há espaço suficiente na página ou adiciona uma nova página.
- * @param {jsPDF} doc - Instância do jsPDF.
- * @param {number} currentY - Posição Y atual no documento.
- * @param {number} requiredSpace - Espaço mínimo necessário para o próximo conteúdo.
- * @param {number} [footerHeight=25] - Altura aproximada do rodapé.
- * @returns {number} Nova posição Y.
- */
-function ensurePageSpace(doc, currentY, requiredSpace, footerHeight = 25) {
+function ensurePageSpace(doc, currentY, requiredSpace) {
   const pageHeight = doc.internal.pageSize.getHeight();
-  if (currentY + requiredSpace > pageHeight - footerHeight) {
+  const contentBottomLimit = pageHeight - FOOTER_AREA_HEIGHT;
+
+  if (
+    currentY + requiredSpace > contentBottomLimit ||
+    currentY < HEADER_AREA_HEIGHT
+  ) {
     doc.addPage();
-    addFooter(doc, pageHeight);
-    return 20; // Y inicial da nova página
+    addHeaderAndFooter(doc);
+    return HEADER_AREA_HEIGHT + 10;
   }
   return currentY;
 }
 
-/**
- * Busca os PEIs de um aluno no Firestore.
- * Prioriza 'pei_contribuicoes' e fallback para 'peis'.
- * @param {string} alunoId - ID do aluno.
- * @param {string} alunoNome - Nome do aluno (para fallback).
- * @returns {Promise<Array<Object>>} Lista de PEIs.
- */
+// Reutilizando a função fetchPeis que já existia
 async function fetchPeis(alunoId, alunoNome) {
   try {
     let peis = [];
-    const newCollectionRef = collection(db, "pei_contribuicoes");
+    const newCollectionRef = collection(db, "pei_contribucoes");
     const oldCollectionRef = collection(db, "peis");
 
-    // Tentar buscar na nova coleção: pei_contribuicoes
     let qNew = query(
       newCollectionRef,
       where("alunoId", "==", alunoId),
@@ -170,13 +230,15 @@ async function fetchPeis(alunoId, alunoNome) {
     let snapNew = await getDocs(qNew);
 
     if (!snapNew.empty) {
-      console.log("[PDF_DEBUG] PEIs encontrados em 'pei_contribuicoes'.");
-      peis = snapNew.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      console.log("[PDF_DEBUG] PEIs encontrados em 'pei_contribucoes'.");
+      peis = snapNew.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
     } else {
       console.log(
-        "[PDF_DEBUG] Nenhum PEI encontrado em 'pei_contribuicoes', tentando 'peis' (coleção antiga)."
+        "[PDF_DEBUG] Nenhum PEI encontrado em 'pei_contribucoes', tentando 'peis' (coleção antiga)."
       );
-      // Fallback para a coleção antiga: peis
       let qOld = query(
         oldCollectionRef,
         where("alunoId", "==", alunoId),
@@ -185,7 +247,6 @@ async function fetchPeis(alunoId, alunoNome) {
       let snapOld = await getDocs(qOld);
 
       if (snapOld.empty) {
-        // Segundo fallback para nome (caso alunoId não estivesse na coleção antiga)
         qOld = query(
           oldCollectionRef,
           where("aluno", "==", alunoNome),
@@ -196,7 +257,10 @@ async function fetchPeis(alunoId, alunoNome) {
 
       if (!snapOld.empty) {
         console.log("[PDF_DEBUG] PEIs encontrados em 'peis' (coleção antiga).");
-        peis = snapOld.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        peis = snapOld.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
       } else {
         console.log(
           "[PDF_DEBUG] Nenhum PEI encontrado em nenhuma das coleções."
@@ -210,68 +274,46 @@ async function fetchPeis(alunoId, alunoNome) {
   }
 }
 
-/**
- * Adiciona o cabeçalho principal do documento, incluindo o título, logo e informações do aluno.
- * Replicando o layout do DOCX.
- * @param {jsPDF} doc - Instância do jsPDF.
- * @param {Object} aluno - Objeto do aluno.
- * @param {Object} avaliacao - Objeto da avaliação inicial.
- * @param {string} nomeEscola - Nome da escola.
- * @param {number} yStart - Posição Y inicial para este bloco de conteúdo.
- * @returns {number} Nova posição Y.
- */
 async function addStudentAndHeaderInfo(
   doc,
   aluno,
-  avaliacao,
+  avaliacao, // Pode ser avaliação inicial ou nulo
   nomeEscola,
   yStart
 ) {
-  let y = yStart; // Começa no Y passado (20mm do topo)
+  let y = yStart;
 
-  const imgWidth = 128;
-  const imgHeight = 25;
-  const imgX = 10;
-  const imgY = 10; // Posição Y da imagem (10mm da margem superior)
-
-  // 1. Adiciona a imagem
-  doc.addImage("/logo.jpg", "JPEG", imgX, imgY, imgWidth, imgHeight);
-  y = imgY + imgHeight + 10; // Atualiza Y para o conteúdo abaixo da imagem
-
-  // 2. Adiciona o TÍTULO PRINCIPAL "Plano Educacional Individualizado (PEI)"
+  y = ensurePageSpace(doc, y, 10);
   doc.setFont(styles.font, "bold");
   doc.setFontSize(styles.fontSize.title);
   doc.text(
     "Plano Educacional Individualizado (PEI)",
     doc.internal.pageSize.getWidth() / 2,
     y,
-    { align: "center" }
+    {
+      align: "center",
+    }
   );
-  y += 10; // Espaço após o título principal
+  y += 10;
 
-  // 3. Adiciona a tabela de Orientações (AGORA COMO UMA autoTable DE 2 COLUNAS)
-  y = ensurePageSpace(doc, y, 30); // Garante espaço para a tabela de orientações
-
-  const orientationTitle = "Orientações para aplicação do PEI:";
-  const orientationTextContent =
-    "Todas as estratégias elencadas no PEI devem ser contextualizadas nas atividades propostas no plano diário.";
-
+  y = ensurePageSpace(doc, y, 30);
   autoTable(doc, {
-    startY: y, // Começa a tabela no Y atual
-    head: [], // Sem cabeçalho explícito para a tabela
+    startY: y,
+    head: [],
     body: [
       [
         {
-          content: orientationTitle,
+          content: "Orientações para aplicação do PEI:",
           styles: {
-            fontStyle: "bold", // Frase em negrito
+            fontStyle: "bold",
             fontSize: styles.fontSize.medium,
             cellPadding: 2,
             valign: "top",
           },
         },
         {
-          content: orientationTextContent,
+          content:
+            "Todas as estratégias elencadas no PEI devem ser contextualizadas nas atividades propostas no plano diário.",
           styles: {
             fontStyle: "normal",
             fontSize: styles.fontSize.medium,
@@ -284,49 +326,54 @@ async function addStudentAndHeaderInfo(
     styles: {
       font: styles.font,
       textColor: styles.colors.black,
-      fillColor: styles.colors.white, // GARANTIR BRANCO NO ESTILO GERAL DA TABELA
+      fillColor: styles.colors.white,
       lineColor: styles.colors.black,
       lineWidth: 0.1,
     },
     headStyles: {
-      fillColor: styles.colors.white, // GARANTIR BRANCO NO ESTILO DO CABEÇALHO (se houvesse um)
+      fillColor: styles.colors.white,
     },
     columnStyles: {
-      0: { cellWidth: 60, overflow: "linebreak" }, // Largura para o título "Orientações..."
+      0: {
+        cellWidth: 60,
+        overflow: "linebreak",
+      },
       1: {
         cellWidth: doc.internal.pageSize.getWidth() - 60 - 40,
         overflow: "linebreak",
-      }, // Largura restante para o conteúdo (página - col0 - margens)
+      },
     },
-    margin: { left: 20, right: 20 }, // Margens fixas de 20mm
-    didDrawPage: (data) => {
-      // Rodapé é adicionado ao final do PDF, não a cada página desenhada aqui para evitar duplicidade.
+    margin: {
+      left: 20,
+      right: 20,
+      top: HEADER_AREA_HEIGHT + 10,
+      bottom: FOOTER_AREA_HEIGHT,
     },
     didParseCell: (data) => {
-      data.cell.styles.fillColor = styles.colors.white; // GARANTIR BRANCO EM CADA CÉLULA
+      data.cell.styles.fillColor = styles.colors.white;
+    },
+    didDrawPage: (data) => {
+      addHeaderAndFooter(doc);
     },
   });
-  y = doc.lastAutoTable.finalY + 5; // Atualiza Y após a tabela de orientações
+  y = doc.lastAutoTable.finalY + 5;
 
-  // --- DADOS E CÁLCULOS PARA AS TABELAS DE INFORMAÇÕES DO ALUNO E INTERVENÇÃO ---
-  const availablePageWidth = doc.internal.pageSize.getWidth() - 40; // Largura total da página menos margens de 20mm de cada lado
+  const availablePageWidth = doc.internal.pageSize.getWidth() - 40;
 
   const dataNascTexto = formatarData(aluno.nascimento);
-  const dataAvaliacaoTexto = formatarData(avaliacao?.inicio);
-  const dataProximaAvaliacaoTexto = formatarData(avaliacao?.proximaAvaliacao);
+  const mesAvaliacaoTexto = formatarMesPorExtenso(avaliacao?.inicio); // Usando 'inicio' da avaliação inicial
+  const mesProximaAvaliacaoTexto = formatarMesPorExtenso(
+    avaliacao?.proximaAvaliacao // Usando 'proximaAvaliacao' da avaliação inicial
+  );
 
-  // Calcula a idade do aluno de forma mais robusta
   let alunoIdade = "-";
   if (aluno.nascimento) {
     let birthDateObj;
     if (typeof aluno.nascimento.toDate === "function") {
-      // Se for Timestamp
       birthDateObj = aluno.nascimento.toDate();
     } else if (aluno.nascimento instanceof Date) {
-      // Se já for Date
       birthDateObj = aluno.nascimento;
     } else if (typeof aluno.nascimento === "string") {
-      // Se for string
       birthDateObj = new Date(aluno.nascimento);
     }
 
@@ -341,14 +388,13 @@ async function addStudentAndHeaderInfo(
     }
   }
 
-  // --- BUSCA OS PROFESSORES DA TURMA E ESCOLA ---
-  let professoresNomes = "Não informado"; // Valor padrão para professores
+  let professoresNomes = "Não informado";
   if (aluno.escolaId && aluno.turma) {
     try {
       const professoresQuery = query(
         collection(db, "usuarios"),
-        where(`escolas.${aluno.escolaId}`, "==", true), // Vinculação à escola
-        where("perfil", "in", ["professor", "aee"]) // Filtra por perfil
+        where(`escolas.${aluno.escolaId}`, "==", true),
+        where("perfil", "in", ["professor", "aee"])
       );
       const professoresSnap = await getDocs(professoresQuery);
 
@@ -356,13 +402,11 @@ async function addStudentAndHeaderInfo(
       professoresSnap.docs.forEach((doc) => {
         const userData = doc.data();
         if (userData.turmas && userData.turmas[aluno.turma]) {
-          // Filtra localmente por turma (map)
           nomesEncontrados.push(userData.nome);
         } else if (
           Array.isArray(userData.turmas) &&
           userData.turmas.includes(aluno.turma)
         ) {
-          // Fallback para array de turmas
           nomesEncontrados.push(userData.nome);
         }
       });
@@ -370,11 +414,9 @@ async function addStudentAndHeaderInfo(
       if (nomesEncontrados.length > 0) {
         professoresNomes = nomesEncontrados.join(", ");
       } else {
-        // Fallback se a consulta exata não retornar, tenta por IDs se existir no aluno
         if (Array.isArray(aluno.professores) && aluno.professores.length > 0) {
           const profDetailsPromises = aluno.professores.map(
             async (profRefId) => {
-              // Assume que profRefId é um ID de documento na coleção 'usuarios'
               const profDoc = await getDoc(
                 firestoreDoc(db, "usuarios", profRefId)
               );
@@ -397,106 +439,138 @@ async function addStudentAndHeaderInfo(
     }
   }
 
-  // --- FIM DOS DADOS E CÁLCULOS ---
-
-  // 4. TABELA DE INFORMAÇÕES DO ALUNO (COM 3 LINHAS E COLUNAS MESCLADAS)
-  y = ensurePageSpace(doc, y, 40); // Garante espaço para a tabela
-
-  autoTable(doc, {
-    startY: y,
-    head: [], // Sem cabeçalho explícito
-    body: [
-      // Linha 1: Nome do Aluno (ocupa todas as 3 colunas)
-      [{ content: `Aluno(a): ${aluno.nome || "-"}`, colSpan: 3 }],
-      // Linha 2: Nome da Escola (ocupa todas as 3 colunas)
-      [{ content: `Escola: ${nomeEscola || "-"}`, colSpan: 3 }],
-      // Linha 3: D.N. | Idade | Turma (3 colunas iguais)
-      [
-        `Data de Nasc.: ${dataNascTexto}`,
-        `Idade: ${alunoIdade} anos`,
-        `Turma: ${aluno.turma || "-"}`,
-      ],
-    ],
-    styles: {
-      font: styles.font,
-      fontSize: styles.fontSize.large,
-      textColor: styles.colors.black,
-      fillColor: styles.colors.white, // GARANTIR BRANCO NO ESTILO GERAL DA TABELA
-      lineColor: styles.colors.black,
-      lineWidth: 0.1,
-      cellPadding: 2,
-      valign: "middle",
-    },
-    headStyles: {
-      fillColor: styles.colors.white, // REMOVER O CINZA CLARO DOS CABEÇALHOS AQUI!
-    },
-    // Definir 3 colunas de largura igual para a tabela base.
-    columnStyles: {
-      0: { cellWidth: availablePageWidth / 3 }, // Primeira coluna (1/3)
-      1: { cellWidth: availablePageWidth / 3 }, // Segunda coluna (1/3)
-      2: { cellWidth: availablePageWidth / 3 }, // Terceira coluna (1/3)
-    },
-    margin: { left: 20, right: 20 },
-    didParseCell: (data) => {
-      data.cell.styles.fillColor = styles.colors.white; // GARANTIR BRANCO EM CADA CÉLULA DO BODY
-    },
-  });
-  y = doc.lastAutoTable.finalY + 5; // Espaço após a tabela de informações do aluno.
-
-  // 5. TABELA DE DETALHES DA INTERVENÇÃO (Professor, Período, Próxima Avaliação)
-  y = ensurePageSpace(doc, y, 40); // Garante espaço para a tabela de intervenção
-
-  autoTable(doc, {
-    startY: y,
-    head: [],
-    body: [
-      // Linha 1: Professor(a) - ocupa a largura total da tabela
-      [{ content: `Professor(a): ${professoresNomes}`, colSpan: 2 }],
-      // Linha 2: Período e Próxima Avaliação - dividem a largura
-      [
-        `Período de intervenção: ${
-          avaliacao?.periodoIntervencao || "Médio prazo"
-        }`,
-        `Data prevista para a próxima avaliação: ${dataProximaAvaliacaoTexto}`,
-      ],
-    ],
-    styles: {
-      font: styles.font,
-      fontSize: styles.fontSize.large,
-      textColor: styles.colors.black,
-      fillColor: styles.colors.white,
-      lineColor: styles.colors.black,
-      lineWidth: 0.1,
-      cellPadding: 2,
-      valign: "middle",
-    },
-    headStyles: {
-      fillColor: styles.colors.white,
-    },
-    // Definir 2 colunas para a tabela. A mesclagem no didParseCell cuida da primeira linha.
-    columnStyles: {
-      0: { cellWidth: availablePageWidth / 2 },
-      1: { cellWidth: availablePageWidth / 2 },
-    },
-    didParseCell: (data) => {
-      data.cell.styles.fillColor = styles.colors.white; // GARANTIR BRANCO EM CADA CÉLULA DO BODY
-    },
-    margin: { left: 20, right: 20 },
-  });
-  y = doc.lastAutoTable.finalY + 5; // Espaço após esta tabela
-
-  // 6. NOVA TABELA SEPARADA PARA "Plano gerado a partir avaliação realizada em:"
-  y = ensurePageSpace(doc, y, 15); // Garante espaço para a nova tabela
-
+  y = ensurePageSpace(doc, y, 40);
   autoTable(doc, {
     startY: y,
     head: [],
     body: [
       [
         {
-          content: `Plano gerado a partir avaliação realizada em: ${dataAvaliacaoTexto}`,
+          content: `Aluno(a): ${aluno.nome || "-"}`,
+          colSpan: 3,
+        },
+      ],
+      [
+        {
+          content: `Escola: ${nomeEscola || "-"}`,
+          colSpan: 3,
+        },
+      ],
+      [
+        `Data de Nasc.: ${dataNascTexto}`,
+        `Idade: ${alunoIdade} anos`,
+        `Turma: ${aluno.turma || "-"}`,
+      ],
+      [
+        {
+          content: `Diagnóstico: ${aluno.diagnostico || "Não informado"}`,
+          colSpan: 3,
+        },
+      ],
+    ],
+    styles: {
+      font: styles.font,
+      fontSize: styles.fontSize.large,
+      textColor: styles.colors.black,
+      fillColor: styles.colors.white,
+      lineColor: styles.colors.black,
+      lineWidth: 0.1,
+      cellPadding: 2,
+      valign: "middle",
+    },
+    headStyles: {
+      fillColor: styles.colors.white,
+    },
+    columnStyles: {
+      0: {
+        cellWidth: availablePageWidth / 3,
+      },
+      1: {
+        cellWidth: availablePageWidth / 3,
+      },
+      2: {
+        cellWidth: availablePageWidth / 3,
+      },
+    },
+    margin: {
+      left: 20,
+      right: 20,
+      top: HEADER_AREA_HEIGHT + 10,
+      bottom: FOOTER_AREA_HEIGHT,
+    },
+    didParseCell: (data) => {
+      data.cell.styles.fillColor = styles.colors.white;
+    },
+    didDrawPage: (data) => {
+      addHeaderAndFooter(doc);
+    },
+  });
+  y = doc.lastAutoTable.finalY + 5;
+
+  y = ensurePageSpace(doc, y, 40);
+  autoTable(doc, {
+    startY: y,
+    head: [],
+    body: [
+      [
+        {
+          content: `Professor(a): ${professoresNomes}`,
+          colSpan: 2,
+        },
+      ],
+      [
+        `Período de intervenção: ${
+          avaliacao?.periodoIntervencao || "Médio prazo"
+        }`,
+        `Data prevista para a próxima avaliação: ${mesProximaAvaliacaoTexto}`,
+      ],
+    ],
+    styles: {
+      font: styles.font,
+      fontSize: styles.fontSize.large,
+      textColor: styles.colors.black,
+      fillColor: styles.colors.white,
+      lineColor: styles.colors.black,
+      lineWidth: 0.1,
+      cellPadding: 2,
+      valign: "middle",
+    },
+    headStyles: {
+      fillColor: styles.colors.white,
+    },
+    columnStyles: {
+      0: {
+        cellWidth: availablePageWidth / 2,
+      },
+      1: {
+        cellWidth: availablePageWidth / 2,
+      },
+    },
+    margin: {
+      left: 20,
+      right: 20,
+      top: HEADER_AREA_HEIGHT + 10,
+      bottom: FOOTER_AREA_HEIGHT,
+    },
+    didParseCell: (data) => {
+      data.cell.styles.fillColor = styles.colors.white;
+    },
+    didDrawPage: (data) => {
+      addHeaderAndFooter(doc);
+    },
+  });
+  y = doc.lastAutoTable.finalY + 5;
+
+  y = ensurePageSpace(doc, y, 15);
+  autoTable(doc, {
+    startY: y,
+    head: [],
+    body: [
+      [
+        {
+          content: `Plano gerado a partir avaliação realizada em: ${mesAvaliacaoTexto}`,
           styles: {
-            halign: "center", // Centraliza o texto
+            halign: "center",
           },
         },
       ],
@@ -515,29 +589,33 @@ async function addStudentAndHeaderInfo(
       fillColor: styles.colors.white,
     },
     columnStyles: {
-      0: { cellWidth: availablePageWidth }, // Ocupa a largura total da tabela
+      0: {
+        cellWidth: availablePageWidth,
+      },
+    },
+    margin: {
+      left: 20,
+      right: 20,
+      top: HEADER_AREA_HEIGHT + 10,
+      bottom: FOOTER_AREA_HEIGHT,
     },
     didParseCell: (data) => {
       data.cell.styles.fillColor = styles.colors.white;
     },
-    margin: { left: 20, right: 20 },
+    didDrawPage: (data) => {
+      addHeaderAndFooter(doc);
+    },
   });
-  y = doc.lastAutoTable.finalY + 10; // Espaço após esta tabela
+  y = doc.lastAutoTable.finalY + 10;
 
   return y;
 }
 
-/**
- * Adiciona a seção de Avaliação Inicial ao PDF.
- * @param {jsPDF} doc - Instância do jsPDF.
- * @param {Object} avaliacao - Objeto da avaliação inicial.
- * @param {number} y - Posição Y atual.
- * @returns {number} Nova posição Y.
- */
 function addInitialAssessment(doc, avaliacao, y) {
   const dadosAvaliacao = avaliacao?.respostas || avaliacao?.habilidades;
 
   if (!dadosAvaliacao || Object.keys(dadosAvaliacao).length === 0) {
+    y = ensurePageSpace(doc, y, 10);
     doc.text(
       "Nenhuma avaliação inicial detalhada encontrada ou com dados incompletos.",
       25,
@@ -559,17 +637,23 @@ function addInitialAssessment(doc, avaliacao, y) {
     for (const habilidade in habilidades) {
       const nivel = habilidades[habilidade];
       if (nivel !== "NA" && nivel !== "I") {
+        // Inclui somente NAs e Is se necessário, ajuste aqui
         linhasDaArea.push([habilidade, nivel]);
       }
     }
 
     if (linhasDaArea.length === 0) continue;
 
-    y = ensurePageSpace(doc, y, 30);
+    y = ensurePageSpace(doc, y, 15);
     doc.setFont(styles.font, "bold");
     doc.setFontSize(styles.fontSize.medium);
     doc.text(area, 20, y);
     y += 6;
+
+    // Calcula a largura total da tabela e a margem para centralização
+    const tableWidth = 150 + 20; // Largura da coluna "Habilidade" + "Nível"
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const horizontalMargin = (pageWidth - tableWidth) / 2;
 
     autoTable(doc, {
       startY: y,
@@ -581,12 +665,12 @@ function addInitialAssessment(doc, avaliacao, y) {
         cellPadding: 1.5,
         valign: "middle",
         textColor: styles.colors.black,
-        fillColor: styles.colors.white, // Sem cor de fundo
+        fillColor: styles.colors.white,
         lineColor: styles.colors.black,
         lineWidth: 0.1,
       },
       headStyles: {
-        fillColor: styles.colors.white, // REMOVER O CINZA CLARO DOS CABEÇALHOS AQUI!
+        fillColor: styles.colors.white,
         textColor: styles.colors.black,
         fontStyle: "bold",
         halign: "center",
@@ -595,18 +679,22 @@ function addInitialAssessment(doc, avaliacao, y) {
         0: { cellWidth: 150 },
         1: { cellWidth: 20, halign: "center" },
       },
-      margin: { bottom: 25 },
+      margin: {
+        left: horizontalMargin,
+        right: horizontalMargin,
+        top: HEADER_AREA_HEIGHT + 10,
+        bottom: FOOTER_AREA_HEIGHT,
+      },
       didParseCell: (data) => {
-        // Aplica cor de fundo para os níveis
-        const nivel = data.cell.text;
+        const nivel = data.cell.text[0];
         if (data.column.index === 1 && coresPorNivel[nivel]) {
-          data.cell.styles.fillColor = coresPorNivel[nivel]; // Aplicar cor do nível
+          data.cell.styles.fillColor = coresPorNivel[nivel];
         } else {
-          data.cell.styles.fillColor = styles.colors.white; // Garantir branco para outras células
+          data.cell.styles.fillColor = styles.colors.white;
         }
       },
       didDrawPage: (data) => {
-        addFooter(doc, doc.internal.pageSize.getHeight());
+        addHeaderAndFooter(doc);
       },
     });
     y = doc.lastAutoTable.finalY + 10;
@@ -614,23 +702,267 @@ function addInitialAssessment(doc, avaliacao, y) {
   return y;
 }
 
-/**
- * Adiciona a seção de PEIs consolidados ao PDF.
- * A tabela de atividades aplicadas não inclui 'Área' nem 'Habilidade' e
- * garante que cada atividade seja listada apenas uma vez.
- * O texto das estratégias será preto padrão.
- * @param {jsPDF} doc - Instância do jsPDF.
- * @param {Array<Object>} peisParaExibir - PEIs a serem exibidos.
- * @param {number} y - Posição Y atual.
- * @returns {number} Nova posição Y.
- */
-function addConsolidatedPeiSection(doc, peisParaExibir, y) {
-  const allPeiTableRows = []; // Para a tabela de Estratégias
-  const allActivitiesTableRows = []; // Para a tabela de Atividades Aplicadas (sem duplicatas)
-  const uniqueActivitiesSet = new Set(); // Para controlar atividades únicas
+// NOVO: Função para adicionar a seção de Avaliação de Interesses
+function addAvaliacaoInteressesSection(doc, avaliacaoInteressesData, y) {
+  if (
+    !avaliacaoInteressesData ||
+    Object.keys(avaliacaoInteressesData).length === 0
+  ) {
+    y = ensurePageSpace(doc, y, 10);
+    doc.text("Nenhuma avaliação de interesses detalhada encontrada.", 25, y);
+    return y + 10;
+  }
 
-  // Mapa para agrupar habilidades por Área e Habilidade para estratégias
-  // Voltando à consolidação por habilidade, onde a célula de estratégias é uma única string.
+  y = ensurePageSpace(doc, y, 30);
+  doc.setFont(styles.font, "bold");
+  doc.setFontSize(styles.fontSize.large);
+  doc.text("Avaliação de Interesses e Gatilhos", 20, y);
+  y += 8;
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const contentMargin = 20;
+  const availableWidth = pageWidth - 2 * contentMargin;
+
+  // Helper para adicionar tabelas de perguntas de texto
+  const addTextQuestionTable = (question, answer) => {
+    const tableBody = [];
+    const answerText = answer || "Não informado.";
+    tableBody.push([
+      { content: question, styles: { fontStyle: "bold" } },
+      answerText,
+    ]);
+
+    autoTable(doc, {
+      startY: y,
+      head: [], // Sem cabeçalho para perguntas e respostas diretas
+      body: tableBody,
+      styles: {
+        font: styles.font,
+        fontSize: styles.fontSize.medium,
+        textColor: styles.colors.black,
+        fillColor: styles.colors.white,
+        lineColor: styles.colors.black,
+        lineWidth: 0.1,
+        cellPadding: 2,
+        valign: "top",
+        overflow: "linebreak",
+      },
+      columnStyles: {
+        0: { cellWidth: availableWidth * 0.35 }, // Largura para a pergunta
+        1: { cellWidth: availableWidth * 0.65 }, // Largura para a resposta
+      },
+      margin: {
+        left: contentMargin,
+        right: contentMargin,
+        top: HEADER_AREA_HEIGHT + 10,
+        bottom: FOOTER_AREA_HEIGHT,
+      },
+      didParseCell: (data) => {
+        data.cell.styles.fillColor = styles.colors.white;
+      },
+      didDrawPage: (data) => {
+        addHeaderAndFooter(doc);
+      },
+    });
+    y = doc.lastAutoTable.finalY + 5; // Espaçamento entre as tabelas de perguntas
+  };
+
+  // Helper para adicionar tabelas de perguntas de rádio (Sim/Não/NA)
+  const addRadioQuestionTable = (questionTitle, dataKey, list) => {
+    const radioTableBody = [];
+    const responses = avaliacaoInteressesData[dataKey] || {};
+
+    list.forEach((item) => {
+      const response = responses[item] || "NA"; // Padrão para "NA" se não houver resposta
+      radioTableBody.push([item, response]);
+    });
+
+    if (radioTableBody.length === 0) {
+      y = ensurePageSpace(doc, y, 10);
+      doc.setFont(styles.font, "italic");
+      doc.setFontSize(styles.fontSize.small);
+      doc.text(
+        `Nenhuma resposta para "${questionTitle}".`,
+        contentMargin + 5,
+        y
+      );
+      y += 7;
+      return;
+    }
+
+    y = ensurePageSpace(doc, y, 15);
+    doc.setFont(styles.font, "bold");
+    doc.setFontSize(styles.fontSize.medium);
+    doc.text(`${questionTitle}:`, contentMargin, y);
+    y += 6;
+
+    autoTable(doc, {
+      startY: y,
+      head: [["Item", "Resposta"]],
+      body: radioTableBody,
+      styles: {
+        font: styles.font,
+        fontSize: styles.fontSize.small,
+        textColor: styles.colors.black,
+        fillColor: styles.colors.white,
+        lineColor: styles.colors.black,
+        lineWidth: 0.1,
+        cellPadding: 1.5,
+        valign: "middle",
+        overflow: "linebreak",
+      },
+      headStyles: {
+        fillColor: styles.colors.white,
+        textColor: styles.colors.black,
+        fontStyle: "bold",
+        halign: "center",
+      },
+      columnStyles: {
+        0: { cellWidth: availableWidth * 0.8 },
+        1: { cellWidth: availableWidth * 0.2, halign: "center" },
+      },
+      margin: {
+        left: contentMargin,
+        right: contentMargin,
+        top: HEADER_AREA_HEIGHT + 10,
+        bottom: FOOTER_AREA_HEIGHT,
+      },
+      didParseCell: (data) => {
+        if (data.column.index === 1 && coresPorNivel[data.cell.text[0]]) {
+          data.cell.styles.fillColor = coresPorNivel[data.cell.text[0]];
+          data.cell.styles.textColor = styles.colors.white; // Texto branco para melhor contraste na cor de fundo
+        } else {
+          data.cell.styles.fillColor = styles.colors.white;
+          data.cell.styles.textColor = styles.colors.black;
+        }
+      },
+      didDrawPage: (data) => {
+        addHeaderAndFooter(doc);
+      },
+    });
+    y = doc.lastAutoTable.finalY + 10; // Espaçamento após a tabela de rádio
+  };
+
+  // Seção 1: Interesses e Pontos Fortes
+  y = ensurePageSpace(doc, y, 15);
+  doc.setFont(styles.font, "bold");
+  doc.setFontSize(styles.fontSize.medium);
+  doc.text("Seção 1: Interesses e Pontos Fortes", contentMargin, y);
+  y += 10; // Ajustado para remover a linha de descrição
+
+  addRadioQuestionTable(
+    "Atividades Favoritas",
+    "atividadesFavoritas",
+    ATIVIDADES_FAVORITAS_LIST
+  );
+  addTextQuestionTable(
+    "Outras atividades",
+    avaliacaoInteressesData.outrasAtividades
+  );
+  addTextQuestionTable(
+    "Quais brinquedos ou objetos a criança prefere mais?",
+    avaliacaoInteressesData.brinquedosPreferidos
+  );
+  addTextQuestionTable(
+    "Quais são os personagens, temas ou assuntos que mais chamam a atenção da criança?",
+    avaliacaoInteressesData.personagensTemasAssuntos
+  );
+  addTextQuestionTable(
+    "Em que a criança demonstra ter habilidades ou facilidade?",
+    avaliacaoInteressesData.habilidadesFacilidades
+  );
+  addTextQuestionTable(
+    "A criança demonstra interesse em interagir com outras pessoas?",
+    avaliacaoInteressesData.interacaoComPessoas
+  );
+  addTextQuestionTable(
+    "Há alguma rotina ou ritual específico que a criança gosta ou busca?",
+    avaliacaoInteressesData.rotinaRitualEspecifico
+  );
+
+  // Seção 2: Gatilhos de Desregulação e Desconforto
+  y = ensurePageSpace(doc, y, 15);
+  doc.setFont(styles.font, "bold");
+  doc.setFontSize(styles.fontSize.medium);
+  doc.text("Seção 2: Gatilhos de Desregulação e Desconforto", contentMargin, y);
+  y += 10; // Ajustado para remover a linha de descrição
+
+  addRadioQuestionTable(
+    "Sinais de Desregulação",
+    "sinaisDesregulacao",
+    SINAIS_DESREGULACAO_LIST
+  );
+  addTextQuestionTable("Outros sinais", avaliacaoInteressesData.outrosSinais);
+  addRadioQuestionTable(
+    "Situações de Desregulação",
+    "situacoesDesregulacao",
+    SITUACOES_DESREGULACAO_LIST
+  );
+  addTextQuestionTable(
+    "Outras situações",
+    avaliacaoInteressesData.outrasSituacoes
+  );
+  addTextQuestionTable(
+    "Existe alguma comida, bebida ou material específico que a criança rejeita fortemente?",
+    avaliacaoInteressesData.comidaBebidaMaterialRejeitado
+  );
+  addTextQuestionTable(
+    "O que costuma acalmar a criança quando ela está desregulada ou chateada?",
+    avaliacaoInteressesData.oQueAcalma
+  );
+  addTextQuestionTable(
+    "Como a criança reage a mudanças na rotina ou a imprevistos?",
+    avaliacaoInteressesData.reacaoMudancasRotina
+  );
+  addTextQuestionTable(
+    "Há algum som, imagem ou sensação que a criança evita ou tem aversão?",
+    avaliacaoInteressesData.somImagemSensacaoAversao
+  );
+  addTextQuestionTable(
+    "Descreva uma situação recente em que a criança se desregulou. O que aconteceu antes, durante e depois?",
+    avaliacaoInteressesData.situacaoRecenteDesregulacao
+  );
+
+  // Seção 3: Estratégias e Apoio
+  y = ensurePageSpace(doc, y, 15);
+  doc.setFont(styles.font, "bold");
+  doc.setFontSize(styles.fontSize.medium);
+  doc.text("Seção 3: Estratégias e Apoio", contentMargin, y);
+  y += 10; // Ajustado para remover a linha de descrição
+
+  addTextQuestionTable(
+    "Quais são as melhores formas de se comunicar com a criança?",
+    avaliacaoInteressesData.melhoresFormasComunicacao
+  );
+  addTextQuestionTable(
+    "O que ajuda a criança a se preparar para uma transição ou mudança na rotina?",
+    avaliacaoInteressesData.ajudaPrepararTransicao
+  );
+  addTextQuestionTable(
+    "Existe algum objeto, brinquedo ou atividade que funciona como 'porto seguro' para a criança em momentos de estresse ou ansiedade?",
+    avaliacaoInteressesData.objetoBrinquedoPortoSeguro
+  );
+  addTextQuestionTable(
+    "Quais estratégias você utiliza para ajudar a criança a se regular? Quais funcionam melhor?",
+    avaliacaoInteressesData.estrategiasRegulacao
+  );
+  addTextQuestionTable(
+    "A criança tem alguma preferência em relação a toque (abraços, carinhos) ou espaço personal?",
+    avaliacaoInteressesData.preferenciaToqueEspaco
+  );
+  addTextQuestionTable(
+    "Há algo mais que você gostaria de adicionar sobre os interesses ou o comportamento da criança que não foi abordado?",
+    avaliacaoInteressesData.algoMaisParaAdicionar
+  );
+
+  return y;
+}
+
+function addConsolidatedPeiSection(doc, peisParaExibir, y) {
+  const allPeiTableRows = [];
+  const allActivitiesTableRows = [];
+  const uniqueActivitiesSet = new Set();
+
   const consolidatedSkills = new Map();
 
   peisParaExibir.forEach((peiItem) => {
@@ -648,7 +980,7 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
           area: item.area || "-",
           habilidade: item.habilidade || "-",
           objetivo: item.objetivo || "-",
-          estrategiasTextList: [], // Lista de strings de estratégia já formatadas com criador
+          estrategiasTextList: [],
           nivel: item.nivel || "-",
           nivelAlmejado: item.nivelAlmejado || "-",
         });
@@ -678,7 +1010,6 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
         }
       }
 
-      // Adiciona cada estratégia (com o info do criador) ao array de estratégias da habilidade consolidada
       if (estrategiasDoItem.length > 0) {
         estrategiasDoItem.forEach((strategyText) => {
           skillEntry.estrategiasTextList.push(
@@ -687,7 +1018,6 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
         });
       }
 
-      // Adiciona atividades aplicadas à lista separada, garantindo unicidade
       const activityText = item.atividadeAplicada?.trim();
       if (activityText) {
         const uniqueKey = `${activityText}|${criadorInfo}`;
@@ -704,55 +1034,49 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
         }
       }
 
-      // Atualiza o nível e nível almejado, sempre pegando o último (mais recente)
       skillEntry.nivel = item.nivel || skillEntry.nivel;
       skillEntry.nivelAlmejado = item.nivelAlmejado || skillEntry.nivelAlmejado;
     });
   });
 
-  // Converte o mapa de habilidades consolidadas em linhas para o corpo da tabela de Estratégias
-  // Cada linha será uma habilidade com suas estratégias consolidadas em uma única célula de string.
   consolidatedSkills.forEach((skillEntry) => {
-    // Une todas as estratégias da habilidade em uma única string, separadas por duas quebras de linha
     const combinedStrategiesText = skillEntry.estrategiasTextList.join("\n\n");
 
     allPeiTableRows.push([
       skillEntry.area || "-",
       skillEntry.habilidade || "-",
       skillEntry.objetivo || "-",
-      combinedStrategiesText || "Nenhuma estratégia definida.", // Conteúdo como STRING SIMPLES
+      combinedStrategiesText || "Nenhuma estratégia definida.",
       skillEntry.nivel || "-",
       skillEntry.nivelAlmejado || "-",
     ]);
   });
 
-  // --- Tabela de Plano Educacional Individualizado (Estratégias) ---
+  y = ensurePageSpace(doc, y, 20 + (allPeiTableRows.length > 0 ? 30 : 0));
   if (allPeiTableRows.length > 0) {
-    y = ensurePageSpace(doc, y, 60);
     doc.setFont(styles.font, "bold");
     doc.setFontSize(styles.fontSize.large);
     doc.text(
       "Plano Educacional Individualizado (PEI)",
       doc.internal.pageSize.getWidth() / 2,
       y,
-      { align: "center" }
+      {
+        align: "center",
+      }
     );
     y += 8;
 
     const larguraPagina = doc.internal.pageSize.getWidth();
-    // Definir as larguras fixas para as primeiras colunas e os níveis
     const areaWidth = 25;
     const habilidadeWidth = 35;
     const objetivoWidth = 45;
-    const nivelWidth = 12; // Largura para Nível (muito menor)
-    const nivelAlmejadoWidth = 15; // Largura para Nível Almejado (muito menor)
+    const nivelWidth = 12;
+    const nivelAlmejadoWidth = 15;
 
-    // Margens laterais padrão para autoTable (20mm de cada lado = 40mm total)
     const defaultMarginLeft = 20;
     const defaultMarginRight = 20;
     const defaultTotalHorizontalMargin = defaultMarginLeft + defaultMarginRight;
 
-    // Calcular o espaço restante para a coluna de Estratégias
     const fixedColumnsTotalWidth =
       areaWidth +
       habilidadeWidth +
@@ -762,7 +1086,6 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
     const availableWidthForStrategies =
       larguraPagina - defaultTotalHorizontalMargin - fixedColumnsTotalWidth;
 
-    // Garanta que Estratégias tenha um mínimo razoável (ex: 70mm), e não seja negativo
     const estrategiasWidth = Math.max(70, availableWidthForStrategies);
 
     const totalColumnWidthUsed =
@@ -772,7 +1095,6 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
       estrategiasWidth +
       nivelWidth +
       nivelAlmejadoWidth;
-    // Calcular a margem esquerda para centralizar a tabela
     const margemPEI = (larguraPagina - totalColumnWidthUsed) / 2;
 
     autoTable(doc, {
@@ -787,44 +1109,67 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
           "Nível Almejado",
         ],
       ],
-      body: allPeiTableRows, // Agora allPeiTableRows contém strings simples
+      body: allPeiTableRows,
       styles: {
         font: styles.font,
         fontSize: styles.fontSize.small,
-        textColor: styles.colors.black, // O texto será preto padrão
-        fillColor: styles.colors.white, // GARANTIR BRANCO NO ESTILO GERAL DA TABELA
+        textColor: styles.colors.black,
+        fillColor: styles.colors.white,
         lineColor: styles.colors.black,
         lineWidth: 0.1,
         cellPadding: 2,
         valign: "top",
       },
       headStyles: {
-        fillColor: styles.colors.white, // REMOVER O CINZA CLARO DOS CABEÇALHOS AQUI!
+        fillColor: styles.colors.white,
         textColor: styles.colors.black,
         fontStyle: "bold",
         halign: "center",
       },
       columnStyles: {
-        0: { cellWidth: areaWidth },
-        1: { cellWidth: habilidadeWidth },
-        2: { cellWidth: objetivoWidth },
-        3: { cellWidth: estrategiasWidth, overflow: "linebreak" },
-        4: { cellWidth: nivelWidth, halign: "center" }, // Nível (índice 4)
-        5: { cellWidth: nivelAlmejadoWidth, halign: "center" }, // Nível Almejado (índice 5)
+        0: {
+          cellWidth: areaWidth,
+        },
+        1: {
+          cellWidth: habilidadeWidth,
+        },
+        2: {
+          cellWidth: objetivoWidth,
+        },
+        3: {
+          cellWidth: estrategiasWidth,
+          overflow: "linebreak",
+        },
+        4: {
+          cellWidth: nivelWidth,
+          halign: "center",
+        },
+        5: {
+          cellWidth: nivelAlmejadoWidth,
+          halign: "center",
+        },
       },
-      margin: { left: margemPEI, bottom: 25 },
+      margin: {
+        left: margemPEI,
+        right: margemPEI,
+        top: HEADER_AREA_HEIGHT + 10,
+        bottom: FOOTER_AREA_HEIGHT,
+      },
       didParseCell: (data) => {
-        // Aplica cor de fundo para os níveis
-        const nivel = data.cell.text;
+        const nivel = data.cell.text[0];
         if ([4, 5].includes(data.column.index) && coresPorNivel[nivel]) {
-          data.cell.styles.fillColor = coresPorNivel[nivel]; // Aplicar cor do nível
+          data.cell.styles.fillColor = coresPorNivel[nivel];
         } else {
-          data.cell.styles.fillColor = styles.colors.white; // Garantir branco para outras células
+          data.cell.styles.fillColor = styles.colors.white;
         }
+      },
+      didDrawPage: (data) => {
+        addHeaderAndFooter(doc);
       },
     });
     y = doc.lastAutoTable.finalY + 10;
   } else {
+    y = ensurePageSpace(doc, y, 20);
     doc.text(
       "Nenhuma estratégia de Plano Educacional Individualizado (PEI) detalhada encontrada para este aluno.",
       25,
@@ -833,9 +1178,12 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
     y += 10;
   }
 
-  // --- Tabela de Atividades Aplicadas ---
+  y = ensurePageSpace(
+    doc,
+    y,
+    20 + (allActivitiesTableRows.length > 0 ? 30 : 0)
+  );
   if (allActivitiesTableRows.length > 0) {
-    y = ensurePageSpace(doc, y, 40);
     doc.setFont(styles.font, "bold");
     doc.setFontSize(styles.fontSize.large);
     doc.text("Atividades Aplicadas", doc.internal.pageSize.getWidth() / 2, y, {
@@ -855,29 +1203,44 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
         font: styles.font,
         fontSize: styles.fontSize.small,
         textColor: styles.colors.black,
-        fillColor: styles.colors.white, // GARANTIR BRANCO NO ESTILO GERAL DA TABELA
+        fillColor: styles.colors.white,
         lineColor: styles.colors.black,
         lineWidth: 0.1,
         cellPadding: 2,
         valign: "top",
       },
       headStyles: {
-        fillColor: styles.colors.white, // REMOVER O CINZA CLARO DOS CABEÇALHOS AQUI!
+        fillColor: styles.colors.white,
         textColor: styles.colors.black,
         fontStyle: "bold",
         halign: "center",
       },
       columnStyles: {
-        0: { cellWidth: tableWidth * 0.7, overflow: "linebreak" },
-        1: { cellWidth: tableWidth * 0.3, halign: "center" },
+        0: {
+          cellWidth: tableWidth * 0.7,
+          overflow: "linebreak",
+        },
+        1: {
+          cellWidth: tableWidth * 0.3,
+          halign: "center",
+        },
       },
-      margin: { left: margemAtividades, bottom: 25 },
+      margin: {
+        left: margemAtividades,
+        right: margemAtividades,
+        top: HEADER_AREA_HEIGHT + 10,
+        bottom: FOOTER_AREA_HEIGHT,
+      },
       didParseCell: (data) => {
-        data.cell.styles.fillColor = styles.colors.white; // GARANTIR BRANCO EM CADA CÉLULA DO BODY
+        data.cell.styles.fillColor = styles.colors.white;
+      },
+      didDrawPage: (data) => {
+        addHeaderAndFooter(doc);
       },
     });
     y = doc.lastAutoTable.finalY + 10;
   } else {
+    y = ensurePageSpace(doc, y, 20);
     doc.text(
       "Nenhuma atividade aplicada detalhada encontrada para este aluno.",
       25,
@@ -886,8 +1249,8 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
     y += 10;
   }
 
-  // Se nenhuma das tabelas foi gerada
   if (allPeiTableRows.length === 0 && allActivitiesTableRows.length === 0) {
+    y = ensurePageSpace(doc, y, 20);
     doc.text(
       "Nenhum Plano Educacional Individualizado (PEI) ou atividade aplicada encontrada para este aluno.",
       25,
@@ -899,22 +1262,9 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
   return y;
 }
 
-/**
- * Adiciona a seção de Legenda dos Níveis ao PDF.
- * @param {jsPDF} doc - Instância do jsPDF.
- * @param {number} y - Posição Y atual.
- * @returns {number} Nova posição Y.
- */
 function addLegendSection(doc, y) {
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const footerArea = 25;
-  const minSpaceAboveFooter = 30;
-
-  y = ensurePageSpace(
-    doc,
-    y,
-    Object.keys(legendaNiveis).length * 7 + minSpaceAboveFooter
-  );
+  const minSpaceForLegend = Object.keys(legendaNiveis).length * 7 + 20;
+  y = ensurePageSpace(doc, y, minSpaceForLegend);
 
   doc.setFont(styles.font, "bold");
   doc.setFontSize(styles.fontSize.large);
@@ -924,51 +1274,15 @@ function addLegendSection(doc, y) {
   doc.setFontSize(styles.fontSize.small);
 
   Object.entries(legendaNiveis).forEach(([sigla, descricao]) => {
-    const cor = coresPorNivel[sigla] || styles.colors.white; // Pega a cor correspondente ou branco padrão
-    doc.setFillColor(...cor); // Define a cor de preenchimento
-    doc.rect(22, y - 4, 8, 6, "F"); // Desenha um retângulo preenchido (cor)
-    doc.text(`${sigla} – ${descricao}`, 32, y); // Adiciona o texto da legenda
+    const cor = coresPorNivel[sigla] || styles.colors.white;
+    doc.setFillColor(...cor);
+    doc.rect(22, y - 4, 8, 6, "F");
+    doc.text(`${sigla} – ${descricao}`, 32, y);
     y += 7;
   });
   return y + 10;
 }
 
-/**
- * Adiciona a seção de Assinatura do Responsável ao PDF.
- * @param {jsPDF} doc - Instância do jsPDF.
- * @param {Object} usuarioLogado - Objeto do usuário logado.
- * @param {number} y - Posição Y atual.
- * @returns {number} Nova posição Y.
- */
-function addLoggedInUserSignature(doc, usuarioLogado, y) {
-  const signatureBlockHeight = 50;
-  y = ensurePageSpace(doc, y, signatureBlockHeight);
-
-  doc.setFont(styles.font, "normal");
-  doc.setFontSize(styles.fontSize.medium);
-  const dataHoje = new Date().toLocaleDateString("pt-BR");
-  doc.text(`Guabiruba, ${dataHoje}`, 20, y);
-  y += 10;
-
-  doc.line(20, y, 100, y);
-  y += 6;
-  doc.text(
-    `Assinatura: ${usuarioLogado?.nome || "___________________________"}`,
-    20,
-    y
-  );
-  y += 6;
-  doc.text(`Cargo: ${usuarioLogado?.cargo || ""}`, 20, y);
-  return y + 10;
-}
-
-/**
- * Adiciona a tabela de assinaturas de profissionais ao PDF.
- * @param {jsPDF} doc - Instância do jsPDF.
- * @param {Object} aluno - Objeto do aluno.
- * @param {number} y - Posição Y atual.
- * @returns {Promise<number>} Nova posição Y.
- */
 async function addProfessionalSignaturesTable(doc, aluno, usuarioLogado, y) {
   const perfisParaTabelaAssinaturas = [
     "gestao",
@@ -976,14 +1290,27 @@ async function addProfessionalSignaturesTable(doc, aluno, usuarioLogado, y) {
     "seme",
     "diretor",
     "diretor adjunto",
-    "orientador pedagógico",
+    "orientador pedagogico",
     "desenvolvedor",
+    "professor",
   ];
 
+  // Verifica se o usuário logado é professor do aluno
+  const isUserProfessorOfAluno =
+    usuarioLogado?.perfil?.toLowerCase() === "professor" &&
+    ((usuarioLogado.turmas && usuarioLogado.turmas[aluno.turma]) ||
+      (Array.isArray(usuarioLogado.turmas) &&
+        usuarioLogado.turmas.includes(aluno.turma)) ||
+      (Array.isArray(aluno.professores) &&
+        aluno.professores.includes(usuarioLogado.id)));
+
   if (
-    !perfisParaTabelaAssinaturas.includes(usuarioLogado?.perfil?.toLowerCase())
+    !perfisParaTabelaAssinaturas.includes(
+      usuarioLogado?.perfil?.toLowerCase()
+    ) &&
+    !isUserProfessorOfAluno
   ) {
-    return y; // Não gera a tabela se o usuário logado não tem perfil adequado
+    return y; // Não adiciona a tabela se o usuário não tiver permissão
   }
 
   try {
@@ -992,7 +1319,7 @@ async function addProfessionalSignaturesTable(doc, aluno, usuarioLogado, y) {
       "aee",
       "diretor",
       "diretor adjunto",
-      "orientador pedagógico",
+      "orientador pedagogico",
       "desenvolvedor",
       "gestao",
       "seme",
@@ -1015,30 +1342,46 @@ async function addProfessionalSignaturesTable(doc, aluno, usuarioLogado, y) {
         const perfilLower = prof.perfil?.toLowerCase();
 
         if (["professor", "aee"].includes(perfilLower)) {
-          return estaNaEscolaDoAluno && (!aluno.turma || estaNaTurmaDoAluno);
+          return (
+            estaNaEscolaDoAluno &&
+            (!aluno.turma ||
+              estaNaTurmaDoAluno ||
+              (Array.isArray(aluno.professores) &&
+                aluno.professores.includes(prof.id)))
+          );
         }
         return estaNaEscolaDoAluno;
       })
       .sort((a, b) => a.nome.localeCompare(b.nome));
 
-    if (profissionaisVinculados.length === 0) {
+    // Filtra para garantir que não há duplicatas se um profissional aparecer em múltiplas categorias
+    const uniqueProfissionais = Array.from(
+      new Map(profissionaisVinculados.map((p) => [p.id, p])).values()
+    );
+
+    if (uniqueProfissionais.length === 0) {
       console.warn(
         "Nenhum profissional encontrado para a tabela de assinaturas gerais."
       );
       return y;
     }
 
-    y = ensurePageSpace(doc, y, 30);
+    y = ensurePageSpace(doc, y, uniqueProfissionais.length * 10 + 30);
+
     doc.setFont(styles.font, "bold");
     doc.setFontSize(styles.fontSize.large);
     doc.text("Assinaturas dos Profissionais Envolvidos", 20, y);
     y += 8;
 
-    const linhasAssinaturas = profissionaisVinculados.map((p) => [
+    const linhasAssinaturas = uniqueProfissionais.map((p) => [
       p.nome,
       p.cargo || p.perfil?.toUpperCase(),
       "_______________________________",
     ]);
+
+    const tableWidth = 70 + 60 + 60; // Largura das 3 colunas
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const horizontalMargin = (pageWidth - tableWidth) / 2;
 
     autoTable(doc, {
       startY: y,
@@ -1048,13 +1391,13 @@ async function addProfessionalSignaturesTable(doc, aluno, usuarioLogado, y) {
         font: styles.font,
         fontSize: styles.fontSize.medium,
         textColor: styles.colors.black,
-        fillColor: styles.colors.white, // GARANTIR BRANCO NO ESTILO GERAL DA TABELA
+        fillColor: styles.colors.white,
         lineColor: styles.colors.black,
         lineWidth: 0.1,
         cellPadding: 2,
       },
       headStyles: {
-        fillColor: styles.colors.white, // REMOVER O CINZA CLARO DOS CABEÇALHOS AQUI!
+        fillColor: styles.colors.white,
         textColor: styles.colors.black,
         fontStyle: "bold",
         halign: "center",
@@ -1064,9 +1407,17 @@ async function addProfessionalSignaturesTable(doc, aluno, usuarioLogado, y) {
         1: { cellWidth: 60, halign: "center" },
         2: { cellWidth: 60 },
       },
-      margin: { bottom: 25 },
+      margin: {
+        left: horizontalMargin,
+        right: horizontalMargin,
+        top: HEADER_AREA_HEIGHT + 10,
+        bottom: FOOTER_AREA_HEIGHT,
+      },
       didParseCell: (data) => {
-        data.cell.styles.fillColor = styles.colors.white; // GARANTIR BRANCO EM CADA CÉLULA DO BODY
+        data.cell.styles.fillColor = styles.colors.white;
+      },
+      didDrawPage: (data) => {
+        addHeaderAndFooter(doc);
       },
     });
     return doc.lastAutoTable.finalY + 10;
@@ -1076,45 +1427,64 @@ async function addProfessionalSignaturesTable(doc, aluno, usuarioLogado, y) {
   }
 }
 
-// --- Função Principal: gerarPDFCompleto ---
+async function addSignaturePage(doc, aluno, usuarioLogado) {
+  doc.addPage();
+  addHeaderAndFooter(doc);
+
+  let y = HEADER_AREA_HEIGHT + 10;
+
+  doc.setFont(styles.font, "bold");
+  doc.setFontSize(styles.fontSize.title);
+  doc.text("Assinaturas", doc.internal.pageSize.getWidth() / 2, y, {
+    align: "center",
+  });
+  y += 15;
+
+  y = await addProfessionalSignaturesTable(doc, aluno, usuarioLogado, y);
+
+  const dataHoje = new Date().toLocaleDateString("pt-BR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  doc.setFont(styles.font, "normal");
+  doc.setFontSize(styles.fontSize.medium);
+  y = ensurePageSpace(doc, y, 20);
+  doc.text(`Guabiruba, ${dataHoje}`, 20, y);
+  y += 10;
+}
 
 export async function gerarPDFCompleto(
   aluno,
-  avaliacao,
+  avaliacaoInicial, // Objeto de avaliação inicial
   usuarioLogado,
-  peisParaGeral = null
+  peisParaGeral = [], // Array de PEIs a serem exibidos
+  avaliacaoInteressesData = null // Objeto de avaliação de interesses
 ) {
   const doc = new jsPDF();
-  let y = 20; // Posição Y inicial para o conteúdo
+  let y;
 
   console.log("[PDF_DEBUG] Início da geração do PDF.");
-  console.log("[PDF_DEBUG] Aluno:", JSON.stringify(aluno, null, 2));
-  console.log("Usuario Logado:", JSON.stringify(usuarioLogado, null, 2));
-  console.log("Avaliação:", JSON.stringify(avaliacao, null, 2));
   console.log(
-    "[PDF_DEBUG] PEIs passados para Geral (se aplicável):",
-    JSON.stringify(peisParaGeral, null, 2)
+    "[PDF_DEBUG] avaliacaoInteressesData recebida:",
+    avaliacaoInteressesData
   );
 
-  // --- 1. Validações Iniciais ---
   if (!aluno || !aluno.nome || !aluno.id) {
     console.error("gerarPDFCompleto: Dados do aluno são incompletos.");
-    doc.text("Erro: Dados do aluno incompletos.", 20, y);
-    addFooter(doc, doc.internal.pageSize.getHeight());
-    doc.save(`PEI_${aluno.nome.replace(/\s+/g, "_")}_Sem_Dados.pdf`);
+    addHeaderAndFooter(doc);
+    doc.text("Erro: Dados do aluno incompletos.", 20, HEADER_AREA_HEIGHT + 20);
+    doc.save(
+      `PEI_${aluno.nome?.replace(/\s+/g, "_") || "Desconhecido"}_Sem_Dados.pdf`
+    );
     return;
   }
 
-  // --- 2. Busca e Preparação dos PEIs ---
-  let peisParaProcessar;
-  if (Array.isArray(peisParaGeral) && peisParaGeral.length > 0) {
-    peisParaProcessar = peisParaGeral;
-    console.log("[PDF_DEBUG] Usando PEIs passados como peisParaGeral.");
-  } else {
-    peisParaProcessar = await fetchPeis(aluno.id, aluno.nome);
-  }
+  let peisParaProcessar =
+    Array.isArray(peisParaGeral) && peisParaGeral.length > 0
+      ? peisParaGeral
+      : await fetchPeis(aluno.id, aluno.nome);
 
-  // Ordena os PEIs para exibição (do mais novo para o mais antigo, por data de criação)
   const peisOrdenados = peisParaProcessar.sort((a, b) => {
     const dataA = a.dataCriacao?.toDate
       ? a.dataCriacao.toDate()
@@ -1125,31 +1495,28 @@ export async function gerarPDFCompleto(
     return dataB.getTime() - dataA.getTime();
   });
 
-  let peisParaExibir = peisOrdenados;
-
-  console.log(
-    "[PDF_DEBUG] PEIs para exibir (final):",
-    JSON.stringify(peisParaExibir, null, 2)
-  );
+  const peisParaExibir = peisOrdenados;
 
   if (
     peisParaExibir.length === 0 &&
-    (!avaliacao || Object.keys(avaliacao).length === 0)
+    (!avaliacaoInicial || Object.keys(avaliacaoInicial).length === 0) &&
+    (!avaliacaoInteressesData ||
+      Object.keys(avaliacaoInteressesData).length === 0)
   ) {
     console.warn(
-      "Nenhum PEI ou avaliação encontrado para o aluno, gerando PDF básico informativo."
+      "Nenhum PEI, avaliação inicial ou avaliação de interesses encontrado para o aluno, gerando PDF básico informativo."
     );
+    addHeaderAndFooter(doc);
     doc.text(
-      "Nenhum Plano Educacional Individualizado (PEI) ou Avaliação Inicial encontrado para este aluno.",
+      "Nenhum Plano Educacional Individualizado (PEI), Avaliação Inicial ou Avaliação de Interesses encontrado para este aluno.",
       25,
-      y
+      HEADER_AREA_HEIGHT + 20
     );
-    addFooter(doc, doc.internal.pageSize.getHeight());
+    await addSignaturePage(doc, aluno, usuarioLogado);
     doc.save(`PEI_${aluno.nome.replace(/\s+/g, "_")}_Sem_Dados.pdf`);
     return;
   }
 
-  // --- 3. Busca Nome da Escola ---
   let nomeEscola = "-";
   if (aluno.escolaId) {
     try {
@@ -1165,16 +1532,24 @@ export async function gerarPDFCompleto(
     }
   }
 
-  // --- 4. Geração das Seções do PDF ---
-  y = await addStudentAndHeaderInfo(doc, aluno, avaliacao, nomeEscola, y);
-  y = addInitialAssessment(doc, avaliacao, y);
-  y = addConsolidatedPeiSection(doc, peisParaExibir, y);
-  y = addLegendSection(doc, y); // AQUI A FUNÇÃO addLegendSection FOI ATUALIZADA
-  y = addLoggedInUserSignature(doc, usuarioLogado, y);
-  y = await addProfessionalSignaturesTable(doc, aluno, usuarioLogado, y);
+  // Define o Y inicial para o conteúdo da primeira página.
+  y = HEADER_AREA_HEIGHT + 10;
 
-  // --- 5. Finalização e Salvamento do PDF ---
-  addFooter(doc, doc.internal.pageSize.getHeight());
+  y = await addStudentAndHeaderInfo(
+    doc,
+    aluno,
+    avaliacaoInicial,
+    nomeEscola,
+    y
+  );
+  y = addInitialAssessment(doc, avaliacaoInicial, y);
+  // AQUI é onde a função da avaliação de interesses é chamada
+  y = addAvaliacaoInteressesSection(doc, avaliacaoInteressesData, y);
+  y = addConsolidatedPeiSection(doc, peisParaExibir, y);
+  y = addLegendSection(doc, y);
+
+  await addSignaturePage(doc, aluno, usuarioLogado);
+
   doc.save(`PEI_${aluno.nome.replace(/\s+/g, "_")}_Completo.pdf`);
   console.log("[PDF_DEBUG] Geração do PDF concluída.");
 }

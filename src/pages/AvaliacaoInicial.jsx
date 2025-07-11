@@ -3,17 +3,18 @@ import { useNavigate } from "react-router-dom";
 
 // Dados estáticos da avaliação - Certifique-se de que este caminho está correto
 import { avaliacaoInicial } from "../data/avaliacaoInicialData";
+import { interesses } from "../data/interessesData"; // Importar dados de interesses
 
 // Hooks customizados que encapsulam a lógica
-import { useAlunos } from "../hooks/useAlunos";
-import { useAvaliacaoForm } from "../hooks/useAvaliacaoForm"; // Verifique se este hook retorna 'avaliacaoExiste'
+import { useAlunos } from "../hooks/useAlunos"; // CORRIGIDO: Importação correta do hook useAlunos
+import { useAvaliacaoForm } from "../hooks/useAvaliacaoForm";
 
 // Componentes de UI reutilizáveis
 import SelecaoAluno from "../components/SelecaoAluno";
 import AreaPerguntas from "../components/AreaPerguntas";
-import AvaliacaoHeader from "../components/AvaliacaoHeader"; // Certifique-se de que BotaoVoltar está dentro de AvaliacaoHeader ou é importado separadamente
+import AvaliacaoHeader from "../components/AvaliacaoHeader";
 import { gerarPDFAvaliacaoInicialParaPreencher } from "../utils/gerarPDFAvaliacaoInicial";
-import { gerarPDFAvaliacaoInicialPreenchida } from "../utils/gerarPDFAvaliacaoInicialPreenchida"; // Você precisará criar esta função utilitária
+import { gerarPDFAvaliacaoInicialPreenchida } from "../utils/gerarPDFAvaliacaoInicialPreenchida";
 
 // Estilos específicos da página
 import "../styles/AvaliacaoInicial.css";
@@ -54,7 +55,16 @@ function AvaliacaoInicial() {
 
   // --- Estado local da UI ---
   const [areaSelecionada, setAreaSelecionada] = useState("");
-  const areas = useMemo(() => Object.keys(avaliacaoInicial), []);
+  const todasAsAreas = useMemo(() => {
+    return {
+      ...avaliacaoInicial,
+      Interesses: interesses["Interesses Pessoais"],
+    };
+  }, []);
+  const areasParaAbas = useMemo(
+    () => Object.keys(todasAsAreas),
+    [todasAsAreas]
+  );
 
   // --- Handlers que conectam a UI (eventos) com a lógica dos hooks ---
   const handleSelecionarAlunoWrapper = useCallback(
@@ -62,9 +72,9 @@ function AvaliacaoInicial() {
       const alunoNome = e.target.value;
       await form.handleSelecionarAluno(alunoNome);
       // Seleciona a primeira área automaticamente ao escolher um aluno
-      setAreaSelecionada(alunoNome ? areas[0] || "" : "");
+      setAreaSelecionada(alunoNome ? areasParaAbas[0] || "" : "");
     },
-    [form, areas]
+    [form, areasParaAbas]
   );
 
   const onSalvarClick = useCallback(async () => {
@@ -106,7 +116,7 @@ function AvaliacaoInicial() {
         form.proximaAvaliacao,
         form.respostas,
         form.observacoes,
-        usuarioLogado // Passa o usuário logado se precisar de informações do criador no PDF
+        usuarioLogado
       );
     } else {
       alert(
@@ -122,6 +132,25 @@ function AvaliacaoInicial() {
     form.observacoes,
     usuarioLogado,
   ]);
+
+  // NOVO: Handler para o botão de navegação para a nova página
+  const handleIrParaNovaPagina = useCallback(() => {
+    if (form.alunoSelecionado) {
+      // --- DEBUG AQUI ---
+      console.log(
+        "Aluno selecionado para nova avaliação:",
+        form.alunoSelecionado
+      );
+      console.log("ID do aluno para navegação:", form.alunoSelecionado.id);
+      // --- FIM DO DEBUG ---
+
+      navigate(`/nova-avaliacao/${form.alunoSelecionado.id}`);
+      // Ou se preferir sem ID na URL (útil se o estado do aluno já estiver em um contexto global)
+      // navigate('/nova-avaliacao');
+    } else {
+      alert("Por favor, selecione um aluno primeiro.");
+    }
+  }, [navigate, form.alunoSelecionado]);
 
   // Flag consolidada para desabilitar elementos durante carregamentos e salvamentos
   const carregandoGeral =
@@ -168,6 +197,17 @@ function AvaliacaoInicial() {
             Idade: <strong>{form.idade}</strong> anos
           </p>
 
+          {/* NOVO: Botão para ir para a nova página de avaliação */}
+          <div className="new-assessment-button-container">
+            <button
+              onClick={handleIrParaNovaPagina}
+              disabled={carregandoGeral}
+              className="action-button" // Pode adicionar uma nova classe de estilo ou usar uma existente
+            >
+              Realizar Nova Avaliação (Ex: Entrevista)
+            </button>
+          </div>
+
           {/* Botões de Geração de PDF */}
           <div className="pdf-buttons-container">
             <button
@@ -181,7 +221,7 @@ function AvaliacaoInicial() {
               <button
                 onClick={handleGerarPDFAvaliacaoPreenchida}
                 disabled={carregandoGeral}
-                className="pdf-button filled-pdf-button" // Nova classe para diferenciar
+                className="pdf-button filled-pdf-button"
               >
                 Baixar PDF (Preenchido)
               </button>
@@ -216,13 +256,13 @@ function AvaliacaoInicial() {
           {!form.avaliacaoExiste && (
             <p className="info-message">
               Nenhuma avaliação inicial encontrada para este aluno. Preencha o
-              formulário para **criar uma nova avaliação**.
+              formulário para criar uma nova avaliação.
             </p>
           )}
 
           {/* Abas das Áreas de Conhecimento */}
           <div className="area-tabs-container">
-            {areas.map((area) => (
+            {areasParaAbas.map((area) => (
               <button
                 key={area}
                 onClick={() => setAreaSelecionada(area)}
@@ -238,7 +278,7 @@ function AvaliacaoInicial() {
           {areaSelecionada && (
             <AreaPerguntas
               area={areaSelecionada}
-              dados={avaliacaoInicial[areaSelecionada]}
+              dados={todasAsAreas[areaSelecionada]}
               respostas={form.respostas[areaSelecionada] || {}}
               observacoes={form.observacoes[areaSelecionada] || ""}
               onResponder={handleResposta}
