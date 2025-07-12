@@ -10,7 +10,7 @@ import {
 import { getFirestore } from "firebase/firestore";
 
 // Cria o Contexto de Autenticação
-const AuthContext = createContext();
+export const AuthContext = createContext(); // <-- Adicionado 'export' aqui!
 
 // Hook customizado para usar o contexto de autenticação
 export function useAuth() {
