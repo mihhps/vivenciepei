@@ -1,985 +1,545 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import "../styles/AvaliacaoInteressesPage.css";
-
-// Firebase imports (db e auth são instâncias globais já inicializadas)
-import { db, auth } from "../firebase"; // Certifique-se de que este caminho está correto para seu projeto
-
-// Firestore imports
-import { doc, getDoc, setDoc, collection, getDocs } from "firebase/firestore";
-
-// Importar o hook useAlunos e o componente SelecaoAluno
-import { useAlunos } from "../hooks/useAlunos"; // Certifique-se de que este caminho está correto
-import SelecaoAluno from "../components/SelecaoAluno"; // Certifique-se de que este caminho está correto
-
-// Importar o hook useAuth do seu contexto de autenticação
-import { useAuth } from "../context/AuthContext"; // Certifique-se de que este caminho está correto
-
-// Importar a função gerarPDFCompleto
-import { gerarPDFCompleto } from "../utils/gerarPDFCompleto"; // Ajuste o caminho se necessário!
-
-// --- Listas de Itens para Rádios ---
-const ATIVIDADES_FAVORITAS_LIST = [
-  "Brincadeiras ao ar livre (parque, bicicleta, bola)",
-  "Brincadeiras dentro de casa (quebra-cabeças, jogos de tabuleiro, blocos)",
-  "Assistir TV/Filmes/Desenhos",
-  "Jogar videogames/aplicativos no tablet",
-  "Desenhar/Pintar/Esculpir (atividades artísticas)",
-  "Ouvir música/Cantar/Dançar",
-  "Ler livros/Folhear revistas",
-  "Brincar com água/Areia",
-  "Brincadeiras de faz de conta (bonecas, carrinhos, super-heróis)",
-  "Interagir com animais",
-  "Explorar a natureza",
-  "Atividades sensoriais (massinha, geleca, objetos com texturas diferentes)",
-];
-
-const SINAIS_DESREGULACAO_LIST = [
-  "Irritabilidade/Frustração",
-  "Choro excessivo",
-  "Gritos/Resmungos",
-  "Bater/Morder/Chutar (em si mesma ou em outros)",
-  "Se jogar no chão",
-  "Correr/Andar de um lado para o outro",
-  "Tentar se esconder ou fugir",
-  "Ficar paralisada/Congelada",
-  "Repetir falas ou movimentos (ecolalia, estereotipias)",
-  "Recusar-se a obedecer",
-  "Dificuldade para se comunicar/Expressar",
-  "Dificuldade para transicionar entre atividades",
-];
-
-const SITUACOES_DESREGULACAO_LIST = [
-  "Mudanças inesperadas na rotina",
-  "Ambientes muito barulhentos (festas, shoppings, shows)",
-  "Ambientes com muita gente/muito movimento",
-  "Luzes muito fortes ou piscantes",
-  "Cheiros fortes ou incomuns",
-  "Texturas específicas (roupas, alimentos, objetos)",
-  "Sede ou fome",
-  "Cansaço",
-  "Doença/Dor",
-  "Frustração ao não conseguir algo",
-  "Excesso de estímulos (visuais, auditivos, táteis)",
-  "Ser tocada inesperadamente",
-  "Pressão para fazer algo que não quer",
-  "Transições entre atividades ou locais",
-  "Separação de pessoas familiares",
-  "Ser contrariada",
-];
-
-// Níveis de avaliação para as bolinhas (Sim, Não, NA)
-const NIVEIS_AVALIACAO = ["Sim", "Não", "NA"];
-
-// Função auxiliar para inicializar o estado de rádio com 'NA' para cada item
-const initialRadioState = (items) => {
-  const state = {};
-  items.forEach((item) => {
-    state[item] = "NA"; // Valor padrão para cada item: 'NA' (Não Avaliado)
-  });
-  return state;
-};
-
-function AvaliacaoInteressesPage() {
-  const { alunoId: alunoIdFromParams } = useParams(); // Pega o ID do aluno da URL
-  const navigate = useNavigate();
-
-  // Obter userId e isAuthReady do AuthContext
-  const { userId, isAuthReady, currentUser } = useAuth(); // Adicionado currentUser para pegar nome/perfil
-
-  const [aluno, setAluno] = useState(null); // Aluno cujos dados estão sendo exibidos/editados
-  const [alunoSelecionadoDropdown, setAlunoSelecionadoDropdown] =
-    useState(null); // Aluno selecionado no dropdown
-  const [carregando, setCarregando] = useState(true);
-  const [salvando, setSalvando] = useState(false);
-  const [erro, setErro] = useState(null);
-  const [sucesso, setSucesso] = useState(null);
-  const [showViewButton, setShowViewButton] = useState(false);
-  const [usuarioLogadoCompleto, setUsuarioLogadoCompleto] = useState(null); // Estado para o objeto completo do usuário logado
-
-  // Usar o hook useAlunos para buscar a lista de todos os alunos
-  const {
-    alunos: alunosListFromHook, // Renomeado para evitar conflito com 'aluno'
-    carregando: carregandoAlunosFromHook,
-    erro: erroAlunosFromHook,
-  } = useAlunos();
-
-  // --- Estado do Formulário ---
-  const [formData, setFormData] = useState({
-    atividadesFavoritas: initialRadioState(ATIVIDADES_FAVORITAS_LIST),
-    outrasAtividades: "",
-    brinquedosPreferidos: "",
-    personagensTemasAssuntos: "",
-    habilidadesFacilidades: "",
-    interacaoComPessoas: "",
-    rotinaRitualEspecifico: "",
-
-    sinaisDesregulacao: initialRadioState(SINAIS_DESREGULACAO_LIST),
-    outrosSinais: "",
-    situacoesDesregulacao: initialRadioState(SITUACOES_DESREGULACAO_LIST),
-    outrasSituacoes: "",
-    comidaBebidaMaterialRejeitado: "",
-    oQueAcalma: "",
-    reacaoMudancasRotina: "",
-    somImagemSensacaoAversao: "",
-    situacaoRecenteDesregulacao: "",
-
-    melhoresFormasComunicacao: "",
-    ajudaPrepararTransicao: "",
-    objetoBrinquedoPortoSeguro: "",
-    estrategiasRegulacao: "",
-    preferenciaToqueEspaco: "",
-    algoMaisParaAdicionar: "",
-  });
-
-  // Efeito para buscar os detalhes completos do usuário logado (nome, perfil, etc.)
-  useEffect(() => {
-    const fetchUserDetails = async () => {
-      if (userId && isAuthReady) {
-        try {
-          const userDocRef = doc(db, "usuarios", userId);
-          const userDocSnap = await getDoc(userDocRef);
-          if (userDocSnap.exists()) {
-            setUsuarioLogadoCompleto({ id: userDocSnap.id, ...userDocSnap.data() });
-          } else {
-            console.warn("Dados completos do usuário logado não encontrados.");
-            setUsuarioLogadoCompleto({ id: userId, nome: currentUser?.displayName || "Usuário Desconhecido", perfil: "desconhecido" });
-          }
-        } catch (error) {
-          console.error("Erro ao buscar detalhes do usuário logado:", error);
-          setUsuarioLogadoCompleto({ id: userId, nome: currentUser?.displayName || "Usuário Desconhecido", perfil: "erro" });
-        }
-      } else if (isAuthReady && !userId) {
-         setUsuarioLogadoCompleto(null); // Usuário não autenticado
-      }
-    };
-    fetchUserDetails();
-  }, [userId, isAuthReady, currentUser, db]);
-
-
-  // --- Efeito para pré-selecionar o aluno do URL param no dropdown ---
-  useEffect(() => {
-    if (
-      alunoIdFromParams &&
-      alunosListFromHook.length > 0 &&
-      !alunoSelecionadoDropdown
-    ) {
-      const foundAluno = alunosListFromHook.find(
-        (a) => a.id === alunoIdFromParams
-      );
-      if (foundAluno) {
-        setAlunoSelecionadoDropdown(foundAluno);
-      }
-    }
-  }, [alunoIdFromParams, alunosListFromHook, alunoSelecionadoDropdown]);
-
-  // --- Fetch Aluno Data from Firebase (agora reage a alunoSelecionadoDropdown) ---
-  useEffect(() => {
-    const fetchAlunoFromFirebase = async () => {
-      // Prioriza o aluno selecionado no dropdown, depois o da URL
-      const currentAlunoIdToFetch =
-        alunoSelecionadoDropdown?.id || alunoIdFromParams;
-
-      if (!db || !userId || !isAuthReady || !currentAlunoIdToFetch) {
-        setCarregando(false);
-        return;
-      }
-
-      setCarregando(true);
-      setErro(null);
-      setSucesso(null); // Limpa as mensagens ao iniciar nova busca
-      setShowViewButton(false);
-
-      try {
-        const appId =
-          typeof __app_id !== "undefined" ? __app_id : "default-app-id";
-        let fetchedAluno = null;
-
-        // 1. Tentar buscar o aluno no NOVO CAMINHO (user-specific)
-        const newAlunoDocRef = doc(
-          db,
-          `artifacts/${appId}/users/${userId}/alunos`,
-          currentAlunoIdToFetch
-        );
-        const newAlunoDocSnap = await getDoc(newAlunoDocRef);
-
-        if (newAlunoDocSnap.exists()) {
-          fetchedAluno = { id: newAlunoDocSnap.id, ...newAlunoDocSnap.data() };
-          console.log("Aluno encontrado no novo caminho:", fetchedAluno);
-        } else {
-          // 2. Se não encontrado no novo caminho, tentar buscar no CAMINHO ANTIGO (raiz)
-          const oldAlunoDocRef = doc(db, "alunos", currentAlunoIdToFetch);
-          const oldAlunoDocSnap = await getDoc(oldAlunoDocRef);
-
-          if (oldAlunoDocSnap.exists()) {
-            fetchedAluno = {
-              id: oldAlunoDocSnap.id,
-              ...oldAlunoDocSnap.data(),
-            };
-            console.log(
-              "Aluno encontrado no caminho antigo (raiz):",
-              fetchedAluno
-            );
-          }
-        }
-
-        if (fetchedAluno) {
-          setAluno(fetchedAluno); // Define o aluno cujos dados estão sendo exibidos
-          // Não setar alunoSelecionadoDropdown aqui para evitar loop, ele já é a origem da trigger
-
-          const avaliacaoInteressesDocRef = doc(
-            db,
-            `artifacts/${appId}/users/${userId}/avaliacoesInteresses`,
-            fetchedAluno.id // Usa o ID do aluno encontrado
-          );
-          const avaliacsesInteressesDocSnap = await getDoc(
-            avaliacaoInteressesDocRef
-          );
-
-          if (avaliacsesInteressesDocSnap.exists()) {
-            const loadedData = avaliacsesInteressesDocSnap.data().data;
-            setFormData((prev) => ({
-              ...initialRadioState(ATIVIDADES_FAVORITAS_LIST),
-              ...initialRadioState(SINAIS_DESREGULACAO_LIST),
-              ...initialRadioState(SITUACOES_DESREGULACAO_LIST),
-              ...loadedData,
-            }));
-            setSucesso("Avaliação de interesses anterior carregada.");
-            setShowViewButton(true);
-          } else {
-            // Reseta o formulário para uma nova avaliação
-            setFormData({
-              atividadesFavoritas: initialRadioState(ATIVIDADES_FAVORITAS_LIST),
-              outrasAtividades: "",
-              brinquedosPreferidos: "",
-              personagensTemasAssuntos: "",
-              habilidadesFacilidades: "",
-              interacaoComPessoas: "",
-              rotinaRitualEspecifico: "",
-
-              sinaisDesregulacao: initialRadioState(SINAIS_DESREGULACAO_LIST),
-              outrosSinais: "",
-              situacoesDesregulacao: initialRadioState(
-                SITUACOES_DESREGULACAO_LIST
-              ),
-              outrasSituacoes: "",
-              comidaBebidaMaterialRejeitado: "",
-              oQueAcalma: "",
-              reacaoMudancasRotina: "",
-              somImagemSensacaoAversao: "",
-              situacaoRecenteDesregulacao: "",
-
-              melhoresFormasComunicacao: "",
-              ajudaPrepararTransicao: "",
-              objetoBrinquedoPortoSeguro: "",
-              estrategiasRegulacao: "",
-              preferenciaToqueEspaco: "",
-              algoMaisParaAdicionar: "",
-            });
-            setSucesso(
-              "Inicie uma nova avaliação de interesses para este aluno."
-            );
-            setShowViewButton(false);
-          }
-        } else {
-          setErro("Aluno não encontrado no Firebase.");
-          setAluno(null);
-          // Não resetar alunoSelecionadoDropdown aqui, ele deve manter a seleção do dropdown
-        }
-      } catch (error) {
-        console.error(
-          "Erro ao carregar aluno ou avaliação de interesses do Firebase:",
-          error
-        );
-        setErro(
-          "Erro ao carregar dados do aluno ou avaliação. Tente novamente."
-        );
-        setAluno(null);
-        // Não resetar alunoSelecionadoDropdown aqui
-      } finally {
-        setCarregando(false);
-      }
-    };
-
-    // Só busca se a autenticação estiver pronta E (um aluno foi selecionado OU um ID veio da URL)
-    if (
-      db &&
-      userId &&
-      isAuthReady &&
-      (alunoSelecionadoDropdown || alunoIdFromParams)
-    ) {
-      fetchAlunoFromFirebase();
-    } else if (isAuthReady && !alunoSelecionadoDropdown && !alunoIdFromParams) {
-      // Se a autenticação estiver pronta mas nenhum aluno foi selecionado/passado, pare de carregar
-      setCarregando(false);
-    }
-  }, [db, userId, isAuthReady, alunoIdFromParams, alunoSelecionadoDropdown]);
-
-  // Handler para quando um aluno é selecionado no componente SelecaoAluno
-  const handleSelecionarAlunoInterno = useCallback(
-    (event) => {
-      const selectedAlunoNome = event.target.value;
-      const foundAluno = alunosListFromHook.find(
-        (aluno) => aluno.nome === selectedAlunoNome
-      );
-      setAlunoSelecionadoDropdown(foundAluno); // Define o aluno selecionado no dropdown
-      setAluno(null); // Limpa o aluno atual para forçar o useEffect a carregar o novo
-
-      // Resetar o formulário para uma nova avaliação ao mudar de aluno
-      setFormData({
-        atividadesFavoritas: initialRadioState(ATIVIDADES_FAVORITAS_LIST),
-        outrasAtividades: "",
-        brinquedosPreferidos: "",
-        personagensTemasAssuntos: "",
-        habilidadesFacilidades: "",
-        interacaoComPessoas: "",
-        rotinaRitualEspecifico: "",
-
-        sinaisDesregulacao: initialRadioState(SINAIS_DESREGULACAO_LIST),
-        outrosSinais: "",
-        situacoesDesregulacao: initialRadioState(SITUACOES_DESREGULACAO_LIST),
-        outrasSituacoes: "",
-        comidaBebidaMaterialRejeitado: "",
-        oQueAcalma: "",
-        reacaoMudancasRotina: "",
-        somImagemSensacaoAversao: "",
-        situacaoRecenteDesregulacao: "",
-
-        melhoresFormasComunicacao: "",
-        ajudaPrepararTransicao: "",
-        objetoBrinquedoPortoSeguro: "",
-        estrategiasRegulacao: "",
-        preferenciaToqueEspaco: "",
-        algoMaisParaAdicionar: "",
-      });
-      setShowViewButton(false);
-    },
-    [alunosListFromHook]
-  );
-
-  // Handler genérico para inputs de texto e textareas
-  const handleChange = useCallback((e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  }, []);
-
-  // Handler para botões de rádio (bolinhas)
-  const handleRadioChange = useCallback((e) => {
-    const { name, value, dataset } = e.target;
-    const itemKey = dataset.itemKey;
-    const listName = dataset.listName;
-
-    setFormData((prev) => ({
-      ...prev,
-      [listName]: {
-        ...prev[listName],
-        [itemKey]: value,
-      },
-    }));
-  }, []);
-
-  // --- Função para Salvar o Formulário no Firebase ---
-  const handleSubmit = useCallback(
-    async (e) => {
-      e.preventDefault();
-      // Usa alunoSelecionadoDropdown para garantir que um aluno está de fato selecionado para salvar
-      if (!alunoSelecionadoDropdown || !db || !userId) {
-        setErro("Sistema não pronto ou aluno não selecionado para salvar.");
-        return;
-      }
-
-      setSalvando(true);
-      setErro(null);
-      setSucesso(null);
-      setShowViewButton(false);
-
-      try {
-        const appId =
-          typeof __app_id !== "undefined" ? __app_id : "default-app-id";
-        const avaliacaoInteressesDocRef = doc(
-          db,
-          `artifacts/${appId}/users/${userId}/avaliacoesInteresses`,
-          alunoSelecionadoDropdown.id // Usa o ID do aluno do dropdown
-        );
-
-        await setDoc(avaliacaoInteressesDocRef, {
-          alunoId: alunoSelecionadoDropdown.id,
-          data: formData,
-          dataAvaliacao: new Date().toISOString(),
-          salvoPor: userId,
-        });
-
-        setSucesso("Avaliação de Interesses salva com sucesso no Firebase!");
-        setShowViewButton(true);
-        setTimeout(() => setSucesso(null), 3000);
-      } catch (error) {
-        console.error(
-          "Erro ao salvar avaliação de interesses no Firebase:",
-          error
-        );
-        setErro("Erro ao salvar avaliação. Tente novamente.");
-      } finally {
-        setSalvando(false);
-      }
-    },
-    [alunoSelecionadoDropdown, db, userId, formData]
-  );
-
-  // NOVO: Função para gerar o PDF da Avaliação de Interesses
-  const handleGerarPDFInteresses = useCallback(async () => {
-    if (!alunoSelecionadoDropdown || !alunoSelecionadoDropdown.id) {
-      setErro("Não foi possível gerar o PDF: Aluno não identificado.");
-      return;
-    }
-    if (!usuarioLogadoCompleto) {
-      setErro("Não foi possível gerar o PDF: Informações do usuário logado ausentes.");
-      return;
-    }
-
-    setSalvando(true); // Indica que algo está sendo processado (geração do PDF)
-    setSucesso("Gerando PDF da avaliação de interesses...");
-    setErro(null);
-
-    try {
-      await gerarPDFCompleto(
-        alunoSelecionadoDropdown, // objeto aluno
-        null, // avaliacaoInicial (passando null, pois esta é a página de interesses)
-        usuarioLogadoCompleto, // objeto usuarioLogado completo
-        null, // peisParaGeral (passando null, pois esta é a página de interesses)
-        formData // ESTE É O DADO DA AVALIAÇÃO DE INTERESSES!
-      );
-      setSucesso("PDF da avaliação de interesses gerado com sucesso!");
-      setTimeout(() => setSucesso(null), 3000);
-    } catch (error) {
-      console.error("Erro ao gerar PDF:", error);
-      setErro("Erro ao gerar PDF da avaliação. Tente novamente.");
-    } finally {
-      setSalvando(false);
-    }
-  }, [alunoSelecionadoDropdown, formData, usuarioLogadoCompleto]);
-
-
-  // NOVO: Função para navegar para a página de Ver Avaliações de Interesses
-  const handleVerAvaliacoesInteresses = useCallback(() => {
-    // Navega para a página de visualização de interesses sem um ID específico.
-    // Lá, o usuário poderá selecionar um aluno no dropdown.
-    navigate("/visualizar-interesses");
-  }, [navigate]);
-
-  // Flag consolidada para desabilitar elementos durante carregamentos e salvamentos
-  const carregandoGeral = carregando || salvando || carregandoAlunosFromHook || !usuarioLogadoCompleto;
-
-  if (!isAuthReady) {
-    return (
-      <div className="avaliacao-container loading">
-        Carregando autenticação...
-      </div>
-    );
-  }
-
-  return (
-    <div className="avaliacao-container">
-      <header className="avaliacao-header">
-        <button
-          onClick={() => navigate(-1)}
-          className="back-button"
-          disabled={salvando}
-        >
-          &larr; Voltar
-        </button>
-        <h1>Avaliação de Interesses e Gatilhos</h1> {/* Título centralizado */}
-        {/* Agrupar os botões do lado direito para melhor controle de layout */}
-        <div className="header-buttons-group right-aligned-buttons">
-          {/* Botão Ver Avaliações de Interesses */}
-          <button
-            onClick={handleVerAvaliacoesInteresses}
-            className="view-all-button"
-            disabled={salvando}
-          >
-            Ver Avaliações de Interesses
-          </button>
-          {/* Botão de Visualizar Avaliação (aparece após salvar) */}
-          {showViewButton && alunoSelecionadoDropdown && (
-            <button
-              type="button"
-              onClick={handleGerarPDFInteresses} // Chamada para a nova função de gerar PDF
-              className="view-evaluation-button"
-              disabled={salvando}
-            >
-              Gerar PDF da Avaliação
-            </button>
-          )}
-        </div>
-      </header>
-
-      {/* Área de Mensagens de Erro/Sucesso */}
-      {erroAlunosFromHook && (
-        <div className="mensagem-erro">{erroAlunosFromHook}</div>
-      )}
-      {erro && <div className="mensagem-erro">{erro}</div>}
-      {sucesso && (
-        <div className="mensagem-sucesso success-message">{sucesso}</div>
-      )}
-
-      {/* Seção de Seleção de Aluno */}
-      {carregandoAlunosFromHook ? (
-        <div className="loading-message">Carregando lista de alunos...</div>
-      ) : (
-        <SelecaoAluno
-          alunos={alunosListFromHook}
-          alunoSelecionado={alunoSelecionadoDropdown?.nome || ""}
-          onSelecionar={handleSelecionarAlunoInterno}
-          disabled={carregandoGeral}
-        />
-      )}
-
-      {/* Mensagens de Carregamento de Avaliação */}
-      {carregando && !carregandoAlunosFromHook && (
-        <div className="loading-message">Carregando avaliação do aluno...</div>
-      )}
-
-      {/* Conteúdo Principal da Avaliação (visível apenas após selecionar um aluno) */}
-      {alunoSelecionadoDropdown && (
-        <form onSubmit={handleSubmit} className="avaliacao-form">
-          {/* Informações do Aluno Selecionado */}
-          <h2 className="aluno-nome-header">
-            Aluno: {alunoSelecionadoDropdown.nome || "Nome Indisponível"}
-          </h2>
-          {/* Você pode adicionar a idade aqui se o objeto alunoSelecionadoDropdown tiver essa informação */}
-          {/* <p className="aluno-idade">Idade: {alunoSelecionadoDropdown.idade} anos</p> */}
-
-          {/* Seção 1: Interesses e Pontos Fortes */}
-          <section className="form-section">
-            <h2>Seção 1: Interesses e Pontos Fortes</h2>
-            <p className="section-description">
-              Esta seção visa descobrir o que a criança gosta de fazer e no que
-              ela se destaca.
-            </p>
-
-            <div className="form-group">
-              <label className="input-label">
-                Quais são as atividades favoritas da criança?
-              </label>
-              {ATIVIDADES_FAVORITAS_LIST.map((activity) => (
-                <div key={activity} className="habilidade-item-radio">
-                  <span className="texto-habilidade">{activity}</span>
-                  <div className="niveis-habilidade">
-                    {NIVEIS_AVALIACAO.map((nivel) => (
-                      <label
-                        key={nivel}
-                        className={`circulo-nivel ${nivel.replace(/\s/g, "")} ${formData.atividadesFavoritas[activity] === nivel ? "ativo" : ""}`}
-                      >
-                        <input
-                          type="radio"
-                          name={`atividadesFavoritas-${activity}`}
-                          data-item-key={activity}
-                          data-list-name="atividadesFavoritas"
-                          value={nivel}
-                          checked={
-                            formData.atividadesFavoritas[activity] === nivel
-                          }
-                          onChange={handleRadioChange}
-                          disabled={salvando}
-                          className="hidden-radio-input"
-                        />
-                        {nivel}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              ))}
-              <label className="text-input-label">
-                Outras atividades (texto livre):
-              </label>
-              <input
-                type="text"
-                name="outrasAtividades"
-                value={formData.outrasAtividades}
-                onChange={handleChange}
-                disabled={salvando}
-                className="text-input"
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="input-label">
-                Quais brinquedos ou objetos a criança prefere mais?
-              </label>
-              <textarea
-                name="brinquedosPreferidos"
-                value={formData.brinquedosPreferidos}
-                onChange={handleChange}
-                rows="2"
-                disabled={salvando}
-                className="text-input"
-              ></textarea>
-            </div>
-
-            <div className="form-group">
-              <label className="input-label">
-                Quais são os personagens, temas ou assuntos que mais chamam a
-                atenção da criança? (Ex: dinossauros, carros, princesas,
-                super-heróis, espaço)
-              </label>
-              <textarea
-                name="personagensTemasAssuntos"
-                value={formData.personagensTemasAssuntos}
-                onChange={handleChange}
-                rows="2"
-                disabled={salvando}
-                className="text-input"
-              ></textarea>
-            </div>
-
-            <div className="form-group">
-              <label className="input-label">
-                Em que a criança demonstra ter habilidades ou facilidade? (Ex:
-                montar coisas, memorizar, identificar padrões, resolver
-                problemas, habilidades motoras finas/grossas)
-              </label>
-              <textarea
-                name="habilidadesFacilidades"
-                value={formData.habilidadesFacilidades}
-                onChange={handleChange}
-                rows="2"
-                disabled={salvando}
-                className="text-input"
-              ></textarea>
-            </div>
-
-            <div className="form-group">
-              <label className="input-label">
-                A criança demonstra interesse em interagir com outras pessoas?
-                Se sim, de que forma? (Ex: brincadeiras em grupo,
-                individualmente com um amigo, observar outros brincando)
-              </label>
-              <textarea
-                name="interacaoComPessoas"
-                value={formData.interacaoComPessoas}
-                onChange={handleChange}
-                rows="2"
-                disabled={salvando}
-                className="text-input"
-              ></textarea>
-            </div>
-
-            <div className="form-group">
-              <label className="input-label">
-                Há alguma rotina ou ritual específico que a criança gosta ou
-                busca? (Ex: sempre fazer a mesma coisa ao acordar, sentar no
-                mesmo lugar para comer)
-              </label>
-              <textarea
-                name="rotinaRitualEspecifico"
-                value={formData.rotinaRitualEspecifico}
-                onChange={handleChange}
-                rows="2"
-                disabled={salvando}
-                className="text-input"
-              ></textarea>
-            </div>
-          </section>
-
-          {/* Seção 2: Gatilhos de Desregulação e Desconforto */}
-          <section className="form-section">
-            <h2>Seção 2: Gatilhos de Desregulação e Desconforto</h2>
-            <p className="section-description">
-              Esta seção busca identificar o que pode levar a criança a se
-              sentir sobrecarregada, irritada ou a ter comportamentos de
-              desregulação.
-            </p>
-
-            <div className="form-group">
-              <label className="input-label">
-                Quais são os sinais de que a criança está começando a ficar
-                desregulada ou desconfortável?
-              </label>
-              {SINAIS_DESREGULACAO_LIST.map((sign) => (
-                <div key={sign} className="habilidade-item-radio">
-                  <span className="texto-habilidade">{sign}</span>
-                  <div className="niveis-habilidade">
-                    {NIVEIS_AVALIACAO.map((nivel) => (
-                      <label
-                        key={nivel}
-                        className={`circulo-nivel ${nivel.replace(/\s/g, "")} ${formData.sinaisDesregulacao[sign] === nivel ? "ativo" : ""}`}
-                      >
-                        <input
-                          type="radio"
-                          name={`sinaisDesregulacao-${sign}`}
-                          data-item-key={sign}
-                          data-list-name="sinaisDesregulacao"
-                          value={nivel}
-                          checked={formData.sinaisDesregulacao[sign] === nivel}
-                          onChange={handleRadioChange}
-                          disabled={salvando}
-                          className="hidden-radio-input"
-                        />
-                        {nivel}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              ))}
-              <label className="text-input-label">
-                Outros sinais (texto livre):
-              </label>
-              <input
-                type="text"
-                name="outrosSinais"
-                value={formData.outrosSinais}
-                onChange={handleChange}
-                disabled={salvando}
-                className="text-input"
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="input-label">
-                Quais são as situações que mais frequentemente causam
-                desregulação na criança?
-              </label>
-              {SITUACOES_DESREGULACAO_LIST.map((situation) => (
-                <div key={situation} className="habilidade-item-radio">
-                  <span className="texto-habilidade">{situation}</span>
-                  <div className="niveis-habilidade">
-                    {NIVEIS_AVALIACAO.map((nivel) => (
-                      <label
-                        key={nivel}
-                        className={`circulo-nivel ${nivel.replace(/\s/g, "")} ${formData.situacoesDesregulacao[situation] === nivel ? "ativo" : ""}`}
-                      >
-                        <input
-                          type="radio"
-                          name={`situacoesDesregulacao-${situation}`}
-                          data-item-key={situation}
-                          data-list-name="situacoesDesregulacao"
-                          value={nivel}
-                          checked={
-                            formData.situacoesDesregulacao[situation] === nivel
-                          }
-                          onChange={handleRadioChange}
-                          disabled={salvando}
-                          className="hidden-radio-input"
-                        />
-                        {nivel}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              ))}
-              <label className="text-input-label">
-                Outras situações (texto livre):
-              </label>
-              <input
-                type="text"
-                name="outrasSituacoes"
-                value={formData.outrasSituacoes}
-                onChange={handleChange}
-                disabled={salvando}
-                className="text-input"
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="input-label">
-                Existe alguma comida, bebida ou material específico que a
-                criança rejeita fortemente?
-              </label>
-              <textarea
-                name="comidaBebidaMaterialRejeitado"
-                value={formData.comidaBebidaMaterialRejeitado}
-                onChange={handleChange}
-                rows="2"
-                disabled={salvando}
-                className="text-input"
-              ></textarea>
-            </div>
-
-            <div className="form-group">
-              <label className="input-label">
-                O que costuma acalmar a criança quando ela está desregulada ou
-                chateada? (Ex: abraço, música, brinquedo favorito, ir para um
-                local calmo, atividade específica)
-              </label>
-              <textarea
-                name="oQueAcalma"
-                value={formData.oQueAcalma}
-                onChange={handleChange}
-                rows="2"
-                disabled={salvando}
-                className="text-input"
-              ></textarea>
-            </div>
-
-            <div className="form-group">
-              <label className="input-label">
-                Como a criança reage a mudanças na rotina ou a imprevistos?
-              </label>
-              <textarea
-                name="reacaoMudancasRotina"
-                value={formData.reacaoMudancasRotina}
-                onChange={handleChange}
-                rows="2"
-                disabled={salvando}
-                className="text-input"
-              ></textarea>
-            </div>
-
-            <div className="form-group">
-              <label className="input-label">
-                Há algum som, imagem ou sensação que a criança evita ou tem
-                aversão?
-              </label>
-              <textarea
-                name="somImagemSensacaoAversao"
-                value={formData.somImagemSensacaoAversao}
-                onChange={handleChange}
-                rows="2"
-                disabled={salvando}
-                className="text-input"
-              ></textarea>
-            </div>
-
-            <div className="form-group">
-              <label className="input-label">
-                Descreva uma situação recente em que a criança se desregulou. O
-                que aconteceu antes, durante e depois?
-              </label>
-              <textarea
-                name="situacaoRecenteDesregulacao"
-                value={formData.situacaoRecenteDesregulacao}
-                onChange={handleChange}
-                rows="3"
-                disabled={salvando}
-                className="text-input"
-              ></textarea>
-            </div>
-          </section>
-
-          {/* Seção 3: Estratégias e Apoio */}
-          <section className="form-section">
-            <h2>Seção 3: Estratégias e Apoio</h2>
-            <p className="section-description">
-              Esta seção busca entender quais estratégias funcionam melhor para
-              a criança.
-            </p>
-
-            <div className="form-group">
-              <label className="input-label">
-                Quais são as melhores formas de se comunicar com a criança? (Ex:
-                instruções curtas, apoios visuais, comunicação aumentativa e
-                alternativa, mostrar em vez de falar)
-              </label>
-              <textarea
-                name="melhoresFormasComunicacao"
-                value={formData.melhoresFormasComunicacao}
-                onChange={handleChange}
-                rows="2"
-                disabled={salvando}
-                className="text-input"
-              ></textarea>
-            </div>
-
-            <div className="form-group">
-              <label className="input-label">
-                O que ajuda a criança a se preparar para uma transição ou
-                mudança na rotina? (Ex: aviso prévio, contagem regressiva,
-                rotina visual)
-              </label>
-              <textarea
-                name="ajudaPrepararTransicao"
-                value={formData.ajudaPrepararTransicao}
-                onChange={handleChange}
-                rows="2"
-                disabled={salvando}
-                className="text-input"
-              ></textarea>
-            </div>
-
-            <div className="form-group">
-              <label className="input-label">
-                Existe algum objeto, brinquedo ou atividade que funciona como
-                "porto seguro" para a criança em momentos de estresse ou
-                ansiedade?
-              </label>
-              <textarea
-                name="objetoBrinquedoPortoSeguro"
-                value={formData.objetoBrinquedoPortoSeguro}
-                onChange={handleChange}
-                rows="2"
-                disabled={salvando}
-                className="text-input"
-              ></textarea>
-            </div>
-
-            <div className="form-group">
-              <label className="input-label">
-                Quais estratégias você utiliza para ajudar a criança a se
-                regular? Quais funcionam melhor?
-              </label>
-              <textarea
-                name="estrategiasRegulacao"
-                value={formData.estrategiasRegulacao}
-                onChange={handleChange}
-                rows="2"
-                disabled={salvando}
-                className="text-input"
-              ></textarea>
-            </div>
-
-            <div className="form-group">
-              <label className="input-label">
-                A criança tem alguma preferência em relação a toque (abraços,
-                carinhos) ou espaço personal?
-              </label>
-              <textarea
-                name="preferenciaToqueEspaco"
-                value={formData.preferenciaToqueEspaco}
-                onChange={handleChange}
-                rows="2"
-                disabled={salvando}
-                className="text-input"
-              ></textarea>
-            </div>
-
-            <div className="form-group">
-              <label className="input-label">
-                Há algo mais que você gostaria de adicionar sobre os interesses
-                ou o comportamento da criança que não foi abordado?
-              </label>
-              <textarea
-                name="algoMaisParaAdicionar"
-                value={formData.algoMaisParaAdicionar}
-                onChange={handleChange}
-                rows="3"
-                disabled={salvando}
-                className="text-input"
-              ></textarea>
-            </div>
-          </section>
-
-          <button
-            type="submit"
-            disabled={salvando || !alunoSelecionadoDropdown}
-            className="submit-button"
-          >
-            {salvando ? "Salvando..." : "Salvar Avaliação de Interesses"}
-          </button>
-
-          {/* Botão de Gerar PDF da Avaliação - Agora com a nova função */}
-          {showViewButton && alunoSelecionadoDropdown && (
-            <button
-              type="button"
-              onClick={handleGerarPDFInteresses}
-              className="view-evaluation-button"
-              disabled={salvando || !usuarioLogadoCompleto} // Desabilita se não tiver dados do usuário
-            >
-              Gerar PDF da Avaliação
-            </button>
-          )}
-        </form>
-      )}
-    </div>
-  );
+/* src/styles/AvaliacaoInteressesPage.css */
+
+/* Variáveis CSS para cores e espaçamento */
+:root {
+  --primary-color: #4caf50; /* Verde mais vibrante */
+  --primary-dark: #388e3c;
+  --secondary-color: #2196f3; /* Azul para acentos (mantido, pois só os botões específicos mudam) */
+  --background-light: #f8f9fa; /* Fundo muito claro */
+  --background-card: #ffffff;
+  --text-dark: #343a40;
+  --text-medium: #6c757d;
+  --border-light: #e0e0e0;
+  --shadow-light: rgba(0, 0, 0, 0.08);
+  --success-bg: #d4edda;
+  --success-text: #155724;
+  --error-bg: #f8d7da;
+  --error-text: #721c24;
+
+  /* Cores dos níveis de avaliação (bolinhas) */
+  --nivel-Sim: #4caf50; /* Verde para Sim */
+  --nivel-Não: #e63946; /* Vermelho para Não */
+  --nivel-NA: #adb5bd; /* Cinza para Não Avaliado */
+
+  /* Cores baseadas no NiveisDeAvaliacao.css para consistência */
+  --nivel-nr-base: #e63946;
+  --nivel-af-base: #f4a261;
+  --nivel-ag-base: #e9c46a;
+  --nivel-av-base: #2a9d8f;
+  --nivel-avi-base: #8ecae6;
+  --nivel-i-base: #4caf50;
+  --nivel-na-base: #adb5bd;
+
+  /* NOVO: Cor para títulos e texto forte, baseada no NiveisDeAvaliacao.css */
+  --title-dark-blue: #1d3557;
 }
 
-export default AvaliacaoInteressesPage;
+body {
+  margin: 0;
+  font-family: "Inter", sans-serif, "Segoe UI", Tahoma, Geneva, Verdana;
+  background-color: var(--background-light);
+  color: var(--text-dark);
+  line-height: 1.6;
+}
+
+.avaliacao-container {
+  max-width: 960px; /* Aumenta a largura máxima */
+  margin: 30px auto; /* Mais margem superior/inferior */
+  padding: 35px; /* Mais padding interno */
+  background-color: var(--background-card);
+  border-radius: 12px; /* Cantos mais arredondados */
+  box-shadow: 0 8px 25px var(--shadow-light); /* Sombra mais pronunciada */
+  transition: all 0.3s ease-in-out;
+}
+
+.avaliacao-container.loading,
+.avaliacao-container.error {
+  text-align: center;
+  padding: 60px;
+  font-size: 1.3em;
+  color: var(--text-medium);
+  font-weight: 500;
+}
+
+.avaliacao-container.error {
+  color: var(--error-text);
+  font-weight: bold;
+}
+
+.avaliacao-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid var(--border-light);
+}
+
+.avaliacao-header h1 {
+  flex-grow: 1;
+  font-size: 2.2em;
+  color: var(
+    --title-dark-blue
+  ); /* ALTERADO: Cor do título principal para azul escuro */
+  margin: 0;
+  text-align: center;
+  font-weight: 700;
+}
+
+/* Modificação aqui para o botão VOLTAR */
+.back-button {
+  background-color: #1a237e; /* Azul Escuro */
+  color: white;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1em;
+  font-weight: 600;
+  transition:
+    background-color 0.2s ease,
+    transform 0.1s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+}
+
+.back-button:hover {
+  background-color: #0f165a; /* Tom mais escuro de azul no hover */
+  transform: translateY(-1px);
+}
+
+.back-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.success-message {
+  background-color: var(--success-bg);
+  color: var(--success-text);
+  border: 1px solid #c3e6cb;
+  padding: 12px;
+  margin-bottom: 25px;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: 500;
+}
+
+.error-message {
+  background-color: var(--error-bg);
+  color: var(--error-text);
+  border: 1px solid #f5c6cb;
+  padding: 12px;
+  margin-bottom: 25px;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: 500;
+}
+
+.form-section {
+  background-color: var(--background-light);
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  padding: 30px;
+  margin-bottom: 30px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+.form-section h2 {
+  font-size: 1.8em;
+  color: var(
+    --title-dark-blue
+  ); /* ALTERADO: Cor dos títulos de seção para azul escuro */
+  margin-top: 0;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed var(--border-light);
+  font-weight: 600;
+}
+
+.section-description {
+  font-size: 0.95em;
+  color: var(--text-medium);
+  margin-bottom: 25px;
+}
+
+.form-group {
+  margin-bottom: 25px;
+}
+
+.input-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: var(--text-dark);
+  font-size: 1.05em;
+}
+
+/* Estilos para a label dos campos de texto livre */
+.text-input-label {
+  margin-top: 25px; /* Garante que a label tenha espaço da pergunta anterior */
+  margin-bottom: 10px; /* Espaço entre a label e a caixa de resposta */
+  display: block; /* Garante que a label ocupe sua própria linha */
+  font-weight: 600; /* Deixa a label mais forte */
+  color: var(--text-dark); /* Cor da label */
+  font-size: 1.05em; /* Tamanho da fonte da label */
+}
+
+.text-input {
+  width: 100%;
+  padding: 12px 15px;
+  border-radius: 8px;
+  border: 1px solid #ced4da;
+  font-size: 1em;
+  box-sizing: border-box;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.text-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 0.2rem rgba(76, 175, 80, 0.25);
+  outline: none;
+}
+
+.text-input[disabled] {
+  background-color: #e9ecef;
+  cursor: not-allowed;
+}
+
+/* Estilos para o item de habilidade/pergunta com rádio */
+.habilidade-item-radio {
+  display: flex; /* Permite que o texto e as bolinhas fiquem lado a lado */
+  justify-content: space-between; /* Espaça o texto e as opções de rádio */
+  align-items: center; /* Alinha verticalmente no centro */
+  flex-wrap: wrap; /* Permite quebrar a linha em telas menores */
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-light); /* Linha divisória entre perguntas */
+  margin-bottom: 0;
+}
+
+.habilidade-item-radio:last-of-type {
+  border-bottom: none; /* Remove a borda do último item */
+}
+
+.texto-habilidade {
+  flex: 1 1 65%; /* Ocupa a maior parte do espaço, mas permite que os rádios fiquem ao lado */
+  font-size: 1em;
+  color: var(--text-dark);
+  padding-right: 20px; /* Espaço entre o texto e as bolinhas */
+  white-space: normal; /* Permite quebra de linha no texto */
+  box-sizing: border-box;
+  min-width: 280px; /* Garante que o texto tenha espaço suficiente e não seja cortado */
+  line-height: 1.4;
+}
+
+.niveis-habilidade {
+  display: flex;
+  gap: 5px; /* Espaço entre as bolinhas */
+  flex-wrap: nowrap; /* Impede que as bolinhas quebrem a linha */
+  align-items: center;
+  flex-shrink: 0; /* Impede que o container das bolinhas encolha */
+  flex-basis: auto; /* Deixa o tamanho ser determinado pelo conteúdo */
+}
+
+/* Estilo para cada "bolinha" de nível individual */
+.circulo-nivel {
+  width: 30px; /* Tamanho da bolinha */
+  height: 30px;
+  border-radius: 50%;
+  font-size: 12px; /* Tamanho da fonte do texto (Sim, Não, NA) */
+  font-weight: bold;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6; /* Mais transparente quando não selecionado */
+  cursor: pointer;
+  transition:
+    opacity 0.2s,
+    outline 0.2s,
+    transform 0.2s,
+    box-shadow 0.2s;
+  user-select: none; /* Impede seleção de texto */
+  border: 1px solid rgba(0, 0, 0, 0.1); /* Borda sutil */
+  position: relative; /* Para posicionar o input escondido */
+}
+
+/* Esconde o input de rádio nativo */
+.hidden-radio-input {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  z-index: 1; /* Garante que o input seja clicável sobre o label */
+}
+
+/* Estilo para a bolinha de nível ATIVO (selecionado) */
+.circulo-nivel.ativo {
+  opacity: 1;
+  outline: 2px solid var(--title-dark-blue); /* Borda escura como no NiveisDeAvaliacao.css */
+  transform: scale(1.15); /* Aumenta um pouco quando ativo */
+  box-shadow: 0 0 10px rgba(29, 53, 87, 0.6); /* Sombra mais forte como no NiveisDeAvaliacao.css */
+}
+
+/* Cores específicas para cada nível (Sim, Não, NA) */
+.circulo-nivel.Sim {
+  background-color: var(--nivel-Sim);
+}
+.circulo-nivel.Não {
+  background-color: var(--nivel-Não);
+}
+.circulo-nivel.NA {
+  background-color: var(--nivel-NA);
+}
+
+/* Estilos para o botão de salvar */
+.submit-button {
+  display: block;
+  width: 100%;
+  padding: 18px; /* Botão maior */
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.3em; /* Fonte maior */
+  font-weight: bold;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    transform 0.1s ease,
+    box-shadow 0.2s ease;
+  margin-top: 40px; /* Mais margem superior */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Sombra para o botão */
+}
+
+.submit-button:hover {
+  background-color: var(--primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.25);
+}
+
+.submit-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: translateY(0);
+}
+
+/* Linha divisória mais sutil e moderna */
+hr {
+  border: none;
+  border-top: 1px solid var(--border-light);
+  margin: 40px 0;
+}
+
+/* Estilos para a caixa de resposta descritiva - MAIS DESTAQUE */
+.view-text-response-box {
+  padding: 18px 25px; /* Aumentado o padding para mais "ar" */
+  border: 2px solid var(--secondary-color); /* Borda mais visível, usando a cor azul */
+  border-radius: 12px; /* Cantos arredondados */
+  background-color: #e3f2fd; /* Fundo azul claro para destaque */
+  margin-top: 10px; /* Espaçamento superior */
+  margin-bottom: 30px; /* Espaçamento inferior aumentado para separação */
+  font-size: 1.15rem; /* Fonte ligeiramente maior */
+  line-height: 1.7; /* Espaçamento entre linhas para melhor leitura */
+  color: var(--title-dark-blue); /* Cor de texto alinhada à paleta principal */
+  word-wrap: break-word; /* Garante que o texto longo quebre a linha */
+  white-space: pre-wrap; /* Preserva quebras de linha e espaços do textarea */
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15); /* Sombra mais pronunciada para profundidade */
+  font-weight: 500; /* Um pouco mais de peso na fonte para destaque */
+  transition: all 0.3s ease-in-out; /* Transição suave */
+}
+
+/* Estilos para os círculos de rádio em modo de visualização (apenas o selecionado) */
+.habilidade-item-radio.view-mode {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0; /* Aumentado o padding para mais espaço */
+  border-bottom: 1px dashed var(--border-light); /* Linha tracejada para separar itens */
+  margin-bottom: 5px;
+}
+
+.habilidade-item-radio.view-mode:last-child {
+  border-bottom: none; /* Remove a borda do último item */
+}
+
+.habilidade-item-radio.view-mode .texto-habilidade {
+  flex-grow: 1;
+  font-weight: 500;
+  color: var(--text-dark);
+  padding-right: 20px;
+  white-space: normal;
+  box-sizing: border-box;
+  min-width: 280px;
+  line-height: 1.4;
+}
+
+.habilidade-item-radio.view-mode .niveis-habilidade {
+  display: flex;
+  gap: 8px; /* Espaço entre as bolinhas aumentado */
+  flex-wrap: nowrap;
+  align-items: center;
+  flex-shrink: 0;
+  flex-basis: auto;
+}
+
+.habilidade-item-radio.view-mode .circulo-nivel {
+  width: 35px; /* Tamanho da bolinha */
+  height: 35px;
+  border-radius: 50%;
+  font-size: 0.9em; /* Tamanho da fonte do texto (Sim, Não) */
+  font-weight: bold;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 1; /* Sempre opaco, pois só o selecionado aparece */
+  cursor: default; /* Remove o cursor de ponteiro */
+  transition: all 0.2s ease-in-out;
+  user-select: none;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  position: relative;
+  /* Remove estilos de 'ativo' aqui, pois a bolinha já é a selecionada */
+  outline: 2px solid var(--title-dark-blue);
+  transform: scale(1.15);
+  box-shadow: 0 0 10px rgba(29, 53, 87, 0.6);
+}
+
+/* Cores específicas para cada nível (Sim, Não) em visualização */
+.habilidade-item-radio.view-mode .circulo-nivel.Sim {
+  background-color: var(--nivel-Sim);
+}
+.habilidade-item-radio.view-mode .circulo-nivel.Não {
+  background-color: var(--nivel-Não);
+}
+/* O nível NA não será renderizado por renderRadioResponses nesta versão */
+
+/* Mensagem para quando não há respostas Sim/Não ou campos descritivos vazios */
+.text-gray-500.italic.text-sm {
+  color: var(--text-medium); /* Usando variável para consistência */
+  font-style: italic;
+  font-size: 0.9em; /* Ligeiramente maior para melhor leitura */
+  margin-top: 10px;
+  padding-left: 5px; /* Pequeno padding para alinhar */
+}
+
+/* Modificação aqui para o botão VER AVALIAÇÕES DE INTERESSES */
+.view-all-button {
+  background-color: #1a237e; /* Azul Escuro */
+  color: white;
+  padding: 10px 18px; /* Padding ajustado */
+  border: none;
+  border-radius: 8px;
+  font-weight: 600; /* Semibold */
+  cursor: pointer;
+  transition:
+    background-color 0.3s ease,
+    transform 0.1s ease;
+  margin-left: 15px; /* Espaçamento do botão de voltar */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+}
+
+.view-all-button:hover {
+  background-color: #0f165a; /* Tom mais escuro de azul no hover */
+  transform: translateY(-1px);
+}
+
+.view-all-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: translateY(0);
+}
+
+/* Estilos para o nome do aluno no cabeçalho de visualização */
+.aluno-nome-header {
+  font-size: 1.6em;
+  color: var(--title-dark-blue);
+  text-align: center;
+  margin-bottom: 25px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed var(--border-light);
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .avaliacao-container {
+    padding: 20px;
+    margin: 20px auto;
+  }
+
+  .avaliacao-header {
+    flex-direction: column;
+    text-align: center;
+    gap: 15px;
+  }
+
+  .back-button,
+  .view-all-button {
+    /* Aplica a ambos os botões */
+    margin-right: 0;
+    width: 100%;
+  }
+
+  .avaliacao-header h1 {
+    font-size: 1.8em;
+  }
+
+  .form-section {
+    padding: 20px;
+  }
+
+  .form-section h2 {
+    font-size: 1.5em;
+  }
+
+  .submit-button {
+    font-size: 1.1em;
+    padding: 15px;
+  }
+
+  .habilidade-item-radio {
+    flex-direction: column; /* Empilha texto e bolinhas em telas pequenas */
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .texto-habilidade {
+    width: 100%; /* Ocupa toda a largura */
+    padding-right: 0;
+  }
+
+  .niveis-habilidade {
+    width: 100%; /* Ocupa toda a largura */
+    justify-content: flex-start; /* Alinha as bolinhas à esquerda */
+  }
+
+  .view-text-response-box {
+    padding: 15px 20px; /* Ajuste para telas menores */
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .avaliacao-container {
+    padding: 15px;
+    margin: 10px;
+  }
+
+  .avaliacao-header h1 {
+    font-size: 1.4em;
+  }
+
+  .form-section {
+    padding: 15px;
+  }
+
+  .circulo-nivel {
+    width: 28px; /* Bolinhas um pouco menores em telas muito pequenas */
+    height: 28px;
+    font-size: 0.8em;
+  }
+}

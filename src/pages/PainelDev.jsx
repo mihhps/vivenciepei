@@ -115,12 +115,12 @@ export default function PainelDev() {
 
   const botoes = [
     { label: "Avaliação Inicial", rota: "/avaliacao-inicial" },
-    // ATENÇÃO: Substitua 'SEU_ALUNO_ID_EXISTENTE_AQUI' pelo ID real de um aluno do seu Firestore para testar.
+
     // Para um ambiente de produção, é recomendado usar a rota /selecionar-aluno-para-interesses
     // para que o usuário possa escolher um aluno.
     {
       label: "Avaliação de Interesses",
-      rota: "/nova-avaliacao/SEU_ALUNO_ID_EXISTENTE_AQUI", // Rota atualizada aqui
+      rota: "/nova-avaliacao/Avaliacaointeresses", // Rota atualizada aqui
     },
     { label: "Criar PEI", rota: "/criar-pei" },
     { label: "Anamnese", rota: "/anamnese-completa" },

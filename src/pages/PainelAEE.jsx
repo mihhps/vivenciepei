@@ -11,7 +11,7 @@ export default function PainelAee() {
     if (userData) {
       try {
         const user = JSON.parse(userData);
-        // Adicione um log para ver o perfil original aqui
+        // Adiciona um log para ver o perfil original aqui
         console.log("PainelAEE: Perfil do usuário original:", user.perfil);
 
         setUsuarioLogado(user);
@@ -42,9 +42,8 @@ export default function PainelAee() {
     transition: "background-color 0.3s ease",
   };
 
-  const estiloBotaoHover = {
-    backgroundColor: "#2a9d8f",
-  };
+  // --- ATENÇÃO: SUBSTITUA 'SEU_ALUNO_ID_EXISTENTE_AQUI' PELO ID REAL DE UM ALUNO DO SEU FIRESTORE ---
+  const ID_DE_ALUNO_PARA_TESTE = "Avaliacaointeresses"; // <-- Adicione esta linha com um ID real
 
   return (
     <div
@@ -96,11 +95,30 @@ export default function PainelAee() {
         >
           Avaliação Inicial
         </button>
-        {/* BOTÃO "VER PEIs" REMOVIDO AQUI:
+
+        {/* NOVO BOTÃO: Avaliação de Interesses - MODIFICADO AQUI */}
+        <button
+          style={estiloBotao}
+          onClick={() => navigate(`/nova-avaliacao/${ID_DE_ALUNO_PARA_TESTE}`)}
+          onMouseEnter={(e) =>
+            (e.currentTarget.style.backgroundColor =
+              estiloBotaoHover.backgroundColor)
+          }
+          onMouseLeave={(e) =>
+            (e.currentTarget.style.backgroundColor =
+              estiloBotao.backgroundColor)
+          }
+        >
+          Avaliação de Interesses
+        </button>
+        {/* FIM DO NOVO BOTÃO */}
+
+        {/* BOTÃO "VER PEIs" REINTRODUZIDO AQUI */}
         <button style={estiloBotao} onClick={() => navigate("/ver-peis")}>
           Ver PEIs
         </button>
-        */}
+        {/* FIM DO BOTÃO "VER PEIs" */}
+
         <button style={estiloBotao} onClick={() => navigate("/criar-pei")}>
           Criar PEI
         </button>
@@ -121,7 +139,7 @@ export default function PainelAee() {
         </button>
         <button
           style={estiloBotao}
-          onClick={() => navigate("/vincular-professores")} // Corrigido para /vincular-professores
+          onClick={() => navigate("/vincular-professores")}
         >
           Vincular Professores a Turmas
         </button>

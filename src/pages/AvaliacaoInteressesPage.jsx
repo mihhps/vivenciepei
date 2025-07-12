@@ -11,6 +11,7 @@ import { doc, getDoc, setDoc, collection, getDocs } from "firebase/firestore";
 // Importar o hook useAlunos e o componente SelecaoAluno
 import { useAlunos } from "../hooks/useAlunos";
 import SelecaoAluno from "../components/SelecaoAluno";
+import "../styles/AvaliacaoInteressesPage.css";
 
 // Importar o hook useAuth do seu contexto de autenticação
 import { useAuth } from "../context/AuthContext"; // ASSUMA QUE ESTE HOOK EXISTE E FORNECE userId e isAuthReady
@@ -253,7 +254,7 @@ function AvaliacaoInteressesPage() {
             setShowViewButton(false);
           }
         } else {
-          setErro("Aluno não encontrado no Firebase.");
+          setErro("");
           setAluno(null);
           // Não resetar alunoSelecionadoDropdown aqui, ele deve manter a seleção do dropdown
         }
