@@ -146,10 +146,13 @@ export default function CadastrarProfessor() {
           <option value="LÍNGUA PORTUGUESA">LÍNGUA PORTUGUESA</option>
           <option value="MATEMÁTICA">MATEMÁTICA</option>
           <option value="HISTÓRIA">HISTÓRIA</option>
+          <option value="ARTE">ARTE</option>
           <option value="GEOGRAFIA">GEOGRAFIA</option>
+          <option value="EDUCAÇÃO FÍSICA">EDUCAÇÃO FÍSICA</option>
           <option value="CIÊNCIAS">CIÊNCIAS</option>
           <option value="INGLÊS">INGLÊS</option>
           <option value="ENSINO RELIGIOSO">ENSINO RELIGIOSO</option>
+          <option value="CONTAÇÃO DE HISTÓRIAS">CONTAÇÃO DE HISTÓRIAS</option>
           <option value="COMUNICAÇÃO E LINGUAGEM">
             COMUNICAÇÃO E LINGUAGEM
           </option>
