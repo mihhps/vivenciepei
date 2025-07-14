@@ -129,14 +129,13 @@ const buildNewPeiFromAssessment = (
       }
       Object.entries(habilidadesAvaliacao).forEach(
         ([habilidade, nivelAtual]) => {
-          // --- MUDANÇA AQUI: Ignorar se o nível atual já é "I" (Independente) ---
+          // --- Ignorar se o nível atual já é "I" (Independente) ---
           if (nivelAtual === "I") {
             console.log(
               `Habilidade '${habilidade}' está no nível 'I' (Independente). Não será gerada meta de PEI.`
             );
             return; // Pula esta habilidade e vai para a próxima
           }
-          // --- FIM DA MUDANÇA ---
 
           if (nivelAtual === "NA") return;
 
@@ -144,8 +143,6 @@ const buildNewPeiFromAssessment = (
           let nivelAlmejado = nivelAtual;
           let suggestedObjectiveAndStrategies = null;
 
-          // A lógica abaixo para "I" dentro do if/else if original pode ser simplificada
-          // já que o 'return' acima já lida com 'nivelAtual === "I"'.
           if (
             currentIndex !== -1 &&
             currentIndex < NIVEIS_PROGRESSAO.length - 1
@@ -171,7 +168,8 @@ const buildNewPeiFromAssessment = (
             return;
           }
 
-          // FILTRAR OBJETIVOS (se for um PEI subsequente e objetivo já foi usado no primeiro PEI)
+          // FILTRAR OBJETIVOS: Se objetivosPrimeiroPEI tem itens (indicando que é um PEI subsequente),
+          // e o objetivo sugerido NÃO está nesse set, ele é ignorado.
           if (
             objetivosPrimeiroPEI.size > 0 &&
             !objetivosPrimeiroPEI.has(suggestedObjectiveAndStrategies.objetivo)
@@ -228,7 +226,7 @@ const loadExistingPeiData = (
   const activityAppliedExisting = peiExistingData.atividadeAplicada || "";
 
   // Determina se o usuário atual é o criador do PEI carregado AQUI
-  const isCurrentUserThePEICreator = userEmail === criadorPEIId;
+  const isCurrentUserThePEICreater = userEmail === criadorPEIId;
 
   resumoPEIExisting.forEach((meta) => {
     if (!mountedPei[meta.area]) mountedPei[meta.area] = [];
@@ -257,7 +255,7 @@ const loadExistingPeiData = (
     // ESTRATÉGIAS SUGERIDAS QUE AINDA NÃO FORAM SALVAS:
     // Se o usuário ATUAL É o criador, ele vê TODAS as sugeridas.
     // Se o usuário ATUAL NÃO É o criador, ele vê apenas as que NÃO FORAM SALVAS AINDA.
-    const availableSuggestedStrategies = isCurrentUserThePEICreator
+    const availableSuggestedStrategies = isCurrentUserThePEICreater
       ? suggestedStrategiesFromMap
       : suggestedStrategiesFromMap.filter(
           (sug) => !selectedSuggestedFromSaved.includes(sug)
@@ -594,11 +592,9 @@ export default function CriarPEI() {
           }
 
           // AQUI ESTÁ A MUDANÇA MAIS IMPORTANTE PARA O FILTRO DE OBJETIVOS E ESTRATÉGIAS:
-          // Determina se os objetivos devem ser filtrados pelo primeiro PEI (apenas se for "outro professor")
-          const deveFiltrarObjetivosPeloPrimeiroPEI =
-            alunoJaTemQualquerPei && !podeIniciarPrimeiroPEI;
-
-          const objetivosParaFiltrarBuild = deveFiltrarObjetivosPeloPrimeiroPEI
+          // A lógica para filtrar objetivos pelo primeiro PEI deve ser aplicada
+          // SEMPRE que o aluno JÁ TIVER QUALQUER PEI, independentemente do cargo do usuário atual.
+          const objetivosParaFiltrarBuild = alunoJaTemQualquerPei
             ? objetivosDoPrimeiroPEISet // Passa os objetivos do primeiro PEI para filtrar
             : new Set(); // Se não, passa um Set vazio (não filtra)
 
@@ -615,9 +611,11 @@ export default function CriarPEI() {
           );
 
           if (isNewPeiEmpty) {
-            // Removida a condição `deveFiltrarObjetivosPeloPrimeiroPEI` daqui, pois a verificação `isNewPeiEmpty` já é suficiente.
             let errorMessageDetail = "";
-            if (deveFiltrarObjetivosPeloPrimeiroPEI) {
+            // A mensagem de erro pode ser mais genérica ou específica, dependendo do contexto.
+            // Se o aluno já tem PEI, a filtragem pode ter removido tudo.
+            if (alunoJaTemQualquerPei) {
+              // Use alunoJaTemQualquerPei aqui para a mensagem
               errorMessageDetail =
                 "Os objetivos sugeridos para este aluno já foram abordados no PEI inicial ou não se aplicam ao seu nível, e/ou todas as estratégias disponíveis já estão em uso.";
             } else {
