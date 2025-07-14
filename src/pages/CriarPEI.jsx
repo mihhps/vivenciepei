@@ -129,17 +129,24 @@ const buildNewPeiFromAssessment = (
       }
       Object.entries(habilidadesAvaliacao).forEach(
         ([habilidade, nivelAtual]) => {
+          // --- MUDANÇA AQUI: Ignorar se o nível atual já é "I" (Independente) ---
+          if (nivelAtual === "I") {
+            console.log(
+              `Habilidade '${habilidade}' está no nível 'I' (Independente). Não será gerada meta de PEI.`
+            );
+            return; // Pula esta habilidade e vai para a próxima
+          }
+          // --- FIM DA MUDANÇA ---
+
           if (nivelAtual === "NA") return;
 
           const currentIndex = NIVEIS_PROGRESSAO.indexOf(nivelAtual);
           let nivelAlmejado = nivelAtual;
           let suggestedObjectiveAndStrategies = null;
 
-          if (nivelAtual === "I") {
-            nivelAlmejado = nivelAtual;
-            suggestedObjectiveAndStrategies =
-              estruturaPEIMap[habilidade]?.[nivelAlmejado];
-          } else if (
+          // A lógica abaixo para "I" dentro do if/else if original pode ser simplificada
+          // já que o 'return' acima já lida com 'nivelAtual === "I"'.
+          if (
             currentIndex !== -1 &&
             currentIndex < NIVEIS_PROGRESSAO.length - 1
           ) {
@@ -378,7 +385,7 @@ export default function CriarPEI() {
         perfil === "desenvolvedor"; // Professores Regentes/Suporte não veem todos, só os da sua turma/escola
 
       if (!podeVerTodosAlunosNoSistema) {
-        alunosFiltradosParaExibir = todosAlunos.filter((aluno) =>
+        alunosFiltradosParaExibir = alunosFiltradosParaExibir.filter((aluno) =>
           turmasVinculadas.includes(aluno.turma)
         );
       }
@@ -567,9 +574,17 @@ export default function CriarPEI() {
 
           // Se chegou até aqui, o usuário PODE CRIAR UM NOVO PEI (DELE).
           // Agora, precisamos da Avaliação Inicial.
-          const assessment = avaliacoes.find(
-            (a) => a.aluno.trim().toLowerCase() === nome.trim().toLowerCase()
-          );
+          const assessment = avaliacoes.find((a) => {
+            // CORREÇÃO AQUI: Lidar com 'a.aluno' que pode ser objeto ou string
+            const nomeAvaliacao =
+              typeof a.aluno === "object" && a.aluno !== null && a.aluno.nome
+                ? a.aluno.nome
+                : a.aluno;
+            return (
+              String(nomeAvaliacao).trim().toLowerCase() ===
+              nome.trim().toLowerCase()
+            );
+          });
 
           if (!assessment) {
             exibirMensagem("erro", "Este aluno não possui avaliação inicial.");

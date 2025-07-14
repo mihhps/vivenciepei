@@ -14,7 +14,7 @@ import {
   limit,
 } from "firebase/firestore";
 import {
-  fetchAvaliacaoInteresses, // Importação necessária para buscar a avaliação de interesses
+  fetchAvaliacaoInteresses,
   fetchAlunoById,
   fetchPeisByAluno,
 } from "../utils/firebaseUtils";
@@ -53,6 +53,18 @@ function formatarDataSegura(data) {
   }
 }
 
+// Movendo removerAcentosLocal para fora do componente para ser globalmente acessível e reutilizável
+// E adicionando verificação de tipo para evitar o erro de 'normalize'
+const removerAcentosLocal = (str) => {
+  // Garante que 'str' é uma string antes de chamar métodos de string
+  const safeStr = typeof str === "string" ? str : "";
+  return safeStr
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+};
+
 export default function VerPEIs() {
   const navigate = useNavigate();
   const usuarioLogado = useMemo(() => {
@@ -83,7 +95,6 @@ export default function VerPEIs() {
   const [erro, setErro] = useState(null);
   const [avaliacoesIniciais, setAvaliacoesIniciais] = useState({});
 
-  // MUDANÇA AQUI: perfisComAcessoAmplo como useMemo no nível superior
   const perfisComAcessoAmplo = useMemo(
     () => ["desenvolvedor", "seme", "gestao", "aee"],
     []
@@ -118,18 +129,25 @@ export default function VerPEIs() {
       ]);
 
       const todasAvaliacoes = {};
-      const removerAcentosLocal = (str) =>
-        str
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "")
-          .toLowerCase()
-          .trim();
 
       avaliacoesSnapshot.docs.forEach((doc) => {
         const data = doc.data();
-        if (data.aluno) {
-          todasAvaliacoes[removerAcentosLocal(data.aluno)] = data;
+        let nomeAlunoAvaliacao = "";
+
+        // --- CORREÇÃO AQUI (Linha 128-131 do seu log) ---
+        // Verifica se data.aluno é um objeto com a propriedade 'nome', senão usa data.aluno diretamente.
+        if (
+          typeof data.aluno === "object" &&
+          data.aluno !== null &&
+          typeof data.aluno.nome === "string"
+        ) {
+          nomeAlunoAvaliacao = data.aluno.nome;
+        } else if (typeof data.aluno === "string") {
+          nomeAlunoAvaliacao = data.aluno;
         }
+        // Se 'nomeAlunoAvaliacao' ainda for vazia, significa que 'data.aluno' não estava no formato esperado.
+        // O `removerAcentosLocal` já lida com strings vazias.
+        todasAvaliacoes[removerAcentosLocal(nomeAlunoAvaliacao)] = data;
       });
       setAvaliacoesIniciais(todasAvaliacoes);
 
@@ -160,7 +178,6 @@ export default function VerPEIs() {
         ...doc.data(),
       }));
 
-      // perfisComAcessoAmplo agora vem do useMemo acima, está disponível aqui
       if (perfisComAcessoAmplo.includes(tipo)) {
         console.log(`Caminho principal: Perfil com acesso amplo (${tipo}).`);
         if (usuarioLogado.escolasVinculadasIds.length > 0) {
@@ -257,7 +274,7 @@ export default function VerPEIs() {
     } finally {
       setCarregando(false);
     }
-  }, [abaAtiva, filtroUsuario, tipo, usuarioLogado, perfisComAcessoAmplo]); // Adicionado perfisComAcessoAmplo nas dependências
+  }, [abaAtiva, filtroUsuario, tipo, usuarioLogado, perfisComAcessoAmplo]);
 
   useEffect(() => {
     carregarDados();
@@ -286,14 +303,15 @@ export default function VerPEIs() {
     );
 
     try {
-      const removerAcentosLocal = (str) =>
-        str
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "")
-          .toLowerCase()
-          .trim();
+      // CORREÇÃO AQUI TAMBÉM: Garante que pei.aluno é string antes de normalizar
+      const nomeAlunoPei = removerAcentosLocal(
+        typeof pei.aluno === "object" &&
+          pei.aluno !== null &&
+          typeof pei.aluno.nome === "string"
+          ? pei.aluno.nome
+          : pei.aluno // Se não for objeto com nome, usa pei.aluno diretamente
+      );
 
-      const nomeAlunoPei = removerAcentosLocal(pei.aluno);
       console.log(
         "Nome do aluno (normalizado) para busca de avaliação:",
         nomeAlunoPei
@@ -343,13 +361,11 @@ export default function VerPEIs() {
         return;
       }
 
-      // --- INÍCIO DA CORREÇÃO: BUSCAR E PASSAR A AVALIAÇÃO DE INTERESSES ---
       let avaliacaoInteressesData = null;
       try {
         console.log(
           `[PDF_DEBUG] Buscando avaliação de interesses para alunoId: ${alunoCompleto.id} e userId: ${usuarioLogado.id}`
         );
-        // AQUI ESTÁ A CORREÇÃO: Passando usuarioLogado.id como segundo argumento
         const interessesDoc = await fetchAvaliacaoInteresses(
           alunoCompleto.id,
           usuarioLogado.id
@@ -367,9 +383,7 @@ export default function VerPEIs() {
         }
       } catch (err) {
         console.error("Erro ao buscar avaliação de interesses:", err);
-        // Continua mesmo com erro, o PDF será gerado sem a seção de interesses
       }
-      // --- FIM DA CORREÇÃO ---
 
       console.log(
         "Chamando gerarPDFCompleto com alunoCompleto (individual PEI):",
@@ -380,10 +394,8 @@ export default function VerPEIs() {
         alunoCompleto,
         avaliacao,
         usuarioLogado,
-        // Passando um array vazio de PEIs, pois a função gerarPDFCompleto buscará os PEIs internamente
-        // para garantir que todos os PEIs do aluno sejam incluídos, e não apenas o 'pei' individual do botão.
         [],
-        avaliacaoInteressesData // <--- AQUI ESTÁ A AVALIAÇÃO DE INTERESSES AGORA!
+        avaliacaoInteressesData
       );
       console.log("--- DEBUG handleGerarPDF END ---");
     } catch (error) {
@@ -423,9 +435,7 @@ export default function VerPEIs() {
         <BotaoVoltar />
         <h2 style={estilos.titulo}>PEIs por Aluno</h2>
 
-        {/* REINTRODUZIDO: Seção de filtro por professor, AGORA FILTRADO POR ESCOLAS */}
-        {/* Renderiza o filtro de professor apenas se for gestao, aee, desenvolvedor ou seme */}
-        {perfisComAcessoAmplo.includes(tipo) && ( // Apenas Dev, SEME, Gestao, AEE podem ver o filtro
+        {perfisComAcessoAmplo.includes(tipo) && (
           <div style={estilos.filtroContainer}>
             <label htmlFor="filtroUsuario" style={estilos.filtroLabel}>
               Filtrar por professor:
@@ -437,15 +447,11 @@ export default function VerPEIs() {
               style={estilos.filtroSelect}
             >
               <option value="">Todos os professores</option>
-              {usuarios.map(
-                (
-                  u // 'usuarios' já está filtrado por escola
-                ) => (
-                  <option key={u.id} value={u.email}>
-                    {u.nome}
-                  </option>
-                )
-              )}
+              {usuarios.map((u) => (
+                <option key={u.id} value={u.email}>
+                  {u.nome}
+                </option>
+              ))}
             </select>
           </div>
         )}
@@ -528,15 +534,33 @@ export default function VerPEIs() {
                               </p>
 
                               {(() => {
+                                // Essa função removerAcentosInner será usada apenas aqui.
+                                // Já temos uma globalizada 'removerAcentosLocal' acima.
+                                // Poderia ser removida ou renomeada para evitar confusão.
                                 const removerAcentosInner = (str) =>
-                                  str
+                                  String(str) // Garante que é string
                                     .normalize("NFD")
                                     .replace(/[\u0300-\u036f]/g, "")
                                     .toLowerCase()
                                     .trim();
+
+                                let nomeAlunoPeiParaAvaliacao = "";
+                                // --- CORREÇÃO AQUI também para pegar nome do aluno do PEI ---
+                                if (
+                                  typeof pei.aluno === "object" &&
+                                  pei.aluno !== null &&
+                                  typeof pei.aluno.nome === "string"
+                                ) {
+                                  nomeAlunoPeiParaAvaliacao = pei.aluno.nome;
+                                } else if (typeof pei.aluno === "string") {
+                                  nomeAlunoPeiParaAvaliacao = pei.aluno;
+                                }
+
                                 const avaliacao =
                                   avaliacoesIniciais[
-                                    removerAcentosInner(pei.aluno)
+                                    removerAcentosInner(
+                                      nomeAlunoPeiParaAvaliacao
+                                    )
                                   ];
                                 const dataInicial = formatarDataSegura(
                                   avaliacao?.inicio
@@ -627,13 +651,7 @@ export default function VerPEIs() {
                                 return;
                               }
 
-                              const removerAcentosLocal = (str) =>
-                                str
-                                  .normalize("NFD")
-                                  .replace(/[\u0300-\u036f]/g, "")
-                                  .toLowerCase()
-                                  .trim();
-
+                              // CORREÇÃO AQUI: Garante que alunoDaAba.nome é string antes de normalizar
                               const nomeAlunoParaPDF = removerAcentosLocal(
                                 alunoDaAba.nome
                               );
@@ -648,13 +666,11 @@ export default function VerPEIs() {
                                 return;
                               }
 
-                              // --- INÍCIO DA CORREÇÃO: BUSCAR E PASSAR A AVALIAÇÃO DE INTERESSES ---
                               let avaliacaoInteressesData = null;
                               try {
                                 console.log(
                                   `[PDF_DEBUG] Buscando avaliação de interesses para alunoId: ${alunoDaAba.id} e userId: ${usuarioLogado.id}`
                                 );
-                                // AQUI ESTÁ A CORREÇÃO: Passando usuarioLogado.id como segundo argumento
                                 const interessesDoc =
                                   await fetchAvaliacaoInteresses(
                                     alunoDaAba.id,
@@ -680,16 +696,14 @@ export default function VerPEIs() {
                                   "Erro ao buscar avaliação de interesses:",
                                   err
                                 );
-                                // Continua mesmo com erro, o PDF será gerado sem a seção de interesses
                               }
-                              // --- FIM DA CORREÇÃO ---
 
                               await gerarPDFCompleto(
                                 alunoDaAba,
                                 avaliacaoDoAluno,
                                 usuarioLogado,
                                 peisDoAlunoParaPDF,
-                                avaliacaoInteressesData // <--- AQUI ESTÁ A AVALIAÇÃO DE INTERESSES AGORA!
+                                avaliacaoInteressesData
                               );
                             } catch (erro) {
                               console.error("Erro ao gerar PDF:", erro);

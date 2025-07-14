@@ -11,9 +11,7 @@ export default function PainelAee() {
     if (userData) {
       try {
         const user = JSON.parse(userData);
-        // Adiciona um log para ver o perfil original aqui
         console.log("PainelAEE: Perfil do usuário original:", user.perfil);
-
         setUsuarioLogado(user);
       } catch (e) {
         console.error("Erro ao parsear dados do usuário logado:", e);
@@ -22,10 +20,7 @@ export default function PainelAee() {
     }
   }, []);
 
-  // Define os perfis que podem ver o botão de acompanhamento (já estão em minúsculas)
   const perfisComAcessoAcompanhamento = ["gestao", "seme", "aee"];
-
-  // **ADICIONE ESTA LINHA para padronizar o perfil do usuário logado**
   const perfilUsuarioFormatado = usuarioLogado?.perfil?.toLowerCase();
 
   const estiloBotao = {
@@ -42,8 +37,13 @@ export default function PainelAee() {
     transition: "background-color 0.3s ease",
   };
 
-  // --- ATENÇÃO: SUBSTITUA 'SEU_ALUNO_ID_EXISTENTE_AQUI' PELO ID REAL DE UM ALUNO DO SEU FIRESTORE ---
-  const ID_DE_ALUNO_PARA_TESTE = "Avaliacaointeresses"; // <-- Adicione esta linha com um ID real
+  // --- DEFINIÇÃO DE estiloBotaoHover AQUI ---
+  const estiloBotaoHover = {
+    backgroundColor: "#457b9d", // Uma cor diferente para o hover
+  };
+  // --- FIM DA DEFINIÇÃO ---
+
+  const ID_DE_ALUNO_PARA_TESTE = "Avaliacaointeresses"; // Use um ID real de aluno
 
   return (
     <div
@@ -96,7 +96,7 @@ export default function PainelAee() {
           Avaliação Inicial
         </button>
 
-        {/* NOVO BOTÃO: Avaliação de Interesses - MODIFICADO AQUI */}
+        {/* NOVO BOTÃO: Avaliação de Interesses */}
         <button
           style={estiloBotao}
           onClick={() => navigate(`/nova-avaliacao/${ID_DE_ALUNO_PARA_TESTE}`)}
@@ -151,7 +151,6 @@ export default function PainelAee() {
         </button>
 
         {/* --- NOVO BOTÃO: Acompanhamento de Prazos PEI --- */}
-        {/* Renderiza o botão apenas se o perfil do usuário (formatado) estiver na lista de perfis permitidos */}
         {usuarioLogado &&
           perfisComAcessoAcompanhamento.includes(perfilUsuarioFormatado) && (
             <button

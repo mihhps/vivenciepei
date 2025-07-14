@@ -1,6 +1,15 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-// Importe seu serviço de dados (Firebase, API, etc.)
-// import { getAvaliacao, saveAvaliacao } from "../services/avaliacaoService"; // Exemplo
+import { db } from "../firebase";
+import {
+  collection,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
 
 export function useAvaliacaoForm(alunos) {
   const [alunoSelecionado, setAlunoSelecionado] = useState(null);
@@ -15,6 +24,9 @@ export function useAvaliacaoForm(alunos) {
     erro: null,
     sucesso: null,
   });
+
+  // ID do documento da avaliação atual no Firestore, se existir
+  const [avaliacaoDocId, setAvaliacaoDocId] = useState(null);
 
   const avaliacaoExiste = useMemo(() => {
     return (
@@ -36,13 +48,14 @@ export function useAvaliacaoForm(alunos) {
     return "";
   }, [alunoSelecionado]);
 
-  // Função para carregar a avaliação do aluno
-  const carregarAvaliacaoDoAluno = useCallback(async (alunoNome) => {
-    if (!alunoNome) {
+  // Função para carregar a avaliação do aluno do Firestore
+  const carregarAvaliacaoDoAluno = useCallback(async (alunoId) => {
+    if (!alunoId) {
       setRespostas({});
       setObservacoes({});
       setInicio("");
       setProximaAvaliacao("");
+      setAvaliacaoDocId(null);
       return;
     }
 
@@ -53,22 +66,22 @@ export function useAvaliacaoForm(alunos) {
       sucesso: null,
     }));
     try {
-      const avaliacoesSalvas =
-        JSON.parse(localStorage.getItem("avaliacoes")) || [];
-      const avaliacaoEncontrada = avaliacoesSalvas.find(
-        (a) => a.aluno.nome === alunoNome
-      );
+      // APONTANDO PARA 'avaliacoesIniciais'
+      const avaliacoesRef = collection(db, "avaliacoesIniciais");
+      const q = query(avaliacoesRef, where("aluno.id", "==", alunoId));
+      const querySnapshot = await getDocs(q);
 
-      if (avaliacaoEncontrada) {
-        // --- INÍCIO DA CORREÇÃO ---
-        // Lógica para garantir que as datas sejam strings YYYY-MM-DD
+      if (!querySnapshot.empty) {
+        const docSnap = querySnapshot.docs[0];
+        const avaliacaoEncontrada = docSnap.data();
+        setAvaliacaoDocId(docSnap.id);
+
         let loadedInicio = avaliacaoEncontrada.inicio;
         let loadedProximaAvaliacao = avaliacaoEncontrada.proximaAvaliacao;
 
         let formattedInicio = "";
         let formattedProximaAvaliacao = "";
 
-        // Tenta converter de objeto Firebase Timestamp-like para string
         if (
           loadedInicio &&
           typeof loadedInicio === "object" &&
@@ -78,10 +91,8 @@ export function useAvaliacaoForm(alunos) {
             .toISOString()
             .split("T")[0];
         } else if (loadedInicio instanceof Date) {
-          // Se for um objeto Date JS
           formattedInicio = loadedInicio.toISOString().split("T")[0];
         } else if (typeof loadedInicio === "string") {
-          // Se já for uma string (esperado)
           formattedInicio = loadedInicio;
         }
 
@@ -102,7 +113,6 @@ export function useAvaliacaoForm(alunos) {
         } else if (typeof loadedProximaAvaliacao === "string") {
           formattedProximaAvaliacao = loadedProximaAvaliacao;
         }
-        // --- FIM DA CORREÇÃO ---
 
         setInicio(formattedInicio);
         setProximaAvaliacao(formattedProximaAvaliacao);
@@ -113,14 +123,16 @@ export function useAvaliacaoForm(alunos) {
         setObservacoes({});
         setInicio("");
         setProximaAvaliacao("");
+        setAvaliacaoDocId(null);
       }
+
       setEstado((prev) => ({
         ...prev,
         carregandoAvaliacao: false,
         sucesso: null,
       }));
     } catch (error) {
-      console.error("Erro ao carregar avaliação:", error);
+      console.error("Erro ao carregar avaliação do Firestore:", error);
       setEstado((prev) => ({
         ...prev,
         carregandoAvaliacao: false,
@@ -129,23 +141,25 @@ export function useAvaliacaoForm(alunos) {
     }
   }, []);
 
-  // Handler para selecionar o aluno
   const handleSelecionarAluno = useCallback(
     async (alunoNome) => {
       const aluno = alunos.find((a) => a.nome === alunoNome);
       setAlunoSelecionado(aluno || null);
-      await carregarAvaliacaoDoAluno(alunoNome);
+      if (aluno) {
+        await carregarAvaliacaoDoAluno(aluno.id);
+      } else {
+        await carregarAvaliacaoDoAluno(null);
+      }
     },
     [alunos, carregarAvaliacaoDoAluno]
   );
 
-  // Handler para salvar a avaliação
   const handleSalvar = useCallback(
     async (usuarioLogado) => {
       if (!alunoSelecionado || !inicio || !proximaAvaliacao) {
         setEstado((prev) => ({
           ...prev,
-          erro: "Por favor, preencha todos os campos e selecione um aluno.",
+          erro: "Por favor, preencha as datas e selecione um aluno.",
         }));
         return false;
       }
@@ -157,28 +171,35 @@ export function useAvaliacaoForm(alunos) {
         sucesso: null,
       }));
       try {
-        const novaAvaliacao = {
-          id: alunoSelecionado.id, // Ou um ID gerado
-          aluno: alunoSelecionado,
-          inicio, // Já é uma string YYYY-MM-DD
-          proximaAvaliacao, // Já é uma string YYYY-MM-DD
+        const dadosAvaliacao = {
+          aluno: {
+            id: alunoSelecionado.id,
+            nome: alunoSelecionado.nome,
+          },
+          inicio,
+          proximaAvaliacao,
           respostas,
           observacoes,
           criadoPor: usuarioLogado.nome,
-          dataCriacao: new Date().toISOString(),
+          dataUltimaAtualizacao: new Date().toISOString(),
         };
 
-        let avaliacoes = JSON.parse(localStorage.getItem("avaliacoes")) || [];
-        const index = avaliacoes.findIndex(
-          (a) => a.aluno.nome === alunoSelecionado.nome
-        );
+        // SALVANDO APENAS NA COLEÇÃO 'avaliacoesIniciais'
+        const avaliacoesRef = collection(db, "avaliacoesIniciais");
 
-        if (index > -1) {
-          avaliacoes[index] = novaAvaliacao;
+        if (avaliacaoDocId) {
+          const docRef = doc(db, "avaliacoesIniciais", avaliacaoDocId);
+          await updateDoc(docRef, dadosAvaliacao);
+          console.log("Avaliação atualizada com sucesso! ID:", avaliacaoDocId);
         } else {
-          avaliacoes.push(novaAvaliacao);
+          const newDocRef = doc(avaliacoesRef);
+          await setDoc(newDocRef, {
+            ...dadosAvaliacao,
+            dataCriacao: new Date().toISOString(),
+          });
+          setAvaliacaoDocId(newDocRef.id);
+          console.log("Nova avaliação salva com sucesso! ID:", newDocRef.id);
         }
-        localStorage.setItem("avaliacoes", JSON.stringify(avaliacoes));
 
         setEstado((prev) => ({
           ...prev,
@@ -188,16 +209,23 @@ export function useAvaliacaoForm(alunos) {
         }));
         return true;
       } catch (error) {
-        console.error("Erro ao salvar avaliação:", error);
+        console.error("Erro ao salvar avaliação no Firestore:", error);
         setEstado((prev) => ({
           ...prev,
           salvando: false,
-          erro: "Erro ao salvar avaliação. Tente novamente.",
+          erro: "Erro ao salvar avaliação. Verifique suas permissões do Firestore.",
         }));
         return false;
       }
     },
-    [alunoSelecionado, inicio, proximaAvaliacao, respostas, observacoes]
+    [
+      alunoSelecionado,
+      inicio,
+      proximaAvaliacao,
+      respostas,
+      observacoes,
+      avaliacaoDocId,
+    ]
   );
 
   return {

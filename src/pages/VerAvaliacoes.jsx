@@ -1,4 +1,3 @@
-// src/pages/VerAvaliacoes.jsx
 import React, { useEffect, useState } from "react";
 import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
@@ -11,32 +10,49 @@ function VerAvaliacoes() {
   const [usuarios, setUsuarios] = useState([]);
   const navigate = useNavigate();
 
-  // ======================= CORREÇÃO APLICADA AQUI =======================
-  // Tornamos a leitura do localStorage segura.
-  // Se não houver usuário, ele usa um objeto vazio '{}' como padrão, evitando o erro.
   const usuarioLogado = JSON.parse(
     localStorage.getItem("usuarioLogado") || "{}"
   );
   const perfil = usuarioLogado.perfil;
-  // ======================================================================
 
   useEffect(() => {
     const carregarDados = async () => {
       try {
-        const [avaliacoesSnap, alunosSnap, usuariosSnap] = await Promise.all([
-          getDocs(collection(db, "avaliacoesIniciais")),
+        const [
+          avaliacoesIniciaisSnap,
+          avaliacoesNovasSnap,
+          alunosSnap,
+          usuariosSnap,
+        ] = await Promise.all([
+          getDocs(collection(db, "avaliacoesIniciais")), // Leitura da coleção antiga
+          getDocs(collection(db, "avaliacoes")), // Leitura da coleção nova
           getDocs(collection(db, "alunos")),
           getDocs(collection(db, "usuarios")),
         ]);
 
-        const listaAvaliacoes = avaliacoesSnap.docs.map((doc) => ({
+        const listaAvaliacoesIniciais = avaliacoesIniciaisSnap.docs.map(
+          (doc) => ({
+            id: doc.id,
+            tipo: "inicial", // Adiciona um campo para identificar a origem
+            ...doc.data(),
+          })
+        );
+
+        const listaAvaliacoesNovas = avaliacoesNovasSnap.docs.map((doc) => ({
           id: doc.id,
+          tipo: "nova", // Adiciona um campo para identificar a origem
           ...doc.data(),
         }));
+
+        const todasAsAvaliacoes = [
+          ...listaAvaliacoesIniciais,
+          ...listaAvaliacoesNovas,
+        ];
+
         const listaAlunos = alunosSnap.docs.map((doc) => doc.data());
         const listaUsuarios = usuariosSnap.docs.map((doc) => doc.data());
 
-        setAvaliacoes(listaAvaliacoes);
+        setAvaliacoes(todasAsAvaliacoes);
         setAlunos(listaAlunos);
         setUsuarios(listaUsuarios);
       } catch (erro) {
@@ -46,13 +62,15 @@ function VerAvaliacoes() {
     };
 
     carregarDados();
-  }, []);
+  }, []); // Dependências vazias para carregar uma vez ao montar
 
-  const excluirAvaliacao = async (id) => {
+  const excluirAvaliacao = async (id, tipo) => {
     if (!window.confirm("Tem certeza que deseja excluir esta avaliação?"))
       return;
     try {
-      await deleteDoc(doc(db, "avaliacoesIniciais", id));
+      const colecaoParaExcluir =
+        tipo === "inicial" ? "avaliacoesIniciais" : "avaliacoes";
+      await deleteDoc(doc(db, colecaoParaExcluir, id));
       setAvaliacoes((prev) => prev.filter((a) => a.id !== id));
     } catch (erro) {
       console.error("Erro ao excluir:", erro);
@@ -64,19 +82,29 @@ function VerAvaliacoes() {
     <div style={estilos.container}>
       <div style={estilos.card}>
         <BotaoVoltar destino="/avaliacao-inicial" />
-        <h2 style={estilos.titulo}>Avaliações Iniciais</h2>
+        <h2 style={estilos.titulo}>Avaliações Registradas</h2>
 
         <table style={estilos.tabela}>
           <thead>
             <tr>
               <th style={estilos.th}>Aluno</th>
+              <th style={estilos.th}>Tipo</th>
               <th style={estilos.th}>Ações</th>
             </tr>
           </thead>
           <tbody>
             {avaliacoes.map((a) => (
               <tr key={a.id}>
-                <td style={estilos.td}>{a.aluno}</td>
+                {/* Lógica para lidar com 'aluno' sendo objeto ou string */}
+                <td style={estilos.td}>
+                  {typeof a.aluno === "object" && a.aluno !== null
+                    ? a.aluno.nome // Se for um objeto com 'nome'
+                    : a.aluno || "Aluno Desconhecido"}{" "}
+                  {/* Se for string ou nulo/indefinido */}
+                </td>
+                <td style={estilos.td}>
+                  {a.tipo === "inicial" ? "Inicial" : "Nova"}
+                </td>
                 <td style={estilos.td}>
                   <button
                     onClick={() => navigate(`/avaliacao/${a.id}`)}
@@ -84,7 +112,6 @@ function VerAvaliacoes() {
                   >
                     Visualizar
                   </button>
-                  {/* A verificação de perfil agora é segura */}
                   {(perfil === "gestao" || perfil === "aee") && (
                     <>
                       <button
@@ -94,7 +121,7 @@ function VerAvaliacoes() {
                         Editar
                       </button>
                       <button
-                        onClick={() => excluirAvaliacao(a.id)}
+                        onClick={() => excluirAvaliacao(a.id, a.tipo)}
                         style={estilos.botaoExcluir}
                       >
                         Excluir
