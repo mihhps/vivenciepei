@@ -994,7 +994,7 @@ function addAvaliacaoInteressesSection(doc, avaliacaoInteressesData, y) {
   );
   addTextQuestionTable("Outros sinais", avaliacaoInteressesData.outrosSinais);
   addRadioQuestionTable(
-    "Situacoes de Desregulacao",
+    "Situações de Desregulação",
     "situacoesDesregulacao",
     SITUACOES_DESREGULACAO_LIST
   );
