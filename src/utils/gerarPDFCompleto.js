@@ -9,17 +9,21 @@ import {
   getDoc,
   orderBy,
 } from "firebase/firestore";
-import { db } from "../firebase"; // Certifique-se de que este caminho está correto para seu projeto
+import { db } from "../firebase";
+
+// Importa a função centralizada!
+import { fetchAvaliacaoInteresses } from "./firebaseUtils";
 
 // --- Constantes e Estilos ---
 const styles = {
-  font: "times",
+  font: "times", // Fonte Times New Roman
   fontSize: {
     small: 8,
     medium: 10,
     large: 12,
     title: 18,
   },
+  // --- DEFINIÇÕES DE CORES ---
   colors: {
     black: [0, 0, 0],
     white: [255, 255, 255],
@@ -41,16 +45,16 @@ const styles = {
 };
 
 const coresPorNivel = {
+  // --- CORES POR NÍVEL ---
   NR: styles.colors.red,
   AF: styles.colors.yellow,
   AG: styles.colors.purple,
   AV: styles.colors.grayLight,
   AVi: styles.colors.green,
   I: styles.colors.magenta,
-  // Cores para Sim/Não/NA na avaliação de interesses
-  Sim: [76, 175, 80], // Verde
-  Não: [230, 57, 70], // Vermelho
-  NA: [173, 181, 189], // Cinza
+  Sim: [76, 175, 80],
+  Não: [230, 57, 70],
+  NA: [173, 181, 189],
 };
 
 const legendaNiveis = {
@@ -62,7 +66,6 @@ const legendaNiveis = {
   I: "Independente",
 };
 
-// --- Listas de Itens para Rádios (Copiadas de AvaliacaoInteressesPage.jsx) ---
 const ATIVIDADES_FAVORITAS_LIST = [
   "Brincadeiras ao ar livre (parque, bicicleta, bola)",
   "Brincadeiras dentro de casa (quebra-cabeças, jogos de tabuleiro, blocos)",
@@ -112,16 +115,14 @@ const SITUACOES_DESREGULACAO_LIST = [
   "Ser contrariada",
 ];
 
-// As variáveis availableCreatorColors e creatorColorMap não estão sendo usadas,
-// então as mantive comentadas ou removi para manter o código limpo,
-// mas a função getCreatorColor permanece para evitar erros.
-function getCreatorColor(criadorInfoKey) {
-  return styles.colors.black; // Retorna sempre preto, como padrão atual
-}
-
 const HEADER_AREA_HEIGHT = 40;
 const FOOTER_AREA_HEIGHT = 25;
 
+/**
+ * Formata um objeto de data ou string para o formato DD/MM/AAAA.
+ * @param {firebase.firestore.Timestamp|Date|string} data - A data a ser formatada.
+ * @returns {string} Data formatada ou "-".
+ */
 function formatarData(data) {
   if (!data) return "-";
   try {
@@ -146,6 +147,11 @@ function formatarData(data) {
   }
 }
 
+/**
+ * Formata um objeto de data ou string para o nome do mês por extenso em português.
+ * @param {firebase.firestore.Timestamp|Date|string} data - A data a ser formatada.
+ * @returns {string} Nome do mês por extenso ou "-".
+ */
 function formatarMesPorExtenso(data) {
   if (!data) return "-";
   try {
@@ -171,6 +177,10 @@ function formatarMesPorExtenso(data) {
   }
 }
 
+/**
+ * Adiciona o cabeçalho e rodapé padrão a cada página do PDF.
+ * @param {jsPDF} doc - Instância do jsPDF.
+ */
 function addHeaderAndFooter(doc) {
   const imgWidth = 128;
   const imgHeight = 25;
@@ -178,11 +188,14 @@ function addHeaderAndFooter(doc) {
   const imgY = 10;
   const pageHeight = doc.internal.pageSize.getHeight();
 
+  // Adiciona a imagem do logo
+  // Certifique-se de que '/logo.jpg' está acessível no seu projeto ou substitua por um base64
   doc.addImage("/logo.jpg", "JPEG", imgX, imgY, imgWidth, imgHeight);
 
   doc.setFont(styles.font, "normal");
   doc.setFontSize(styles.fontSize.small);
 
+  // Adiciona informações do rodapé
   doc.text(
     "Prefeitura Municipal de Guabiruba / Secretaria de Educação de Guabiruba (SEME)",
     20,
@@ -200,6 +213,13 @@ function addHeaderAndFooter(doc) {
   );
 }
 
+/**
+ * Verifica se há espaço suficiente na página para o conteúdo. Se não houver, adiciona uma nova página.
+ * @param {jsPDF} doc - Instância do jsPDF.
+ * @param {number} currentY - Posição Y atual no documento.
+ * @param {number} requiredSpace - Espaço necessário para o próximo conteúdo.
+ * @returns {number} Nova posição Y após garantir o espaço (ou o topo da nova página).
+ */
 function ensurePageSpace(doc, currentY, requiredSpace) {
   const pageHeight = doc.internal.pageSize.getHeight();
   const contentBottomLimit = pageHeight - FOOTER_AREA_HEIGHT;
@@ -210,18 +230,25 @@ function ensurePageSpace(doc, currentY, requiredSpace) {
   ) {
     doc.addPage();
     addHeaderAndFooter(doc);
-    return HEADER_AREA_HEIGHT + 10;
+    return HEADER_AREA_HEIGHT + 10; // Retorna a posição Y no topo da nova página
   }
   return currentY;
 }
 
-// Reutilizando a função fetchPeis que já existia
+/**
+ * Busca os Planos Educacionais Individualizados (PEIs) de um aluno no Firestore.
+ * Tenta buscar em coleções novas e antigas.
+ * @param {string} alunoId - ID do aluno.
+ * @param {string} alunoNome - Nome do aluno (usado como fallback para coleções antigas).
+ * @returns {Promise<Array<Object>>} Array de objetos PEI.
+ */
 async function fetchPeis(alunoId, alunoNome) {
   try {
     let peis = [];
     const newCollectionRef = collection(db, "pei_contribucoes");
     const oldCollectionRef = collection(db, "peis");
 
+    // Tentar buscar na coleção nova primeiro
     let qNew = query(
       newCollectionRef,
       where("alunoId", "==", alunoId),
@@ -239,32 +266,39 @@ async function fetchPeis(alunoId, alunoNome) {
       console.log(
         "[PDF_DEBUG] Nenhum PEI encontrado em 'pei_contribucoes', tentando 'peis' (coleção antiga)."
       );
-      let qOld = query(
+      // Se não houver na nova, tentar na antiga por ID do aluno
+      let qOldById = query(
         oldCollectionRef,
         where("alunoId", "==", alunoId),
         orderBy("dataCriacao", "desc")
       );
-      let snapOld = await getDocs(qOld);
+      let snapOldById = await getDocs(qOldById);
 
-      if (snapOld.empty) {
-        qOld = query(
-          oldCollectionRef,
-          where("aluno", "==", alunoNome),
-          orderBy("dataCriacao", "desc")
-        );
-        snapOld = await getDocs(qOld);
-      }
-
-      if (!snapOld.empty) {
-        console.log("[PDF_DEBUG] PEIs encontrados em 'peis' (coleção antiga).");
-        peis = snapOld.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-      } else {
+      if (!snapOldById.empty) {
         console.log(
-          "[PDF_DEBUG] Nenhum PEI encontrado em nenhuma das coleções."
+          "[PDF_DEBUG] PEIs encontrados em 'peis' (coleção antiga) por ID."
         );
+        peis = snapOldById.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      } else {
+        // Se ainda não encontrou, tentar na antiga por nome do aluno (fallback)
+        // CUIDADO: Buscar por nome pode levar a ambiguidades se houver alunos com nomes iguais
+        if (alunoNome) {
+          console.log(
+            "[PDF_DEBUG] Tentando 'peis' (coleção antiga) por nome do aluno."
+          );
+          let qOldByName = query(
+            oldCollectionRef,
+            where("aluno", "==", alunoNome),
+            orderBy("dataCriacao", "desc")
+          );
+          let snapOldByName = await getDocs(qOldByName);
+          if (!snapOldByName.empty) {
+            peis = snapOldByName.docs.map((doc) => ({
+              id: doc.id,
+              ...doc.data(),
+            }));
+          }
+        }
       }
     }
     return peis;
@@ -274,6 +308,15 @@ async function fetchPeis(alunoId, alunoNome) {
   }
 }
 
+/**
+ * Adiciona as informações do aluno e cabeçalho do PEI ao documento.
+ * @param {jsPDF} doc - Instância do jsPDF.
+ * @param {Object} aluno - Objeto com os dados do aluno.
+ * @param {Object} avaliacao - Objeto da avaliação inicial (pode ser nulo).
+ * @param {string} nomeEscola - Nome da escola.
+ * @param {number} yStart - Posição Y inicial.
+ * @returns {Promise<number>} Nova posição Y após adicionar as informações.
+ */
 async function addStudentAndHeaderInfo(
   doc,
   aluno,
@@ -361,9 +404,9 @@ async function addStudentAndHeaderInfo(
   const availablePageWidth = doc.internal.pageSize.getWidth() - 40;
 
   const dataNascTexto = formatarData(aluno.nascimento);
-  const mesAvaliacaoTexto = formatarMesPorExtenso(avaliacao?.inicio); // Usando 'inicio' da avaliação inicial
+  const mesAvaliacaoTexto = formatarMesPorExtenso(avaliacao?.inicio);
   const mesProximaAvaliacaoTexto = formatarMesPorExtenso(
-    avaliacao?.proximaAvaliacao // Usando 'proximaAvaliacao' da avaliação inicial
+    avaliacao?.proximaAvaliacao
   );
 
   let alunoIdade = "-";
@@ -611,49 +654,56 @@ async function addStudentAndHeaderInfo(
   return y;
 }
 
+/**
+ * Adiciona a seção de Avaliação Inicial (Habilidades a Desenvolver) ao PDF.
+ * @param {jsPDF} doc - Instância do jsPDF.
+ * @param {Object} avaliacao - Objeto da avaliação inicial.
+ * @param {number} y - Posição Y atual no documento.
+ * @returns {number} Nova posição Y após adicionar a seção.
+ */
 function addInitialAssessment(doc, avaliacao, y) {
   const dadosAvaliacao = avaliacao?.respostas || avaliacao?.habilidades;
 
-  if (!dadosAvaliacao || Object.keys(dadosAvaliacao).length === 0) {
-    y = ensurePageSpace(doc, y, 10);
-    doc.text(
-      "Nenhuma avaliação inicial detalhada encontrada ou com dados incompletos.",
-      25,
-      y
+  // Filtra as habilidades para incluir SOMENTE aquelas que não são 'NA' nem 'I'
+  const habilidadesFiltradas = {};
+  if (dadosAvaliacao) {
+    for (const area in dadosAvaliacao) {
+      const habilidadesNaArea = dadosAvaliacao[area];
+      const habilidadesValidasNaArea = Object.entries(habilidadesNaArea || {})
+        .filter(([habilidade, nivel]) => nivel !== "NA" && nivel !== "I") // Condição para inclusão
+        .map(([habilidade, nivel]) => [habilidade, nivel]); // Formata para o corpo da tabela
+
+      if (habilidadesValidasNaArea.length > 0) {
+        habilidadesFiltradas[area] = habilidadesValidasNaArea;
+      }
+    }
+  }
+
+  // Se não há nenhuma habilidade filtrada para exibir, pula a seção
+  if (Object.keys(habilidadesFiltradas).length === 0) {
+    console.log(
+      "[PDF_DEBUG] Avaliação Inicial: Nenhuma habilidade para exibir (todas NA ou I)."
     );
-    return y + 10;
+    return y; // Retorna o Y sem adicionar a seção
   }
 
   y = ensurePageSpace(doc, y, 30);
   doc.setFont(styles.font, "bold");
   doc.setFontSize(styles.fontSize.large);
-  doc.text("Avaliação Inicial", 20, y);
+  doc.text("Avaliação Inicial (Habilidades a Desenvolver)", 20, y); // Título mais descritivo
   y += 8;
 
-  for (const area in dadosAvaliacao) {
-    const habilidades = dadosAvaliacao[area];
-    const linhasDaArea = [];
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const availableWidth = pageWidth - 40; // Margem de 20 de cada lado
 
-    for (const habilidade in habilidades) {
-      const nivel = habilidades[habilidade];
-      if (nivel !== "NA" && nivel !== "I") {
-        // Inclui somente NAs e Is se necessário, ajuste aqui
-        linhasDaArea.push([habilidade, nivel]);
-      }
-    }
-
-    if (linhasDaArea.length === 0) continue;
+  for (const area in habilidadesFiltradas) {
+    const linhasDaArea = habilidadesFiltradas[area];
 
     y = ensurePageSpace(doc, y, 15);
     doc.setFont(styles.font, "bold");
     doc.setFontSize(styles.fontSize.medium);
     doc.text(area, 20, y);
     y += 6;
-
-    // Calcula a largura total da tabela e a margem para centralização
-    const tableWidth = 150 + 20; // Largura da coluna "Habilidade" + "Nível"
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const horizontalMargin = (pageWidth - tableWidth) / 2;
 
     autoTable(doc, {
       startY: y,
@@ -676,65 +726,130 @@ function addInitialAssessment(doc, avaliacao, y) {
         halign: "center",
       },
       columnStyles: {
-        0: { cellWidth: 150 },
-        1: { cellWidth: 20, halign: "center" },
+        0: { cellWidth: availableWidth * 0.85 }, // Habilidade ocupa mais espaço
+        1: { cellWidth: availableWidth * 0.15, halign: "center" }, // Nível
       },
       margin: {
-        left: horizontalMargin,
-        right: horizontalMargin,
+        left: 20, // Ajusta para margens padrão
+        right: 20,
         top: HEADER_AREA_HEIGHT + 10,
         bottom: FOOTER_AREA_HEIGHT,
       },
       didParseCell: (data) => {
-        const nivel = data.cell.text[0];
+        const nivel = data.cell.text[0]; // Pega o texto da célula (o nível NR, AF, etc.)
         if (data.column.index === 1 && coresPorNivel[nivel]) {
+          // Se for a coluna do nível
           data.cell.styles.fillColor = coresPorNivel[nivel];
+          data.cell.styles.textColor = styles.colors.white; // Texto branco para melhor contraste
         } else {
           data.cell.styles.fillColor = styles.colors.white;
+          data.cell.styles.textColor = styles.colors.black;
         }
       },
       didDrawPage: (data) => {
         addHeaderAndFooter(doc);
       },
     });
-    y = doc.lastAutoTable.finalY + 10;
+    y = doc.lastAutoTable.finalY + 5; // Espaçamento entre as áreas
+
+    // Adiciona Observações da área se existirem e não estiverem vazias
+    const observacaoArea = avaliacao.observacoes?.[area];
+    if (observacaoArea && observacaoArea.trim().length > 0) {
+      y = ensurePageSpace(doc, y, 15);
+      doc.setFont(styles.font, "bold");
+      doc.setFontSize(styles.fontSize.medium);
+      doc.text(`Observações (${area}):`, 20, y);
+      y += 6;
+      doc.setFont(styles.font, "normal");
+      doc.setFontSize(styles.fontSize.small);
+      // Usar autoTable para texto longo com quebra de linha automática
+      autoTable(doc, {
+        startY: y,
+        body: [[observacaoArea]],
+        styles: {
+          font: styles.font,
+          fontSize: styles.fontSize.small,
+          textColor: styles.colors.black,
+          fillColor: styles.colors.white,
+          lineColor: styles.colors.black,
+          lineWidth: 0.1,
+          cellPadding: 2,
+          valign: "top",
+          overflow: "linebreak",
+        },
+        columnStyles: {
+          0: { cellWidth: availableWidth },
+        },
+        margin: {
+          left: 20,
+          right: 20,
+          top: HEADER_AREA_HEIGHT + 10,
+          bottom: FOOTER_AREA_HEIGHT,
+        },
+        didParseCell: (data) => {
+          data.cell.styles.fillColor = styles.colors.white;
+        },
+        didDrawPage: (data) => {
+          addHeaderAndFooter(doc);
+        },
+      });
+      y = doc.lastAutoTable.finalY + 5;
+    }
   }
-  return y;
+  return y + 10; // Espaçamento após a seção completa
 }
 
-// NOVO: Função para adicionar a seção de Avaliação de Interesses
+/**
+ * Adiciona a seção de Avaliação de Interesses e Gatilhos ao PDF.
+ * O título da seção sempre aparece. Se não houver dados, uma mensagem é exibida.
+ * @param {jsPDF} doc - Instância do jsPDF.
+ * @param {Object} avaliacaoInteressesData - Objeto com os dados da avaliação de interesses.
+ * @param {number} y - Posição Y atual no documento.
+ * @returns {number} Nova posição Y após adicionar a seção.
+ */
 function addAvaliacaoInteressesSection(doc, avaliacaoInteressesData, y) {
-  if (
-    !avaliacaoInteressesData ||
-    Object.keys(avaliacaoInteressesData).length === 0
-  ) {
-    y = ensurePageSpace(doc, y, 10);
-    doc.text("Nenhuma avaliação de interesses detalhada encontrada.", 25, y);
-    return y + 10;
-  }
-
-  y = ensurePageSpace(doc, y, 30);
-  doc.setFont(styles.font, "bold");
-  doc.setFontSize(styles.fontSize.large);
-  doc.text("Avaliação de Interesses e Gatilhos", 20, y);
-  y += 8;
-
   const pageWidth = doc.internal.pageSize.getWidth();
   const contentMargin = 20;
   const availableWidth = pageWidth - 2 * contentMargin;
 
+  // Adiciona o título da seção SEMPRE
+  y = ensurePageSpace(doc, y, 30);
+  doc.setFont(styles.font, "bold");
+  doc.setFontSize(styles.fontSize.large);
+  doc.text("Avaliação de Interesses e Gatilhos", contentMargin, y);
+  y += 8;
+
+  // Verifica se há dados para preencher o conteúdo das subseções
+  const hasDataForContent =
+    avaliacaoInteressesData && Object.keys(avaliacaoInteressesData).length > 0;
+
+  // Se não há dados, adiciona uma mensagem e retorna
+  if (!hasDataForContent) {
+    y = ensurePageSpace(doc, y, 20);
+    doc.setFont(styles.font, "normal");
+    doc.setFontSize(styles.fontSize.medium);
+    doc.text(
+      "Nenhum dado de avaliação de interesses preenchido para este aluno.",
+      contentMargin,
+      y
+    );
+    return y + 10;
+  }
+
   // Helper para adicionar tabelas de perguntas de texto
   const addTextQuestionTable = (question, answer) => {
-    const tableBody = [];
-    const answerText = answer || "Não informado.";
-    tableBody.push([
-      { content: question, styles: { fontStyle: "bold" } },
-      answerText,
-    ]);
+    const answerText = typeof answer === "string" ? answer.trim() : "";
+    if (answerText.length === 0) return false; // Não adiciona se a resposta estiver vazia
+
+    y = ensurePageSpace(doc, y, 20);
+
+    const tableBody = [
+      [{ content: question, styles: { fontStyle: "bold" } }, answerText],
+    ];
 
     autoTable(doc, {
       startY: y,
-      head: [], // Sem cabeçalho para perguntas e respostas diretas
+      head: [],
       body: tableBody,
       styles: {
         font: styles.font,
@@ -748,8 +863,8 @@ function addAvaliacaoInteressesSection(doc, avaliacaoInteressesData, y) {
         overflow: "linebreak",
       },
       columnStyles: {
-        0: { cellWidth: availableWidth * 0.35 }, // Largura para a pergunta
-        1: { cellWidth: availableWidth * 0.65 }, // Largura para a resposta
+        0: { cellWidth: availableWidth * 0.35 },
+        1: { cellWidth: availableWidth * 0.65 },
       },
       margin: {
         left: contentMargin,
@@ -764,7 +879,8 @@ function addAvaliacaoInteressesSection(doc, avaliacaoInteressesData, y) {
         addHeaderAndFooter(doc);
       },
     });
-    y = doc.lastAutoTable.finalY + 5; // Espaçamento entre as tabelas de perguntas
+    y = doc.lastAutoTable.finalY + 5;
+    return true;
   };
 
   // Helper para adicionar tabelas de perguntas de rádio (Sim/Não/NA)
@@ -772,29 +888,23 @@ function addAvaliacaoInteressesSection(doc, avaliacaoInteressesData, y) {
     const radioTableBody = [];
     const responses = avaliacaoInteressesData[dataKey] || {};
 
-    list.forEach((item) => {
-      const response = responses[item] || "NA"; // Padrão para "NA" se não houver resposta
-      radioTableBody.push([item, response]);
-    });
+    // Filtra para incluir apenas itens que não são "NA" e que não são indefinidos
+    const filledItems = list.filter(
+      (item) => responses[item] !== "NA" && responses[item] !== undefined
+    );
 
-    if (radioTableBody.length === 0) {
-      y = ensurePageSpace(doc, y, 10);
-      doc.setFont(styles.font, "italic");
-      doc.setFontSize(styles.fontSize.small);
-      doc.text(
-        `Nenhuma resposta para "${questionTitle}".`,
-        contentMargin + 5,
-        y
-      );
-      y += 7;
-      return;
-    }
+    if (filledItems.length === 0) return false; // Não adiciona se não houver itens preenchidos
 
     y = ensurePageSpace(doc, y, 15);
     doc.setFont(styles.font, "bold");
     doc.setFontSize(styles.fontSize.medium);
     doc.text(`${questionTitle}:`, contentMargin, y);
     y += 6;
+
+    filledItems.forEach((item) => {
+      const response = responses[item];
+      radioTableBody.push([item, response]);
+    });
 
     autoTable(doc, {
       startY: y,
@@ -830,7 +940,7 @@ function addAvaliacaoInteressesSection(doc, avaliacaoInteressesData, y) {
       didParseCell: (data) => {
         if (data.column.index === 1 && coresPorNivel[data.cell.text[0]]) {
           data.cell.styles.fillColor = coresPorNivel[data.cell.text[0]];
-          data.cell.styles.textColor = styles.colors.white; // Texto branco para melhor contraste na cor de fundo
+          data.cell.styles.textColor = styles.colors.white;
         } else {
           data.cell.styles.fillColor = styles.colors.white;
           data.cell.styles.textColor = styles.colors.black;
@@ -840,16 +950,12 @@ function addAvaliacaoInteressesSection(doc, avaliacaoInteressesData, y) {
         addHeaderAndFooter(doc);
       },
     });
-    y = doc.lastAutoTable.finalY + 10; // Espaçamento após a tabela de rádio
+    y = doc.lastAutoTable.finalY + 10;
+    return true;
   };
 
+  // Seções de conteúdo (só serão adicionadas se houver dados)
   // Seção 1: Interesses e Pontos Fortes
-  y = ensurePageSpace(doc, y, 15);
-  doc.setFont(styles.font, "bold");
-  doc.setFontSize(styles.fontSize.medium);
-  doc.text("Seção 1: Interesses e Pontos Fortes", contentMargin, y);
-  y += 10; // Ajustado para remover a linha de descrição
-
   addRadioQuestionTable(
     "Atividades Favoritas",
     "atividadesFavoritas",
@@ -881,12 +987,6 @@ function addAvaliacaoInteressesSection(doc, avaliacaoInteressesData, y) {
   );
 
   // Seção 2: Gatilhos de Desregulação e Desconforto
-  y = ensurePageSpace(doc, y, 15);
-  doc.setFont(styles.font, "bold");
-  doc.setFontSize(styles.fontSize.medium);
-  doc.text("Seção 2: Gatilhos de Desregulação e Desconforto", contentMargin, y);
-  y += 10; // Ajustado para remover a linha de descrição
-
   addRadioQuestionTable(
     "Sinais de Desregulação",
     "sinaisDesregulacao",
@@ -894,7 +994,7 @@ function addAvaliacaoInteressesSection(doc, avaliacaoInteressesData, y) {
   );
   addTextQuestionTable("Outros sinais", avaliacaoInteressesData.outrosSinais);
   addRadioQuestionTable(
-    "Situações de Desregulação",
+    "Situacoes de Desregulacao",
     "situacoesDesregulacao",
     SITUACOES_DESREGULACAO_LIST
   );
@@ -924,12 +1024,6 @@ function addAvaliacaoInteressesSection(doc, avaliacaoInteressesData, y) {
   );
 
   // Seção 3: Estratégias e Apoio
-  y = ensurePageSpace(doc, y, 15);
-  doc.setFont(styles.font, "bold");
-  doc.setFontSize(styles.fontSize.medium);
-  doc.text("Seção 3: Estratégias e Apoio", contentMargin, y);
-  y += 10; // Ajustado para remover a linha de descrição
-
   addTextQuestionTable(
     "Quais são as melhores formas de se comunicar com a criança?",
     avaliacaoInteressesData.melhoresFormasComunicacao
@@ -955,9 +1049,16 @@ function addAvaliacaoInteressesSection(doc, avaliacaoInteressesData, y) {
     avaliacaoInteressesData.algoMaisParaAdicionar
   );
 
-  return y;
+  return y + 10;
 }
 
+/**
+ * Adiciona a seção de PEI consolidado ao PDF.
+ * @param {jsPDF} doc - Instância do jsPDF.
+ * @param {Array<Object>} peisParaExibir - Array de objetos PEI para exibir.
+ * @param {number} y - Posição Y atual no documento.
+ * @returns {number} Nova posição Y após adicionar a seção.
+ */
 function addConsolidatedPeiSection(doc, peisParaExibir, y) {
   const allPeiTableRows = [];
   const allActivitiesTableRows = [];
@@ -1052,8 +1153,8 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
     ]);
   });
 
-  y = ensurePageSpace(doc, y, 20 + (allPeiTableRows.length > 0 ? 30 : 0));
   if (allPeiTableRows.length > 0) {
+    y = ensurePageSpace(doc, y, 20 + (allPeiTableRows.length > 0 ? 30 : 0));
     doc.setFont(styles.font, "bold");
     doc.setFontSize(styles.fontSize.large);
     doc.text(
@@ -1169,6 +1270,9 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
     });
     y = doc.lastAutoTable.finalY + 10;
   } else {
+    console.log(
+      "[PDF_DEBUG] PEI: Nenhuma estratégia para exibir. Pulando seção."
+    );
     y = ensurePageSpace(doc, y, 20);
     doc.text(
       "Nenhuma estratégia de Plano Educacional Individualizado (PEI) detalhada encontrada para este aluno.",
@@ -1178,12 +1282,12 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
     y += 10;
   }
 
-  y = ensurePageSpace(
-    doc,
-    y,
-    20 + (allActivitiesTableRows.length > 0 ? 30 : 0)
-  );
   if (allActivitiesTableRows.length > 0) {
+    y = ensurePageSpace(
+      doc,
+      y,
+      20 + (allActivitiesTableRows.length > 0 ? 30 : 0)
+    );
     doc.setFont(styles.font, "bold");
     doc.setFontSize(styles.fontSize.large);
     doc.text("Atividades Aplicadas", doc.internal.pageSize.getWidth() / 2, y, {
@@ -1240,6 +1344,9 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
     });
     y = doc.lastAutoTable.finalY + 10;
   } else {
+    console.log(
+      "[PDF_DEBUG] Atividades Aplicadas: Nenhuma atividade para exibir. Pulando seção."
+    );
     y = ensurePageSpace(doc, y, 20);
     doc.text(
       "Nenhuma atividade aplicada detalhada encontrada para este aluno.",
@@ -1250,20 +1357,32 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
   }
 
   if (allPeiTableRows.length === 0 && allActivitiesTableRows.length === 0) {
-    y = ensurePageSpace(doc, y, 20);
-    doc.text(
-      "Nenhum Plano Educacional Individualizado (PEI) ou atividade aplicada encontrada para este aluno.",
-      25,
-      y
+    console.log(
+      "[PDF_DEBUG] PEI Consolidado: Nenhuma seção com conteúdo. Retornando Y sem adicionar."
     );
-    return y + 10;
+    return y;
   }
 
   return y;
 }
 
+/**
+ * Adiciona a seção de legenda dos níveis ao PDF.
+ * @param {jsPDF} doc - Instância do jsPDF.
+ * @param {number} y - Posição Y atual no documento.
+ * @returns {number} Nova posição Y após adicionar a seção.
+ */
 function addLegendSection(doc, y) {
-  const minSpaceForLegend = Object.keys(legendaNiveis).length * 7 + 20;
+  const legendaValida = Object.entries(legendaNiveis).filter(
+    ([sigla]) => coresPorNivel[sigla]
+  );
+
+  if (legendaValida.length === 0) {
+    console.log("[PDF_DEBUG] Legenda: Nenhuma entrada válida. Pulando seção.");
+    return y;
+  }
+
+  const minSpaceForLegend = legendaValida.length * 7 + 20;
   y = ensurePageSpace(doc, y, minSpaceForLegend);
 
   doc.setFont(styles.font, "bold");
@@ -1273,8 +1392,8 @@ function addLegendSection(doc, y) {
   doc.setFont(styles.font, "normal");
   doc.setFontSize(styles.fontSize.small);
 
-  Object.entries(legendaNiveis).forEach(([sigla, descricao]) => {
-    const cor = coresPorNivel[sigla] || styles.colors.white;
+  legendaValida.forEach(([sigla, descricao]) => {
+    const cor = coresPorNivel[sigla];
     doc.setFillColor(...cor);
     doc.rect(22, y - 4, 8, 6, "F");
     doc.text(`${sigla} – ${descricao}`, 32, y);
@@ -1283,8 +1402,21 @@ function addLegendSection(doc, y) {
   return y + 10;
 }
 
+// ==================================================================
+// INÍCIO DO CÓDIGO COM A CORREÇÃO FINAL
+// ==================================================================
+/**
+ * Adiciona a tabela de assinaturas dos profissionais envolvidos ao PDF.
+ * A gestão da escola do aluno (Diretor, Diretor Adjunto, Orientador Pedagógico, Gestão)
+ * será sempre incluída.
+ * @param {jsPDF} doc - Instância do jsPDF.
+ * @param {Object} aluno - Objeto com os dados do aluno.
+ * @param {Object} usuarioLogado - Objeto com os dados do usuário logado.
+ * @param {number} y - Posição Y atual no documento.
+ * @returns {Promise<number>} Nova posição Y após adicionar a tabela.
+ */
 async function addProfessionalSignaturesTable(doc, aluno, usuarioLogado, y) {
-  const perfisParaTabelaAssinaturas = [
+  const perfisComPermissaoParaGerarTabela = [
     "gestao",
     "aee",
     "seme",
@@ -1295,91 +1427,134 @@ async function addProfessionalSignaturesTable(doc, aluno, usuarioLogado, y) {
     "professor",
   ];
 
-  // Verifica se o usuário logado é professor do aluno
+  const perfilUsuarioLogado = usuarioLogado?.perfil
+    ?.toLowerCase()
+    .replace(/_/g, " ");
   const isUserProfessorOfAluno =
-    usuarioLogado?.perfil?.toLowerCase() === "professor" &&
-    ((usuarioLogado.turmas && usuarioLogado.turmas[aluno.turma]) ||
-      (Array.isArray(usuarioLogado.turmas) &&
-        usuarioLogado.turmas.includes(aluno.turma)) ||
-      (Array.isArray(aluno.professores) &&
-        aluno.professores.includes(usuarioLogado.id)));
+    perfilUsuarioLogado === "professor" &&
+    Array.isArray(aluno.professores) &&
+    aluno.professores.includes(usuarioLogado.id);
 
-  if (
-    !perfisParaTabelaAssinaturas.includes(
-      usuarioLogado?.perfil?.toLowerCase()
-    ) &&
-    !isUserProfessorOfAluno
-  ) {
-    return y; // Não adiciona a tabela se o usuário não tiver permissão
+  const hasPermissionToGenerateTable =
+    perfisComPermissaoParaGerarTabela.includes(perfilUsuarioLogado) ||
+    isUserProfessorOfAluno;
+
+  if (!hasPermissionToGenerateTable) {
+    console.log(
+      "[PDF_DEBUG] Assinaturas: Usuário não tem permissão para gerar a tabela."
+    );
+    return y;
   }
 
   try {
-    const perfisParaQuery = [
-      "professor",
-      "aee",
+    // Perfis de gestão que devem sempre aparecer se pertencerem à escola do aluno
+    const perfisGestaoEscolar = [
       "diretor",
       "diretor adjunto",
-      "orientador pedagogico",
-      "desenvolvedor",
+      "orientador pedagogico", // Usa espaço
       "gestao",
-      "seme",
     ];
-    const professoresComAssinaturaQuery = query(
-      collection(db, "usuarios"),
-      where("perfil", "in", perfisParaQuery)
-    );
-    const professoresSnap = await getDocs(professoresComAssinaturaQuery);
 
-    const profissionaisVinculados = professoresSnap.docs
-      .map((doc) => ({ id: doc.id, ...doc.data() }))
-      .filter((prof) => {
-        const estaNaEscolaDoAluno = Object.keys(prof.escolas || {}).includes(
-          aluno.escolaId
-        );
-        const profTurmas = Object.keys(prof.turmas || {});
-        const estaNaTurmaDoAluno =
-          aluno.turma && profTurmas.includes(aluno.turma);
-        const perfilLower = prof.perfil?.toLowerCase();
+    const todosUsuariosSnap = await getDocs(collection(db, "usuarios"));
+    const profissionaisParaAssinar = [];
+    const processedIds = new Set();
 
-        if (["professor", "aee"].includes(perfilLower)) {
-          return (
-            estaNaEscolaDoAluno &&
-            (!aluno.turma ||
-              estaNaTurmaDoAluno ||
-              (Array.isArray(aluno.professores) &&
-                aluno.professores.includes(prof.id)))
-          );
+    // 1. Adiciona a GESTÃO DA ESCOLA (Diretor, Adjunto, Orientador, Gestão)
+    if (aluno.escolaId) {
+      const escolaIdAluno = aluno.escolaId;
+
+      todosUsuariosSnap.docs.forEach((doc) => {
+        const p = { id: doc.id, ...doc.data() };
+
+        // ===== CORREÇÃO APLICADA AQUI =====
+        // Padroniza o perfil vindo do banco (substitui '_' por ' ') para a verificação.
+        const perfilNormalizado = p.perfil?.toLowerCase().replace(/_/g, " ");
+
+        const pertenceAEscola =
+          p.escolas && Object.keys(p.escolas).includes(escolaIdAluno);
+
+        if (
+          pertenceAEscola &&
+          perfisGestaoEscolar.includes(perfilNormalizado)
+        ) {
+          if (!processedIds.has(p.id)) {
+            profissionaisParaAssinar.push(p);
+            processedIds.add(p.id);
+          }
         }
-        return estaNaEscolaDoAluno;
-      })
-      .sort((a, b) => a.nome.localeCompare(b.nome));
+      });
+    }
 
-    // Filtra para garantir que não há duplicatas se um profissional aparecer em múltiplas categorias
-    const uniqueProfissionais = Array.from(
-      new Map(profissionaisVinculados.map((p) => [p.id, p])).values()
-    );
+    // 2. Adiciona outros profissionais relevantes (professores da turma, AEE) que ainda não foram incluídos
+    todosUsuariosSnap.docs.forEach((doc) => {
+      const p = { id: doc.id, ...doc.data() };
+      if (processedIds.has(p.id)) return; // Pula se já foi adicionado (é da gestão)
 
-    if (uniqueProfissionais.length === 0) {
+      // Também padroniza o perfil aqui para consistência
+      const perfilNormalizado = p.perfil?.toLowerCase().replace(/_/g, " ");
+
+      const estaNaEscolaDoAluno =
+        aluno.escolaId && Object.keys(p.escolas || {}).includes(aluno.escolaId);
+      const estaNaTurmaDoAluno = aluno.turma && (p.turmas || {})[aluno.turma];
+      const ehProfessorDoAluno =
+        Array.isArray(aluno.professores) && aluno.professores.includes(p.id);
+
+      if (
+        (perfilNormalizado === "professor" || perfilNormalizado === "aee") &&
+        estaNaEscolaDoAluno &&
+        (estaNaTurmaDoAluno || ehProfessorDoAluno)
+      ) {
+        profissionaisParaAssinar.push(p);
+        processedIds.add(p.id);
+      }
+    });
+
+    // Ordena os profissionais para uma apresentação consistente no PDF
+    profissionaisParaAssinar.sort((a, b) => {
+      const ordemPerfis = {
+        diretor: 1,
+        "diretor adjunto": 2,
+        "orientador pedagogico": 3,
+        gestao: 4,
+        aee: 5,
+        professor: 6,
+        seme: 7,
+        desenvolvedor: 8,
+      };
+      // ===== CORREÇÃO APLICADA AQUI =====
+      // Usa o perfil padronizado também na ordenação.
+      const perfilA = a.perfil?.toLowerCase().replace(/_/g, " ") || "";
+      const perfilB = b.perfil?.toLowerCase().replace(/_/g, " ") || "";
+      const ordemA = ordemPerfis[perfilA] || 99;
+      const ordemB = ordemPerfis[perfilB] || 99;
+
+      if (ordemA !== ordemB) {
+        return ordemA - ordemB;
+      }
+      return (a.nome || "").localeCompare(b.nome || "");
+    });
+
+    if (profissionaisParaAssinar.length === 0) {
       console.warn(
-        "Nenhum profissional encontrado para a tabela de assinaturas gerais."
+        "[PDF_DEBUG] Assinaturas: Nenhum profissional encontrado para a tabela."
       );
       return y;
     }
 
-    y = ensurePageSpace(doc, y, uniqueProfissionais.length * 10 + 30);
+    y = ensurePageSpace(doc, y, profissionaisParaAssinar.length * 10 + 30);
 
     doc.setFont(styles.font, "bold");
     doc.setFontSize(styles.fontSize.large);
     doc.text("Assinaturas dos Profissionais Envolvidos", 20, y);
     y += 8;
 
-    const linhasAssinaturas = uniqueProfissionais.map((p) => [
+    const linhasAssinaturas = profissionaisParaAssinar.map((p) => [
       p.nome,
-      p.cargo || p.perfil?.toUpperCase(),
+      p.cargo || p.perfil?.toUpperCase().replace(/_/g, " "),
       "_______________________________",
     ]);
 
-    const tableWidth = 70 + 60 + 60; // Largura das 3 colunas
+    const tableWidth = 70 + 60 + 60;
     const pageWidth = doc.internal.pageSize.getWidth();
     const horizontalMargin = (pageWidth - tableWidth) / 2;
 
@@ -1426,7 +1601,16 @@ async function addProfessionalSignaturesTable(doc, aluno, usuarioLogado, y) {
     return y;
   }
 }
+// ==================================================================
+// FIM DO CÓDIGO CORRIGIDO
+// ==================================================================
 
+/**
+ * Adiciona uma página de assinaturas ao final do documento.
+ * @param {jsPDF} doc - Instância do jsPDF.
+ * @param {Object} aluno - Objeto com os dados do aluno.
+ * @param {Object} usuarioLogado - Objeto com os dados do usuário logado.
+ */
 async function addSignaturePage(doc, aluno, usuarioLogado) {
   doc.addPage();
   addHeaderAndFooter(doc);
@@ -1454,20 +1638,30 @@ async function addSignaturePage(doc, aluno, usuarioLogado) {
   y += 10;
 }
 
+/**
+ * Gera o PDF completo do PEI para um aluno.
+ * @param {Object} aluno - Objeto com os dados do aluno.
+ * @param {Object} avaliacaoInicial - Objeto da avaliação inicial do aluno.
+ * @param {Object} usuarioLogado - Objeto com os dados do usuário logado.
+ * @param {Array<Object>} [peisParaGeral=[]] - Array opcional de PEIs a serem exibidos.
+ */
 export async function gerarPDFCompleto(
   aluno,
   avaliacaoInicial, // Objeto de avaliação inicial
   usuarioLogado,
-  peisParaGeral = [], // Array de PEIs a serem exibidos
-  avaliacaoInteressesData = null // Objeto de avaliação de interesses
+  peisParaGeral = [] // Array de PEIs a serem exibidos
 ) {
   const doc = new jsPDF();
   let y;
 
   console.log("[PDF_DEBUG] Início da geração do PDF.");
+  console.log("[PDF_DEBUG] Aluno recebido:", aluno); // LOG ADICIONAL PARA DEPURAR ESCOLA
+  console.log("[PDF_DEBUG] Aluno ID:", aluno.id, "Nome:", aluno.nome);
   console.log(
-    "[PDF_DEBUG] avaliacaoInteressesData recebida:",
-    avaliacaoInteressesData
+    "[PDF_DEBUG] Usuário Logado ID:",
+    usuarioLogado.id,
+    "Perfil:",
+    usuarioLogado.perfil
   );
 
   if (!aluno || !aluno.nome || !aluno.id) {
@@ -1479,6 +1673,26 @@ export async function gerarPDFCompleto(
     );
     return;
   }
+
+  // --- CORREÇÃO AQUI: Passando o userId para fetchAvaliacaoInteresses ---
+  // A função fetchAvaliacaoInteresses espera alunoId e userId
+  const avaliacaoInteressesData = await fetchAvaliacaoInteresses(
+    aluno.id,
+    usuarioLogado.id,
+    usuarioLogado.perfil
+  );
+  console.log(
+    "[PDF_DEBUG] avaliacaoInteressesData BUSCADA (internamente):",
+    avaliacaoInteressesData
+  );
+  console.log(
+    "[PDF_DEBUG] Tipo de avaliacaoInteressesData:",
+    typeof avaliacaoInteressesData
+  );
+  console.log(
+    "[PDF_DEBUG] avaliacaoInteressesData está vazio?",
+    Object.keys(avaliacaoInteressesData || {}).length === 0
+  );
 
   let peisParaProcessar =
     Array.isArray(peisParaGeral) && peisParaGeral.length > 0
@@ -1497,42 +1711,50 @@ export async function gerarPDFCompleto(
 
   const peisParaExibir = peisOrdenados;
 
-  if (
-    peisParaExibir.length === 0 &&
-    (!avaliacaoInicial || Object.keys(avaliacaoInicial).length === 0) &&
-    (!avaliacaoInteressesData ||
-      Object.keys(avaliacaoInteressesData).length === 0)
-  ) {
+  const hasAnyMainContent =
+    peisParaExibir.length > 0 ||
+    (avaliacaoInicial && Object.keys(avaliacaoInicial).length > 0) ||
+    (avaliacaoInteressesData &&
+      Object.keys(avaliacaoInteressesData).length > 0);
+
+  if (!hasAnyMainContent) {
     console.warn(
-      "Nenhum PEI, avaliação inicial ou avaliação de interesses encontrado para o aluno, gerando PDF básico informativo."
+      "Nenhum PEI, avaliação inicial ou avaliação de interesses preenchida encontrado para o aluno, gerando PDF básico informativo."
     );
     addHeaderAndFooter(doc);
     doc.text(
-      "Nenhum Plano Educacional Individualizado (PEI), Avaliação Inicial ou Avaliação de Interesses encontrado para este aluno.",
+      "Nenhum Plano Educacional Individualizado (PEI), Avaliação Inicial ou Avaliação de Interesses preenchida encontrado para este aluno.",
       25,
       HEADER_AREA_HEIGHT + 20
     );
     await addSignaturePage(doc, aluno, usuarioLogado);
-    doc.save(`PEI_${aluno.nome.replace(/\s+/g, "_")}_Sem_Dados.pdf`);
+    doc.save(
+      `PEI_${aluno.nome?.replace(/\s+/g, "_") || "Desconhecido"}_Sem_Dados_Preenchidos.pdf`
+    );
     return;
   }
 
   let nomeEscola = "-";
   if (aluno.escolaId) {
     try {
+      // --- CORREÇÃO AQUI: aluno.esolaId para aluno.escolaId ---
       const escolaRef = firestoreDoc(db, "escolas", aluno.escolaId);
       const escolaSnap = await getDoc(escolaRef);
       if (escolaSnap.exists()) {
         nomeEscola = escolaSnap.data().nome || "-";
+        console.log("[PDF_DEBUG] Nome da escola encontrado:", nomeEscola);
       } else {
-        console.warn(`Escola não encontrada para o ID: ${aluno.escolaId}`);
+        console.warn(
+          `[PDF_DEBUG] Escola não encontrada para o ID: ${aluno.escolaId}`
+        );
       }
     } catch (err) {
-      console.error("Erro ao buscar nome da escola:", err);
+      console.error("[PDF_DEBUG] Erro ao buscar nome da escola:", err);
     }
+  } else {
+    console.log("[PDF_DEBUG] aluno.escolaId não fornecido.");
   }
 
-  // Define o Y inicial para o conteúdo da primeira página.
   y = HEADER_AREA_HEIGHT + 10;
 
   y = await addStudentAndHeaderInfo(
@@ -1543,13 +1765,12 @@ export async function gerarPDFCompleto(
     y
   );
   y = addInitialAssessment(doc, avaliacaoInicial, y);
-  // AQUI é onde a função da avaliação de interesses é chamada
-  y = addAvaliacaoInteressesSection(doc, avaliacaoInteressesData, y);
+  y = addAvaliacaoInteressesSection(doc, avaliacaoInteressesData, y); // Esta função foi corrigida e deve aparecer
   y = addConsolidatedPeiSection(doc, peisParaExibir, y);
   y = addLegendSection(doc, y);
 
   await addSignaturePage(doc, aluno, usuarioLogado);
 
-  doc.save(`PEI_${aluno.nome.replace(/\s+/g, "_")}_Completo.pdf`);
+  doc.save(`PEI_${aluno.nome?.replace(/\s+/g, "_")}_Completo.pdf`);
   console.log("[PDF_DEBUG] Geração do PDF concluída.");
 }

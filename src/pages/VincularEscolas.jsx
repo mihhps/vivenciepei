@@ -116,7 +116,7 @@ export default function VincularEscolas() {
       const usuariosSnap = await getDocs(collection(db, "usuarios"));
       const escolasSnap = await getDocs(collection(db, "escolas"));
 
-      // Filtra usuários que são perfis de professores ou AEE/diretores, etc.
+      // Filtra usuários que são perfis de professores, diretores, diretores adjuntos, orientadores pedagógicos ou AEE
       const professoresFiltrados = usuariosSnap.docs
         .map((doc) => ({ id: doc.id, ...doc.data() }))
         .filter((u) =>
@@ -124,7 +124,8 @@ export default function VincularEscolas() {
             "professor",
             "diretor",
             "diretor adjunto",
-            "orientador pedagógico",
+            "orientador pedagógico", // Perfil com espaço
+            "orientador_pedagogico", // Perfil com underscore (adicionado para compatibilidade)
             "aee",
           ].includes(u.perfil?.toLowerCase())
         );

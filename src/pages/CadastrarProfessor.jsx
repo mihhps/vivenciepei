@@ -141,22 +141,22 @@ export default function CadastrarProfessor() {
           required
         >
           <option value="">Selecione o Cargo/Disciplina</option>
-          <option value="PROFESSOR REGENTE">PROFESSOR REGENTE</option>
-          <option value="PROFESSOR DE SUPORTE">PROFESSOR DE SUPORTE</option>
-          <option value="LÍNGUA PORTUGUESA">LÍNGUA PORTUGUESA</option>
-          <option value="MATEMÁTICA">MATEMÁTICA</option>
-          <option value="HISTÓRIA">HISTÓRIA</option>
-          <option value="ARTE">ARTE</option>
-          <option value="GEOGRAFIA">GEOGRAFIA</option>
-          <option value="EDUCAÇÃO FÍSICA">EDUCAÇÃO FÍSICA</option>
-          <option value="CIÊNCIAS">CIÊNCIAS</option>
-          <option value="INGLÊS">INGLÊS</option>
-          <option value="ENSINO RELIGIOSO">ENSINO RELIGIOSO</option>
-          <option value="CONTAÇÃO DE HISTÓRIAS">CONTAÇÃO DE HISTÓRIAS</option>
-          <option value="COMUNICAÇÃO E LINGUAGEM">
-            COMUNICAÇÃO E LINGUAGEM
+          <option value="Professor Regente">Professor Regente</option>
+          <option value="Professor de Suporte">Professor de Suporte</option>
+          <option value="Língua Portuguesa">Língua Portuguesa</option>
+          <option value="Matemática">Matemática</option>
+          <option value="História">História</option>
+          <option value="Arte">Arte</option>
+          <option value="Geografia">Geografia</option>
+          <option value="Educação Física">Educação Física</option>
+          <option value="Ciências">Ciências</option>
+          <option value="Inglês">Inglês</option>
+          <option value="Ensino Religioso">Ensino Religioso</option>
+          <option value="Contação de Histórias">Contação de Histórias</option>
+          <option value="Comunicação e Linguagem">
+            Comunicação e Linguagem
           </option>
-          <option value="AEE">AEE</option>
+          <option value="Aee">Aee</option>
         </select>
         <div style={estilos.senhaWrapper}>
           <input

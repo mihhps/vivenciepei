@@ -1,4 +1,3 @@
-// src/pages/EditarAvaliacao.jsx
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { doc, getDoc, updateDoc, Timestamp } from "firebase/firestore";
@@ -39,6 +38,11 @@ export default function EditarAvaliacao() {
           const dados = docSnap.data();
           setAvaliacao({
             id: docSnap.id,
+            // Acessa o nome se 'dados.aluno' for um objeto, senão usa o próprio 'dados.aluno'
+            aluno:
+              typeof dados.aluno === "object" && dados.aluno !== null
+                ? dados.aluno.nome
+                : dados.aluno,
             ...dados,
             inicio: formatarDataParaInput(dados.inicio),
             proximaAvaliacao: formatarDataParaInput(dados.proximaAvaliacao),
@@ -100,13 +104,16 @@ export default function EditarAvaliacao() {
     );
 
   return (
-    // DIV 1: O FUNDO AZUL
     <div className="fundo-pagina">
-      {/* DIV 2: O CARD BRANCO */}
       <div className="card-principal">
-        {/* Todo o seu conteúdo original vai aqui dentro */}
         <BotaoVoltar destino="/ver-avaliacoes" />
-        <h2 className="editar-titulo">Editar Avaliação - {avaliacao?.aluno}</h2>
+        {/* CORREÇÃO AQUI: Acessa avaliacao.aluno.nome se avaliacao.aluno for um objeto */}
+        <h2 className="editar-titulo">
+          Editar Avaliação -{" "}
+          {typeof avaliacao?.aluno === "object" && avaliacao.aluno !== null
+            ? avaliacao.aluno.nome
+            : avaliacao?.aluno || "Aluno Não Informado"}
+        </h2>
 
         <div className="datas-container">
           <div className="data-input-grupo">

@@ -22,8 +22,8 @@ export function AuthProvider({ children }) {
   const [userId, setUserId] = useState(null); // UID do Firebase Auth User
   const [isAuthReady, setIsAuthReady] = useState(false); // Indica se a autenticação foi verificada
   const [loadingAuth, setLoadingAuth] = useState(true); // Indica se a autenticação está a carregar
-  const [userProfileData, setUserProfileData] = useState(null); // <-- NOVO: Dados do perfil do Firestore
-  const [isLoadingProfile, setIsLoadingProfile] = useState(true); // <-- NOVO: Indica se o perfil do Firestore está carregando
+  const [userProfileData, setUserProfileData] = useState(null); // Dados do perfil do Firestore
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true); // Indica se o perfil do Firestore está carregando
 
   // Variáveis globais do ambiente Canvas (MANDATÓRIO USAR)
   const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
@@ -136,8 +136,8 @@ export function AuthProvider({ children }) {
     userId, // UID do Firebase Auth User
     isAuthReady, // Autenticação verificada (user ou null)
     loadingAuth, // Estado de carregamento da autenticação
-    user: userProfileData, // <-- AGORA ESTE É O PERFIL COMPLETO DO FIRESTORE
-    isLoadingProfile, // <-- NOVO: Indica se o perfil do Firestore está carregando
+    user: userProfileData, // AGORA ESTE É O PERFIL COMPLETO DO FIRESTORE
+    isLoadingProfile, // Indica se o perfil do Firestore está carregando
     authInstance: getAuth(getApps().length ? getApp() : null),
     dbInstance: getFirestore(getApps().length ? getApp() : null),
   };
