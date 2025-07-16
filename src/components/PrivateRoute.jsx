@@ -1,7 +1,8 @@
 // src/components/PrivateRoute.jsx
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Navigate, Outlet, useLocation, matchPath } from "react-router-dom";
+import { useAuth } from "../context/AuthContext"; // Importa o useAuth
 import { PERFIS } from "../config/constants";
 import {
   AUTORIZACAO_ROTAS,
@@ -11,28 +12,22 @@ import {
 
 function PrivateRoute() {
   const location = useLocation();
-  const [usuario, setUsuario] = useState(null);
-  const [loadingAuth, setLoadingAuth] = useState(true);
+  // Usa o hook useAuth para obter o estado de autenticação e perfil
+  const { userId, user, isAuthReady, isLoadingProfile } = useAuth();
 
-  useEffect(() => {
-    try {
-      const userData = localStorage.getItem("usuarioLogado");
-      setUsuario(userData ? JSON.parse(userData) : null);
-    } catch (e) {
-      console.error("Erro ao parsear usuarioLogado do localStorage:", e);
-      setUsuario(null);
-    } finally {
-      setLoadingAuth(false);
-    }
-  }, [location.pathname]);
-
-  if (loadingAuth) {
-    return <div className="app-loading">Verificando autenticação...</div>;
+  // --- 1. Exibe um loader enquanto a autenticação e o perfil estão carregando ---
+  // É crucial esperar por ambos os estados para evitar redirecionamentos prematuros
+  if (!isAuthReady || isLoadingProfile) {
+    return (
+      <div className="app-loading">
+        Verificando autenticação e carregando perfil...
+      </div>
+    );
   }
 
-  const usuarioPerfil = usuario?.perfil?.toLowerCase() || "";
-  const usuarioEmail = usuario?.email?.trim().toLowerCase();
+  // Agora que a autenticação e o perfil estão prontos:
 
+  // --- 2. Não logado (userId é null) ---
   const publicRoutes = [
     "/",
     "/login",
@@ -40,48 +35,61 @@ function PrivateRoute() {
     "/cadastro-professor",
   ];
 
-  // --- 1. Não logado ---
-  if (!usuario) {
+  if (!userId) {
+    // Se não há userId e a rota não é pública, redireciona para o login
     return publicRoutes.includes(location.pathname) ? (
-      <Outlet />
+      <Outlet /> // Permite acesso a rotas públicas se não logado
     ) : (
       <Navigate to="/login" replace state={{ from: location.pathname }} />
     );
   }
 
-  // --- 2. Superusuário ---
+  // Se o usuário está logado (userId existe), obtenha os dados do perfil
+  const usuarioPerfil = user?.perfil?.toLowerCase() || "";
+  const usuarioEmail = user?.email?.trim().toLowerCase();
+
+  // --- 3. Superusuário (Desenvolvedor) ---
   const isSuperUser =
     usuarioEmail === desenvolvedoraEmail.toLowerCase() ||
     usuarioPerfil === PERFIS.DESENVOLVEDOR.toLowerCase();
 
   if (isSuperUser) {
+    // Se é superusuário e está tentando acessar uma rota pública, redireciona para o painel dev
     return publicRoutes.includes(location.pathname) ? (
       <Navigate to="/painel-dev" replace />
     ) : (
-      <Outlet />
+      <Outlet /> // Permite acesso a todas as outras rotas
     );
   }
 
-  // --- 3. Logado tentando acessar rota pública ---
+  // --- 4. Logado tentando acessar rota pública ---
+  // Se o usuário está logado e tenta acessar uma rota pública, redireciona para o seu painel padrão
   if (publicRoutes.includes(location.pathname)) {
     return <Navigate to={perfilRedirectMap[usuarioPerfil] || "/"} replace />;
   }
 
-  // --- 4. Verificação de autorização para a rota atual ---
+  // --- 5. Verificação de autorização para a rota atual ---
+  // Encontra a rota base que corresponde ao caminho atual
   const rotaBase = Object.keys(AUTORIZACAO_ROTAS).find((base) =>
     matchPath({ path: base, end: false }, location.pathname)
   );
 
+  // Obtém as permissões para a rota base encontrada
   const permissoes = rotaBase ? AUTORIZACAO_ROTAS[rotaBase] : [];
 
+  // Se a rota tem permissões definidas e o perfil do usuário não está entre elas, redireciona
   if (
     permissoes.length > 0 &&
     !permissoes.map((p) => p.toLowerCase()).includes(usuarioPerfil)
   ) {
+    console.warn(
+      `[PrivateRoute] Acesso negado para o perfil '${usuarioPerfil}' na rota '${location.pathname}'. Redirecionando.`
+    );
     return <Navigate to={perfilRedirectMap[usuarioPerfil] || "/"} replace />;
   }
 
-  // --- 5. Acesso permitido ---
+  // --- 6. Acesso permitido ---
+  // Se todas as verificações passaram, permite o acesso à rota
   return <Outlet />;
 }
 

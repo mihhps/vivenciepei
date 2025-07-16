@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useRef,
+} from "react";
 import { initializeApp, getApps, getApp } from "firebase/app";
 import {
   getAuth,
@@ -6,7 +12,7 @@ import {
   signInWithCustomToken,
   signInAnonymously,
 } from "firebase/auth";
-import { getFirestore, doc, getDoc } from "firebase/firestore"; // Importar doc e getDoc
+import { getFirestore, doc, getDoc } from "firebase/firestore";
 
 // Cria o Contexto de Autenticação
 export const AuthContext = createContext();
@@ -21,9 +27,12 @@ export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null); // Objeto User do Firebase Auth
   const [userId, setUserId] = useState(null); // UID do Firebase Auth User
   const [isAuthReady, setIsAuthReady] = useState(false); // Indica se a autenticação foi verificada
-  const [loadingAuth, setLoadingAuth] = useState(true); // Indica se a autenticação está a carregar
   const [userProfileData, setUserProfileData] = useState(null); // Dados do perfil do Firestore
   const [isLoadingProfile, setIsLoadingProfile] = useState(true); // Indica se o perfil do Firestore está carregando
+
+  // Usamos useRef para armazenar instâncias do Firebase que não devem causar re-renderizações
+  const authRef = useRef(null);
+  const dbRef = useRef(null);
 
   // Variáveis globais do ambiente Canvas (MANDATÓRIO USAR)
   const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
@@ -34,42 +43,53 @@ export function AuthProvider({ children }) {
     typeof __initial_auth_token !== "undefined" ? __initial_auth_token : null;
 
   useEffect(() => {
-    let app;
-    let authInstance;
-    let dbInstance;
+    console.log(
+      "[AuthContext] useEffect: Iniciando configuração do Firebase..."
+    );
 
+    let app;
     try {
       if (!getApps().length) {
         app = initializeApp(firebaseConfig);
+        console.log("[AuthContext] Firebase app inicializado.");
       } else {
         app = getApp();
+        console.log("[AuthContext] Usando Firebase app existente.");
       }
 
-      authInstance = getAuth(app);
-      dbInstance = getFirestore(app);
+      authRef.current = getAuth(app);
+      dbRef.current = getFirestore(app);
+      console.log("[AuthContext] Instâncias de Auth e Firestore obtidas.");
 
       // Observador do estado de autenticação
-      const unsubscribe = onAuthStateChanged(authInstance, async (user) => {
+      const unsubscribe = onAuthStateChanged(authRef.current, async (user) => {
+        console.log(
+          "[AuthContext] onAuthStateChanged disparado. User:",
+          user ? user.uid : "null"
+        );
+
         if (user) {
           // Usuário autenticado
           setCurrentUser(user);
           setUserId(user.uid);
           setIsLoadingProfile(true); // Começa a carregar o perfil do Firestore
+          console.log(
+            "[AuthContext] Usuário autenticado. Carregando perfil..."
+          );
 
           try {
-            const userDocRef = doc(dbInstance, "usuarios", user.uid); // Usa dbInstance
+            const userDocRef = doc(dbRef.current, "usuarios", user.uid);
             const userDocSnap = await getDoc(userDocRef);
 
             if (userDocSnap.exists()) {
               const data = userDocSnap.data();
-              // Combina dados do Auth com dados do Firestore
               setUserProfileData({
                 uid: user.uid,
                 email: user.email,
-                ...data, // Dados como perfil, escolas, turmas
-                id: userDocSnap.id, // ID do documento Firestore
-                turmas: data.turmas || {}, // Garante que turmas é um objeto
-                escolas: data.escolas || {}, // Garante que escolas é um objeto
+                ...data,
+                id: userDocSnap.id,
+                turmas: data.turmas || {},
+                escolas: data.escolas || {},
               });
               console.log(
                 "[AuthContext] Perfil do usuário carregado do Firestore:",
@@ -80,11 +100,10 @@ export function AuthProvider({ children }) {
                 "[AuthContext] Documento do usuário não encontrado no Firestore:",
                 user.uid
               );
-              // Fallback se o documento do Firestore não existir (apenas o Auth User)
               setUserProfileData({
                 uid: user.uid,
                 email: user.email,
-                perfil: "desconhecido", // Perfil padrão
+                perfil: "desconhecido",
                 turmas: {},
                 escolas: {},
               });
@@ -94,53 +113,78 @@ export function AuthProvider({ children }) {
               "[AuthContext] Erro ao carregar perfil do Firestore:",
               error
             );
-            setUserProfileData(null); // Limpa perfil em caso de erro
+            setUserProfileData(null);
           } finally {
             setIsLoadingProfile(false); // Terminou de carregar o perfil
+            console.log("[AuthContext] isLoadingProfile definido como false.");
           }
           setIsAuthReady(true);
-          setLoadingAuth(false);
+          console.log("[AuthContext] isAuthReady definido como true.");
         } else {
           // Usuário não autenticado, tentar login com token personalizado ou anonimamente
+          console.log(
+            "[AuthContext] Usuário não autenticado. Tentando login inicial..."
+          );
           try {
             if (initialAuthToken) {
-              await signInWithCustomToken(authInstance, initialAuthToken);
+              console.log("[AuthContext] Tentando signInWithCustomToken...");
+              await signInWithCustomToken(authRef.current, initialAuthToken);
             } else {
-              await signInAnonymously(authInstance);
+              console.log("[AuthContext] Tentando signInAnonymously...");
+              await signInAnonymously(authRef.current);
             }
             // Após o login, o onAuthStateChanged será disparado novamente com o usuário
           } catch (error) {
-            console.error("Erro ao tentar autenticação inicial:", error);
+            console.error(
+              "[AuthContext] Erro ao tentar autenticação inicial:",
+              error
+            );
             setCurrentUser(null);
             setUserId(null);
-            setUserProfileData(null); // Garante que o perfil também é nulo
-            setIsLoadingProfile(false); // Terminou de carregar o perfil (não tem)
-            setIsAuthReady(true);
-            setLoadingAuth(false);
+            setUserProfileData(null);
+            setIsLoadingProfile(false);
+            setIsAuthReady(true); // Ainda define como true para indicar que a verificação inicial terminou
+            console.log(
+              "[AuthContext] Erro na autenticação inicial. isAuthReady true, isLoadingProfile false."
+            );
           }
         }
       });
 
-      return () => unsubscribe();
+      return () => {
+        unsubscribe();
+        console.log("[AuthContext] onAuthStateChanged listener removido.");
+      };
     } catch (error) {
-      console.error("Erro na inicialização do Firebase ou AuthContext:", error);
+      console.error(
+        "[AuthContext] Erro na inicialização do Firebase ou AuthContext:",
+        error
+      );
       setIsAuthReady(true);
-      setLoadingAuth(false);
-      setIsLoadingProfile(false); // Também define como falso em caso de erro na inicialização
+      setIsLoadingProfile(false);
+      console.log(
+        "[AuthContext] Erro crítico na inicialização. isAuthReady true, isLoadingProfile false."
+      );
     }
   }, []); // Dependências vazias para rodar uma vez na montagem
 
   // O valor do contexto que será fornecido aos componentes filhos
   const value = {
-    currentUser, // Objeto User do Firebase Auth
-    userId, // UID do Firebase Auth User
-    isAuthReady, // Autenticação verificada (user ou null)
-    loadingAuth, // Estado de carregamento da autenticação
-    user: userProfileData, // AGORA ESTE É O PERFIL COMPLETO DO FIRESTORE
-    isLoadingProfile, // Indica se o perfil do Firestore está carregando
-    authInstance: getAuth(getApps().length ? getApp() : null),
-    dbInstance: getFirestore(getApps().length ? getApp() : null),
+    currentUser,
+    userId,
+    isAuthReady,
+    user: userProfileData,
+    isLoadingProfile,
+    authInstance: authRef.current, // Passa a instância do auth
+    dbInstance: dbRef.current, // Passa a instância do db
   };
+
+  console.log(
+    "[AuthContext] Renderizando AuthProvider. isAuthReady:",
+    isAuthReady,
+    "isLoadingProfile:",
+    isLoadingProfile
+  );
 
   return (
     <AuthContext.Provider value={value}>

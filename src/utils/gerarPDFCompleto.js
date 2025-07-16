@@ -12,12 +12,19 @@ import {
 import { db } from "../firebase";
 
 // Importa a função centralizada!
+// Certifique-se de que este caminho está correto para o seu projeto.
 import { fetchAvaliacaoInteresses } from "./firebaseUtils";
+
+// NOVOS IMPORTS DOS OBJETIVOS POR PRAZO
+import estruturaPEI from "../data/estruturaPEI2"; // Seu arquivo principal de estratégias (e Longo Prazo)
+import objetivosCurtoPrazoData from "../data/objetivosCurtoPrazo";
+import objetivosMedioPrazoData from "../data/objetivosMedioPrazo";
 
 // --- Constantes e Estilos ---
 const styles = {
   font: "times", // Fonte Times New Roman
   fontSize: {
+    xsmall: 7, // Adicionado para tabelas muito densas
     small: 8,
     medium: 10,
     large: 12,
@@ -118,6 +125,92 @@ const SITUACOES_DESREGULACAO_LIST = [
 const HEADER_AREA_HEIGHT = 40;
 const FOOTER_AREA_HEIGHT = 25;
 
+// --- Mapeamento das Estruturas de Dados para acesso rápido ---
+
+/**
+ * Mapeia a estrutura principal de habilidades para facilitar o acesso a objetivos de Longo Prazo e estratégias.
+ * @param {Object} estrutura - A estrutura de dados `estruturaPEI`.
+ * @returns {Object} Um mapa para acesso rápido: { habilidade: { nivel: { objetivo: "...", estrategias: [...] } } }
+ */
+const getEstruturaPEIMap = (estrutura) => {
+  const map = {};
+  if (!estrutura) return map;
+  Object.entries(estrutura).forEach(([areaName, subareasByArea]) => {
+    if (typeof subareasByArea === "object" && subareasByArea !== null) {
+      Object.entries(subareasByArea).forEach(
+        ([subareaName, habilidadesBySubarea]) => {
+          if (
+            typeof habilidadesBySubarea === "object" &&
+            habilidadesBySubarea !== null
+          ) {
+            Object.entries(habilidadesBySubarea).forEach(
+              ([habilidadeName, niveisData]) => {
+                if (!map[habilidadeName]) {
+                  map[habilidadeName] = {};
+                }
+                if (typeof niveisData === "object" && niveisData !== null) {
+                  // Corrigido: a linha de atribuição está DENTRO do forEach
+                  Object.entries(niveisData).forEach(([nivel, data]) => {
+                    map[habilidadeName][nivel] = data; // Contém objetivo (Longo Prazo) e estratégias
+                  });
+                } else {
+                  console.warn(
+                    `[PDF_WARN] 'niveisData' para habilidade "${habilidadeName}" NÃO é um objeto válido em "${areaName}" -> "${subareaName}". Não será mapeada corretamente.`
+                  );
+                }
+              }
+            );
+          }
+        }
+      );
+    }
+  });
+  return map;
+};
+
+/**
+ * Mapeia as estruturas de objetivos por prazo (Curto, Médio) para facilitar o acesso.
+ * @param {Object} prazoData - A estrutura de dados para o prazo específico (objetivosCurtoPrazoData ou objetivosMedioPrazoData).
+ * @returns {Object} Um mapa para acesso rápido: { habilidade: { nivelAlmejado: objetivoText } }
+ */
+const getObjetivosPrazoMap = (prazoData) => {
+  const map = {};
+  if (!prazoData) return map;
+  Object.entries(prazoData).forEach(([areaName, subareasByArea]) => {
+    if (typeof subareasByArea === "object" && subareasByArea !== null) {
+      Object.entries(subareasByArea).forEach(
+        ([subareaName, habilidadesBySubarea]) => {
+          if (
+            typeof habilidadesBySubarea === "object" &&
+            habilidadesBySubarea !== null
+          ) {
+            Object.entries(habilidadesBySubarea).forEach(
+              ([habilidadeName, niveisData]) => {
+                if (!map[habilidadeName]) {
+                  map[habilidadeName] = {};
+                }
+                if (typeof niveisData === "object" && niveisData !== null) {
+                  Object.entries(niveisData).forEach(([nivel, objData]) => {
+                    map[habilidadeName][nivel] = objData.objetivo; // Salva diretamente o texto do objetivo
+                  });
+                }
+              }
+            );
+          }
+        }
+      );
+    }
+  });
+  return map;
+};
+
+// Inicializa os mapas que serão usados em todas as funções
+const estruturaPEIMap = getEstruturaPEIMap(estruturaPEI);
+const objetivosCurtoPrazoMap = getObjetivosPrazoMap(objetivosCurtoPrazoData);
+const objetivosMedioPrazoMap = getObjetivosPrazoMap(objetivosMedioPrazoData);
+
+// --- Funções Auxiliares Comuns ---
+
 /**
  * Formata um objeto de data ou string para o formato DD/MM/AAAA.
  * @param {firebase.firestore.Timestamp|Date|string} data - A data a ser formatada.
@@ -189,7 +282,6 @@ function addHeaderAndFooter(doc) {
   const pageHeight = doc.internal.pageSize.getHeight();
 
   // Adiciona a imagem do logo
-  // Certifique-se de que '/logo.jpg' está acessível no seu projeto ou substitua por um base64
   doc.addImage("/logo.jpg", "JPEG", imgX, imgY, imgWidth, imgHeight);
 
   doc.setFont(styles.font, "normal");
@@ -281,7 +373,6 @@ async function fetchPeis(alunoId, alunoNome) {
         peis = snapOldById.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
       } else {
         // Se ainda não encontrou, tentar na antiga por nome do aluno (fallback)
-        // CUIDADO: Buscar por nome pode levar a ambiguidades se houver alunos com nomes iguais
         if (alunoNome) {
           console.log(
             "[PDF_DEBUG] Tentando 'peis' (coleção antiga) por nome do aluno."
@@ -563,7 +654,7 @@ async function addStudentAndHeaderInfo(
       ],
       [
         `Período de intervenção: ${
-          avaliacao?.periodoIntervencao || "Médio prazo"
+          avaliacao?.periodoIntervencao || "Curto,Médio e Longo prazo"
         }`,
         `Data prevista para a próxima avaliação: ${mesProximaAvaliacaoTexto}`,
       ],
@@ -1064,10 +1155,12 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
   const allActivitiesTableRows = [];
   const uniqueActivitiesSet = new Set();
 
+  // Usamos um Map para consolidar habilidades únicas.
+  // A chave agora inclui Nível Atual e Nível Almejado para garantir unicidade na consolidação.
   const consolidatedSkills = new Map();
 
   peisParaExibir.forEach((peiItem) => {
-    const resumo = peiItem.resumoPEI || peiItem.areas || [];
+    const resumo = peiItem.resumoPEI || [];
     if (resumo.length === 0) return;
 
     const criadorInfo = `(${peiItem.nomeCriador || "Desconhecido"} - ${
@@ -1075,78 +1168,89 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
     })`;
 
     resumo.forEach((item) => {
-      const key = `${item.area || "-"}|${item.habilidade || "-"}`;
-      if (!consolidatedSkills.has(key)) {
-        consolidatedSkills.set(key, {
+      // Chave única para a habilidade considerando o Nível Atual e Nível Almejado
+      const key = `${item.area || "-"}|${item.habilidade || "-"}|${item.nivel || "-"}|${item.nivelAlmejado || "-"}`;
+      let skillEntry = consolidatedSkills.get(key);
+
+      if (!skillEntry) {
+        skillEntry = {
           area: item.area || "-",
           habilidade: item.habilidade || "-",
-          objetivo: item.objetivo || "-",
-          estrategiasTextList: [],
+          // Inicializa objetivos com base nos dados do item (que já vêm com CP/MP/LP)
+          objetivos: { curtoPrazo: "", medioPrazo: "", longoPrazo: "" },
+          estrategiasTextList: [], // Armazenará estratégias de todos os professores
           nivel: item.nivel || "-",
           nivelAlmejado: item.nivelAlmejado || "-",
-        });
+        };
+        consolidatedSkills.set(key, skillEntry);
       }
 
-      const skillEntry = consolidatedSkills.get(key);
+      // Preenche/atualiza os objetivos para a skillEntry
+      // Prioriza os objetivos do item salvo. Se não existirem, busca nos mapas.
+      skillEntry.objetivos.curtoPrazo =
+        item.objetivos?.curtoPrazo ||
+        objetivosCurtoPrazoMap[item.habilidade]?.[item.nivelAlmejado] ||
+        "";
+      skillEntry.objetivos.medioPrazo =
+        item.objetivos?.medioPrazo ||
+        objetivosMedioPrazoMap[item.habilidade]?.[item.nivelAlmejado] ||
+        "";
+      skillEntry.objetivos.longoPrazo =
+        item.objetivos?.longoPrazo ||
+        estruturaPEIMap[item.habilidade]?.[item.nivelAlmejado]?.objetivo ||
+        "";
 
+      // Adiciona as estratégias (selecionadas por esse professor)
       let estrategiasDoItem = [];
-      if (Array.isArray(item.estrategias)) {
-        estrategiasDoItem = item.estrategias
+      if (Array.isArray(item.estrategiasSelecionadas)) {
+        estrategiasDoItem = item.estrategiasSelecionadas
           .filter(Boolean)
           .map((est) => est.trim());
-      } else if (typeof item.estrategias === "string") {
-        const regexSplit = /(?=\s*\([^)]+\)\s*(?=\s*\([^)]+\)|$))/;
-        const parts = item.estrategias.split(regexSplit);
-        parts.forEach((part) => {
-          const trimmedPart = part.trim();
-          if (trimmedPart) {
-            estrategiasDoItem.push(trimmedPart);
-          }
-        });
-        if (
-          estrategiasDoItem.length === 0 &&
-          item.estrategias.trim().length > 0
-        ) {
-          estrategiasDoItem.push(item.estrategias.trim());
-        }
       }
 
       if (estrategiasDoItem.length > 0) {
         estrategiasDoItem.forEach((strategyText) => {
-          skillEntry.estrategiasTextList.push(
-            `* ${strategyText} ${criadorInfo}`
-          );
+          // Adiciona a estratégia apenas se ainda não estiver na lista consolidada para essa habilidade
+          const formattedStrategy = `* ${strategyText} ${criadorInfo}`;
+          if (!skillEntry.estrategiasTextList.includes(formattedStrategy)) {
+            skillEntry.estrategiasTextList.push(formattedStrategy);
+          }
         });
       }
 
-      const activityText = item.atividadeAplicada?.trim();
+      // Adiciona atividades aplicadas (uma vez por PEI/Criador)
+      const activityText = item.atividadeAplicada?.trim(); // Preferir da meta, se houver
       if (activityText) {
-        const uniqueKey = `${activityText}|${criadorInfo}`;
-        if (!uniqueActivitiesSet.has(uniqueKey)) {
-          uniqueActivitiesSet.add(uniqueKey);
+        const uniqueActivityKey = `${activityText}|${criadorInfo}`;
+        if (!uniqueActivitiesSet.has(uniqueActivityKey)) {
+          uniqueActivitiesSet.add(uniqueActivityKey);
           allActivitiesTableRows.push([activityText, criadorInfo]);
         }
-      } else if (peiItem.atividadeAplicada?.trim() && !item.atividadeAplicada) {
+      } else if (peiItem.atividadeAplicada?.trim()) {
+        // Fallback para atividade do PEI principal
         const activityTextFromPei = peiItem.atividadeAplicada.trim();
-        const uniqueKey = `${activityTextFromPei}|${criadorInfo}`;
-        if (!uniqueActivitiesSet.has(uniqueKey)) {
-          uniqueActivitiesSet.add(uniqueKey);
+        const uniqueActivityKey = `${activityTextFromPei}|${criadorInfo}`;
+        if (!uniqueActivitiesSet.has(uniqueActivityKey)) {
+          uniqueActivitiesSet.add(uniqueActivityKey);
           allActivitiesTableRows.push([activityTextFromPei, criadorInfo]);
         }
       }
-
-      skillEntry.nivel = item.nivel || skillEntry.nivel;
-      skillEntry.nivelAlmejado = item.nivelAlmejado || skillEntry.nivelAlmejado;
     });
   });
 
   consolidatedSkills.forEach((skillEntry) => {
+    // Formata os três objetivos para exibição em uma única célula
+    const objetivosCombined =
+      `Curto Prazo: ${skillEntry.objetivos.curtoPrazo || "N/D."}\n` +
+      `Médio Prazo: ${skillEntry.objetivos.medioPrazo || "N/D."}\n` +
+      `Longo Prazo: ${skillEntry.objetivos.longoPrazo || "N/D."}`;
+
     const combinedStrategiesText = skillEntry.estrategiasTextList.join("\n\n");
 
     allPeiTableRows.push([
       skillEntry.area || "-",
       skillEntry.habilidade || "-",
-      skillEntry.objetivo || "-",
+      objetivosCombined, // Agora é o texto formatado com todos os prazos
       combinedStrategiesText || "Nenhuma estratégia definida.",
       skillEntry.nivel || "-",
       skillEntry.nivelAlmejado || "-",
@@ -1168,11 +1272,12 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
     y += 8;
 
     const larguraPagina = doc.internal.pageSize.getWidth();
-    const areaWidth = 25;
-    const habilidadeWidth = 35;
-    const objetivoWidth = 45;
-    const nivelWidth = 12;
-    const nivelAlmejadoWidth = 15;
+    // Reajustando as larguras das colunas para melhor encaixe
+    const areaWidth = 20; // Reduzido de 25
+    const habilidadeWidth = 30; // Reduzido de 35
+    const objetivoWidth = 50; // Ajustado para 3 prazos e N/D
+    const nivelWidth = 10; // Reduzido de 12
+    const nivelAlmejadoWidth = 12; // Reduzido de 15
 
     const defaultMarginLeft = 20;
     const defaultMarginRight = 20;
@@ -1184,11 +1289,14 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
       objetivoWidth +
       nivelWidth +
       nivelAlmejadoWidth;
+
+    // Calcula o espaço restante para as estratégias
     const availableWidthForStrategies =
       larguraPagina - defaultTotalHorizontalMargin - fixedColumnsTotalWidth;
 
-    const estrategiasWidth = Math.max(70, availableWidthForStrategies);
+    const estrategiasWidth = Math.max(65, availableWidthForStrategies); // Garante um mínimo ou preenche o restante
 
+    // Recalcula a margem para centralizar a tabela com as novas larguras
     const totalColumnWidthUsed =
       areaWidth +
       habilidadeWidth +
@@ -1204,22 +1312,22 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
         [
           "Área",
           "Habilidade",
-          "Objetivo",
+          "Objetivos (CP/MP/LP)", // Cabeçalho alterado para indicar os 3 prazos
           "Estratégias",
-          "Nível Atual",
-          "Nível Almejado",
+          "N.A", // Nível Atual - Abreviado
+          "N.AL", // Nível Almejado - Abreviado
         ],
       ],
       body: allPeiTableRows,
       styles: {
         font: styles.font,
-        fontSize: styles.fontSize.small,
+        fontSize: styles.fontSize.small, // Usar 'small' para a fonte da tabela do PEI (8pt)
         textColor: styles.colors.black,
         fillColor: styles.colors.white,
         lineColor: styles.colors.black,
         lineWidth: 0.1,
-        cellPadding: 2,
-        valign: "top",
+        cellPadding: 1.5, // Reduzido para dar mais espaço ao conteúdo
+        valign: "top", // Alinhar ao topo para múltiplos objetivos
       },
       headStyles: {
         fillColor: styles.colors.white,
@@ -1230,12 +1338,15 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
       columnStyles: {
         0: {
           cellWidth: areaWidth,
+          overflow: "linebreak",
         },
         1: {
           cellWidth: habilidadeWidth,
+          overflow: "linebreak",
         },
         2: {
           cellWidth: objetivoWidth,
+          overflow: "linebreak", // Para quebrar linha dos 3 objetivos
         },
         3: {
           cellWidth: estrategiasWidth,
@@ -1257,18 +1368,38 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
         bottom: FOOTER_AREA_HEIGHT,
       },
       didParseCell: (data) => {
-        const nivel = data.cell.text[0];
-        if ([4, 5].includes(data.column.index) && coresPorNivel[nivel]) {
-          data.cell.styles.fillColor = coresPorNivel[nivel];
+        // Lógica de cores para os níveis
+        if ([4, 5].includes(data.column.index)) {
+          // Colunas de Nível Atual e Nível Almejado
+          const nivel = data.cell.text; // O texto da célula é o nível (ex: "AF")
+          if (coresPorNivel[nivel]) {
+            data.cell.styles.fillColor = coresPorNivel[nivel];
+            data.cell.styles.textColor = styles.colors.white;
+          }
         } else {
           data.cell.styles.fillColor = styles.colors.white;
+          data.cell.styles.textColor = styles.colors.black;
         }
       },
       didDrawPage: (data) => {
         addHeaderAndFooter(doc);
       },
     });
-    y = doc.lastAutoTable.finalY + 10;
+    y = doc.lastAutoTable.finalY; // Pega o Y final da tabela do PEI
+
+    // --- NOVO: Adiciona a legenda para N.A e N.AL ---
+    y = ensurePageSpace(doc, y, 20); // Garante espaço para a legenda
+
+    doc.setFont(styles.font, "bold");
+    doc.setFontSize(styles.fontSize.small); // Usa um tamanho de fonte pequeno
+    doc.text("Legenda:", 20, y + 5); // Margem esquerda de 20
+    doc.setFont(styles.font, "normal");
+    doc.text("N.A - Nível Atual | N.AL - Nível Almejado", 50, y + 5); // Continua na mesma linha
+
+    y += 10; // Espaçamento após a legenda
+    // --- FIM da nova legenda ---
+
+    y += 10; // Espaçamento que já existia para a próxima seção (Atividades Aplicadas ou final da seção)
   } else {
     console.log(
       "[PDF_DEBUG] PEI: Nenhuma estratégia para exibir. Pulando seção."
@@ -1402,9 +1533,6 @@ function addLegendSection(doc, y) {
   return y + 10;
 }
 
-// ==================================================================
-// INÍCIO DO CÓDIGO COM A CORREÇÃO FINAL
-// ==================================================================
 /**
  * Adiciona a tabela de assinaturas dos profissionais envolvidos ao PDF.
  * A gestão da escola do aluno (Diretor, Diretor Adjunto, Orientador Pedagógico, Gestão)
@@ -1422,7 +1550,7 @@ async function addProfessionalSignaturesTable(doc, aluno, usuarioLogado, y) {
     "seme",
     "diretor",
     "diretor adjunto",
-    "orientador pedagogico",
+    "orientador pedagogico", // Usa espaço
     "desenvolvedor",
     "professor",
   ];
@@ -1451,7 +1579,7 @@ async function addProfessionalSignaturesTable(doc, aluno, usuarioLogado, y) {
     const perfisGestaoEscolar = [
       "diretor",
       "diretor adjunto",
-      "orientador pedagogico", // Usa espaço
+      "orientador pedagogico",
       "gestao",
     ];
 
@@ -1466,7 +1594,6 @@ async function addProfessionalSignaturesTable(doc, aluno, usuarioLogado, y) {
       todosUsuariosSnap.docs.forEach((doc) => {
         const p = { id: doc.id, ...doc.data() };
 
-        // ===== CORREÇÃO APLICADA AQUI =====
         // Padroniza o perfil vindo do banco (substitui '_' por ' ') para a verificação.
         const perfilNormalizado = p.perfil?.toLowerCase().replace(/_/g, " ");
 
@@ -1521,7 +1648,6 @@ async function addProfessionalSignaturesTable(doc, aluno, usuarioLogado, y) {
         seme: 7,
         desenvolvedor: 8,
       };
-      // ===== CORREÇÃO APLICADA AQUI =====
       // Usa o perfil padronizado também na ordenação.
       const perfilA = a.perfil?.toLowerCase().replace(/_/g, " ") || "";
       const perfilB = b.perfil?.toLowerCase().replace(/_/g, " ") || "";
@@ -1601,9 +1727,6 @@ async function addProfessionalSignaturesTable(doc, aluno, usuarioLogado, y) {
     return y;
   }
 }
-// ==================================================================
-// FIM DO CÓDIGO CORRIGIDO
-// ==================================================================
 
 /**
  * Adiciona uma página de assinaturas ao final do documento.
@@ -1655,7 +1778,7 @@ export async function gerarPDFCompleto(
   let y;
 
   console.log("[PDF_DEBUG] Início da geração do PDF.");
-  console.log("[PDF_DEBUG] Aluno recebido:", aluno); // LOG ADICIONAL PARA DEPURAR ESCOLA
+  console.log("[PDF_DEBUG] Aluno recebido:", aluno);
   console.log("[PDF_DEBUG] Aluno ID:", aluno.id, "Nome:", aluno.nome);
   console.log(
     "[PDF_DEBUG] Usuário Logado ID:",
@@ -1674,8 +1797,6 @@ export async function gerarPDFCompleto(
     return;
   }
 
-  // --- CORREÇÃO AQUI: Passando o userId para fetchAvaliacaoInteresses ---
-  // A função fetchAvaliacaoInteresses espera alunoId e userId
   const avaliacaoInteressesData = await fetchAvaliacaoInteresses(
     aluno.id,
     usuarioLogado.id,
@@ -1737,7 +1858,6 @@ export async function gerarPDFCompleto(
   let nomeEscola = "-";
   if (aluno.escolaId) {
     try {
-      // --- CORREÇÃO AQUI: aluno.esolaId para aluno.escolaId ---
       const escolaRef = firestoreDoc(db, "escolas", aluno.escolaId);
       const escolaSnap = await getDoc(escolaRef);
       if (escolaSnap.exists()) {
@@ -1765,7 +1885,7 @@ export async function gerarPDFCompleto(
     y
   );
   y = addInitialAssessment(doc, avaliacaoInicial, y);
-  y = addAvaliacaoInteressesSection(doc, avaliacaoInteressesData, y); // Esta função foi corrigida e deve aparecer
+  y = addAvaliacaoInteressesSection(doc, avaliacaoInteressesData, y);
   y = addConsolidatedPeiSection(doc, peisParaExibir, y);
   y = addLegendSection(doc, y);
 

@@ -15,14 +15,95 @@ import {
 } from "firebase/firestore";
 import {
   fetchAvaliacaoInteresses,
-  fetchAlunoById,
-  fetchPeisByAluno,
-} from "../utils/firebaseUtils";
+  // fetchAlunoById, // Não mais necessário importar aqui se já busca `alunos` em carregarDados
+  // fetchPeisByAluno, // Não mais necessário importar aqui se já busca `peis` em carregarDados
+} from "../utils/firebaseUtils"; // Confirme que este caminho está correto
 
+// IMPORTS DOS DADOS PARA OBJETIVOS DE PRAZO
+// Certifique-se de que os caminhos estão corretos para o seu projeto!
+import estruturaPEI from "../data/estruturaPEI2"; // Seu arquivo principal (para objetivo de LONGO PRAZO e estratégias)
+import objetivosCurtoPrazoData from "../data/objetivosCurtoPrazo";
+import objetivosMedioPrazoData from "../data/objetivosMedioPrazo";
+
+// --- Funções de Mapeamento de Dados (Replicadas do gerarPDFCompleto.js / CriarPEI.jsx) ---
+/**
+ * Mapeia a estrutura principal de habilidades para facilitar o acesso a objetivos de Longo Prazo e estratégias.
+ */
+const getEstruturaPEIMap = (estrutura) => {
+  const map = {};
+  if (!estrutura) return map;
+  Object.entries(estrutura).forEach(([areaName, subareasByArea]) => {
+    if (typeof subareasByArea === "object" && subareasByArea !== null) {
+      Object.entries(subareasByArea).forEach(
+        ([subareaName, habilidadesBySubarea]) => {
+          if (
+            typeof habilidadesBySubarea === "object" &&
+            habilidadesBySubarea !== null
+          ) {
+            Object.entries(habilidadesBySubarea).forEach(
+              ([habilidadeName, niveisData]) => {
+                if (!map[habilidadeName]) {
+                  map[habilidadeName] = {};
+                }
+                if (typeof niveisData === "object" && niveisData !== null) {
+                  Object.entries(niveisData).forEach(([nivel, data]) => {
+                    map[habilidadeName][nivel] = data; // Contém objetivo (Longo Prazo) e estratégias
+                  });
+                }
+              }
+            );
+          }
+        }
+      );
+    }
+  });
+  return map;
+};
+
+/**
+ * Mapeia as estruturas de objetivos por prazo (Curto, Médio) para facilitar o acesso.
+ */
+const getObjetivosPrazoMap = (prazoData) => {
+  const map = {};
+  if (!prazoData) return map;
+  Object.entries(prazoData).forEach(([areaName, subareasByArea]) => {
+    if (typeof subareasByArea === "object" && subareasByArea !== null) {
+      Object.entries(subareasByArea).forEach(
+        ([subareaName, habilidadesBySubarea]) => {
+          if (
+            typeof habilidadesBySubarea === "object" &&
+            habilidadesBySubarea !== null
+          ) {
+            Object.entries(habilidadesBySubarea).forEach(
+              ([habilidadeName, niveisData]) => {
+                if (!map[habilidadeName]) {
+                  map[habilidadeName] = {};
+                }
+                if (typeof niveisData === "object" && niveisData !== null) {
+                  Object.entries(niveisData).forEach(([nivel, objData]) => {
+                    map[habilidadeName][nivel] = objData.objetivo; // Salva diretamente o texto do objetivo
+                  });
+                }
+              }
+            );
+          }
+        }
+      );
+    }
+  });
+  return map;
+};
+
+// --- Funções Auxiliares Comuns (existentes) ---
 const calcularIdadeEFaixa = (nascimento) => {
   if (!nascimento) return ["-", "-"];
   const hoje = new Date();
-  const nasc = new Date(nascimento);
+  // Garante que nascimento é tratado como Date ou Firestore Timestamp
+  const nasc =
+    typeof nascimento.toDate === "function"
+      ? nascimento.toDate()
+      : new Date(nascimento);
+
   let idade = hoje.getFullYear() - nasc.getFullYear();
   const m = hoje.getMonth() - nasc.getMonth();
   if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) idade--;
@@ -53,10 +134,7 @@ function formatarDataSegura(data) {
   }
 }
 
-// Movendo removerAcentosLocal para fora do componente para ser globalmente acessível e reutilizável
-// E adicionando verificação de tipo para evitar o erro de 'normalize'
 const removerAcentosLocal = (str) => {
-  // Garante que 'str' é uma string antes de chamar métodos de string
   const safeStr = typeof str === "string" ? str : "";
   return safeStr
     .normalize("NFD")
@@ -100,6 +178,17 @@ export default function VerPEIs() {
     []
   );
 
+  // Mapeamentos para buscar os objetivos de prazos específicos
+  const estruturaPEIMap = useMemo(() => getEstruturaPEIMap(estruturaPEI), []);
+  const objetivosCurtoPrazoMap = useMemo(
+    () => getObjetivosPrazoMap(objetivosCurtoPrazoData),
+    []
+  );
+  const objetivosMedioPrazoMap = useMemo(
+    () => getObjetivosPrazoMap(objetivosMedioPrazoData),
+    []
+  );
+
   const carregarDados = useCallback(async () => {
     console.log("--- DEBUG carregarDados START ---");
     console.log(
@@ -133,9 +222,6 @@ export default function VerPEIs() {
       avaliacoesSnapshot.docs.forEach((doc) => {
         const data = doc.data();
         let nomeAlunoAvaliacao = "";
-
-        // --- CORREÇÃO AQUI (Linha 128-131 do seu log) ---
-        // Verifica se data.aluno é um objeto com a propriedade 'nome', senão usa data.aluno diretamente.
         if (
           typeof data.aluno === "object" &&
           data.aluno !== null &&
@@ -145,8 +231,6 @@ export default function VerPEIs() {
         } else if (typeof data.aluno === "string") {
           nomeAlunoAvaliacao = data.aluno;
         }
-        // Se 'nomeAlunoAvaliacao' ainda for vazia, significa que 'data.aluno' não estava no formato esperado.
-        // O `removerAcentosLocal` já lida com strings vazias.
         todasAvaliacoes[removerAcentosLocal(nomeAlunoAvaliacao)] = data;
       });
       setAvaliacoesIniciais(todasAvaliacoes);
@@ -251,17 +335,17 @@ export default function VerPEIs() {
           .filter((p) => p.aluno === aluno.nome)
           .sort((a, b) => {
             const dataA =
-              a.inicio instanceof Date
-                ? a.inicio
-                : a.inicio
-                  ? new Date(a.inicio)
-                  : new Date(0);
+              a.dataCriacao instanceof Date
+                ? a.dataCriacao
+                : a.dataCriacao?.toDate
+                  ? a.dataCriacao.toDate()
+                  : new Date(0); // Correção para dataCriacao ser um Timestamp
             const dataB =
-              b.inicio instanceof Date
-                ? b.inicio
-                : b.inicio
-                  ? new Date(b.inicio)
-                  : new Date(0);
+              b.dataCriacao instanceof Date
+                ? b.dataCriacao
+                : b.dataCriacao?.toDate
+                  ? b.dataCriacao.toDate()
+                  : new Date(0); // Correção para dataCriacao ser um Timestamp
             return dataB.getTime() - dataA.getTime();
           });
       });
@@ -274,7 +358,7 @@ export default function VerPEIs() {
     } finally {
       setCarregando(false);
     }
-  }, [abaAtiva, filtroUsuario, tipo, usuarioLogado, perfisComAcessoAmplo]);
+  }, [abaAtiva, filtroUsuario, tipo, usuarioLogado, perfisComAcessoAmplo]); // Removi estruturaPEIMap, objetivosCurtoPrazoMap, objetivosMedioPrazoMap das dependências do useCallback, pois são memoizados e globais ao escopo do módulo.
 
   useEffect(() => {
     carregarDados();
@@ -295,21 +379,21 @@ export default function VerPEIs() {
     }
   };
 
-  const handleGerarPDF = async (pei) => {
+  const handleGerarPDF = async (peiOriginal) => {
+    // Renomeado para peiOriginal para clareza
     console.log("--- DEBUG handleGerarPDF START ---");
     console.log(
-      "PEI recebido em handleGerarPDF:",
-      JSON.stringify(pei, null, 2)
+      "PEI original recebido em handleGerarPDF:",
+      JSON.stringify(peiOriginal, null, 2)
     );
 
     try {
-      // CORREÇÃO AQUI TAMBÉM: Garante que pei.aluno é string antes de normalizar
       const nomeAlunoPei = removerAcentosLocal(
-        typeof pei.aluno === "object" &&
-          pei.aluno !== null &&
-          typeof pei.aluno.nome === "string"
-          ? pei.aluno.nome
-          : pei.aluno // Se não for objeto com nome, usa pei.aluno diretamente
+        typeof peiOriginal.aluno === "object" &&
+          peiOriginal.aluno !== null &&
+          typeof peiOriginal.aluno.nome === "string"
+          ? peiOriginal.aluno.nome
+          : peiOriginal.aluno
       );
 
       console.log(
@@ -325,7 +409,7 @@ export default function VerPEIs() {
       );
 
       const alunoCompleto =
-        alunos.find((a) => a.id === pei.alunoId) ||
+        alunos.find((a) => a.id === peiOriginal.alunoId) ||
         alunos.find((a) => removerAcentosLocal(a.nome) === nomeAlunoPei);
       console.log(
         "Aluno Completo encontrado para passar ao PDF:",
@@ -335,7 +419,7 @@ export default function VerPEIs() {
 
       if (!alunoCompleto) {
         alert(
-          `Dados completos do aluno não encontrados para o PEI de ${pei.aluno}. Não é possível gerar o PDF.`
+          `Dados completos do aluno não encontrados para o PEI de ${peiOriginal.aluno}. Não é possível gerar o PDF.`
         );
         console.error("DEBUG: alunoCompleto é nulo ou undefined.");
         return;
@@ -343,7 +427,7 @@ export default function VerPEIs() {
 
       if (!alunoCompleto.nome || !alunoCompleto.id) {
         alert(
-          `Dados essenciais (nome ou ID) do aluno completo estão faltando para o PEI de ${alunoCompleto.nome || pei.aluno}. Não é possível gerar o PDF.`
+          `Dados essenciais (nome ou ID) do aluno completo estão faltando para o PEI de ${alunoCompleto.nome || peiOriginal.aluno}. Não é possível gerar o PDF.`
         );
         console.error(
           "DEBUG: alunoCompleto.nome ou alunoCompleto.id está faltando.",
@@ -356,7 +440,7 @@ export default function VerPEIs() {
       }
 
       if (!avaliacao) {
-        alert(`Avaliação Inicial não encontrada para ${pei.aluno}.`);
+        alert(`Avaliação Inicial não encontrada para ${peiOriginal.aluno}.`);
         console.error("DEBUG: Avaliação está faltando.");
         return;
       }
@@ -368,7 +452,7 @@ export default function VerPEIs() {
         );
         const interessesDoc = await fetchAvaliacaoInteresses(
           alunoCompleto.id,
-          usuarioLogado.id
+          usuarioLogado.id // Passa o ID do usuário logado para fetchAvaliacaoInteresses
         );
         if (interessesDoc) {
           avaliacaoInteressesData = interessesDoc;
@@ -385,16 +469,74 @@ export default function VerPEIs() {
         console.error("Erro ao buscar avaliação de interesses:", err);
       }
 
+      // Prepara o PEI para o PDF, garantindo que os objetivos de todos os prazos estejam preenchidos
+      const peiParaPDF = {
+        ...peiOriginal,
+        resumoPEI: (peiOriginal.resumoPEI || []).map((meta) => {
+          let objetivosCompletos = {
+            curtoPrazo: "",
+            medioPrazo: "",
+            longoPrazo: "",
+          };
+
+          if (meta.objetivos && typeof meta.objetivos === "object") {
+            objetivosCompletos = { ...meta.objetivos }; // Copia os existentes
+            // Garante que campos faltantes sejam preenchidos dos mapas
+            objetivosCompletos.curtoPrazo =
+              objetivosCompletos.curtoPrazo ||
+              objetivosCurtoPrazoMap[meta.habilidade]?.[meta.nivelAlmejado] ||
+              "";
+            objetivosCompletos.medioPrazo =
+              objetivosCompletos.medioPrazo ||
+              objetivosMedioPrazoMap[meta.habilidade]?.[meta.nivelAlmejado] ||
+              "";
+            objetivosCompletos.longoPrazo =
+              objetivosCompletos.longoPrazo ||
+              estruturaPEIMap[meta.habilidade]?.[meta.nivelAlmejado]
+                ?.objetivo ||
+              "";
+          } else if (typeof meta.objetivo === "string") {
+            // Compatibilidade com PEIs antigos que tinham 'objetivo' como string
+            objetivosCompletos.longoPrazo = meta.objetivo;
+            objetivosCompletos.curtoPrazo =
+              objetivosCurtoPrazoMap[meta.habilidade]?.[meta.nivelAlmejado] ||
+              "";
+            objetivosCompletos.medioPrazo =
+              objetivosMedioPrazoMap[meta.habilidade]?.[meta.nivelAlmejado] ||
+              "";
+          } else {
+            // Se não há objetivo algum, tenta preencher tudo dos mapas
+            objetivosCompletos.curtoPrazo =
+              objetivosCurtoPrazoMap[meta.habilidade]?.[meta.nivelAlmejado] ||
+              "";
+            objetivosCompletos.medioPrazo =
+              objetivosMedioPrazoMap[meta.habilidade]?.[meta.nivelAlmejado] ||
+              "";
+            objetivosCompletos.longoPrazo =
+              estruturaPEIMap[meta.habilidade]?.[meta.nivelAlmejado]
+                ?.objetivo || "";
+          }
+
+          return {
+            ...meta,
+            objetivos: objetivosCompletos, // A meta agora sempre terá o objeto de objetivos completo
+            // Estratégias já virão de meta.estrategiasSelecionadas, conforme seu PDF espera
+          };
+        }),
+      };
+
       console.log(
-        "Chamando gerarPDFCompleto com alunoCompleto (individual PEI):",
-        JSON.stringify(alunoCompleto, null, 2)
+        "Chamando gerarPDFCompleto com alunoCompleto e PEI preparado para PDF:",
+        JSON.stringify(alunoCompleto, null, 2),
+        JSON.stringify(peiParaPDF, null, 2)
       );
 
+      // Passa o PEI PREPARADO (com os objetivos de prazo) para a função do PDF
       await gerarPDFCompleto(
         alunoCompleto,
         avaliacao,
         usuarioLogado,
-        [],
+        [peiParaPDF], // Passa o PEI individual dentro de um array
         avaliacaoInteressesData
       );
       console.log("--- DEBUG handleGerarPDF END ---");
@@ -534,18 +676,18 @@ export default function VerPEIs() {
                               </p>
 
                               {(() => {
-                                // Essa função removerAcentosInner será usada apenas aqui.
-                                // Já temos uma globalizada 'removerAcentosLocal' acima.
-                                // Poderia ser removida ou renomeada para evitar confusão.
+                                // Remover essa função interna se já existe removerAcentosLocal globalmente.
+                                // Já está usando removerAcentosLocal abaixo, então essa pode ser removida.
+                                /*
                                 const removerAcentosInner = (str) =>
                                   String(str) // Garante que é string
                                     .normalize("NFD")
                                     .replace(/[\u0300-\u036f]/g, "")
                                     .toLowerCase()
                                     .trim();
+                                */
 
                                 let nomeAlunoPeiParaAvaliacao = "";
-                                // --- CORREÇÃO AQUI também para pegar nome do aluno do PEI ---
                                 if (
                                   typeof pei.aluno === "object" &&
                                   pei.aluno !== null &&
@@ -558,7 +700,7 @@ export default function VerPEIs() {
 
                                 const avaliacao =
                                   avaliacoesIniciais[
-                                    removerAcentosInner(
+                                    removerAcentosLocal(
                                       nomeAlunoPeiParaAvaliacao
                                     )
                                   ];
@@ -639,79 +781,7 @@ export default function VerPEIs() {
                       {alunoDaAba && (
                         <button
                           style={estilos.gerar}
-                          onClick={async () => {
-                            try {
-                              const peisDoAlunoParaPDF =
-                                peisPorAluno[alunoDaAba.nome] || [];
-
-                              if (peisDoAlunoParaPDF.length === 0) {
-                                alert(
-                                  "Nenhum PEI encontrado para este aluno para gerar o PDF."
-                                );
-                                return;
-                              }
-
-                              // CORREÇÃO AQUI: Garante que alunoDaAba.nome é string antes de normalizar
-                              const nomeAlunoParaPDF = removerAcentosLocal(
-                                alunoDaAba.nome
-                              );
-
-                              const avaliacaoDoAluno =
-                                avaliacoesIniciais[nomeAlunoParaPDF];
-
-                              if (!avaliacaoDoAluno) {
-                                alert(
-                                  `Avaliação Inicial não encontrada para ${alunoDaAba.nome} para gerar o PDF.`
-                                );
-                                return;
-                              }
-
-                              let avaliacaoInteressesData = null;
-                              try {
-                                console.log(
-                                  `[PDF_DEBUG] Buscando avaliação de interesses para alunoId: ${alunoDaAba.id} e userId: ${usuarioLogado.id}`
-                                );
-                                const interessesDoc =
-                                  await fetchAvaliacaoInteresses(
-                                    alunoDaAba.id,
-                                    usuarioLogado.id
-                                  );
-                                if (interessesDoc) {
-                                  avaliacaoInteressesData = interessesDoc;
-                                  console.log(
-                                    "[PDF_DEBUG] Avaliação de Interesses encontrada:",
-                                    JSON.stringify(
-                                      avaliacaoInteressesData,
-                                      null,
-                                      2
-                                    )
-                                  );
-                                } else {
-                                  console.warn(
-                                    "[PDF_DEBUG] Nenhuma avaliação de interesses encontrada para este aluno."
-                                  );
-                                }
-                              } catch (err) {
-                                console.error(
-                                  "Erro ao buscar avaliação de interesses:",
-                                  err
-                                );
-                              }
-
-                              await gerarPDFCompleto(
-                                alunoDaAba,
-                                avaliacaoDoAluno,
-                                usuarioLogado,
-                                peisDoAlunoParaPDF,
-                                avaliacaoInteressesData
-                              );
-                            } catch (erro) {
-                              console.error("Erro ao gerar PDF:", erro);
-                              alert(
-                                "Erro ao gerar PDF. Verifique se há Avaliação Inicial e PEIs cadastrados."
-                              );
-                            }
-                          }}
+                          onClick={() => handleGerarPDF(peis[0])} // Passa o PEI mais recente (primeiro do array)
                         >
                           Gerar PDF
                         </button>
