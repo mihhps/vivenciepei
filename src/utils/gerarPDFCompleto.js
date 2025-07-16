@@ -329,70 +329,76 @@ function ensurePageSpace(doc, currentY, requiredSpace) {
 
 /**
  * Busca os Planos Educacionais Individualizados (PEIs) de um aluno no Firestore.
- * Tenta buscar em coleções novas e antigas.
+ * Busca em ambas as coleções (nova e antiga) e consolida os resultados.
  * @param {string} alunoId - ID do aluno.
  * @param {string} alunoNome - Nome do aluno (usado como fallback para coleções antigas).
  * @returns {Promise<Array<Object>>} Array de objetos PEI.
  */
 async function fetchPeis(alunoId, alunoNome) {
   try {
-    let peis = [];
-    const newCollectionRef = collection(db, "pei_contribucoes");
-    const oldCollectionRef = collection(db, "peis");
+    const currentYear = new Date().getFullYear();
+    let allPeis = [];
 
-    // Tentar buscar na coleção nova primeiro
+    // 1. Buscar na coleção "pei_contribucoes"
     let qNew = query(
-      newCollectionRef,
+      collection(db, "pei_contribucoes"),
       where("alunoId", "==", alunoId),
+      where("anoLetivo", "==", currentYear), // **IMPORTANTE: FILTRA PELO ANO LETIVO** [cite: 1]
       orderBy("dataCriacao", "desc")
     );
     let snapNew = await getDocs(qNew);
-
     if (!snapNew.empty) {
       console.log("[PDF_DEBUG] PEIs encontrados em 'pei_contribucoes'.");
-      peis = snapNew.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      allPeis = allPeis.concat(
+        snapNew.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+      );
     } else {
       console.log(
-        "[PDF_DEBUG] Nenhum PEI encontrado em 'pei_contribucoes', tentando 'peis' (coleção antiga)."
+        "[PDF_DEBUG] Nenhuma PEI encontrada em 'pei_contribucoes' para o aluno e ano atual."
       );
-      // Se não houver na nova, tentar na antiga por ID do aluno
-      let qOldById = query(
-        oldCollectionRef,
-        where("alunoId", "==", alunoId),
-        orderBy("dataCriacao", "desc")
-      );
-      let snapOldById = await getDocs(qOldById);
-
-      if (!snapOldById.empty) {
-        console.log(
-          "[PDF_DEBUG] PEIs encontrados em 'peis' (coleção antiga) por ID."
-        );
-        peis = snapOldById.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-      } else {
-        // Se ainda não encontrou, tentar na antiga por nome do aluno (fallback)
-        if (alunoNome) {
-          console.log(
-            "[PDF_DEBUG] Tentando 'peis' (coleção antiga) por nome do aluno."
-          );
-          let qOldByName = query(
-            oldCollectionRef,
-            where("aluno", "==", alunoNome),
-            orderBy("dataCriacao", "desc")
-          );
-          let snapOldByName = await getDocs(qOldByName);
-          if (!snapOldByName.empty) {
-            peis = snapOldByName.docs.map((doc) => ({
-              id: doc.id,
-              ...doc.data(),
-            }));
-          }
-        }
-      }
     }
-    return peis;
+
+    // 2. Buscar na coleção "peis" (antiga)
+    // Esta busca será feita SEMPRE, não apenas se a primeira estiver vazia [cite: 1]
+    let qOld = query(
+      collection(db, "peis"),
+      where("alunoId", "==", alunoId),
+      where("anoLetivo", "==", currentYear), // **IMPORTANTE: FILTRA PELO ANO LETIVO** [cite: 1]
+      orderBy("dataCriacao", "desc")
+    );
+    let snapOld = await getDocs(qOld);
+    if (!snapOld.empty) {
+      console.log("[PDF_DEBUG] PEIs encontrados em 'peis' (coleção antiga).");
+      allPeis = allPeis.concat(
+        snapOld.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+      );
+    } else {
+      console.log(
+        "[PDF_DEBUG] Nenhuma PEI encontrada em 'peis' para o aluno e ano atual."
+      );
+    }
+    // Opcional: Remover duplicatas pelo ID do documento (caso um PEI tenha sido salvo em ambas as coleções por engano) [cite: 1]
+    const uniquePeis = Array.from(
+      new Map(allPeis.map((item) => [item.id, item])).values()
+    );
+
+    // Ordenar todos os PEIs encontrados (importante para consistência) [cite: 1]
+    uniquePeis.sort((a, b) => {
+      const dataA = a.dataCriacao?.toDate
+        ? a.dataCriacao.toDate()
+        : new Date(a.dataCriacao);
+      const dataB = b.dataCriacao?.toDate
+        ? b.dataCriacao.toDate()
+        : new Date(b.dataCriacao);
+      return dataB.getTime() - dataA.getTime();
+    });
+
+    console.log(
+      "[PDF_DEBUG] Total de PEIs consolidados encontrados (de ambas as coleções):",
+      uniquePeis.length,
+      uniquePeis
+    );
+    return uniquePeis;
   } catch (err) {
     console.error("Erro ao buscar PEIs:", err);
     return [];
@@ -781,7 +787,7 @@ function addInitialAssessment(doc, avaliacao, y) {
   y = ensurePageSpace(doc, y, 30);
   doc.setFont(styles.font, "bold");
   doc.setFontSize(styles.fontSize.large);
-  doc.text("Avaliação Inicial (Habilidades a Desenvolver)", 20, y); // Título mais descritivo
+  doc.text("Avaliação Inicial (Habilidades a Desenvolver)", 20, y);
   y += 8;
 
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -817,11 +823,11 @@ function addInitialAssessment(doc, avaliacao, y) {
         halign: "center",
       },
       columnStyles: {
-        0: { cellWidth: availableWidth * 0.85 }, // Habilidade ocupa mais espaço
-        1: { cellWidth: availableWidth * 0.15, halign: "center" }, // Nível
+        0: { cellWidth: availableWidth * 0.85 },
+        1: { cellWidth: availableWidth * 0.15, halign: "center" },
       },
       margin: {
-        left: 20, // Ajusta para margens padrão
+        left: 20,
         right: 20,
         top: HEADER_AREA_HEIGHT + 10,
         bottom: FOOTER_AREA_HEIGHT,
@@ -893,6 +899,11 @@ function addInitialAssessment(doc, avaliacao, y) {
 /**
  * Adiciona a seção de Avaliação de Interesses e Gatilhos ao PDF.
  * O título da seção sempre aparece. Se não houver dados, uma mensagem é exibida.
+ // ... (seus imports e constantes existentes)
+
+/**
+ * Adiciona a seção de Avaliação de Interesses e Gatilhos ao PDF.
+ * O título da seção sempre aparece. Se não houver dados, uma mensagem é exibida.
  * @param {jsPDF} doc - Instância do jsPDF.
  * @param {Object} avaliacaoInteressesData - Objeto com os dados da avaliação de interesses.
  * @param {number} y - Posição Y atual no documento.
@@ -926,53 +937,6 @@ function addAvaliacaoInteressesSection(doc, avaliacaoInteressesData, y) {
     );
     return y + 10;
   }
-
-  // Helper para adicionar tabelas de perguntas de texto
-  const addTextQuestionTable = (question, answer) => {
-    const answerText = typeof answer === "string" ? answer.trim() : "";
-    if (answerText.length === 0) return false; // Não adiciona se a resposta estiver vazia
-
-    y = ensurePageSpace(doc, y, 20);
-
-    const tableBody = [
-      [{ content: question, styles: { fontStyle: "bold" } }, answerText],
-    ];
-
-    autoTable(doc, {
-      startY: y,
-      head: [],
-      body: tableBody,
-      styles: {
-        font: styles.font,
-        fontSize: styles.fontSize.medium,
-        textColor: styles.colors.black,
-        fillColor: styles.colors.white,
-        lineColor: styles.colors.black,
-        lineWidth: 0.1,
-        cellPadding: 2,
-        valign: "top",
-        overflow: "linebreak",
-      },
-      columnStyles: {
-        0: { cellWidth: availableWidth * 0.35 },
-        1: { cellWidth: availableWidth * 0.65 },
-      },
-      margin: {
-        left: contentMargin,
-        right: contentMargin,
-        top: HEADER_AREA_HEIGHT + 10,
-        bottom: FOOTER_AREA_HEIGHT,
-      },
-      didParseCell: (data) => {
-        data.cell.styles.fillColor = styles.colors.white;
-      },
-      didDrawPage: (data) => {
-        addHeaderAndFooter(doc);
-      },
-    });
-    y = doc.lastAutoTable.finalY + 5;
-    return true;
-  };
 
   // Helper para adicionar tabelas de perguntas de rádio (Sim/Não/NA)
   const addRadioQuestionTable = (questionTitle, dataKey, list) => {
@@ -1045,104 +1009,193 @@ function addAvaliacaoInteressesSection(doc, avaliacaoInteressesData, y) {
     return true;
   };
 
-  // Seções de conteúdo (só serão adicionadas se houver dados)
-  // Seção 1: Interesses e Pontos Fortes
+  // --- NOVAS ESTRUTURAS PARA AS PERGUNTAS DESCRITIVAS ---
+
+  const textQuestions = {
+    interessesEPontosFortes: [
+      {
+        question: "Outras atividades",
+        dataKey: "outrasAtividades",
+      },
+      {
+        question: "Quais brinquedos ou objetos a criança prefere mais?",
+        dataKey: "brinquedosPreferidos",
+      },
+      {
+        question:
+          "Quais são os personagens, temas ou assuntos que mais chamam a atenção da criança?",
+        dataKey: "personagensTemasAssuntos",
+      },
+      {
+        question: "Em que a criança demonstra ter habilidades ou facilidade?",
+        dataKey: "habilidadesFacilidades",
+      },
+      {
+        question:
+          "A criança demonstra interesse em interagir com outras pessoas?",
+        dataKey: "interacaoComPessoas",
+      },
+      {
+        question:
+          "Há alguma rotina ou ritual específico que a criança gosta ou busca?",
+        dataKey: "rotinaRitualEspecifico",
+      },
+    ],
+    gatilhosEDesregulacao: [
+      {
+        question: "Outros sinais",
+        dataKey: "outrosSinais",
+      },
+      {
+        question: "Outras situações",
+        dataKey: "outrasSituacoes",
+      },
+      {
+        question:
+          "Existe alguma comida, bebida ou material específico que a criança rejeita fortemente?",
+        dataKey: "comidaBebidaMaterialRejeitado",
+      },
+      {
+        question:
+          "O que costuma acalmar a criança quando ela está desregulada ou chateada?",
+        dataKey: "oQueAcalma",
+      },
+      {
+        question: "Como a criança reage a mudanças na rotina ou a imprevistos?",
+        dataKey: "reacaoMudancasRotina",
+      },
+      {
+        question:
+          "Há algum som, imagem ou sensação que a criança evita ou tem aversão?",
+        dataKey: "somImagemSensacaoAversao",
+      },
+      {
+        question:
+          "Descreva uma situação recente em que a criança se desregulou. O que aconteceu antes, durante e depois?",
+        dataKey: "situacaoRecentDesregulacao",
+      },
+    ],
+    estrategiasEApoio: [
+      {
+        question: "Quais são as melhores formas de se comunicar com a criança?",
+        dataKey: "melhoresFormasComunicacao",
+      },
+      {
+        question:
+          "O que ajuda a criança a se preparar para uma transição ou mudança na rotina?",
+        dataKey: "ajudaPrepararTransicao",
+      },
+      {
+        question:
+          "Existe algum objeto, brinquedo ou atividade que funciona como 'porto seguro' para a criança em momentos de estresse ou ansiedade?",
+        dataKey: "objetoBrinquedoPortoSeguro",
+      },
+      {
+        question:
+          "Quais estratégias você utiliza para ajudar a criança a se regular? Quais funcionam melhor?",
+        dataKey: "estrategiasRegulacao",
+      },
+      {
+        question:
+          "A criança tem alguma preferência em relação a toque (abraços, carinhos) ou espaço personal?",
+        dataKey: "preferenciaToqueEspaco",
+      },
+      {
+        question:
+          "Há algo mais que você gostaria de adicionar sobre os interesses ou o comportamento da criança que não foi abordado?",
+        dataKey: "algoMaisParaAdicionar",
+      },
+    ],
+  };
+
+  const addConsolidatedTextTable = (title, questionsArray) => {
+    const tableBody = [];
+    questionsArray.forEach(({ question, dataKey }) => {
+      const answer = (avaliacaoInteressesData[dataKey] || "").trim();
+      if (answer.length > 0) {
+        tableBody.push([
+          { content: question, styles: { fontStyle: "bold" } },
+          answer,
+        ]);
+      }
+    });
+
+    if (tableBody.length === 0) return false; // Não adiciona se não houver respostas preenchidas
+
+    y = ensurePageSpace(doc, y, 20);
+    doc.setFont(styles.font, "bold");
+    doc.setFontSize(styles.fontSize.medium);
+    doc.text(`${title}:`, contentMargin, y);
+    y += 6;
+
+    autoTable(doc, {
+      startY: y,
+      head: [], // Sem cabeçalho fixo, pois cada linha já tem a pergunta
+      body: tableBody,
+      styles: {
+        font: styles.font,
+        fontSize: styles.fontSize.medium, // Pode ajustar se quiser menor
+        textColor: styles.colors.black,
+        fillColor: styles.colors.white,
+        lineColor: styles.colors.black,
+        lineWidth: 0.1,
+        cellPadding: 2,
+        valign: "top",
+        overflow: "linebreak",
+      },
+      columnStyles: {
+        0: { cellWidth: availableWidth * 0.35 }, // Largura para a pergunta
+        1: { cellWidth: availableWidth * 0.65 }, // Largura para a resposta
+      },
+      margin: {
+        left: contentMargin,
+        right: contentMargin,
+        top: HEADER_AREA_HEIGHT + 10,
+        bottom: FOOTER_AREA_HEIGHT,
+      },
+      didParseCell: (data) => {
+        data.cell.styles.fillColor = styles.colors.white;
+      },
+      didDrawPage: (data) => {
+        addHeaderAndFooter(doc);
+      },
+    });
+    y = doc.lastAutoTable.finalY + 10;
+    return true;
+  };
+
+  // --- SEÇÕES DE CONTEÚDO (ORDENADAS) ---
+
+  // Seção 1: Interesses e Pontos Fortes (radio + descritivas)
   addRadioQuestionTable(
     "Atividades Favoritas",
     "atividadesFavoritas",
     ATIVIDADES_FAVORITAS_LIST
   );
-  addTextQuestionTable(
-    "Outras atividades",
-    avaliacaoInteressesData.outrasAtividades
-  );
-  addTextQuestionTable(
-    "Quais brinquedos ou objetos a criança prefere mais?",
-    avaliacaoInteressesData.brinquedosPreferidos
-  );
-  addTextQuestionTable(
-    "Quais são os personagens, temas ou assuntos que mais chamam a atenção da criança?",
-    avaliacaoInteressesData.personagensTemasAssuntos
-  );
-  addTextQuestionTable(
-    "Em que a criança demonstra ter habilidades ou facilidade?",
-    avaliacaoInteressesData.habilidadesFacilidades
-  );
-  addTextQuestionTable(
-    "A criança demonstra interesse em interagir com outras pessoas?",
-    avaliacaoInteressesData.interacaoComPessoas
-  );
-  addTextQuestionTable(
-    "Há alguma rotina ou ritual específico que a criança gosta ou busca?",
-    avaliacaoInteressesData.rotinaRitualEspecifico
+  addConsolidatedTextTable(
+    "Detalhes de Interesses e Pontos Fortes",
+    textQuestions.interessesEPontosFortes
   );
 
-  // Seção 2: Gatilhos de Desregulação e Desconforto
+  // Seção 2: Gatilhos de Desregulação e Desconforto (radio + descritivas)
   addRadioQuestionTable(
     "Sinais de Desregulação",
     "sinaisDesregulacao",
     SINAIS_DESREGULACAO_LIST
   );
-  addTextQuestionTable("Outros sinais", avaliacaoInteressesData.outrosSinais);
-  addRadioQuestionTable(
-    "Situações de Desregulação",
-    "situacoesDesregulacao",
-    SITUACOES_DESREGULACAO_LIST
-  );
-  addTextQuestionTable(
-    "Outras situações",
-    avaliacaoInteressesData.outrasSituacoes
-  );
-  addTextQuestionTable(
-    "Existe alguma comida, bebida ou material específico que a criança rejeita fortemente?",
-    avaliacaoInteressesData.comidaBebidaMaterialRejeitado
-  );
-  addTextQuestionTable(
-    "O que costuma acalmar a criança quando ela está desregulada ou chateada?",
-    avaliacaoInteressesData.oQueAcalma
-  );
-  addTextQuestionTable(
-    "Como a criança reage a mudanças na rotina ou a imprevistos?",
-    avaliacaoInteressesData.reacaoMudancasRotina
-  );
-  addTextQuestionTable(
-    "Há algum som, imagem ou sensação que a criança evita ou tem aversão?",
-    avaliacaoInteressesData.somImagemSensacaoAversao
-  );
-  addTextQuestionTable(
-    "Descreva uma situação recente em que a criança se desregulou. O que aconteceu antes, durante e depois?",
-    avaliacaoInteressesData.situacaoRecenteDesregulacao
+  addConsolidatedTextTable(
+    "Detalhes de Gatilhos e Desregulação",
+    textQuestions.gatilhosEDesregulacao
   );
 
-  // Seção 3: Estratégias e Apoio
-  addTextQuestionTable(
-    "Quais são as melhores formas de se comunicar com a criança?",
-    avaliacaoInteressesData.melhoresFormasComunicacao
-  );
-  addTextQuestionTable(
-    "O que ajuda a criança a se preparar para uma transição ou mudança na rotina?",
-    avaliacaoInteressesData.ajudaPrepararTransicao
-  );
-  addTextQuestionTable(
-    "Existe algum objeto, brinquedo ou atividade que funciona como 'porto seguro' para a criança em momentos de estresse ou ansiedade?",
-    avaliacaoInteressesData.objetoBrinquedoPortoSeguro
-  );
-  addTextQuestionTable(
-    "Quais estratégias você utiliza para ajudar a criança a se regular? Quais funcionam melhor?",
-    avaliacaoInteressesData.estrategiasRegulacao
-  );
-  addTextQuestionTable(
-    "A criança tem alguma preferência em relação a toque (abraços, carinhos) ou espaço personal?",
-    avaliacaoInteressesData.preferenciaToqueEspaco
-  );
-  addTextQuestionTable(
-    "Há algo mais que você gostaria de adicionar sobre os interesses ou o comportamento da criança que não foi abordado?",
-    avaliacaoInteressesData.algoMaisParaAdicionar
+  // Seção 3: Estratégias e Apoio (apenas descritivas)
+  addConsolidatedTextTable(
+    "Estratégias e Apoio",
+    textQuestions.estrategiasEApoio
   );
 
   return y + 10;
 }
-
 /**
  * Adiciona a seção de PEI consolidado ao PDF.
  * @param {jsPDF} doc - Instância do jsPDF.
@@ -1158,11 +1211,16 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
   // Usamos um Map para consolidar habilidades únicas.
   // A chave agora inclui Nível Atual e Nível Almejado para garantir unicidade na consolidação.
   const consolidatedSkills = new Map();
-
+  console.log("[DEBUG] PEIs para exibir na consolidação:", peisParaExibir);
   peisParaExibir.forEach((peiItem) => {
     const resumo = peiItem.resumoPEI || [];
     if (resumo.length === 0) return;
-
+    console.log(
+      "[DEBUG] Processando item de PEI:",
+      peiItem.id,
+      "Criador:",
+      peiItem.nomeCriador
+    );
     const criadorInfo = `(${peiItem.nomeCriador || "Desconhecido"} - ${
       peiItem.cargoCriador || "Não Informado"
     })`;
@@ -1273,11 +1331,11 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
 
     const larguraPagina = doc.internal.pageSize.getWidth();
     // Reajustando as larguras das colunas para melhor encaixe
-    const areaWidth = 20; // Reduzido de 25
-    const habilidadeWidth = 30; // Reduzido de 35
-    const objetivoWidth = 50; // Ajustado para 3 prazos e N/D
-    const nivelWidth = 10; // Reduzido de 12
-    const nivelAlmejadoWidth = 12; // Reduzido de 15
+    const areaWidth = 22;
+    const habilidadeWidth = 30;
+    const objetivoWidth = 55;
+    const nivelWidth = 12;
+    const nivelAlmejadoWidth = 12;
 
     const defaultMarginLeft = 20;
     const defaultMarginRight = 20;
@@ -1294,7 +1352,7 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
     const availableWidthForStrategies =
       larguraPagina - defaultTotalHorizontalMargin - fixedColumnsTotalWidth;
 
-    const estrategiasWidth = Math.max(65, availableWidthForStrategies); // Garante um mínimo ou preenche o restante
+    const estrategiasWidth = Math.max(70, availableWidthForStrategies);
 
     // Recalcula a margem para centralizar a tabela com as novas larguras
     const totalColumnWidthUsed =
@@ -1312,22 +1370,22 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
         [
           "Área",
           "Habilidade",
-          "Objetivos (CP/MP/LP)", // Cabeçalho alterado para indicar os 3 prazos
+          "Objetivos (CP/MP/LP)",
           "Estratégias",
-          "N.A", // Nível Atual - Abreviado
-          "N.AL", // Nível Almejado - Abreviado
+          "N.A",
+          "N.AL",
         ],
       ],
       body: allPeiTableRows,
       styles: {
         font: styles.font,
-        fontSize: styles.fontSize.small, // Usar 'small' para a fonte da tabela do PEI (8pt)
+        fontSize: styles.fontSize.small,
         textColor: styles.colors.black,
         fillColor: styles.colors.white,
         lineColor: styles.colors.black,
         lineWidth: 0.1,
-        cellPadding: 1.5, // Reduzido para dar mais espaço ao conteúdo
-        valign: "top", // Alinhar ao topo para múltiplos objetivos
+        cellPadding: 1.5,
+        valign: "top",
       },
       headStyles: {
         fillColor: styles.colors.white,
@@ -1346,7 +1404,7 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
         },
         2: {
           cellWidth: objetivoWidth,
-          overflow: "linebreak", // Para quebrar linha dos 3 objetivos
+          overflow: "linebreak",
         },
         3: {
           cellWidth: estrategiasWidth,
@@ -1370,8 +1428,7 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
       didParseCell: (data) => {
         // Lógica de cores para os níveis
         if ([4, 5].includes(data.column.index)) {
-          // Colunas de Nível Atual e Nível Almejado
-          const nivel = data.cell.text; // O texto da célula é o nível (ex: "AF")
+          const nivel = data.cell.text;
           if (coresPorNivel[nivel]) {
             data.cell.styles.fillColor = coresPorNivel[nivel];
             data.cell.styles.textColor = styles.colors.white;
@@ -1385,21 +1442,21 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
         addHeaderAndFooter(doc);
       },
     });
-    y = doc.lastAutoTable.finalY; // Pega o Y final da tabela do PEI
+    y = doc.lastAutoTable.finalY;
 
     // --- NOVO: Adiciona a legenda para N.A e N.AL ---
-    y = ensurePageSpace(doc, y, 20); // Garante espaço para a legenda
+    y = ensurePageSpace(doc, y, 20);
 
     doc.setFont(styles.font, "bold");
-    doc.setFontSize(styles.fontSize.small); // Usa um tamanho de fonte pequeno
-    doc.text("Legenda:", 20, y + 5); // Margem esquerda de 20
+    doc.setFontSize(styles.fontSize.small);
+    doc.text("Legenda:", 20, y + 5);
     doc.setFont(styles.font, "normal");
-    doc.text("N.A - Nível Atual | N.AL - Nível Almejado", 50, y + 5); // Continua na mesma linha
+    doc.text("N.A - Nível Atual | N.AL - Nível Almejado", 50, y + 5);
 
-    y += 10; // Espaçamento após a legenda
+    y += 10;
     // --- FIM da nova legenda ---
 
-    y += 10; // Espaçamento que já existia para a próxima seção (Atividades Aplicadas ou final da seção)
+    y += 10;
   } else {
     console.log(
       "[PDF_DEBUG] PEI: Nenhuma estratégia para exibir. Pulando seção."
@@ -1819,7 +1876,7 @@ export async function gerarPDFCompleto(
     Array.isArray(peisParaGeral) && peisParaGeral.length > 0
       ? peisParaGeral
       : await fetchPeis(aluno.id, aluno.nome);
-
+  console.log("[DEBUG] PEIs processados:", peisParaProcessar);
   const peisOrdenados = peisParaProcessar.sort((a, b) => {
     const dataA = a.dataCriacao?.toDate
       ? a.dataCriacao.toDate()

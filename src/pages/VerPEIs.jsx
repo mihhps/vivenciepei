@@ -379,68 +379,43 @@ export default function VerPEIs() {
     }
   };
 
-  const handleGerarPDF = async (peiOriginal) => {
-    // Renomeado para peiOriginal para clareza
+  // --- FUNÇÃO handleGerarPDF CORRIGIDA ---
+  const handleGerarPDF = async () => {
+    // Não precisa mais receber 'peiOriginal'
     console.log("--- DEBUG handleGerarPDF START ---");
-    console.log(
-      "PEI original recebido em handleGerarPDF:",
-      JSON.stringify(peiOriginal, null, 2)
-    );
 
     try {
-      const nomeAlunoPei = removerAcentosLocal(
-        typeof peiOriginal.aluno === "object" &&
-          peiOriginal.aluno !== null &&
-          typeof peiOriginal.aluno.nome === "string"
-          ? peiOriginal.aluno.nome
-          : peiOriginal.aluno
-      );
+      const alunoCompletoParaPDF = alunos.find((a) => a.nome === abaAtiva);
 
-      console.log(
-        "Nome do aluno (normalizado) para busca de avaliação:",
-        nomeAlunoPei
-      );
-
-      const avaliacao = avaliacoesIniciais[nomeAlunoPei];
-      console.log(
-        "Avaliação encontrada:",
-        avaliacao ? "Sim" : "Não",
-        JSON.stringify(avaliacao || {}, null, 2)
-      );
-
-      const alunoCompleto =
-        alunos.find((a) => a.id === peiOriginal.alunoId) ||
-        alunos.find((a) => removerAcentosLocal(a.nome) === nomeAlunoPei);
-      console.log(
-        "Aluno Completo encontrado para passar ao PDF:",
-        alunoCompleto ? "Sim" : "Não",
-        JSON.stringify(alunoCompleto || {}, null, 2)
-      );
-
-      if (!alunoCompleto) {
+      if (!alunoCompletoParaPDF) {
         alert(
-          `Dados completos do aluno não encontrados para o PEI de ${peiOriginal.aluno}. Não é possível gerar o PDF.`
+          `Dados completos do aluno (${abaAtiva}) não encontrados. Não é possível gerar o PDF.`
         );
-        console.error("DEBUG: alunoCompleto é nulo ou undefined.");
+        console.error("DEBUG: alunoCompletoParaPDF é nulo ou undefined.");
         return;
       }
 
-      if (!alunoCompleto.nome || !alunoCompleto.id) {
+      // Verifica se o alunoCompletoParaPDF tem as informações essenciais
+      if (!alunoCompletoParaPDF.nome || !alunoCompletoParaPDF.id) {
         alert(
-          `Dados essenciais (nome ou ID) do aluno completo estão faltando para o PEI de ${alunoCompleto.nome || peiOriginal.aluno}. Não é possível gerar o PDF.`
+          `Dados essenciais (nome ou ID) do aluno completo estão faltando para o PEI de ${alunoCompletoParaPDF.nome || "aluno selecionado"}. Não é possível gerar o PDF.`
         );
         console.error(
-          "DEBUG: alunoCompleto.nome ou alunoCompleto.id está faltando.",
+          "DEBUG: alunoCompletoParaPDF.nome ou alunoCompletoParaPDF.id está faltando.",
           {
-            alunoCompletoNome: alunoCompleto.nome,
-            alunoCompletoId: alunoCompleto.id,
+            alunoCompletoNome: alunoCompletoParaPDF.nome,
+            alunoCompletoId: alunoCompletoParaPDF.id,
           }
         );
         return;
       }
 
+      const avaliacao =
+        avaliacoesIniciais[removerAcentosLocal(alunoCompletoParaPDF.nome)];
       if (!avaliacao) {
-        alert(`Avaliação Inicial não encontrada para ${peiOriginal.aluno}.`);
+        alert(
+          `Avaliação Inicial não encontrada para ${alunoCompletoParaPDF.nome}.`
+        );
         console.error("DEBUG: Avaliação está faltando.");
         return;
       }
@@ -448,11 +423,11 @@ export default function VerPEIs() {
       let avaliacaoInteressesData = null;
       try {
         console.log(
-          `[PDF_DEBUG] Buscando avaliação de interesses para alunoId: ${alunoCompleto.id} e userId: ${usuarioLogado.id}`
+          `[PDF_DEBUG] Buscando avaliação de interesses para alunoId: ${alunoCompletoParaPDF.id} e userId: ${usuarioLogado.id}`
         );
         const interessesDoc = await fetchAvaliacaoInteresses(
-          alunoCompleto.id,
-          usuarioLogado.id // Passa o ID do usuário logado para fetchAvaliacaoInteresses
+          alunoCompletoParaPDF.id,
+          usuarioLogado.id
         );
         if (interessesDoc) {
           avaliacaoInteressesData = interessesDoc;
@@ -469,74 +444,19 @@ export default function VerPEIs() {
         console.error("Erro ao buscar avaliação de interesses:", err);
       }
 
-      // Prepara o PEI para o PDF, garantindo que os objetivos de todos os prazos estejam preenchidos
-      const peiParaPDF = {
-        ...peiOriginal,
-        resumoPEI: (peiOriginal.resumoPEI || []).map((meta) => {
-          let objetivosCompletos = {
-            curtoPrazo: "",
-            medioPrazo: "",
-            longoPrazo: "",
-          };
-
-          if (meta.objetivos && typeof meta.objetivos === "object") {
-            objetivosCompletos = { ...meta.objetivos }; // Copia os existentes
-            // Garante que campos faltantes sejam preenchidos dos mapas
-            objetivosCompletos.curtoPrazo =
-              objetivosCompletos.curtoPrazo ||
-              objetivosCurtoPrazoMap[meta.habilidade]?.[meta.nivelAlmejado] ||
-              "";
-            objetivosCompletos.medioPrazo =
-              objetivosCompletos.medioPrazo ||
-              objetivosMedioPrazoMap[meta.habilidade]?.[meta.nivelAlmejado] ||
-              "";
-            objetivosCompletos.longoPrazo =
-              objetivosCompletos.longoPrazo ||
-              estruturaPEIMap[meta.habilidade]?.[meta.nivelAlmejado]
-                ?.objetivo ||
-              "";
-          } else if (typeof meta.objetivo === "string") {
-            // Compatibilidade com PEIs antigos que tinham 'objetivo' como string
-            objetivosCompletos.longoPrazo = meta.objetivo;
-            objetivosCompletos.curtoPrazo =
-              objetivosCurtoPrazoMap[meta.habilidade]?.[meta.nivelAlmejado] ||
-              "";
-            objetivosCompletos.medioPrazo =
-              objetivosMedioPrazoMap[meta.habilidade]?.[meta.nivelAlmejado] ||
-              "";
-          } else {
-            // Se não há objetivo algum, tenta preencher tudo dos mapas
-            objetivosCompletos.curtoPrazo =
-              objetivosCurtoPrazoMap[meta.habilidade]?.[meta.nivelAlmejado] ||
-              "";
-            objetivosCompletos.medioPrazo =
-              objetivosMedioPrazoMap[meta.habilidade]?.[meta.nivelAlmejado] ||
-              "";
-            objetivosCompletos.longoPrazo =
-              estruturaPEIMap[meta.habilidade]?.[meta.nivelAlmejado]
-                ?.objetivo || "";
-          }
-
-          return {
-            ...meta,
-            objetivos: objetivosCompletos, // A meta agora sempre terá o objeto de objetivos completo
-            // Estratégias já virão de meta.estrategiasSelecionadas, conforme seu PDF espera
-          };
-        }),
-      };
-
       console.log(
-        "Chamando gerarPDFCompleto com alunoCompleto e PEI preparado para PDF:",
-        JSON.stringify(alunoCompleto, null, 2),
-        JSON.stringify(peiParaPDF, null, 2)
+        "Chamando gerarPDFCompleto sem passar PEIs individualmente. Ele buscará todos."
       );
 
-      // Passa o PEI PREPARADO (com os objetivos de prazo) para a função do PDF
+      // A mudança chave: OMITIMOS o array 'peisParaGeral' completamente,
+      // ou passamos um array vazio para forçar o gerarPDFCompleto a buscar.
       await gerarPDFCompleto(
-        alunoCompleto,
+        alunoCompletoParaPDF,
         avaliacao,
         usuarioLogado,
-        [peiParaPDF], // Passa o PEI individual dentro de um array
+        // Remover o '[peiParaPDF]' daqui. A função `gerarPDFCompleto` irá chamar `fetchPeis` internamente.
+        // Se você precisa passar um array vazio explicitamente para acionar a lógica de `fetchPeis` interna, use `[]`.
+        [], // Garante que a lógica de fallback do gerarPDFCompleto é acionada
         avaliacaoInteressesData
       );
       console.log("--- DEBUG handleGerarPDF END ---");
@@ -545,6 +465,8 @@ export default function VerPEIs() {
       alert("Erro ao gerar PDF. Por favor, tente novamente.");
     }
   };
+
+  // --- FIM DA FUNÇÃO handleGerarPDF CORRIGIDA ---
 
   if (carregando) {
     return (
@@ -781,7 +703,7 @@ export default function VerPEIs() {
                       {alunoDaAba && (
                         <button
                           style={estilos.gerar}
-                          onClick={() => handleGerarPDF(peis[0])} // Passa o PEI mais recente (primeiro do array)
+                          onClick={handleGerarPDF} // Chamada sem passar argumentos, handleGerarPDF obtém do estado
                         >
                           Gerar PDF
                         </button>
