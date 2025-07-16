@@ -58,7 +58,6 @@ function AvaliacaoInicial() {
   const todasAsAreas = useMemo(() => {
     return {
       ...avaliacaoInicial,
-      Interesses: interesses["Interesses Pessoais"],
     };
   }, []);
   const areasParaAbas = useMemo(
@@ -196,17 +195,6 @@ function AvaliacaoInicial() {
           <p className="aluno-idade">
             Idade: <strong>{form.idade}</strong> anos
           </p>
-
-          {/* NOVO: Botão para ir para a nova página de avaliação */}
-          <div className="new-assessment-button-container">
-            <button
-              onClick={handleIrParaNovaPagina}
-              disabled={carregandoGeral}
-              className="action-button" // Pode adicionar uma nova classe de estilo ou usar uma existente
-            >
-              Realizar Nova Avaliação (Ex: Entrevista)
-            </button>
-          </div>
 
           {/* Botões de Geração de PDF */}
           <div className="pdf-buttons-container">
