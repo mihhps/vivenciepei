@@ -73,6 +73,9 @@ const VisualizarAvaliacaoInteressesPage = lazy(
   () => import("./pages/VisualizarAvaliacaoInteressesPage")
 );
 
+// NOVO: Importar a página de observações do aluno
+const ObservacoesAluno = lazy(() => import("./pages/ObservacoesAluno")); // <--- ADICIONADO AQUI
+
 // PDF.js Worker para importação de PDFs
 import * as pdfjsLib from "pdfjs-dist/build/pdf";
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -156,6 +159,11 @@ export default function App() {
               <Route
                 path="/acompanhar-metas/:id"
                 element={<AcompanharMetas />}
+              />
+              {/* NOVO: Rota para Observações do Aluno */}
+              <Route
+                path="/observacoes-aluno/:peiId" // <--- ADICIONADO AQUI
+                element={<ObservacoesAluno />}
               />
 
               {/* Acompanhamento e Prazos */}

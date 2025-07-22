@@ -343,7 +343,7 @@ async function fetchPeis(alunoId, alunoNome) {
     let qNew = query(
       collection(db, "pei_contribucoes"),
       where("alunoId", "==", alunoId),
-      where("anoLetivo", "==", currentYear), // **IMPORTANTE: FILTRA PELO ANO LETIVO** [cite: 1]
+      where("anoLetivo", "==", currentYear), // **IMPORTANTE: FILTRA PELO ANO LETIVO**
       orderBy("dataCriacao", "desc")
     );
     let snapNew = await getDocs(qNew);
@@ -359,11 +359,11 @@ async function fetchPeis(alunoId, alunoNome) {
     }
 
     // 2. Buscar na coleção "peis" (antiga)
-    // Esta busca será feita SEMPRE, não apenas se a primeira estiver vazia [cite: 1]
+    // Esta busca será feita SEMPRE, não apenas se a primeira estiver vazia
     let qOld = query(
       collection(db, "peis"),
       where("alunoId", "==", alunoId),
-      where("anoLetivo", "==", currentYear), // **IMPORTANTE: FILTRA PELO ANO LETIVO** [cite: 1]
+      where("anoLetivo", "==", currentYear), // **IMPORTANTE: FILTRA PELO ANO LETIVO**
       orderBy("dataCriacao", "desc")
     );
     let snapOld = await getDocs(qOld);
@@ -377,12 +377,12 @@ async function fetchPeis(alunoId, alunoNome) {
         "[PDF_DEBUG] Nenhuma PEI encontrada em 'peis' para o aluno e ano atual."
       );
     }
-    // Opcional: Remover duplicatas pelo ID do documento (caso um PEI tenha sido salvo em ambas as coleções por engano) [cite: 1]
+    // Opcional: Remover duplicatas pelo ID do documento (caso um PEI tenha sido salvo em ambas as coleções por engano)
     const uniquePeis = Array.from(
       new Map(allPeis.map((item) => [item.id, item])).values()
     );
 
-    // Ordenar todos os PEIs encontrados (importante para consistência) [cite: 1]
+    // Ordenar todos os PEIs encontrados (importante para consistência)
     uniquePeis.sort((a, b) => {
       const dataA = a.dataCriacao?.toDate
         ? a.dataCriacao.toDate()
@@ -401,6 +401,37 @@ async function fetchPeis(alunoId, alunoNome) {
     return uniquePeis;
   } catch (err) {
     console.error("Erro ao buscar PEIs:", err);
+    return [];
+  }
+}
+
+/**
+ * NOVO: Busca as observações de um aluno no Firestore.
+ * @param {string} alunoNome - Nome do aluno para filtrar as observações.
+ * @returns {Promise<Array<Object>>} Array de objetos de observação.
+ */
+async function fetchObservacoes(alunoNome) {
+  try {
+    const q = query(
+      collection(db, "observacoesAluno"),
+      where("alunoNome", "==", alunoNome),
+      orderBy("dataCriacao", "desc") // Ordena da mais recente para a mais antiga
+    );
+    const querySnapshot = await getDocs(q);
+    const observacoes = querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+      dataCriacao: doc.data().dataCriacao?.toDate(), // Converte Timestamp para Date
+      dataAtualizacao: doc.data().dataAtualizacao?.toDate(), // Converte Timestamp para Date
+    }));
+    console.log(
+      "[PDF_DEBUG] Observações encontradas para o aluno:",
+      observacoes.length,
+      observacoes
+    );
+    return observacoes;
+  } catch (err) {
+    console.error("Erro ao buscar observações:", err);
     return [];
   }
 }
@@ -899,11 +930,6 @@ function addInitialAssessment(doc, avaliacao, y) {
 /**
  * Adiciona a seção de Avaliação de Interesses e Gatilhos ao PDF.
  * O título da seção sempre aparece. Se não houver dados, uma mensagem é exibida.
- // ... (seus imports e constantes existentes)
-
-/**
- * Adiciona a seção de Avaliação de Interesses e Gatilhos ao PDF.
- * O título da seção sempre aparece. Se não houver dados, uma mensagem é exibida.
  * @param {jsPDF} doc - Instância do jsPDF.
  * @param {Object} avaliacaoInteressesData - Objeto com os dados da avaliação de interesses.
  * @param {number} y - Posição Y atual no documento.
@@ -1094,11 +1120,6 @@ function addAvaliacaoInteressesSection(doc, avaliacaoInteressesData, y) {
         question:
           "Quais estratégias você utiliza para ajudar a criança a se regular? Quais funcionam melhor?",
         dataKey: "estrategiasRegulacao",
-      },
-      {
-        question:
-          "A criança tem alguma preferência em relação a toque (abraços, carinhos) ou espaço personal?",
-        dataKey: "preferenciaToqueEspaco",
       },
       {
         question:
@@ -1484,7 +1505,7 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
     y += 8;
 
     const larguraPagina = doc.internal.pageSize.getWidth();
-    const tableWidth = 175;
+    const tableWidth = 175; // Largura total da tabela de atividades
     const margemAtividades = (larguraPagina - tableWidth) / 2;
 
     autoTable(doc, {
@@ -1550,6 +1571,97 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
     );
     return y;
   }
+
+  return y;
+}
+
+/**
+ * NOVO: Adiciona a seção de Observações do Aluno ao PDF, como uma tabela consolidada.
+ * @param {jsPDF} doc - Instância do jsPDF.
+ * @param {Array<Object>} observacoes - Array de objetos de observação do aluno.
+ * @param {number} y - Posição Y atual no documento.
+ * @returns {number} Nova posição Y após adicionar a seção.
+ */
+function addObservacoesSection(doc, observacoes, y) {
+  console.log(
+    "DEBUG: Observações recebidas em addObservacoesSection:",
+    observacoes
+  );
+  if (!observacoes || observacoes.length === 0) {
+    console.log(
+      "[PDF_DEBUG] Observações: Nenhuma observação para exibir. Pulando seção."
+    );
+    return y;
+  }
+
+  y = ensurePageSpace(doc, y, 30);
+  doc.setFont(styles.font, "bold");
+  doc.setFontSize(styles.fontSize.large);
+  doc.text("Observações do Aluno", doc.internal.pageSize.getWidth() / 2, y, {
+    align: "center",
+  });
+  y += 8;
+
+  const allObservacoesTableRows = observacoes.map((obs) => {
+    const dataFormatada = new Date(obs.dataCriacao).toLocaleDateString("pt-BR");
+    const dataAtualizacao = obs.dataAtualizacao
+      ? new Date(obs.dataAtualizacao).toLocaleDateString("pt-BR")
+      : "";
+    const dataInfo = dataAtualizacao
+      ? `${dataFormatada} (Atualizado: ${dataAtualizacao})`
+      : dataFormatada;
+    return [obs.nomeCriador || "Desconhecido", dataInfo, obs.texto || ""];
+  });
+
+  console.log(
+    "DEBUG: Table body consolidado para observações:",
+    allObservacoesTableRows
+  );
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const tableWidth = 175; // Largura total da tabela, similar às atividades
+  const horizontalMargin = (pageWidth - tableWidth) / 2;
+
+  autoTable(doc, {
+    startY: y,
+    head: [["Professor(a)", "Data", "Observação"]],
+    body: allObservacoesTableRows,
+    styles: {
+      font: styles.font,
+      fontSize: styles.fontSize.small,
+      textColor: styles.colors.black,
+      fillColor: styles.colors.white,
+      lineColor: styles.colors.black,
+      lineWidth: 0.1,
+      cellPadding: 1.5,
+      valign: "top",
+      overflow: "linebreak",
+    },
+    headStyles: {
+      fillColor: styles.colors.white,
+      textColor: styles.colors.black,
+      fontStyle: "bold",
+      halign: "center",
+    },
+    columnStyles: {
+      0: { cellWidth: tableWidth * 0.25 }, // Professor
+      1: { cellWidth: tableWidth * 0.25, halign: "center" }, // Data
+      2: { cellWidth: tableWidth * 0.5 }, // Observação
+    },
+    margin: {
+      left: horizontalMargin,
+      right: horizontalMargin,
+      top: HEADER_AREA_HEIGHT + 10,
+      bottom: FOOTER_AREA_HEIGHT,
+    },
+    didParseCell: (data) => {
+      data.cell.styles.fillColor = styles.colors.white;
+    },
+    didDrawPage: (data) => {
+      addHeaderAndFooter(doc);
+    },
+  });
+  y = doc.lastAutoTable.finalY + 10;
 
   return y;
 }
@@ -1889,19 +2001,24 @@ export async function gerarPDFCompleto(
 
   const peisParaExibir = peisOrdenados;
 
+  // NOVO: Buscar as observações do aluno
+  const observacoesAluno = await fetchObservacoes(aluno.nome); // Passa o nome do aluno
+  console.log("DEBUG: Observações do Aluno buscadas:", observacoesAluno); // <--- ADICIONADO PARA DEBUG
+
   const hasAnyMainContent =
     peisParaExibir.length > 0 ||
     (avaliacaoInicial && Object.keys(avaliacaoInicial).length > 0) ||
     (avaliacaoInteressesData &&
-      Object.keys(avaliacaoInteressesData).length > 0);
+      Object.keys(avaliacaoInteressesData).length > 0) ||
+    observacoesAluno.length > 0; // Inclui observações na verificação de conteúdo
 
   if (!hasAnyMainContent) {
     console.warn(
-      "Nenhum PEI, avaliação inicial ou avaliação de interesses preenchida encontrado para o aluno, gerando PDF básico informativo."
+      "Nenhum PEI, avaliação inicial, avaliação de interesses ou observação preenchida encontrado para o aluno, gerando PDF básico informativo."
     );
     addHeaderAndFooter(doc);
     doc.text(
-      "Nenhum Plano Educacional Individualizado (PEI), Avaliação Inicial ou Avaliação de Interesses preenchida encontrado para este aluno.",
+      "Nenhum Plano Educacional Individualizado (PEI), Avaliação Inicial, Avaliação de Interesses ou Observação preenchida encontrado para este aluno.",
       25,
       HEADER_AREA_HEIGHT + 20
     );
@@ -1944,6 +2061,7 @@ export async function gerarPDFCompleto(
   y = addInitialAssessment(doc, avaliacaoInicial, y);
   y = addAvaliacaoInteressesSection(doc, avaliacaoInteressesData, y);
   y = addConsolidatedPeiSection(doc, peisParaExibir, y);
+  y = addObservacoesSection(doc, observacoesAluno, y); // <--- NOVO: Adiciona a seção de observações
   y = addLegendSection(doc, y);
 
   await addSignaturePage(doc, aluno, usuarioLogado);

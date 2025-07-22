@@ -13,11 +13,7 @@ import {
   orderBy,
   limit,
 } from "firebase/firestore";
-import {
-  fetchAvaliacaoInteresses,
-  // fetchAlunoById, // Não mais necessário importar aqui se já busca `alunos` em carregarDados
-  // fetchPeisByAluno, // Não mais necessário importar aqui se já busca `peis` em carregarDados
-} from "../utils/firebaseUtils"; // Confirme que este caminho está correto
+import { fetchAvaliacaoInteresses } from "../utils/firebaseUtils"; // Confirme que este caminho está correto
 
 // IMPORTS DOS DADOS PARA OBJETIVOS DE PRAZO
 // Certifique-se de que os caminhos estão corretos para o seu projeto!
@@ -598,17 +594,6 @@ export default function VerPEIs() {
                               </p>
 
                               {(() => {
-                                // Remover essa função interna se já existe removerAcentosLocal globalmente.
-                                // Já está usando removerAcentosLocal abaixo, então essa pode ser removida.
-                                /*
-                                const removerAcentosInner = (str) =>
-                                  String(str) // Garante que é string
-                                    .normalize("NFD")
-                                    .replace(/[\u0300-\u036f]/g, "")
-                                    .toLowerCase()
-                                    .trim();
-                                */
-
                                 let nomeAlunoPeiParaAvaliacao = "";
                                 if (
                                   typeof pei.aluno === "object" &&
@@ -689,12 +674,26 @@ export default function VerPEIs() {
                                 Visualizar
                               </button>
                               <button
-                                className="botao-secundario"
+                                className="botao-secundario" // Mantido como className para possível CSS global
                                 onClick={() =>
                                   navigate(`/acompanhar-metas/${pei.id}`)
                                 }
                               >
                                 Acompanhar Metas
+                              </button>
+                              {/* NOVO BOTÃO DE OBSERVAÇÕES */}
+                              <button
+                                style={estilos.observacoes} // Usando o novo estilo definido
+                                onClick={() =>
+                                  navigate(`/observacoes-aluno/${pei.id}`, {
+                                    state: {
+                                      alunoNome: pei.aluno,
+                                      peiId: pei.id,
+                                    },
+                                  })
+                                }
+                              >
+                                Observações
                               </button>
                             </div>
                           </div>
@@ -846,6 +845,15 @@ const estilos = {
   },
   excluir: {
     backgroundColor: "#e63946",
+    color: "#fff",
+    border: "none",
+    padding: "8px 16px",
+    borderRadius: "6px",
+    cursor: "pointer",
+  },
+  // NOVO ESTILO PARA O BOTÃO DE OBSERVAÇÕES
+  observacoes: {
+    backgroundColor: "#ffc107", // Cor amarela para destaque
     color: "#fff",
     border: "none",
     padding: "8px 16px",
