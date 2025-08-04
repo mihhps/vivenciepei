@@ -5,32 +5,28 @@ import {
   query,
   where,
   getDocs,
-  doc as firestoreDoc, // Renomeado para evitar conflito com 'doc' do jspdf
+  doc as firestoreDoc,
   getDoc,
   orderBy,
 } from "firebase/firestore";
 import { db } from "../firebase";
 
-// Importa a função centralizada!
-// Certifique-se de que este caminho está correto para o seu projeto.
 import { fetchAvaliacaoInteresses } from "./firebaseUtils";
 
-// NOVOS IMPORTS DOS OBJETIVOS POR PRAZO
-import estruturaPEI from "../data/estruturaPEI2"; // Seu arquivo principal de estratégias (e Longo Prazo)
+import estruturaPEI from "../data/estruturaPEI2";
 import objetivosCurtoPrazoData from "../data/objetivosCurtoPrazo";
 import objetivosMedioPrazoData from "../data/objetivosMedioPrazo";
 
 // --- Constantes e Estilos ---
 const styles = {
-  font: "times", // Fonte Times New Roman
+  font: "times",
   fontSize: {
-    xsmall: 7, // Adicionado para tabelas muito densas
+    xsmall: 7,
     small: 8,
     medium: 10,
     large: 12,
     title: 18,
   },
-  // --- DEFINIÇÕES DE CORES ---
   colors: {
     black: [0, 0, 0],
     white: [255, 255, 255],
@@ -52,7 +48,6 @@ const styles = {
 };
 
 const coresPorNivel = {
-  // --- CORES POR NÍVEL ---
   NR: styles.colors.red,
   AF: styles.colors.yellow,
   AG: styles.colors.purple,
@@ -125,13 +120,6 @@ const SITUACOES_DESREGULACAO_LIST = [
 const HEADER_AREA_HEIGHT = 40;
 const FOOTER_AREA_HEIGHT = 25;
 
-// --- Mapeamento das Estruturas de Dados para acesso rápido ---
-
-/**
- * Mapeia a estrutura principal de habilidades para facilitar o acesso a objetivos de Longo Prazo e estratégias.
- * @param {Object} estrutura - A estrutura de dados `estruturaPEI`.
- * @returns {Object} Um mapa para acesso rápido: { habilidade: { nivel: { objetivo: "...", estrategias: [...] } } }
- */
 const getEstruturaPEIMap = (estrutura) => {
   const map = {};
   if (!estrutura) return map;
@@ -149,9 +137,8 @@ const getEstruturaPEIMap = (estrutura) => {
                   map[habilidadeName] = {};
                 }
                 if (typeof niveisData === "object" && niveisData !== null) {
-                  // Corrigido: a linha de atribuição está DENTRO do forEach
                   Object.entries(niveisData).forEach(([nivel, data]) => {
-                    map[habilidadeName][nivel] = data; // Contém objetivo (Longo Prazo) e estratégias
+                    map[habilidadeName][nivel] = data;
                   });
                 } else {
                   console.warn(
@@ -168,11 +155,6 @@ const getEstruturaPEIMap = (estrutura) => {
   return map;
 };
 
-/**
- * Mapeia as estruturas de objetivos por prazo (Curto, Médio) para facilitar o acesso.
- * @param {Object} prazoData - A estrutura de dados para o prazo específico (objetivosCurtoPrazoData ou objetivosMedioPrazoData).
- * @returns {Object} Um mapa para acesso rápido: { habilidade: { nivelAlmejado: objetivoText } }
- */
 const getObjetivosPrazoMap = (prazoData) => {
   const map = {};
   if (!prazoData) return map;
@@ -191,7 +173,7 @@ const getObjetivosPrazoMap = (prazoData) => {
                 }
                 if (typeof niveisData === "object" && niveisData !== null) {
                   Object.entries(niveisData).forEach(([nivel, objData]) => {
-                    map[habilidadeName][nivel] = objData.objetivo; // Salva diretamente o texto do objetivo
+                    map[habilidadeName][nivel] = objData.objetivo;
                   });
                 }
               }
@@ -204,18 +186,10 @@ const getObjetivosPrazoMap = (prazoData) => {
   return map;
 };
 
-// Inicializa os mapas que serão usados em todas as funções
 const estruturaPEIMap = getEstruturaPEIMap(estruturaPEI);
 const objetivosCurtoPrazoMap = getObjetivosPrazoMap(objetivosCurtoPrazoData);
 const objetivosMedioPrazoMap = getObjetivosPrazoMap(objetivosMedioPrazoData);
 
-// --- Funções Auxiliares Comuns ---
-
-/**
- * Formata um objeto de data ou string para o formato DD/MM/AAAA.
- * @param {firebase.firestore.Timestamp|Date|string} data - A data a ser formatada.
- * @returns {string} Data formatada ou "-".
- */
 function formatarData(data) {
   if (!data) return "-";
   try {
@@ -240,11 +214,6 @@ function formatarData(data) {
   }
 }
 
-/**
- * Formata um objeto de data ou string para o nome do mês por extenso em português.
- * @param {firebase.firestore.Timestamp|Date|string} data - A data a ser formatada.
- * @returns {string} Nome do mês por extenso ou "-".
- */
 function formatarMesPorExtenso(data) {
   if (!data) return "-";
   try {
@@ -270,10 +239,6 @@ function formatarMesPorExtenso(data) {
   }
 }
 
-/**
- * Adiciona o cabeçalho e rodapé padrão a cada página do PDF.
- * @param {jsPDF} doc - Instância do jsPDF.
- */
 function addHeaderAndFooter(doc) {
   const imgWidth = 128;
   const imgHeight = 25;
@@ -281,13 +246,11 @@ function addHeaderAndFooter(doc) {
   const imgY = 10;
   const pageHeight = doc.internal.pageSize.getHeight();
 
-  // Adiciona a imagem do logo
   doc.addImage("/logo.jpg", "JPEG", imgX, imgY, imgWidth, imgHeight);
 
   doc.setFont(styles.font, "normal");
   doc.setFontSize(styles.fontSize.small);
 
-  // Adiciona informações do rodapé
   doc.text(
     "Prefeitura Municipal de Guabiruba / Secretaria de Educação de Guabiruba (SEME)",
     20,
@@ -305,13 +268,6 @@ function addHeaderAndFooter(doc) {
   );
 }
 
-/**
- * Verifica se há espaço suficiente na página para o conteúdo. Se não houver, adiciona uma nova página.
- * @param {jsPDF} doc - Instância do jsPDF.
- * @param {number} currentY - Posição Y atual no documento.
- * @param {number} requiredSpace - Espaço necessário para o próximo conteúdo.
- * @returns {number} Nova posição Y após garantir o espaço (ou o topo da nova página).
- */
 function ensurePageSpace(doc, currentY, requiredSpace) {
   const pageHeight = doc.internal.pageSize.getHeight();
   const contentBottomLimit = pageHeight - FOOTER_AREA_HEIGHT;
@@ -322,28 +278,20 @@ function ensurePageSpace(doc, currentY, requiredSpace) {
   ) {
     doc.addPage();
     addHeaderAndFooter(doc);
-    return HEADER_AREA_HEIGHT + 10; // Retorna a posição Y no topo da nova página
+    return HEADER_AREA_HEIGHT + 10;
   }
   return currentY;
 }
 
-/**
- * Busca os Planos Educacionais Individualizados (PEIs) de um aluno no Firestore.
- * Busca em ambas as coleções (nova e antiga) e consolida os resultados.
- * @param {string} alunoId - ID do aluno.
- * @param {string} alunoNome - Nome do aluno (usado como fallback para coleções antigas).
- * @returns {Promise<Array<Object>>} Array de objetos PEI.
- */
 async function fetchPeis(alunoId, alunoNome) {
   try {
     const currentYear = new Date().getFullYear();
     let allPeis = [];
 
-    // 1. Buscar na coleção "pei_contribucoes"
     let qNew = query(
       collection(db, "pei_contribucoes"),
       where("alunoId", "==", alunoId),
-      where("anoLetivo", "==", currentYear), // **IMPORTANTE: FILTRA PELO ANO LETIVO**
+      where("anoLetivo", "==", currentYear),
       orderBy("dataCriacao", "desc")
     );
     let snapNew = await getDocs(qNew);
@@ -358,12 +306,10 @@ async function fetchPeis(alunoId, alunoNome) {
       );
     }
 
-    // 2. Buscar na coleção "peis" (antiga)
-    // Esta busca será feita SEMPRE, não apenas se a primeira estiver vazia
     let qOld = query(
       collection(db, "peis"),
       where("alunoId", "==", alunoId),
-      where("anoLetivo", "==", currentYear), // **IMPORTANTE: FILTRA PELO ANO LETIVO**
+      where("anoLetivo", "==", currentYear),
       orderBy("dataCriacao", "desc")
     );
     let snapOld = await getDocs(qOld);
@@ -377,12 +323,10 @@ async function fetchPeis(alunoId, alunoNome) {
         "[PDF_DEBUG] Nenhuma PEI encontrada em 'peis' para o aluno e ano atual."
       );
     }
-    // Opcional: Remover duplicatas pelo ID do documento (caso um PEI tenha sido salvo em ambas as coleções por engano)
     const uniquePeis = Array.from(
       new Map(allPeis.map((item) => [item.id, item])).values()
     );
 
-    // Ordenar todos os PEIs encontrados (importante para consistência)
     uniquePeis.sort((a, b) => {
       const dataA = a.dataCriacao?.toDate
         ? a.dataCriacao.toDate()
@@ -405,24 +349,19 @@ async function fetchPeis(alunoId, alunoNome) {
   }
 }
 
-/**
- * NOVO: Busca as observações de um aluno no Firestore.
- * @param {string} alunoNome - Nome do aluno para filtrar as observações.
- * @returns {Promise<Array<Object>>} Array de objetos de observação.
- */
 async function fetchObservacoes(alunoNome) {
   try {
     const q = query(
       collection(db, "observacoesAluno"),
       where("alunoNome", "==", alunoNome),
-      orderBy("dataCriacao", "desc") // Ordena da mais recente para a mais antiga
+      orderBy("dataCriacao", "desc")
     );
     const querySnapshot = await getDocs(q);
     const observacoes = querySnapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
-      dataCriacao: doc.data().dataCriacao?.toDate(), // Converte Timestamp para Date
-      dataAtualizacao: doc.data().dataAtualizacao?.toDate(), // Converte Timestamp para Date
+      dataCriacao: doc.data().dataCriacao?.toDate(),
+      dataAtualizacao: doc.data().dataAtualizacao?.toDate(),
     }));
     console.log(
       "[PDF_DEBUG] Observações encontradas para o aluno:",
@@ -436,19 +375,10 @@ async function fetchObservacoes(alunoNome) {
   }
 }
 
-/**
- * Adiciona as informações do aluno e cabeçalho do PEI ao documento.
- * @param {jsPDF} doc - Instância do jsPDF.
- * @param {Object} aluno - Objeto com os dados do aluno.
- * @param {Object} avaliacao - Objeto da avaliação inicial (pode ser nulo).
- * @param {string} nomeEscola - Nome da escola.
- * @param {number} yStart - Posição Y inicial.
- * @returns {Promise<number>} Nova posição Y após adicionar as informações.
- */
 async function addStudentAndHeaderInfo(
   doc,
   aluno,
-  avaliacao, // Pode ser avaliação inicial ou nulo
+  avaliacao,
   nomeEscola,
   yStart
 ) {
@@ -782,24 +712,16 @@ async function addStudentAndHeaderInfo(
   return y;
 }
 
-/**
- * Adiciona a seção de Avaliação Inicial (Habilidades a Desenvolver) ao PDF.
- * @param {jsPDF} doc - Instância do jsPDF.
- * @param {Object} avaliacao - Objeto da avaliação inicial.
- * @param {number} y - Posição Y atual no documento.
- * @returns {number} Nova posição Y após adicionar a seção.
- */
 function addInitialAssessment(doc, avaliacao, y) {
   const dadosAvaliacao = avaliacao?.respostas || avaliacao?.habilidades;
 
-  // Filtra as habilidades para incluir SOMENTE aquelas que não são 'NA' nem 'I'
   const habilidadesFiltradas = {};
   if (dadosAvaliacao) {
     for (const area in dadosAvaliacao) {
       const habilidadesNaArea = dadosAvaliacao[area];
       const habilidadesValidasNaArea = Object.entries(habilidadesNaArea || {})
-        .filter(([habilidade, nivel]) => nivel !== "NA" && nivel !== "I") // Condição para inclusão
-        .map(([habilidade, nivel]) => [habilidade, nivel]); // Formata para o corpo da tabela
+        .filter(([habilidade, nivel]) => nivel !== "NA" && nivel !== "I")
+        .map(([habilidade, nivel]) => [habilidade, nivel]);
 
       if (habilidadesValidasNaArea.length > 0) {
         habilidadesFiltradas[area] = habilidadesValidasNaArea;
@@ -807,12 +729,11 @@ function addInitialAssessment(doc, avaliacao, y) {
     }
   }
 
-  // Se não há nenhuma habilidade filtrada para exibir, pula a seção
   if (Object.keys(habilidadesFiltradas).length === 0) {
     console.log(
       "[PDF_DEBUG] Avaliação Inicial: Nenhuma habilidade para exibir (todas NA ou I)."
     );
-    return y; // Retorna o Y sem adicionar a seção
+    return y;
   }
 
   y = ensurePageSpace(doc, y, 30);
@@ -822,7 +743,7 @@ function addInitialAssessment(doc, avaliacao, y) {
   y += 8;
 
   const pageWidth = doc.internal.pageSize.getWidth();
-  const availableWidth = pageWidth - 40; // Margem de 20 de cada lado
+  const availableWidth = pageWidth - 40;
 
   for (const area in habilidadesFiltradas) {
     const linhasDaArea = habilidadesFiltradas[area];
@@ -854,8 +775,13 @@ function addInitialAssessment(doc, avaliacao, y) {
         halign: "center",
       },
       columnStyles: {
-        0: { cellWidth: availableWidth * 0.85 },
-        1: { cellWidth: availableWidth * 0.15, halign: "center" },
+        0: {
+          cellWidth: availableWidth * 0.85,
+        },
+        1: {
+          cellWidth: availableWidth * 0.15,
+          halign: "center",
+        },
       },
       margin: {
         left: 20,
@@ -864,11 +790,10 @@ function addInitialAssessment(doc, avaliacao, y) {
         bottom: FOOTER_AREA_HEIGHT,
       },
       didParseCell: (data) => {
-        const nivel = data.cell.text[0]; // Pega o texto da célula (o nível NR, AF, etc.)
+        const nivel = data.cell.text[0];
         if (data.column.index === 1 && coresPorNivel[nivel]) {
-          // Se for a coluna do nível
           data.cell.styles.fillColor = coresPorNivel[nivel];
-          data.cell.styles.textColor = styles.colors.white; // Texto branco para melhor contraste
+          data.cell.styles.textColor = styles.colors.white;
         } else {
           data.cell.styles.fillColor = styles.colors.white;
           data.cell.styles.textColor = styles.colors.black;
@@ -878,9 +803,8 @@ function addInitialAssessment(doc, avaliacao, y) {
         addHeaderAndFooter(doc);
       },
     });
-    y = doc.lastAutoTable.finalY + 5; // Espaçamento entre as áreas
+    y = doc.lastAutoTable.finalY + 5;
 
-    // Adiciona Observações da área se existirem e não estiverem vazias
     const observacaoArea = avaliacao.observacoes?.[area];
     if (observacaoArea && observacaoArea.trim().length > 0) {
       y = ensurePageSpace(doc, y, 15);
@@ -890,7 +814,6 @@ function addInitialAssessment(doc, avaliacao, y) {
       y += 6;
       doc.setFont(styles.font, "normal");
       doc.setFontSize(styles.fontSize.small);
-      // Usar autoTable para texto longo com quebra de linha automática
       autoTable(doc, {
         startY: y,
         body: [[observacaoArea]],
@@ -906,7 +829,9 @@ function addInitialAssessment(doc, avaliacao, y) {
           overflow: "linebreak",
         },
         columnStyles: {
-          0: { cellWidth: availableWidth },
+          0: {
+            cellWidth: availableWidth,
+          },
         },
         margin: {
           left: 20,
@@ -924,34 +849,23 @@ function addInitialAssessment(doc, avaliacao, y) {
       y = doc.lastAutoTable.finalY + 5;
     }
   }
-  return y + 10; // Espaçamento após a seção completa
+  return y + 10;
 }
 
-/**
- * Adiciona a seção de Avaliação de Interesses e Gatilhos ao PDF.
- * O título da seção sempre aparece. Se não houver dados, uma mensagem é exibida.
- * @param {jsPDF} doc - Instância do jsPDF.
- * @param {Object} avaliacaoInteressesData - Objeto com os dados da avaliação de interesses.
- * @param {number} y - Posição Y atual no documento.
- * @returns {number} Nova posição Y após adicionar a seção.
- */
 function addAvaliacaoInteressesSection(doc, avaliacaoInteressesData, y) {
   const pageWidth = doc.internal.pageSize.getWidth();
   const contentMargin = 20;
   const availableWidth = pageWidth - 2 * contentMargin;
 
-  // Adiciona o título da seção SEMPRE
   y = ensurePageSpace(doc, y, 30);
   doc.setFont(styles.font, "bold");
   doc.setFontSize(styles.fontSize.large);
   doc.text("Avaliação de Interesses e Gatilhos", contentMargin, y);
   y += 8;
 
-  // Verifica se há dados para preencher o conteúdo das subseções
   const hasDataForContent =
     avaliacaoInteressesData && Object.keys(avaliacaoInteressesData).length > 0;
 
-  // Se não há dados, adiciona uma mensagem e retorna
   if (!hasDataForContent) {
     y = ensurePageSpace(doc, y, 20);
     doc.setFont(styles.font, "normal");
@@ -964,17 +878,15 @@ function addAvaliacaoInteressesSection(doc, avaliacaoInteressesData, y) {
     return y + 10;
   }
 
-  // Helper para adicionar tabelas de perguntas de rádio (Sim/Não/NA)
   const addRadioQuestionTable = (questionTitle, dataKey, list) => {
     const radioTableBody = [];
     const responses = avaliacaoInteressesData[dataKey] || {};
 
-    // Filtra para incluir apenas itens que não são "NA" e que não são indefinidos
     const filledItems = list.filter(
       (item) => responses[item] !== "NA" && responses[item] !== undefined
     );
 
-    if (filledItems.length === 0) return false; // Não adiciona se não houver itens preenchidos
+    if (filledItems.length === 0) return false;
 
     y = ensurePageSpace(doc, y, 15);
     doc.setFont(styles.font, "bold");
@@ -1009,8 +921,13 @@ function addAvaliacaoInteressesSection(doc, avaliacaoInteressesData, y) {
         halign: "center",
       },
       columnStyles: {
-        0: { cellWidth: availableWidth * 0.8 },
-        1: { cellWidth: availableWidth * 0.2, halign: "center" },
+        0: {
+          cellWidth: availableWidth * 0.8,
+        },
+        1: {
+          cellWidth: availableWidth * 0.2,
+          halign: "center",
+        },
       },
       margin: {
         left: contentMargin,
@@ -1034,8 +951,6 @@ function addAvaliacaoInteressesSection(doc, avaliacaoInteressesData, y) {
     y = doc.lastAutoTable.finalY + 10;
     return true;
   };
-
-  // --- NOVAS ESTRUTURAS PARA AS PERGUNTAS DESCRITIVAS ---
 
   const textQuestions = {
     interessesEPontosFortes: [
@@ -1135,13 +1050,18 @@ function addAvaliacaoInteressesSection(doc, avaliacaoInteressesData, y) {
       const answer = (avaliacaoInteressesData[dataKey] || "").trim();
       if (answer.length > 0) {
         tableBody.push([
-          { content: question, styles: { fontStyle: "bold" } },
+          {
+            content: question,
+            styles: {
+              fontStyle: "bold",
+            },
+          },
           answer,
         ]);
       }
     });
 
-    if (tableBody.length === 0) return false; // Não adiciona se não houver respostas preenchidas
+    if (tableBody.length === 0) return false;
 
     y = ensurePageSpace(doc, y, 20);
     doc.setFont(styles.font, "bold");
@@ -1151,11 +1071,11 @@ function addAvaliacaoInteressesSection(doc, avaliacaoInteressesData, y) {
 
     autoTable(doc, {
       startY: y,
-      head: [], // Sem cabeçalho fixo, pois cada linha já tem a pergunta
+      head: [],
       body: tableBody,
       styles: {
         font: styles.font,
-        fontSize: styles.fontSize.medium, // Pode ajustar se quiser menor
+        fontSize: styles.fontSize.medium,
         textColor: styles.colors.black,
         fillColor: styles.colors.white,
         lineColor: styles.colors.black,
@@ -1165,8 +1085,12 @@ function addAvaliacaoInteressesSection(doc, avaliacaoInteressesData, y) {
         overflow: "linebreak",
       },
       columnStyles: {
-        0: { cellWidth: availableWidth * 0.35 }, // Largura para a pergunta
-        1: { cellWidth: availableWidth * 0.65 }, // Largura para a resposta
+        0: {
+          cellWidth: availableWidth * 0.35,
+        },
+        1: {
+          cellWidth: availableWidth * 0.65,
+        },
       },
       margin: {
         left: contentMargin,
@@ -1185,9 +1109,6 @@ function addAvaliacaoInteressesSection(doc, avaliacaoInteressesData, y) {
     return true;
   };
 
-  // --- SEÇÕES DE CONTEÚDO (ORDENADAS) ---
-
-  // Seção 1: Interesses e Pontos Fortes (radio + descritivas)
   addRadioQuestionTable(
     "Atividades Favoritas",
     "atividadesFavoritas",
@@ -1198,7 +1119,6 @@ function addAvaliacaoInteressesSection(doc, avaliacaoInteressesData, y) {
     textQuestions.interessesEPontosFortes
   );
 
-  // Seção 2: Gatilhos de Desregulação e Desconforto (radio + descritivas)
   addRadioQuestionTable(
     "Sinais de Desregulação",
     "sinaisDesregulacao",
@@ -1209,7 +1129,6 @@ function addAvaliacaoInteressesSection(doc, avaliacaoInteressesData, y) {
     textQuestions.gatilhosEDesregulacao
   );
 
-  // Seção 3: Estratégias e Apoio (apenas descritivas)
   addConsolidatedTextTable(
     "Estratégias e Apoio",
     textQuestions.estrategiasEApoio
@@ -1217,20 +1136,11 @@ function addAvaliacaoInteressesSection(doc, avaliacaoInteressesData, y) {
 
   return y + 10;
 }
-/**
- * Adiciona a seção de PEI consolidado ao PDF.
- * @param {jsPDF} doc - Instância do jsPDF.
- * @param {Array<Object>} peisParaExibir - Array de objetos PEI para exibir.
- * @param {number} y - Posição Y atual no documento.
- * @returns {number} Nova posição Y após adicionar a seção.
- */
+
 function addConsolidatedPeiSection(doc, peisParaExibir, y) {
   const allPeiTableRows = [];
   const allActivitiesTableRows = [];
   const uniqueActivitiesSet = new Set();
-
-  // Usamos um Map para consolidar habilidades únicas.
-  // A chave agora inclui Nível Atual e Nível Almejado para garantir unicidade na consolidação.
   const consolidatedSkills = new Map();
   console.log("[DEBUG] PEIs para exibir na consolidação:", peisParaExibir);
   peisParaExibir.forEach((peiItem) => {
@@ -1247,7 +1157,6 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
     })`;
 
     resumo.forEach((item) => {
-      // Chave única para a habilidade considerando o Nível Atual e Nível Almejado
       const key = `${item.area || "-"}|${item.habilidade || "-"}|${item.nivel || "-"}|${item.nivelAlmejado || "-"}`;
       let skillEntry = consolidatedSkills.get(key);
 
@@ -1255,17 +1164,18 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
         skillEntry = {
           area: item.area || "-",
           habilidade: item.habilidade || "-",
-          // Inicializa objetivos com base nos dados do item (que já vêm com CP/MP/LP)
-          objetivos: { curtoPrazo: "", medioPrazo: "", longoPrazo: "" },
-          estrategiasTextList: [], // Armazenará estratégias de todos os professores
+          objetivos: {
+            curtoPrazo: "",
+            medioPrazo: "",
+            longoPrazo: "",
+          },
+          estrategiasTextList: [],
           nivel: item.nivel || "-",
           nivelAlmejado: item.nivelAlmejado || "-",
         };
         consolidatedSkills.set(key, skillEntry);
       }
 
-      // Preenche/atualiza os objetivos para a skillEntry
-      // Prioriza os objetivos do item salvo. Se não existirem, busca nos mapas.
       skillEntry.objetivos.curtoPrazo =
         item.objetivos?.curtoPrazo ||
         objetivosCurtoPrazoMap[item.habilidade]?.[item.nivelAlmejado] ||
@@ -1279,7 +1189,6 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
         estruturaPEIMap[item.habilidade]?.[item.nivelAlmejado]?.objetivo ||
         "";
 
-      // Adiciona as estratégias (selecionadas por esse professor)
       let estrategiasDoItem = [];
       if (Array.isArray(item.estrategiasSelecionadas)) {
         estrategiasDoItem = item.estrategiasSelecionadas
@@ -1289,7 +1198,6 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
 
       if (estrategiasDoItem.length > 0) {
         estrategiasDoItem.forEach((strategyText) => {
-          // Adiciona a estratégia apenas se ainda não estiver na lista consolidada para essa habilidade
           const formattedStrategy = `* ${strategyText} ${criadorInfo}`;
           if (!skillEntry.estrategiasTextList.includes(formattedStrategy)) {
             skillEntry.estrategiasTextList.push(formattedStrategy);
@@ -1297,8 +1205,7 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
         });
       }
 
-      // Adiciona atividades aplicadas (uma vez por PEI/Criador)
-      const activityText = item.atividadeAplicada?.trim(); // Preferir da meta, se houver
+      const activityText = item.atividadeAplicada?.trim();
       if (activityText) {
         const uniqueActivityKey = `${activityText}|${criadorInfo}`;
         if (!uniqueActivitiesSet.has(uniqueActivityKey)) {
@@ -1306,7 +1213,6 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
           allActivitiesTableRows.push([activityText, criadorInfo]);
         }
       } else if (peiItem.atividadeAplicada?.trim()) {
-        // Fallback para atividade do PEI principal
         const activityTextFromPei = peiItem.atividadeAplicada.trim();
         const uniqueActivityKey = `${activityTextFromPei}|${criadorInfo}`;
         if (!uniqueActivitiesSet.has(uniqueActivityKey)) {
@@ -1318,7 +1224,6 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
   });
 
   consolidatedSkills.forEach((skillEntry) => {
-    // Formata os três objetivos para exibição em uma única célula
     const objetivosCombined =
       `Curto Prazo: ${skillEntry.objetivos.curtoPrazo || "N/D."}\n` +
       `Médio Prazo: ${skillEntry.objetivos.medioPrazo || "N/D."}\n` +
@@ -1329,7 +1234,7 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
     allPeiTableRows.push([
       skillEntry.area || "-",
       skillEntry.habilidade || "-",
-      objetivosCombined, // Agora é o texto formatado com todos os prazos
+      objetivosCombined,
       combinedStrategiesText || "Nenhuma estratégia definida.",
       skillEntry.nivel || "-",
       skillEntry.nivelAlmejado || "-",
@@ -1351,7 +1256,6 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
     y += 8;
 
     const larguraPagina = doc.internal.pageSize.getWidth();
-    // Reajustando as larguras das colunas para melhor encaixe
     const areaWidth = 22;
     const habilidadeWidth = 30;
     const objetivoWidth = 55;
@@ -1369,13 +1273,11 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
       nivelWidth +
       nivelAlmejadoWidth;
 
-    // Calcula o espaço restante para as estratégias
     const availableWidthForStrategies =
       larguraPagina - defaultTotalHorizontalMargin - fixedColumnsTotalWidth;
 
     const estrategiasWidth = Math.max(70, availableWidthForStrategies);
 
-    // Recalcula a margem para centralizar a tabela com as novas larguras
     const totalColumnWidthUsed =
       areaWidth +
       habilidadeWidth +
@@ -1447,7 +1349,6 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
         bottom: FOOTER_AREA_HEIGHT,
       },
       didParseCell: (data) => {
-        // Lógica de cores para os níveis
         if ([4, 5].includes(data.column.index)) {
           const nivel = data.cell.text;
           if (coresPorNivel[nivel]) {
@@ -1465,7 +1366,6 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
     });
     y = doc.lastAutoTable.finalY;
 
-    // --- NOVO: Adiciona a legenda para N.A e N.AL ---
     y = ensurePageSpace(doc, y, 20);
 
     doc.setFont(styles.font, "bold");
@@ -1475,8 +1375,6 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
     doc.text("N.A - Nível Atual | N.AL - Nível Almejado", 50, y + 5);
 
     y += 10;
-    // --- FIM da nova legenda ---
-
     y += 10;
   } else {
     console.log(
@@ -1505,7 +1403,7 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
     y += 8;
 
     const larguraPagina = doc.internal.pageSize.getWidth();
-    const tableWidth = 175; // Largura total da tabela de atividades
+    const tableWidth = 175;
     const margemAtividades = (larguraPagina - tableWidth) / 2;
 
     autoTable(doc, {
@@ -1576,12 +1474,142 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
 }
 
 /**
- * NOVO: Adiciona a seção de Observações do Aluno ao PDF, como uma tabela consolidada.
+ * Retorna os estilos de cor para o status da meta.
+ * @param {string} status - O status da meta ('Sim', 'Parcial', 'Não').
+ * @returns {Object} Um objeto com os estilos de cor de preenchimento e texto.
+ */
+function getStatusColorStyles(status) {
+  if (status === "Sim") {
+    return {
+      fillColor: coresPorNivel.Sim,
+      textColor: styles.colors.white,
+    };
+  } else if (status === "Parcial") {
+    return {
+      fillColor: coresPorNivel.yellow,
+      textColor: styles.colors.black,
+    };
+  } else if (status === "Não") {
+    return {
+      fillColor: coresPorNivel.Não,
+      textColor: styles.colors.white,
+    };
+  }
+  return {
+    fillColor: styles.colors.white,
+    textColor: styles.colors.black,
+  };
+}
+
+/**
+ * Adiciona a seção de Alcance de Metas ao PDF.
  * @param {jsPDF} doc - Instância do jsPDF.
- * @param {Array<Object>} observacoes - Array de objetos de observação do aluno.
+ * @param {Array<Object>} peis - Array de objetos PEI.
  * @param {number} y - Posição Y atual no documento.
  * @returns {number} Nova posição Y após adicionar a seção.
  */
+function addMetasSection(doc, peis, y) {
+  if (!peis || peis.length === 0) {
+    console.log(
+      "[PDF_DEBUG] Alcance de Metas: Nenhum PEI encontrado. Pulando seção."
+    );
+    return y;
+  }
+
+  const metasTableBody = [];
+  const processedMetas = new Set();
+
+  peis.forEach((pei) => {
+    const acompanhamento = pei.acompanhamento || {};
+    const resumo = pei.resumoPEI || [];
+
+    resumo.forEach((item) => {
+      const key = `${item.habilidade}-${pei.nomeCriador || "Desconhecido"}`;
+
+      if (acompanhamento[item.habilidade] && !processedMetas.has(key)) {
+        const metaAcompanhada = acompanhamento[item.habilidade];
+
+        metasTableBody.push([
+          item.habilidade || "-",
+          metaAcompanhada.status || "-",
+          metaAcompanhada.observacoes || "-",
+          pei.nomeCriador || "-",
+        ]);
+
+        processedMetas.add(key);
+      }
+    });
+  });
+
+  if (metasTableBody.length === 0) {
+    console.log(
+      "[PDF_DEBUG] Alcance de Metas: Nenhuma meta encontrada para exibição. Pulando seção."
+    );
+    return y;
+  }
+
+  y = ensurePageSpace(doc, y, 30);
+  doc.setFont(styles.font, "bold");
+  doc.setFontSize(styles.fontSize.large);
+  doc.text("Alcance de Metas", doc.internal.pageSize.getWidth() / 2, y, {
+    align: "center",
+  });
+  y += 8;
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const availableWidth = pageWidth - 40;
+
+  autoTable(doc, {
+    startY: y,
+    head: [["Habilidade", "Status", "Observações", "Professor(a)"]],
+    body: metasTableBody,
+    styles: {
+      font: styles.font,
+      fontSize: styles.fontSize.small,
+      textColor: styles.colors.black,
+      fillColor: styles.colors.white,
+      lineColor: styles.colors.black,
+      lineWidth: 0.1,
+      cellPadding: 1,
+      valign: "top",
+      overflow: "linebreak",
+    },
+    headStyles: {
+      fillColor: styles.colors.white,
+      textColor: styles.colors.black,
+      fontStyle: "bold",
+      halign: "center",
+    },
+    columnStyles: {
+      0: { cellWidth: availableWidth * 0.35, overflow: "linebreak" },
+      1: { cellWidth: availableWidth * 0.1, halign: "center" },
+      2: { cellWidth: availableWidth * 0.4, overflow: "linebreak" },
+      3: { cellWidth: availableWidth * 0.15, halign: "center" },
+    },
+    margin: {
+      left: 20,
+      right: 20,
+      top: HEADER_AREA_HEIGHT + 10,
+      bottom: FOOTER_AREA_HEIGHT,
+    },
+    didParseCell: (data) => {
+      if (data.column.index === 1) {
+        // Coluna de Status
+        const status = data.cell.text;
+        const statusStyles = getStatusColorStyles(status);
+        Object.assign(data.cell.styles, statusStyles);
+      } else {
+        data.cell.styles.fillColor = styles.colors.white;
+        data.cell.styles.textColor = styles.colors.black;
+      }
+    },
+    didDrawPage: (data) => {
+      addHeaderAndFooter(doc);
+    },
+  });
+  return doc.lastAutoTable.finalY + 10;
+}
+
 function addObservacoesSection(doc, observacoes, y) {
   console.log(
     "DEBUG: Observações recebidas em addObservacoesSection:",
@@ -1619,7 +1647,7 @@ function addObservacoesSection(doc, observacoes, y) {
   );
 
   const pageWidth = doc.internal.pageSize.getWidth();
-  const tableWidth = 175; // Largura total da tabela, similar às atividades
+  const tableWidth = 175;
   const horizontalMargin = (pageWidth - tableWidth) / 2;
 
   autoTable(doc, {
@@ -1644,9 +1672,16 @@ function addObservacoesSection(doc, observacoes, y) {
       halign: "center",
     },
     columnStyles: {
-      0: { cellWidth: tableWidth * 0.25 }, // Professor
-      1: { cellWidth: tableWidth * 0.25, halign: "center" }, // Data
-      2: { cellWidth: tableWidth * 0.5 }, // Observação
+      0: {
+        cellWidth: tableWidth * 0.25,
+      },
+      1: {
+        cellWidth: tableWidth * 0.25,
+        halign: "center",
+      },
+      2: {
+        cellWidth: tableWidth * 0.5,
+      },
     },
     margin: {
       left: horizontalMargin,
@@ -1666,12 +1701,6 @@ function addObservacoesSection(doc, observacoes, y) {
   return y;
 }
 
-/**
- * Adiciona a seção de legenda dos níveis ao PDF.
- * @param {jsPDF} doc - Instância do jsPDF.
- * @param {number} y - Posição Y atual no documento.
- * @returns {number} Nova posição Y após adicionar a seção.
- */
 function addLegendSection(doc, y) {
   const legendaValida = Object.entries(legendaNiveis).filter(
     ([sigla]) => coresPorNivel[sigla]
@@ -1702,16 +1731,6 @@ function addLegendSection(doc, y) {
   return y + 10;
 }
 
-/**
- * Adiciona a tabela de assinaturas dos profissionais envolvidos ao PDF.
- * A gestão da escola do aluno (Diretor, Diretor Adjunto, Orientador Pedagógico, Gestão)
- * será sempre incluída.
- * @param {jsPDF} doc - Instância do jsPDF.
- * @param {Object} aluno - Objeto com os dados do aluno.
- * @param {Object} usuarioLogado - Objeto com os dados do usuário logado.
- * @param {number} y - Posição Y atual no documento.
- * @returns {Promise<number>} Nova posição Y após adicionar a tabela.
- */
 async function addProfessionalSignaturesTable(doc, aluno, usuarioLogado, y) {
   const perfisComPermissaoParaGerarTabela = [
     "gestao",
@@ -1719,7 +1738,7 @@ async function addProfessionalSignaturesTable(doc, aluno, usuarioLogado, y) {
     "seme",
     "diretor",
     "diretor adjunto",
-    "orientador pedagogico", // Usa espaço
+    "orientador pedagogico",
     "desenvolvedor",
     "professor",
   ];
@@ -1744,7 +1763,6 @@ async function addProfessionalSignaturesTable(doc, aluno, usuarioLogado, y) {
   }
 
   try {
-    // Perfis de gestão que devem sempre aparecer se pertencerem à escola do aluno
     const perfisGestaoEscolar = [
       "diretor",
       "diretor adjunto",
@@ -1756,14 +1774,15 @@ async function addProfessionalSignaturesTable(doc, aluno, usuarioLogado, y) {
     const profissionaisParaAssinar = [];
     const processedIds = new Set();
 
-    // 1. Adiciona a GESTÃO DA ESCOLA (Diretor, Adjunto, Orientador, Gestão)
     if (aluno.escolaId) {
       const escolaIdAluno = aluno.escolaId;
 
       todosUsuariosSnap.docs.forEach((doc) => {
-        const p = { id: doc.id, ...doc.data() };
+        const p = {
+          id: doc.id,
+          ...doc.data(),
+        };
 
-        // Padroniza o perfil vindo do banco (substitui '_' por ' ') para a verificação.
         const perfilNormalizado = p.perfil?.toLowerCase().replace(/_/g, " ");
 
         const pertenceAEscola =
@@ -1781,12 +1800,13 @@ async function addProfessionalSignaturesTable(doc, aluno, usuarioLogado, y) {
       });
     }
 
-    // 2. Adiciona outros profissionais relevantes (professores da turma, AEE) que ainda não foram incluídos
     todosUsuariosSnap.docs.forEach((doc) => {
-      const p = { id: doc.id, ...doc.data() };
-      if (processedIds.has(p.id)) return; // Pula se já foi adicionado (é da gestão)
+      const p = {
+        id: doc.id,
+        ...doc.data(),
+      };
+      if (processedIds.has(p.id)) return;
 
-      // Também padroniza o perfil aqui para consistência
       const perfilNormalizado = p.perfil?.toLowerCase().replace(/_/g, " ");
 
       const estaNaEscolaDoAluno =
@@ -1805,7 +1825,6 @@ async function addProfessionalSignaturesTable(doc, aluno, usuarioLogado, y) {
       }
     });
 
-    // Ordena os profissionais para uma apresentação consistente no PDF
     profissionaisParaAssinar.sort((a, b) => {
       const ordemPerfis = {
         diretor: 1,
@@ -1817,7 +1836,6 @@ async function addProfessionalSignaturesTable(doc, aluno, usuarioLogado, y) {
         seme: 7,
         desenvolvedor: 8,
       };
-      // Usa o perfil padronizado também na ordenação.
       const perfilA = a.perfil?.toLowerCase().replace(/_/g, " ") || "";
       const perfilB = b.perfil?.toLowerCase().replace(/_/g, " ") || "";
       const ordemA = ordemPerfis[perfilA] || 99;
@@ -1873,9 +1891,16 @@ async function addProfessionalSignaturesTable(doc, aluno, usuarioLogado, y) {
         halign: "center",
       },
       columnStyles: {
-        0: { cellWidth: 70 },
-        1: { cellWidth: 60, halign: "center" },
-        2: { cellWidth: 60 },
+        0: {
+          cellWidth: 70,
+        },
+        1: {
+          cellWidth: 60,
+          halign: "center",
+        },
+        2: {
+          cellWidth: 60,
+        },
       },
       margin: {
         left: horizontalMargin,
@@ -1897,12 +1922,6 @@ async function addProfessionalSignaturesTable(doc, aluno, usuarioLogado, y) {
   }
 }
 
-/**
- * Adiciona uma página de assinaturas ao final do documento.
- * @param {jsPDF} doc - Instância do jsPDF.
- * @param {Object} aluno - Objeto com os dados do aluno.
- * @param {Object} usuarioLogado - Objeto com os dados do usuário logado.
- */
 async function addSignaturePage(doc, aluno, usuarioLogado) {
   doc.addPage();
   addHeaderAndFooter(doc);
@@ -1930,18 +1949,12 @@ async function addSignaturePage(doc, aluno, usuarioLogado) {
   y += 10;
 }
 
-/**
- * Gera o PDF completo do PEI para um aluno.
- * @param {Object} aluno - Objeto com os dados do aluno.
- * @param {Object} avaliacaoInicial - Objeto da avaliação inicial do aluno.
- * @param {Object} usuarioLogado - Objeto com os dados do usuário logado.
- * @param {Array<Object>} [peisParaGeral=[]] - Array opcional de PEIs a serem exibidos.
- */
+// --- FUNÇÃO PRINCIPAL COM A CHAMADA ALTERADA ---
 export async function gerarPDFCompleto(
   aluno,
-  avaliacaoInicial, // Objeto de avaliação inicial
+  avaliacaoInicial,
   usuarioLogado,
-  peisParaGeral = [] // Array de PEIs a serem exibidos
+  peisParaGeral = []
 ) {
   const doc = new jsPDF();
   let y;
@@ -2001,16 +2014,15 @@ export async function gerarPDFCompleto(
 
   const peisParaExibir = peisOrdenados;
 
-  // NOVO: Buscar as observações do aluno
-  const observacoesAluno = await fetchObservacoes(aluno.nome); // Passa o nome do aluno
-  console.log("DEBUG: Observações do Aluno buscadas:", observacoesAluno); // <--- ADICIONADO PARA DEBUG
+  const observacoesAluno = await fetchObservacoes(aluno.nome);
+  console.log("DEBUG: Observações do Aluno buscadas:", observacoesAluno);
 
   const hasAnyMainContent =
     peisParaExibir.length > 0 ||
     (avaliacaoInicial && Object.keys(avaliacaoInicial).length > 0) ||
     (avaliacaoInteressesData &&
       Object.keys(avaliacaoInteressesData).length > 0) ||
-    observacoesAluno.length > 0; // Inclui observações na verificação de conteúdo
+    observacoesAluno.length > 0;
 
   if (!hasAnyMainContent) {
     console.warn(
@@ -2061,7 +2073,8 @@ export async function gerarPDFCompleto(
   y = addInitialAssessment(doc, avaliacaoInicial, y);
   y = addAvaliacaoInteressesSection(doc, avaliacaoInteressesData, y);
   y = addConsolidatedPeiSection(doc, peisParaExibir, y);
-  y = addObservacoesSection(doc, observacoesAluno, y); // <--- NOVO: Adiciona a seção de observações
+  y = addMetasSection(doc, peisParaExibir, y); // <-- CHAMADA ADICIONADA AQUI
+  y = addObservacoesSection(doc, observacoesAluno, y);
   y = addLegendSection(doc, y);
 
   await addSignaturePage(doc, aluno, usuarioLogado);
@@ -2069,3 +2082,4 @@ export async function gerarPDFCompleto(
   doc.save(`PEI_${aluno.nome?.replace(/\s+/g, "_")}_Completo.pdf`);
   console.log("[PDF_DEBUG] Geração do PDF concluída.");
 }
+// --- FIM DA FUNÇÃO PRINCIPAL COM A CHAMADA ADICIONADA ---

@@ -16,6 +16,9 @@ const estruturaPEI = {
             "Posicionar brinquedos atraentes a uma curta distância para motivar o aluno a alcançá-los andando com apoio.",
             "Modelar o movimento de andar na frente do aluno, de forma lenta e exagerada, para que ele possa observar e imitar.",
             "Reforçar positivamente cada tentativa, mesmo as menores, com elogios e sorrisos, para construir confiança e motivação.",
+
+            "Utilizar um tapete rolante com baixa velocidade e apoio constante do professor para simular a marcha de forma controlada.",
+            "Posicionar o aluno em frente a um espelho grande enquanto o professor o auxilia na marcha, para que ele tenha feedback visual do movimento.",
           ],
         },
         AF: {
@@ -32,6 +35,9 @@ const estruturaPEI = {
             "Estimular a mudança de ritmo na caminhada com apoio, alternando entre lento e um pouco mais rápido.",
             "Utilizar um pano ou lençol enrolado como apoio na cintura, permitindo que o professor controle a estabilidade sem segurar diretamente as mãos.",
             "Aumentar progressivamente a distância e o tempo de caminhada com apoio reduzido, incentivando a autonomia.",
+
+            "Implementar um sistema de 'apoio sombra', onde o professor segue o aluno de perto, pronto para intervir, mas sem contato constante, para encorajar a autonomia.",
+            "Usar uma prancha de equilíbrio com o professor fornecendo apoio físico nas laterais, para que o aluno sinta a instabilidade controlada e trabalhe a musculatura.",
           ],
         },
         AG: {
@@ -48,6 +54,9 @@ const estruturaPEI = {
             "Em um espaço aberto, indicar com gestos diferentes direções (para frente, para os lados) para que o aluno corra ou ande, incentivando a exploração espacial.",
             "Esconder objetos em diferentes locais e usar gestos (apontar) para guiar o aluno até eles, incentivando a exploração e a movimentação direcionada.",
             "Associar gestos a sons ou ritmos (ex: bater palmas para correr rápido, movimentos lentos para andar devagar) para criar um padrão de movimento que o aluno possa seguir.",
+
+            "Usar uma lanterna para criar um 'caminho de luz' no chão que o aluno deve seguir andando ou correndo, variando a direção do feixe de luz com gestos sutis.",
+            "Jogar 'pedra, papel, tesoura' adaptado para movimentos: cada escolha da mão do professor (gesto) indica um movimento (ex: pedra = pular, papel = correr, tesoura = andar rápido), que o aluno deve imitar.",
           ],
         },
         AV: {
@@ -64,6 +73,9 @@ const estruturaPEI = {
             "Propor desafios verbais como 'corra até a árvore, mas pise apenas nas folhas amarelas' para aprimorar a atenção e o planejamento motor.",
             "Utilizar músicas com letras que dão comandos de movimento ('pula, roda, corre') para que o aluno siga as instruções verbais da canção.",
             "Realizar atividades em que o aluno precise verbalizar sua intenção de movimento antes de executá-lo (ex: 'eu vou correr até ali'), promovendo o planejamento motor.",
+
+            "Conduzir um 'circuito de comandos' verbal, onde cada estação tem uma instrução diferente a ser ouvida e executada (ex: 'Pular três vezes aqui', 'Correr em zig-zag ali').",
+            "Usar um megafone ou walkie-talkie para dar comandos de movimento a distância, incentivando a escuta e a execução sem o apoio visual próximo do professor.",
           ],
         },
         AVi: {
@@ -80,6 +92,9 @@ const estruturaPEI = {
             "Filmar o próprio aluno em movimento e depois assistir junto com ele, apontando e elogiando os acertos para aprimorar a consciência visual do movimento.",
             "Desenhar labirintos grandes no chão com giz ou fita adesiva, onde o aluno precisa seguir visualmente o caminho, andando ou correndo.",
             "Usar espelhos grandes para que o aluno possa observar seus próprios movimentos de marcha e corrida, corrigindo-se visualmente.",
+
+            "Utilizar um tablet ou quadro interativo com aplicativos que mostrem rotas visuais dinâmicas, e o aluno deve replicar o movimento corporalmente seguindo a tela.",
+            "Criar um 'jogo da velha gigante' no chão, onde as 'jogadas' (andar em linha reta ou diagonal) são guiadas por símbolos visuais, exigindo planejamento motor visual.",
           ],
         },
         I: {
@@ -96,6 +111,9 @@ const estruturaPEI = {
             "Promover brincadeiras de 'cabra-cega' ou 'corre e esconde' que estimulem a orientação espacial e a movimentação autônoma em espaços abertos.",
             "Incentivar o uso de patins, bicicleta ou patinete (com segurança) para aprimorar o equilíbrio dinâmico e a coordenação em diferentes formas de deslocamento.",
             "Realizar discussões com o aluno sobre estratégias para melhorar seu desempenho na corrida e na marcha, estimulando a autoavaliação e o planejamento motor.",
+
+            "Propor que o aluno crie um 'circuito de obstáculos' utilizando materiais disponíveis, e demonstre como percorrê-lo, explicando os desafios de marcha e corrida.",
+            "Promover um 'dia do esporte livre' onde o aluno escolhe e adapta um esporte que exija corrida e marcha, demonstrando criatividade e autonomia na prática.",
           ],
         },
       },
@@ -594,6 +612,7 @@ const estruturaPEI = {
             ],
           },
         },
+
       "Cortar com tesoura acompanhando traçado simples": {
         NR: {
           objetivo:
@@ -603,12 +622,15 @@ const estruturaPEI = {
             "Utilizar tesouras de segurança com molas ou adaptadas (com alças maiores, ou de autoabertura) para facilitar o movimento, com apoio físico contínuo.",
             "Propor brincadeiras de 'cortar' massinha de modelar com as mãos ou cortadores plásticos, para fortalecer a preensão e simular o movimento de corte.",
             "Oferecer materiais fáceis de cortar (folhas de alface, tiras de gelatina, barbante) e o professor faz o movimento de corte com a mão do aluno.",
-            "Realizar exercícios de apertar e soltar com a mão (ex: bolinhas de apertar, esponjas úmidas) para fortalecer os músculos da mão e dos dedos.",
+            "Realizar exercícios de apertar e soltar com a mão (ex: bolinhas de apertar, esponpas úmidas) para fortalecer os músculos da mão e dos dedos.",
             "Utilizar pinças grandes para pegar objetos pequenos, para desenvolver a preensão e a coordenação fina.",
             "Brincar de 'cortar' com os dedos no ar, simulando o movimento da tesoura, para familiarizar o aluno com o padrão motor.",
             "Modelar o movimento de segurar a tesoura e abrir/fechar de forma exagerada, para que o aluno observe e receba o apoio na imitação.",
             "Cortar fitas adesivas fixadas em uma superfície com o auxílio do professor, onde a tesoura desliza facilmente.",
             "Estimular a manipulação de blocos de montar ou encaixe que exigem força e coordenação das mãos e dedos, preparando para a tesoura.",
+
+            "Colocar um pedaço de fita crepe no polegar e indicador do aluno para indicar a posição correta dos dedos na tesoura, com apoio físico para fixação.",
+            "Usar tesouras de brinquedo com mola incorporada que auxilia no movimento de abertura, reduzindo a demanda de força com apoio.",
           ],
         },
         AF: {
@@ -625,6 +647,9 @@ const estruturaPEI = {
             "Apoiar o antebraço do aluno na mesa para dar mais estabilidade durante o corte.",
             "Propor o corte de tiras de papel com apoio, incentivando um movimento contínuo da tesoura.",
             "Utilizar tesouras com cabo ergonômico ou adaptadores para melhorar a preensão com apoio físico.",
+
+            "Colocar pequenos pontos coloridos ao longo do traçado que o aluno deve 'morder' com a tesoura, com apoio físico para garantir a precisão no ponto.",
+            "Usar uma tesoura adaptada com autoabertura, fornecendo apoio físico apenas para o movimento de fechamento e direcionamento da lâmina sobre a linha.",
           ],
         },
         AG: {
@@ -641,6 +666,9 @@ const estruturaPEI = {
             "Propor 'desafio da tesoura imaginária', onde o professor gesticula um corte e o aluno o reproduz no ar com os dedos.",
             "Utilizar um 'boneco' ou 'fantoche' que 'corta' com movimentos gestuais para o aluno imitar com a tesoura.",
             "Fazer gestos de 'siga a linha' com o dedo na mesa e o aluno tenta reproduzir o corte com a tesoura.",
+
+            "Desenhar uma 'boca de jacaré' no papel com o traçado como a linha central da boca; o professor gesticula o 'abre e fecha' da boca do jacaré para guiar o movimento da tesoura.",
+            "Usar um 'mapa gestual' desenhado no ar: o professor traça o caminho que a tesoura deve fazer no ar com o dedo e o aluno o copia com a tesoura sobre o papel.",
           ],
         },
         AV: {
@@ -657,6 +685,9 @@ const estruturaPEI = {
             "Propor jogos de 'cortar e contar' onde o aluno corta um número específico de vezes seguindo a instrução verbal.",
             "Utilizar músicas com letras que descrevem o movimento da tesoura (ex: 'Abre e fecha, abre e fecha, corta, corta, sem parar!').",
             "Estimular o aluno a dar instruções verbais para o professor cortar, para que ele internalize os comandos e as etapas.",
+
+            "Usar a técnica de 'encadeamento verbal': o professor verbaliza o primeiro passo (ex: 'segure a tesoura') e o aluno executa, depois o professor verbaliza o próximo ('abra a tesoura') e assim por diante.",
+            "Ditar o movimento da tesoura verbalmente: 'abre, fecha, abre, fecha, na linha', para que o aluno internalize o ritmo e a coordenação da ação.",
           ],
         },
         AVi: {
@@ -673,6 +704,9 @@ const estruturaPEI = {
             "Disponibilizar tesouras com lâminas coloridas para que o aluno visualize melhor o movimento de abertura e fechamento.",
             "Criar um 'caminho de formigas' no traçado para o aluno 'seguir' visualmente com a tesoura.",
             "Usar recortes de revistas com personagens que o aluno goste, com linhas simples, para motivar o corte visualmente.",
+
+            "Criar cartões de autoavaliação visual: após o corte, o aluno compara seu trabalho com um cartão de 'corte correto' e 'corte incorreto' para identificar o que precisa ajustar.",
+            "Utilizar papéis com diferentes densidades visuais (pontilhados espaçados, pontilhados mais próximos) para graduar a dificuldade do traçado e a exigência visual do corte.",
           ],
         },
         I: {
@@ -689,9 +723,12 @@ const estruturaPEI = {
             "Estimular o aluno a corrigir seus próprios cortes, observando onde errou e como pode melhorar para a próxima vez.",
             "Promover a participação em projetos de artesanato que envolvam corte preciso de papel, tecido ou outros materiais.",
             "Incentivar o recorte de letras e números para formar palavras ou operações, conectando a motricidade fina à alfabetização/numeramento.",
+            "Desafiar o aluno a criar um projeto que exija o corte de diferentes materiais (papel, cartolina, feltro) de forma precisa e autônoma, como a montagem de um fantoche ou uma maquete simples.",
+            "Propor a organização de uma 'estação de corte' na sala, onde o aluno é responsável por preparar e cortar materiais para atividades em grupo, demonstrando autonomia e habilidade funcional.",
           ],
         },
       },
+
       "Colorir dentro dos limites do contorno": {
         NR: {
           objetivo:
@@ -707,6 +744,8 @@ const estruturaPEI = {
             "Brincar de 'pintar o banho' ou 'pintar a parede' com água e um pincel grosso, fazendo movimentos amplos e de preenchimento com apoio.",
             "Desenhar formas grandes com giz no chão e pedir para o aluno preencher com água e pincel, com o professor guiando a mão.",
             "Modelar o movimento de 'raspar' o lápis/giz para preencher, com o professor auxiliando o movimento circular ou linear.",
+            "Usar um rolo de pintura pequeno com tinta atóxica para preencher grandes áreas delimitadas, com apoio físico para manter o rolo dentro do limite.",
+            "Fixar o papel na mesa com fita adesiva para evitar que ele se mova, e o professor guia a mão do aluno sobre uma área grande a ser colorida.",
           ],
         },
         AF: {
@@ -723,6 +762,8 @@ const estruturaPEI = {
             "Propor o preenchimento de formas com massa de modelar, com o professor auxiliando a criança a espalhar a massinha dentro do contorno.",
             "Utilizar lápis triangulares ou adaptadores para melhorar a preensão, com o professor auxiliando o posicionamento dos dedos.",
             "Realizar atividades de 'rastrear e colorir' com apoio físico, onde o professor guia o traçado do contorno antes do preenchimento.",
+            "Usar um suporte de punho ou uma luva de peso leve para estabilizar o braço do aluno, permitindo um apoio físico mais focado no movimento fino da mão durante o colorir.",
+            "Pintar em superfícies verticais (ex: quadro branco, papel na parede) com apoio físico, para fortalecer os músculos do ombro e braço que auxiliam no controle do movimento de colorir.",
           ],
         },
         AG: {
@@ -739,6 +780,8 @@ const estruturaPEI = {
             "Gesticular a cor que deve ser usada (ex: apontar para algo azul se a área for azul) e depois para o desenho, estimulando a associação.",
             "Propor 'desenho de espelho' gestual com o dedo no ar, onde o professor colore uma forma invisível e o aluno tenta reproduzir no papel.",
             "Utilizar gestos de 'sinal verde' para colorir e 'sinal vermelho' para parar na linha.",
+            "Usar um 'mapa de calor' gestual: o professor movimenta a mão sobre a área a ser colorida como se estivesse preenchendo, e o aluno segue o movimento com o lápis, imitando o gesto de preenchimento.",
+            "Criar um 'jogo de contorno': o professor gesticula uma 'barreira invisível' ao redor do contorno do desenho, e o aluno deve colorir sem 'tocar na barreira' gestual.",
           ],
         },
         AV: {
@@ -755,6 +798,8 @@ const estruturaPEI = {
             "Propor jogos de 'adivinhe a cor' com comandos verbais (ex: 'Estou pensando em uma cor para a maçã, qual é?').",
             "Utilizar músicas ou rimas que descrevam o ato de colorir (ex: 'Pinta, pinta, sem sair, a linha é pra seguir!').",
             "Estimular o aluno a dar instruções verbais para o professor colorir, para que ele internalize os comandos e estratégias.",
+            "Usar um cronômetro verbal: o professor indica verbalmente quando o tempo para colorir uma seção está acabando, incentivando a uniformidade e a conclusão dentro do limite de tempo.",
+            "Propor 'comandos de direção': o professor verbaliza a direção do preenchimento (ex: 'Pinte para cima!', 'Agora para o lado!') para aprimorar o controle direcional do movimento.",
           ],
         },
         AVi: {
@@ -771,6 +816,8 @@ const estruturaPEI = {
             "Desenhar setas ou pequenos pontilhados no interior da figura para indicar a direção do preenchimento.",
             "Utilizar livros de colorir com adesivos ou texturas para preencher as áreas, incentivando o respeito aos limites visuais.",
             "Criar um 'painel de progresso' visual onde o aluno cola os desenhos coloridos dentro do contorno, mostrando sua evolução.",
+            "Usar lupas de aumento para que o aluno visualize com mais detalhe as linhas do contorno, aprimorando a precisão do preenchimento em áreas pequenas.",
+            "Imprimir desenhos com contornos de cores variadas (ex: azul para água, marrom para terra) para fornecer pistas visuais que ajudem o aluno a escolher as cores e respeitar os limites por associação.",
           ],
         },
         I: {
@@ -787,6 +834,8 @@ const estruturaPEI = {
             "Estimular o aluno a corrigir seus próprios 'erros' de colorir (ex: saiu da linha, deixou espaço em branco), desenvolvendo a autoavaliação.",
             "Promover a participação em concursos de desenho ou exposições de arte, onde a qualidade do colorido é um fator importante.",
             "Incentivar o uso de colorir como ferramenta de relaxamento e concentração, de forma autônoma e prazerosa.",
+            "Propor a criação de uma história em quadrinhos onde o aluno é responsável por colorir todos os painéis, exigindo precisão e uniformidade em diversas cenas e personagens.",
+            "Organizar um 'workshop de colorir' onde o aluno, de forma autônoma, demonstra técnicas avançadas de preenchimento e uso de cores para outros colegas, reforçando o domínio da habilidade.",
           ],
         },
       },
@@ -953,7 +1002,7 @@ const estruturaPEI = {
             "Reduzir gradualmente o uso de dicas verbais conforme o aluno demonstra compreensão.",
             "Reforçar positivamente a execução correta da ordem ('Muito bem! Você entendeu direitinho!').",
             "Propor jogos de 'telefone sem fio' com ordens simples, incentivando a escuta atenta e a transmissão verbal da instrução.",
-            "Realizar atividades que envolvam a compreensão de preposições (ex: 'coloque *em cima* da mesa', 'coloque *dentro* da caixa') através de comandos verbais.",
+            "Realizar atividades que envolvam a compreensão de preposições (ex: 'coloque em cima da mesa', 'coloque dentro da caixa') através de comandos verbais.",
             "Variar a ordem das ações em comandos de duas etapas para garantir a compreensão da sequência (ex: 'pegue o livro e guarde' vs. 'guarde o livro depois de pegar').",
           ],
         },
@@ -1045,7 +1094,7 @@ const estruturaPEI = {
           estrategias: [
             "Perguntar 'Que cor é esta?', 'Quem é este?', 'O que é isso?' de forma clara, aguardando a resposta e oferecendo dicas verbais se necessário (ex: 'começa com M...').",
             "Propor jogos de 'adivinhação' com objetos ou cores, dando pistas verbais até o aluno nomear corretamente (ex: 'É uma fruta, é redonda e vermelha. O que é?').",
-            "Estimular a nomeação espontânea durante atividades do dia a dia, corrigindo a pronúncia ou o nome com feedback verbal ('Quase lá! É *azul*, não 'azulol'').",
+            "Estimular a nomeação espontânea durante atividades do dia a dia, corrigindo a pronúncia ou o nome com feedback verbal ('Quase lá! É azul, não 'azulol'').",
             "Utilizar rima ou aliteração para reforçar o nome de objetos (ex: 'A bola é bonita e rola!', 'O gato gatinha').",
             "Fazer perguntas abertas sobre as características do objeto (ex: 'Como é esta maçã?'), incentivando a descrição verbal e a nomeação.",
             "Repetir o nome correto do objeto/cor/pessoa várias vezes após o aluno tentar nomear, para reforçar a memorização.",
@@ -1142,9 +1191,9 @@ const estruturaPEI = {
             "Aprimorar a formação de frases simples e a resposta a perguntas básicas com clareza e precisão, seguindo prompts verbais.",
           estrategias: [
             "Dar prompts verbais para completar frases ('O menino está...', 'Ele quer...', 'Eu gosto de...') ou para responder perguntas ('O que você quer?', 'Quem está comendo?').",
-            "Estimular a expansão de frases simples, pedindo para o aluno adicionar mais palavras (ex: 'O menino come... o quê? Ah, o menino come *maçã*!').",
+            "Estimular a expansão de frases simples, pedindo para o aluno adicionar mais palavras (ex: 'O menino come... o quê? Ah, o menino come maçã!').",
             "Propor jogos de perguntas e respostas com regras simples, incentivando a formulação de frases completas ('Eu quero a bola', 'O cachorro está dormindo').",
-            "Utilizar modelagem verbal, repetindo a frase correta após a tentativa do aluno (ex: Aluno: 'Menino come'. Professor: 'Sim, o menino *está comendo*!').",
+            "Utilizar modelagem verbal, repetindo a frase correta após a tentativa do aluno (ex: Aluno: 'Menino come'. Professor: 'Sim, o menino está comendo!').",
             "Fazer perguntas abertas que exigem respostas mais elaboradas (ex: 'O que aconteceu aqui?'), incentivando a formação de frases.",
             "Reduzir gradualmente os prompts verbais, de forma que o aluno comece a formar as frases e responder de forma mais espontânea.",
             "Reforçar positivamente a formação de frases completas ('Que frase linda você fez!').",
@@ -1187,60 +1236,103 @@ const estruturaPEI = {
         },
       },
     },
+
     "Matemática Inicial": {
       "Contar até 10 com apoio visual": {
         NR: {
           objetivo:
             "Incentivar a atenção a estímulos quantitativos e a vocalização de números, com apoio físico e verbal constante.",
           estrategias: [
-            "Guiar a mão do aluno para tocar objetos enquanto o professor os conta, repetindo os números em voz alta (ex: 'um, dois, três').",
-            "Utilizar músicas ou vídeos de contagem com figuras, auxiliando o aluno a observar as imagens enquanto ouve os números.",
-            "Propor brincadeiras com blocos grandes, onde o professor empilha e conta, e o aluno observa e tenta vocalizar.",
+            "Guiar a mão do aluno para tocar **objetos encontrados no pátio** (ex: pedras, folhas, galhos) enquanto o professor os conta, repetindo os números em voz alta (ex: 'um, dois, três'), focando na **correspondência um a um**.",
+            "Utilizar **canções de roda ou músicas populares** que envolvam contagem com gestos simples, auxiliando o aluno a observar e ouvir os números enquanto o professor guia seu corpo.",
+            "Propor brincadeiras com **blocos de madeira ou tijolos vazados** (se disponíveis), onde o professor empilha e conta, e o aluno observa e o professor auxilia a vocalizar cada número, reforçando a **associação número-quantidade**.",
+            "Em um espaço seguro (ex: pátio de terra ou sala vazia), o professor auxilia o aluno a dar **1 salto por número** enquanto conta verbalmente, com apoio físico total, para sentir a sequência corporalmente.",
+            "Entregar **materiais recicláveis** (ex: tampinhas de garrafa, pedaços de papel, botões) na mão do aluno, uma por vez, contando cada um com apoio físico e verbal, para consolidar a quantidade percebida.",
+            "Ajudar o aluno a bater palmas por cada número, com apoio físico para o movimento, enquanto o professor conta em voz alta, focando no **ritmo da contagem**.",
+            "Em uma área com água (ex: balde ou bacia grande), o professor guia o aluno para tocar a água e contar 'um', depois tocar novamente contando 'dois', com apoio físico.",
+            "Usar um **painel sensorial feito com diferentes texturas** (ex: lixa, algodão, papelão). O professor guia a mão do aluno para tocar cada textura enquanto conta em voz alta e clara.",
+            "Brincar de 'quantas vezes bater?'. O professor guia a mão do aluno para bater suavemente em um objeto (ex: mesa, tambor de sucata) e conta cada batida, reforçando a contagem discreta.",
+            "Em uma barra baixa ou corrimão de escada, o professor ajuda o aluno a dar passos laterais, contando cada passo com apoio físico e verbal, desenvolvendo a **coordenação motora e numérica**.",
           ],
         },
         AF: {
           objetivo:
             "Promover a contagem de objetos até 10 com apoio físico pontual, visando a associação um a um e o reconhecimento de quantidades.",
           estrategias: [
-            "Apoiar fisicamente a mão do aluno para que toque cada objeto enquanto conta até 5, garantindo a correspondência um a um.",
-            "Utilizar materiais de contagem com encaixes, auxiliando o aluno a encaixar e contar até 10 com apoio.",
-            "Realizar jogos de 'pegar e contar' com objetos grandes, onde o professor guia as mãos do aluno para a contagem com apoio.",
+            "Contar juntos passos enquanto andam pelo pátio (o professor apoia levemente o cotovelo do aluno), incentivando a correspondência **um a um** até 10.",
+            "Utilizar **bambolês ou círculos desenhados com giz** no chão. O aluno pula em cada um e o professor conta com apoio físico leve no impulso.",
+            "Jogar 'boliche' com **garrafas PET vazias** e uma bola de plástico. O aluno arremessa a bola e conta as garrafas que caíram, com apoio físico para apontar.",
+            "Pendurar **argolas feitas de corda ou papelão** em um galho de árvore ou suporte. O aluno pendura uma por vez e conta, com apoio físico leve para o encaixe.",
+            "Realizar exercícios de agachamento: o aluno agacha e levanta, contando as repetições, com apoio físico leve na cintura.",
+            "Passar uma **bola de meia ou de papel amassado** de mão em mão. O professor e o aluno contam as passadas, com apoio físico para a transferência da bola.",
+            "Em uma escada baixa (ex: 2 ou 3 degraus), o aluno sobe e desce, contando os degraus, com apoio físico no corrimão ou na mão do professor.",
+            "Distribuir **materiais recicláveis** (ex: rolos de papel higiênico, caixas pequenas) em um tapete. O aluno deve pegar e contar até 10, com o professor dando um toque no ombro a cada objeto para lembrá-lo de contar.",
+            "Usar um martelo de brinquedo para 'martelar' **pinos feitos de rolo de papelão** em um tabuleiro. O aluno martela e conta, com apoio físico no martelo.",
+            "Fazer uma 'linha de trem' com **tapetes velhos ou pedaços de papelão**. O aluno anda sobre os tapetes e os conta, com o professor oferecendo a mão para equilíbrio.",
           ],
         },
         AG: {
           objetivo:
             "Estimular a contagem de objetos até 10 através de comandos gestuais, incentivando a imitação e a interpretação visual da quantidade.",
           estrategias: [
-            "Demonstrar o movimento de contar com os dedos, incentivando o aluno a imitar enquanto conta verbalmente.",
-            "Indicar gestualmente a quantidade de objetos para que o aluno conte até 10, com o professor acompanhando verbalmente.",
-            "Propor jogos de 'contar e apontar' onde o professor aponta para a quantidade e o aluno nomeia o número correspondente.",
+            "Professor conta nos dedos e o aluno deve **imitar a quantidade** com seus próprios dedos, verbalizando o número.",
+            "Professor indica gestualmente a quantidade de objetos em um grupo (ex: aponta para 3 bolas, depois faz um gesto de 'conta'), e o aluno conta até 10, com o professor acompanhando verbalmente.",
+            "Propor jogos de caça ao tesouro onde o professor gesticula a quantidade de passos que o aluno deve dar para encontrar a próxima pista (ex: 'dê 5 passos e vire', com gesto).",
+            "Professor faz uma série de batidas no chão ou na mesa e gesticula para o aluno contar as batidas em voz alta, incentivando a **audição e a contagem**.",
+            "Utilizar um **dado gigante feito de caixa de papelão**. O professor joga e gesticula para o aluno contar os pontos na face do dado e verbalizar o número.",
+            "Professor esconde um número de objetos (ex: pedras) em suas mãos e gesticula (ex: mostra 3 dedos) para o aluno adivinhar a quantidade, contando em voz alta, trabalhando a **estimativa e contagem**.",
+            "Professor bate palmas um número de vezes e gesticula para o aluno replicar e contar o número de palmas, desenvolvendo **ritmo e contagem**.",
+            "Em um circuito de movimento no pátio, o professor gesticula quantas vezes o aluno deve realizar uma ação em um determinado ponto (ex: pular 3 vezes em um pneu deitado).",
+            "Professor demonstra com o corpo um número de repetições de um exercício (ex: 3 agachamentos) e o aluno imita e conta.",
+            "Em um jogo de 'Acerte o alvo' com **bolas de papel amassado e baldes**, o professor gesticula a quantidade de arremessos que o aluno pode fazer, e o aluno conta seus próprios arremessos.",
           ],
         },
         AV: {
           objetivo:
             "Aprimorar a contagem de objetos até 10, seguindo instruções verbais para precisão e fluidez na sequência numérica.",
           estrategias: [
-            "Dar instruções verbais claras para a contagem ('conte até 5', 'agora continue de 6 em diante').",
-            "Propor desafios verbais como 'quantos lápis tem aqui?', incentivando a contagem autônoma até 10.",
-            "Estimular a contagem em voz alta durante atividades do dia a dia (ex: contar brinquedos, dedos, etc.).",
+            "Dar instruções verbais claras como 'conte todos os aros vermelhos', 'agora continue contando os azuis, começando do seis', para aprimorar a **contagem em sequência**.",
+            "Propor desafios verbais como 'quantos lápis tem aqui?', incentivando a contagem autônoma até 10, com clareza na verbalização dos números.",
+            "Estimular a contagem em voz alta durante atividades do dia a dia (ex: contar brinquedos na caixa, dedos das mãos, etc.), generalizando a habilidade.",
+            "Utilizar **músicas de contagem com lacunas**. O professor para e o aluno deve verbalizar o próximo número na sequência, demonstrando **fluidez numérica**.",
+            "Fazer jogos de 'contagem regressiva' verbal (ex: 'Dez, nove, oito...'), onde o aluno completa a sequência ao comando 'continue!'.",
+            "Pedir ao aluno para contar objetos em um ambiente familiar (ex: 'quantas cadeiras tem na sala?'), focando na **atenção auditiva e na contagem precisa**.",
+            "Integrar a contagem em instruções de atividades práticas (ex: 'coloque duas colheres de areia na bacia', 'três sementes no vaso'), verbalizando os números enquanto executa.",
+            "Propor problemas verbais simples que exijam contagem (ex: 'Se você tem 3 pedrinhas e eu te dou mais 2, quantas pedrinhas você tem agora?'), incentivando o **raciocínio lógico-quantitativo**.",
+            "Em jogos de tabuleiro simples (feitos com papelão e fichas), pedir ao aluno para contar o número de casas a serem avançadas ou o número de peças de cada cor, baseando-se em comandos verbais.",
+            "Durante a leitura de livros infantis ou histórias com figuras, pedir ao aluno para contar os personagens ou objetos que aparecem nas ilustrações, estimulando a **interdisciplinaridade**.",
           ],
         },
         AVi: {
           objetivo:
             "Generalizar a contagem até 10 em diferentes contextos, utilizando pistas visuais para reforço e auto-organização.",
           estrategias: [
-            "Utilizar cartões com números e a quantidade correspondente de figuras para associação visual.",
-            "Disponibilizar um varal numérico com os números de 1 a 10, para que o aluno siga a sequência visualmente.",
-            "Usar aplicativos ou jogos digitais de contagem que ofereçam feedback visual imediato para cada número contado.",
+            "Utilizar **cartões com números (1 a 10)** e a quantidade correspondente de figuras (pontos, desenhos simples) para associação visual e correspondência um a um.",
+            "Disponibilizar um **varal numérico** feito com barbante e cartões, com os números de 1 a 10, para que o aluno siga a sequência visualmente e aponte para cada número enquanto conta.",
+            "Usar **aplicativos simples ou jogos digitais de contagem** em celulares ou computadores disponíveis (se houver algum) que ofereçam feedback visual imediato para cada número contado e o progresso na sequência.",
+            "Criar um 'caminho numérico' no chão com **pegadas desenhadas com giz ou marcadas com pedaços de papelão numerados** de 1 a 10. O aluno segue as pegadas, pisando e contando cada número visualmente.",
+            "Em atividades de movimento, usar **cones de garrafa PET ou arcos feitos de galhos finos** numerados. O aluno deve se deslocar até o número solicitado e contar os itens dentro dele.",
+            "Utilizar **quadros de tarefas com 'símbolos de quantidade'** (ex: 3 círculos para 3 tarefas) para que o aluno visualize as etapas e as conte.",
+            "Disponibilizar **quebra-cabeças numéricos feitos de papelão** onde cada peça tem um número e a quantidade correspondente de imagens, exigindo pareamento visual.",
+            "Criar um **'calendário de contagem' em papel** onde o aluno marca visualmente os dias que passam, contando-os diariamente.",
+            "Em atividades criativas, pedir para o aluno criar um desenho com uma quantidade específica de elementos (ex: 'desenhe 5 flores'), usando um número visual como referência em seu próprio desenho.",
+            "Utilizar **vídeos curtos de contagem** (em celular ou TV, se disponível) que mostrem objetos reais sendo contados e o número correspondente aparecendo na tela, reforçando a associação visual-auditiva.",
           ],
         },
         I: {
           objetivo:
             "Demonstrar autonomia na contagem até 10, aplicando esta habilidade em situações cotidianas e em diferentes materiais.",
           estrategias: [
-            "Propor atividades de contagem de objetos em diferentes contextos (ex: contar alunos na sala, frutas na fruteira).",
-            "Incentivar o aluno a contar elementos em livros infantis ou jogos de tabuleiro.",
-            "Observar e registrar a capacidade do aluno de contar de forma autônoma e precisa até 10 em diversas situações.",
+            "Propor atividades de contagem de objetos em diferentes contextos do ambiente (ex: contar quantos colegas estão presentes, quantas cadeiras, quantos livros na estante da sala).",
+            "Incentivar o aluno a contar elementos em materiais diversos, como livros infantis, histórias em quadrinhos ou jogos de tabuleiro simples (ex: contar casas no tabuleiro, peças de um jogo).",
+            "Observar e registrar a capacidade do aluno de contar de forma autônoma e precisa até 10 em diversas situações do dia a dia, sem a necessidade de prompts.",
+            "Pedir ao aluno para ajudar a organizar materiais contando-os (ex: 'Por favor, conte 8 lápis para o grupo', 'Pegue 5 borrachas para distribuir').",
+            "Em jogos e atividades de movimento, pedir para o aluno contar os pontos da sua equipe ou o número de vezes que uma ação foi realizada (ex: 'quantos pulos você deu na corda?').",
+            "Durante atividades práticas ou culinária simples (ex: fazer um sanduíche), solicitar que o aluno conte a quantidade de ingredientes ou materiais necessários (ex: 'Preciso de 6 folhas de alface', 'Coloque 3 fatias de pão').",
+            "Encorajar o aluno a contar os degraus de uma escada ou os passos até um determinado local no pátio, promovendo a **consciência espacial e numérica**.",
+            "Realizar 'contagem de objetos escondidos': o professor esconde um número de objetos simples (ex: tampinhas) e o aluno precisa encontrá-los e contá-los.",
+            "Incentivar o aluno a contar dinheiro (moedas de baixo valor) até um valor específico (ex: 'conte 10 moedas de 1 real'), trabalhando a **quantificação financeira básica**.",
+            "Propor que o aluno crie seus próprios problemas de contagem para os colegas resolverem, estimulando a **criatividade e o raciocínio lógico**.",
           ],
         },
       },
@@ -1249,58 +1341,101 @@ const estruturaPEI = {
           objetivo:
             "Incentivar a atenção a atributos básicos de objetos (cor, forma, tamanho) e a manipulação exploratória, com apoio físico intensivo.",
           estrategias: [
-            "Guiar a mão do aluno para tocar objetos de mesma cor ou forma, nomeando o atributo (ex: 'vermelho', 'bola').",
-            "Oferecer apoio físico para que o aluno manipule blocos grandes, agrupando-os aleatoriamente por característica.",
-            "Utilizar caixas com separadores e auxiliar o aluno a colocar objetos de características distintas em cada separador com apoio.",
+            "Guiar a mão do aluno para tocar **objetos de mesma cor ou forma** (ex: duas bolas vermelhas, dois cubos), nomeando o atributo (ex: 'vermelho', 'bola'), para estimular a **percepção sensorial**.",
+            "Oferecer apoio físico para que o aluno manipule **blocos grandes ou caixas vazias**, agrupando-os aleatoriamente por característica, observando suas reações aos atributos.",
+            "Utilizar **caixas de papelão com separadores** e auxiliar o aluno a colocar objetos de características distintas em cada separador com apoio físico, reforçando a **categorização inicial**.",
+            "Em um ambiente de atividades com **bolinhas de papel amassado coloridas**, o professor guia a mão do aluno para tocar e sentir as bolinhas de uma cor específica, nomeando a cor.",
+            "Disponibilizar **materiais de diferentes texturas** (ex: pedaços de tecido, lixa, algodão, folhas de árvore) e tamanhos (ex: pequenas pedras, galhos grandes) e guiar a mão do aluno para explorá-los, nomeando as características.",
+            "Brincar de 'onde está o igual?'. O professor guia a mão do aluno para encontrar um objeto idêntico (cor, forma) entre dois diferentes (ex: encontrar a tampinha igual a esta).",
+            "Utilizar **fantoches com diferentes cores ou formas desenhadas**. O professor move o fantoche e guia a mão do aluno para tocar o fantoche com a característica nomeada.",
+            "Em um tapete de atividades ou no chão, o professor posiciona a mão do aluno sobre um objeto (ex: um quadrado de EVA) e o auxilia a traçar a forma com o dedo.",
+            "Fazer exercícios de empilhar objetos de tamanhos variados (ex: caixas de diferentes tamanhos), com apoio físico total, para sentir a diferença de tamanho e peso.",
+            "Utilizar **brinquedos de encaixe simples** (ex: peças de quebra-cabeça de 2 peças) e o professor guia a mão do aluno para encaixar peças da mesma cor.",
           ],
         },
         AF: {
           objetivo:
             "Promover a ordenação de objetos por cor, forma ou tamanho com apoio físico pontual, visando o reconhecimento e a categorização.",
           estrategias: [
-            "Conduzir a mão do aluno para separar objetos por cor em cestos, auxiliando a seleção e o posicionamento.",
-            "Oferecer apoio físico para que o aluno agrupe formas geométricas iguais (círculo com círculo) em caixas específicas.",
-            "Utilizar materiais de encaixe com diferentes tamanhos, auxiliando o aluno a encaixar do maior para o menor com apoio.",
+            "Conduzir a mão do aluno para separar objetos por cor (ex: bolas de meia coloridas, blocos de madeira) em **cestos ou potes plásticos** correspondentes, auxiliando na seleção e no posicionamento com apoio físico leve.",
+            "Oferecer apoio físico para que o aluno agrupe formas geométricas iguais (círculo com círculo, quadrado com quadrado) usando **formas recortadas de papelão** em caixas específicas, desenvolvendo a **discriminação visual**.",
+            "Utilizar materiais de encaixe com diferentes tamanhos (ex: argolas feitas de papelão em pinos de rolo de papel), auxiliando o aluno a encaixar do maior para o menor com apoio físico pontual, para sentir a progressão.",
+            "Em um circuito de cores no chão (com **giz ou fita crepe colorida**), o professor guia o aluno para pular ou andar apenas nos espaços da cor solicitada (ex: 'pule nos azuis!'), com apoio físico para direcionar.",
+            "Classificar **brinquedos recicláveis** (ex: carros feitos de caixa, bonecas de pano) por tipo (ex: carros com carros, bonecas com bonecas), com o professor dando apoio físico leve para direcionar a mão do aluno para a categoria correta.",
+            "Ordenar **blocos ou caixas de papelão** por tamanho (do pequeno ao grande) em uma fila, com o professor auxiliando o posicionamento de cada bloco com apoio físico leve.",
+            "Em um **painel sensorial feito com materiais variados**, separar objetos por textura (ex: áspero, macio) em dois lados, com apoio físico para tocar e classificar.",
+            "Utilizar **materiais de produção de arte** (ex: pedaços de papel coloridos, gizes, tintas naturais) e pedir para o aluno separá-los por cor, com o professor auxiliando a pegar a cor correta e colocá-la no lugar certo.",
+            "Em um **tabuleiro de pinos feito de papelão**, o aluno deve colocar pinos grandes em furos grandes e pinos pequenos em furos pequenos, com apoio físico leve para o encaixe correto.",
+            "Realizar um jogo de pescaria com **peixes de papelão de diferentes formas e tamanhos** e um ímã. O aluno pesca e o professor guia a mão para classificá-los em recipientes por forma ou tamanho.",
           ],
         },
         AG: {
           objetivo:
             "Estimular a ordenação de objetos por cor, forma ou tamanho através de comandos gestuais, incentivando a imitação e a interpretação visual.",
           estrategias: [
-            "Demonstrar o ato de separar objetos por cor em diferentes montes e usar gestos para que o aluno imite.",
-            "Indicar gestualmente qual é o 'maior' ou 'menor' objeto em um grupo para que o aluno os ordene.",
-            "Propor jogos de 'classificação' onde o professor gesticula a característica (ex: 'triângulo', 'azul') e o aluno separa.",
+            "Demonstrar o ato de separar objetos por cor em diferentes montes e usar gestos (ex: apontar para o monte vermelho, depois para o objeto vermelho) para que o aluno imite a ação.",
+            "Indicar gestualmente qual é o 'maior' ou 'menor' objeto em um grupo (ex: fazer um gesto de 'grande' com as mãos) para que o aluno os ordene, sem verbalização do professor.",
+            "Propor jogos de 'classificação' onde o professor gesticula a característica (ex: 'triângulo', 'azul') e o aluno separa os objetos correspondentes, aprimorando a **compreensão não verbal**.",
+            "Em um jogo de boliche com **garrafas PET**, o professor gesticula para o aluno arremessar a bola apenas nos pinos de uma determinada forma (ex: pinos quadrados desenhados nas garrafas).",
+            "Professor levanta uma **cor ou forma (ex: um quadrado azul de papel)** e gesticula para o aluno encontrar e trazer objetos com a mesma característica.",
+            "Utilizar a técnica de 'modelagem gestual indireta': o professor classifica alguns objetos com gestos claros e o aluno continua a sequência de classificação de forma independente.",
+            "Em uma atividade de colagem com **pedaços de papel**, o professor gesticula a área onde as peças de determinada forma (ex: círculos) devem ser coladas.",
+            "Professor gesticula uma sequência de tamanhos (ex: pequeno, médio, grande com as mãos) e o aluno deve ordenar objetos de acordo com essa sequência gestual.",
+            "Em uma brincadeira de 'loja' com **moedas de papelão coloridas**, o professor gesticula a cor do 'dinheiro' que o aluno deve usar para 'comprar' um objeto específico.",
+            "Usar um **painel com divisórias feitas de papelão**. O professor gesticula para qual divisória o aluno deve levar os objetos de uma característica específica (ex: 'para lá, os redondos').",
           ],
         },
         AV: {
           objetivo:
             "Aprimorar a ordenação de objetos por cor, forma ou tamanho, seguindo instruções verbais para precisão e fluidez na categorização.",
           estrategias: [
-            "Dar instruções verbais claras como 'coloque os azuis aqui', 'separe os redondos', 'organize do pequeno ao grande'.",
-            "Propor desafios verbais como 'consegue encontrar todos os objetos amarelos?', incentivando a discriminação de atributos.",
-            "Estimular o aluno a descrever verbalmente os atributos dos objetos que está ordenando para fixar os conceitos.",
+            "Dar instruções verbais claras como 'coloque os azuis aqui', 'separe os redondos', 'organize do pequeno ao grande', e esperar a execução sem mais prompts.",
+            "Propor desafios verbais como 'consegue encontrar todos os objetos amarelos escondidos na sala?', incentivando a discriminação de atributos e a **busca ativa**.",
+            "Estimular o aluno a descrever verbalmente os atributos dos objetos que está ordenando (ex: 'Este é um quadrado vermelho') para fixar os conceitos e a linguagem.",
+            "Utilizar **jogos de tabuleiro simples (feitos com papel e caneta)** onde as casas têm cores ou formas, e o aluno precisa mover sua peça para a casa correta seguindo a instrução verbal (ex: 'vá para a casa verde').",
+            "Classificar elementos por característica (ex: 'quais itens flutuam?'), cores de itens, ou tipos de materiais (ex: 'quais são de metal?'), usando instruções verbais.",
+            "Fazer 'ditado de classificação': o professor dita um atributo (ex: 'agora separe os grandes') e o aluno executa a ordenação, sem visual ou gestual.",
+            "Propor um 'desafio de tempo': 'Você consegue separar todos os triângulos em um minuto?', incentivando a fluidez e a rapidez na categorização.",
+            "Ordenar **cartões com palavras** por número de sílabas ou por categoria (ex: 'nomes de animais', 'objetos da casa').",
+            "Realizar atividades de 'organização do ambiente' onde o aluno verbaliza o critério de organização (ex: 'vou guardar os materiais por tamanho') e o executa.",
+            "Incentivar o aluno a criar suas próprias regras de classificação verbalmente para um conjunto de objetos, e depois executá-las.",
           ],
         },
         AVi: {
           objetivo:
             "Generalizar a ordenação de objetos por cor, forma ou tamanho em diferentes contextos, utilizando pistas visuais para auto-organização.",
           estrategias: [
-            "Utilizar cestos ou caixas coloridas para classificar objetos por cor.",
-            "Disponibilizar cartões com as formas geométricas (círculo, quadrado) para que o aluno classifique objetos por forma.",
-            "Criar linhas graduadas ou desenhos de silhuetas de tamanhos diferentes no chão para o aluno ordenar objetos.",
+            "Utilizar **cestos ou caixas de papelão coloridas** com etiquetas visuais (círculo vermelho, quadrado azul) para classificar objetos por cor e forma.",
+            "Disponibilizar **cartões com as formas geométricas** (círculo, quadrado, triângulo, retângulo) para que o aluno classifique objetos por forma, pareando a imagem.",
+            "Criar **linhas graduadas ou desenhos de silhuetas de tamanhos diferentes** no chão (ex: pequena, média, grande com giz) para o aluno ordenar objetos visualmente.",
+            "Em atividades práticas (ex: ajudar a servir o lanche), usar **bowls com etiquetas visuais** (ex: 'salgados', 'frutas') para classificar e organizar itens.",
+            "Desenhar **gráficos ou tabelas simples com colunas** para cada categoria (cor, forma, tamanho) e o aluno cola ou desenha os objetos nas colunas corretas.",
+            "Utilizar **quadros de tarefas com 'etiquetas de cor'** (ex: um post-it vermelho para 'urgente') para que o aluno categorize as tarefas por prioridade.",
+            "Em atividades criativas, organizar **lápis de cor ou gizes de cera por tonalidade** em caixas com gradientes visuais de cor.",
+            "Disponibilizar **jogos de 'pareamento' visual** (feitos com cartas de baralho ou figuras recortadas) onde o aluno deve parear objetos com seus atributos correspondentes (ex: uma maçã com o cartão 'vermelho').",
+            "Criar um **'mapa de organização' do ambiente** com fotos dos locais onde cada tipo de material deve ser guardado (ex: blocos na caixa de blocos).",
+            "Usar **'filtros visuais'** (ex: um papel com um buraco em forma de círculo para identificar apenas objetos redondos), para ajudar na discriminação visual.",
           ],
         },
         I: {
           objetivo:
             "Demonstrar autonomia na ordenação de objetos por cor, forma ou tamanho, aplicando esta habilidade em situações cotidianas e em novos materiais.",
           estrategias: [
-            "Propor atividades de organização de materiais em sala (ex: lápis por cor, blocos por tamanho).",
-            "Incentivar o aluno a classificar objetos em jogos de tabuleiro ou brincadeiras com materiais diversos.",
-            "Observar e registrar a capacidade do aluno de ordenar e categorizar objetos de forma autônoma e funcional em diferentes situações.",
+            "Propor atividades de organização de materiais no ambiente (ex: lápis por cor, blocos por tamanho, itens por tipo de material) sem a necessidade de prompts.",
+            "Incentivar o aluno a classificar objetos em **jogos de tabuleiro simples** (ex: organizar cartas por naipe ou número) ou brincadeiras com materiais diversos, de forma espontânea.",
+            "Observar e registrar a capacidade do aluno de ordenar e categorizar objetos de forma autônoma e funcional em diferentes situações, demonstrando generalização da habilidade.",
+            "Em atividades práticas, como arrumar uma estante de livros ou organizar uma gaveta, pedir ao aluno para criar seus próprios critérios de ordenação e executá-los.",
+            "Durante **atividades exploratórias na natureza** (ex: no pátio), solicitar que o aluno classifique coleções (ex: folhas, pedras) por múltiplos atributos (tamanho, cor, textura) de forma independente.",
+            "Em jogos e atividades de movimento, pedir para o aluno organizar os materiais por tamanho ou cor antes de iniciar (ex: 'os cones feitos de garrafa PET grandes para lá, os pequenos para cá').",
+            "Estimular a criação de **gráficos ou infográficos simples (em papel e caneta)** para representar dados coletados, classificando-os por categorias (ex: 'quantos colegas gostam de azul, quantos de vermelho').",
+            "Propor que o aluno ajude a organizar um evento (ex: uma feira de troca de livros), classificando e separando materiais por tipo ou uso (ex: 'copos para bebida', 'pratos para comida').",
+            "Em atividades criativas, incentivar a criação de obras baseadas em padrões de cores, formas ou tamanhos, onde o aluno seleciona e organiza os elementos de forma autônoma.",
+            "Discutir com o aluno a importância da organização e classificação em diferentes áreas da vida (ex: em casa, no trabalho, no supermercado), promovendo a **aplicação funcional da habilidade**.",
           ],
         },
       },
     },
+
     "Pré-leitura e Reconhecimento": {
       "Reconhecer números e letras em contexto (ex: nome, idade)": {
         NR: {
@@ -1627,7 +1762,7 @@ const estruturaPEI = {
             "Utilizar cartões com imagens numeradas (1, 2, 3) para cada passo da atividade e o professor guia a mão do aluno para seguir a sequência.",
             "Oferecer um 'plano' físico (ex: um tabuleiro com espaços para cada material) e o professor auxilia o aluno a posicionar os materiais na ordem de uso.",
             "Reduzir gradualmente o apoio físico à medida que o aluno demonstra compreender e executar os passos em sequência.",
-            "Modelar verbalmente a sequência e o professor auxilia o aluno a executar cada parte com apoio (ex: 'Primeiro, *leia*; depois, *escreva*').",
+            "Modelar verbalmente a sequência e o professor auxilia o aluno a executar cada parte com apoio (ex: 'Primeiro, leia; depois, escreva').",
             "Fazer atividades de 'montar a história' com 2-3 figuras em sequência (ex: menino comendo, depois dormindo), e o professor auxilia o aluno a organizar e 'contar' a história.",
             "Propor jogos de quebra-cabeça sequenciais (ex: cenas de uma história em 3 partes) e o professor guia o aluno a montar na ordem correta com apoio.",
             "Criar um 'caminho' de fita colorida no chão com 2-3 paradas, e o professor guia o aluno fisicamente para seguir a sequência de ações em cada parada.",
@@ -1724,7 +1859,7 @@ const estruturaPEI = {
             "Realizar atividades de 'ajudar a arrumar' com o aluno, guiando-o fisicamente para seguir instruções como 'pegue o livro da mesa e coloque na estante'.",
             "Utilizar um 'mapa de ação' com duas figuras (ex: 'sentar' e 'aplaudir') e o professor auxilia fisicamente o aluno a seguir cada figura em ordem.",
             "Reduzir gradualmente o apoio físico à medida que o aluno demonstra compreender e executar os dois passos autonomamente.",
-            "Modelar a sequência verbalmente e o professor auxilia o aluno a executar cada parte com apoio (ex: 'Primeiro, *pegue* a bola; depois, *jogue*!').",
+            "Modelar a sequência verbalmente e o professor auxilia o aluno a executar cada parte com apoio (ex: 'Primeiro, pegue a bola; depois, jogue!').",
             "Fazer exercícios de 'repetição da instrução' com o professor auxiliando o aluno a repetir os dois passos verbalmente antes de fazer.",
             "Propor atividades de 'vestir' ou 'despir' itens de roupa com dois passos (ex: 'coloque a meia e o sapato'), com o professor auxiliando cada peça.",
             "Dividir as instruções em 'blocos' com apoio (ex: 'Passo 1: pega a bola', com apoio. 'Passo 2: joga a bola', com apoio).",
@@ -4879,7 +5014,7 @@ const estruturaPEI = {
             "Fazer perguntas simples (ex: 'O que é isso?', 'Quem fez a tarefa?', 'Onde está o livro?') e, se necessário, dar uma dica verbal para a resposta (ex: 'Começa com L...', 'É um animal que late...').",
             "Encorajar o aluno a expandir a resposta, pedindo 'Fale mais um pouco', 'Por que você acha isso?', 'Conte-me mais sobre...', incentivando a elaboração verbal.",
             "Utilizar perguntas abertas que exijam mais do que 'sim/não', como 'Onde está o carro azul?', 'O que você está fazendo agora?', 'Qual sua cor favorita e por quê?', para estimular o raciocínio e a descrição.",
-            "Modelar a resposta completa após a tentativa do aluno (ex: Aluno: 'Cachorro'. Professor: 'Sim, é um cachorro que *está correndo*!').",
+            "Modelar a resposta completa após a tentativa do aluno (ex: Aluno: 'Cachorro'. Professor: 'Sim, é um cachorro que está correndo!').",
             "Reforçar verbalmente a clareza e a completude da resposta ('Que resposta clara!', 'Gostei que você me contou tudo!').",
             "Fazer perguntas que estimulem a opinião ou preferência do aluno (ex: 'O que você prefere, maçã ou banana?', 'Qual brinquedo é mais legal?'), incentivando a expressão pessoal.",
             "Propor jogos de 'pergunta e resposta' com regras simples, onde o aluno precisa formular uma resposta verbalmente para avançar.",
@@ -6667,10 +6802,10 @@ const estruturaPEI = {
             "Dar dicas verbais para que o aluno utilize sinônimos ou antônimos em suas frases (ex: 'Em vez de 'grande', você pode dizer que é... grandioso?').",
             "Fazer perguntas que exijam o uso de vocabulário específico ou técnico relacionado a um tópico de interesse (ex: 'Qual é o processo de fotossíntese?', 'Descreva o habitat natural do leão').",
             "Incentivar a descrição verbal de objetos ou situações usando termos mais elaborados, através de prompts como 'Use uma palavra mais forte', 'Pense em um termo mais preciso'.",
-            "Modelar o uso de vocabulário avançado em suas próprias falas e esperar que o aluno o incorpore (ex: 'Que ideia *brilhante*!').",
+            "Modelar o uso de vocabulário avançado em suas próprias falas e esperar que o aluno o incorpore (ex: 'Que ideia brilhante!').",
             "Reforçar verbalmente o uso espontâneo de vocabulário avançado ('Que palavra sofisticada!'), incentivando a fluidez e a expressividade.",
             "Propor jogos de 'adivinha a palavra' onde o aluno descreve um conceito usando vocabulário avançado e o professor adivinha.",
-            "Estimular o aluno a corrigir a si mesmo ou a outros usando vocabulário mais preciso (ex: 'Não é apenas 'bonito', é *deslumbrante*!').",
+            "Estimular o aluno a corrigir a si mesmo ou a outros usando vocabulário mais preciso (ex: 'Não é apenas 'bonito', é deslumbrante!').",
             "Contar histórias ou ler textos que contenham vocabulário avançado e discutir verbalmente o significado e o uso das palavras.",
             "Incentivar o aluno a dar instruções verbais para o professor sobre como usar uma palavra nova em uma frase.",
             "Realizar 'debates' ou 'apresentações' onde o uso de vocabulário avançado é valorizado e incentivado.",
@@ -6963,9 +7098,9 @@ const estruturaPEI = {
           objetivo:
             "Aprimorar a argumentação de forma estruturada, seguindo instruções verbais para organizar e apresentar ideias com justificativa.",
           estrategias: [
-            "Dar dicas verbais para que o aluno use conectivos como 'porque', 'então', 'além disso', 'por exemplo', 'mas' ao argumentar, para estruturar o discurso ('Eu gosto de sorvete *porque* é gelado, *além disso* é doce!').",
+            "Dar dicas verbais para que o aluno use conectivos como 'porque', 'então', 'além disso', 'por exemplo', 'mas' ao argumentar, para estruturar o discurso ('Eu gosto de sorvete porque é gelado, além disso é doce!').",
             "Fazer perguntas que exijam uma justificativa (ex: 'Por que você acha isso?', 'Me convença disso, qual sua razão?', 'Explique seu ponto de vista').",
-            "Utilizar cenários de 'problema e solução' e pedir para o aluno verbalizar sua proposta de forma estruturada ('O problema é que o brinquedo está quebrado. Então, a solução é colar, *porque* assim ele volta a funcionar.').",
+            "Utilizar cenários de 'problema e solução' e pedir para o aluno verbalizar sua proposta de forma estruturada ('O problema é que o brinquedo está quebrado. Então, a solução é colar, porque assim ele volta a funcionar.').",
             "Reforçar verbalmente a argumentação estruturada ('Que bom que você me disse o porquê da sua ideia! Sua justificativa foi muito clara!'), elogiando a lógica e a clareza.",
             "Fazer perguntas abertas que estimulem a elaboração (ex: 'O que mais você pode me dizer sobre isso?', 'Quais são os argumentos a favor?').",
             "Propor jogos de 'argumento e contra-argumento' verbal em temas simples e divertidos (ex: 'É melhor ter um cachorro ou um gato? Justifique!').",
