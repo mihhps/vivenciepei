@@ -1,0 +1,220 @@
+/* --- Estilos da página de Visualização da Avaliação --- */
+
+/* Estilos gerais do card e do container para combinar com o seu estilo */
+.pagina-container {
+  max-width: 900px;
+  width: 100%;
+  margin: 20px auto;
+  padding: 30px;
+  background-color: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  box-sizing: border-box;
+}
+
+/* --- Cabeçalho e Título --- */
+.avaliacao-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 1rem;
+}
+
+.avaliacao-titulo {
+  color: #1d3557;
+  font-size: 1.5rem;
+  text-align: center;
+  margin: 0;
+}
+
+/* --- Seção de Informações do Aluno e Data --- */
+.info-aluno-container {
+  margin-bottom: 25px;
+  padding: 15px;
+  background-color: #f7f9fc;
+  border-radius: 8px;
+}
+
+.info-aluno-container p {
+  font-size: 1rem;
+  margin: 8px 0;
+  color: #333;
+}
+
+.info-aluno-container strong {
+  color: #1d3557;
+}
+
+/* --- Seções de Áreas e Habilidades --- */
+.area-perguntas-wrapper {
+  margin-top: 25px;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 20px;
+  background-color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.area-titulo {
+  font-size: 1.25rem;
+  color: #1d3557;
+  font-weight: bold;
+  margin-bottom: 15px;
+  padding-bottom: 5px;
+  border-bottom: 1px dashed #e0e0e0;
+}
+
+.linha-habilidade {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.linha-habilidade:last-child {
+  border-bottom: none;
+}
+
+.texto-habilidade {
+  flex-grow: 1;
+  font-size: 1rem;
+  color: #495057;
+}
+
+/* --- Estilos dos Níveis (Bolinhas) --- */
+.niveis-habilidade {
+  display: flex;
+  gap: 8px;
+}
+
+.circulo-nivel {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: #fff;
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.circulo-nivel.ativo {
+  transform: scale(1.15);
+  box-shadow: 0 0 0 3px #457b9d;
+  border-color: #ffffff; /* Borda branca para destacar ainda mais */
+}
+
+/* Cores das bolinhas com base nas suas definições */
+.circulo-nivel.NR {
+  background-color: #e63946;
+  color: white;
+}
+.circulo-nivel.AF {
+  background-color: #f1a208;
+  color: black;
+}
+.circulo-nivel.AG {
+  background-color: #e9c46a;
+  color: black;
+}
+.circulo-nivel.AV {
+  background-color: #2a9d8f;
+  color: white;
+}
+.circulo-nivel.AVi {
+  background-color: #8ecae6;
+  color: black;
+}
+.circulo-nivel.I {
+  background-color: #4caf50;
+  color: white;
+}
+.circulo-nivel.NA {
+  background-color: #adb5bd;
+  color: black;
+}
+
+/* --- Observações --- */
+.observacoes-area {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #f7f9fc;
+  border-left: 4px solid #457b9d;
+  border-radius: 0 8px 8px 0;
+}
+
+.observacoes-area label {
+  font-weight: bold;
+  color: #1d3557;
+  margin-bottom: 5px;
+  display: block;
+}
+
+.observacoes-area p {
+  margin: 0;
+  font-style: italic;
+  color: #555;
+  line-height: 1.4;
+}
+
+/* --- Estilos de Carregamento e Erro --- */
+.loading,
+.mensagem-erro {
+  text-align: center;
+  margin-top: 50px;
+  font-size: 1.2rem;
+  color: #6c757d;
+}
+
+.mensagem-erro {
+  color: #e63946;
+  font-weight: bold;
+}
+/* --- Legenda dos Níveis --- */
+.legenda-niveis-container {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.legenda-niveis-container h4 {
+  color: #1d3557;
+  font-size: 1.2rem;
+  margin-bottom: 15px;
+}
+
+.legenda-niveis {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px; /* Espaçamento entre cada item da legenda */
+}
+
+.legenda-item {
+  /* Agora a bolinha e o texto ficarão lado a lado */
+  display: flex;
+  align-items: center; /* Alinha verticalmente no centro */
+  gap: 10px; /* Espaço entre a bolinha e o texto */
+}
+
+.legenda-circulo {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: bold;
+}
+
+.legenda-descricao {
+  font-size: 0.9rem;
+  color: #555;
+  white-space: nowrap; /* Impede que o texto quebre para a próxima linha */
+}

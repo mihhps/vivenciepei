@@ -4,7 +4,10 @@ import { doc, getDoc, Timestamp } from "firebase/firestore";
 import { db } from "../firebase";
 import BotaoVoltar from "../components/BotaoVoltar";
 
-// Configuração de estilos e níveis (mantida, mas as cores serão aplicadas via CSS para as bolinhas)
+// Verifique se o caminho para o CSS está correto
+import "../styles/VerAvaliacao.css";
+
+// Configuração de estilos e níveis
 const NIVEL_CONFIG = {
   NR: {
     cor: "#e63946",
@@ -39,7 +42,6 @@ function VerAvaliacao() {
       }
       setLoading(true);
       try {
-        // A coleção correta deve ser 'avaliacoesIniciais'
         const docRef = doc(db, "avaliacoesIniciais", id);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
@@ -82,7 +84,6 @@ function VerAvaliacao() {
           <BotaoVoltar destino="/ver-avaliacoes" />
         </div>
         <div className="info-aluno-container">
-          {/* CORREÇÃO AQUI: Acessa avaliacao.aluno.nome se avaliacao.aluno for um objeto */}
           <p>
             <strong>Aluno:</strong>{" "}
             {typeof avaliacao.aluno === "object" && avaliacao.aluno !== null
@@ -115,26 +116,23 @@ function VerAvaliacao() {
                   <div className="accordion-content open">
                     <div className="habilidades-lista">
                       {todasHabilidadesDaArea.map(([habilidade, nivel]) => {
+                        if (nivel === "NA") {
+                          return null;
+                        }
+
                         return (
                           <div key={habilidade} className="linha-habilidade">
                             <span className="texto-habilidade">
                               {habilidade}
                             </span>
                             <div className="niveis-habilidade">
-                              {Object.keys(NIVEL_CONFIG).map((optionLevel) => {
-                                const isSelected = optionLevel === nivel;
-                                const className = `circulo-nivel ${optionLevel} ${isSelected ? "ativo" : ""}`;
-
-                                return (
-                                  <span
-                                    key={optionLevel}
-                                    className={className}
-                                    title={NIVEL_CONFIG[optionLevel].descricao}
-                                  >
-                                    {optionLevel}
-                                  </span>
-                                );
-                              })}
+                              <span
+                                key={nivel}
+                                className={`circulo-nivel ${nivel} ativo`}
+                                title={NIVEL_CONFIG[nivel]?.descricao || ""}
+                              >
+                                {nivel}
+                              </span>
                             </div>
                           </div>
                         );
@@ -152,6 +150,29 @@ function VerAvaliacao() {
             );
           }
         )}
+        {/* NOVO CÓDIGO AQUI: Legenda no final da avaliação */}
+        <div className="legenda-niveis-container">
+          <h4>Legenda dos Níveis</h4>
+          <div className="legenda-niveis">
+            {Object.entries(NIVEL_CONFIG).map(([nivel, config]) => {
+              // Exclui o nível "NA" da legenda
+              if (nivel === "NA") {
+                return null;
+              }
+              return (
+                <div key={nivel} className="legenda-item">
+                  <span
+                    className={`legenda-circulo circulo-nivel ${nivel}`}
+                    title={config.descricao}
+                  >
+                    {nivel}
+                  </span>
+                  <span className="legenda-descricao">{config.descricao}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </div>
   );
