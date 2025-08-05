@@ -2030,42 +2030,71 @@ const estruturaPEI = {
         },
       },
     },
+
     "Atenção e Concentração": {
       "Conseguir manter o foco em uma atividade por pelo menos 15 minutos": {
         NR: {
           objetivo:
             "Incentivar a permanência em atividades de curta duração, com apoio físico e verbal contínuo, focando no contato visual e na interação.",
           estrategias: [
-            "Realizar atividades muito curtas (ex: 1-2 minutos) com o professor sentado ao lado, oferecendo apoio físico para manter o aluno na tarefa.",
-            "Utilizar brinquedos de interesse do aluno que exijam pouca interação, mantendo o professor próximo e dando feedback verbal constante ('muito bem!').",
-            "Propor atividades em ambiente com pouquíssimas distrações, com o professor direcionando o olhar do aluno para a tarefa com apoio.",
+            "Realizar atividades de encaixe de peças ou empilhar blocos, com o professor sentado ao lado, oferecendo apoio físico para guiar as mãos do aluno e manter a atenção na tarefa por 1-2 minutos.",
+            "Utilizar um livro de texturas ou um painel sensorial, com o professor tocando a mão do aluno para direcionar o toque e o olhar para o objeto.",
+            "Propor a imitação de sons e gestos simples (ex: bater palmas, imitar um animal), com o professor realizando o movimento na frente do aluno e usando apoio físico para guiar as mãos dele na repetição.",
+            "Realizar atividades em um ambiente completamente livre de distrações, com o professor direcionando o olhar do aluno para a tarefa com apoio físico no queixo ou na testa.",
+            "Fazer atividades de rolar uma bola ou sentar em uma bola de pilates por 1 minuto, com o professor segurando o tronco do aluno para mantê-lo focado no movimento.",
+            "Propor atividades de massinha ou areia mágica, com o professor modelando a massa junto com o aluno e direcionando sua atenção para a manipulação do material.",
+            "Utilizar um jogo de luzes ou sons simples, com o professor apontando para a fonte da luz ou do som para que o aluno mantenha o contato visual.",
+            "Trabalhar com flashcards de imagens de interesse do aluno (ex: animais, carros) por poucos segundos, com o professor nomeando e tocando a imagem para manter o foco.",
+            "Realizar atividades de balançar no balanço ou rolar em um tapete, com o professor guiando o movimento de forma ritmada e mantendo a interação verbal para sustentar a atenção.",
+            "Propor um jogo de 'esconder e achar' um objeto simples, com o professor escondendo o objeto na frente do aluno e o guiando fisicamente para encontrá-lo.",
           ],
         },
         AF: {
           objetivo:
             "Promover a manutenção do foco em atividades por períodos crescentes com apoio físico pontual, visando o início da autonomia atencional.",
           estrategias: [
-            "Apresentar uma tarefa por 3-5 minutos, oferecendo apoio físico leve (mão no ombro, toque) para redirecionar o foco quando dispersar.",
-            "Utilizar um timer visual (ex: ampulheta) e auxiliar fisicamente o aluno a permanecer na tarefa até o tempo esgotar.",
-            "Realizar atividades de colorir ou encaixar com o professor por perto, auxiliando o aluno a manter a mão na tarefa e o olhar focado.",
+            "Apresentar uma tarefa de 3-5 minutos, oferecendo apoio físico leve (mão no ombro) para redirecionar o foco quando o aluno se dispersar.",
+            "Utilizar um cronômetro visual (ex: ampulheta) e tocar levemente nas costas do aluno para lembrá-lo de permanecer na tarefa até o tempo esgotar.",
+            "Realizar atividades de quebra-cabeça de 5-10 peças, com o professor por perto, auxiliando o aluno a manter as mãos na mesa e o olhar focado nas peças.",
+            "Propor um jogo de encaixe com diferentes formas, oferecendo apoio físico na mão do aluno para ajudá-lo a encaixar a peça no lugar correto.",
+            "Realizar atividades de arremesso de bola em um cesto ou caixa, com o professor posicionando o aluno corretamente e segurando seu braço no momento de arremessar para manter o foco no alvo.",
+            "Utilizar uma tabela de rotina visual com 3-4 passos simples, e tocar na imagem do próximo passo para direcionar a atenção do aluno.",
+            "Propor um jogo de tabuleiro simples (ex: Jogo da Memória com poucas cartas) com o professor auxiliando o aluno a se sentar e esperar a sua vez, oferecendo um toque gentil no braço como lembrete.",
+            "Fazer uma atividade de pintura ou desenho, com o professor auxiliando a criança a segurar o pincel e a se concentrar em preencher um espaço delimitado.",
+            "Realizar atividades de pular corda ou andar sobre uma linha no chão, com o professor oferecendo apoio físico na mão para ajudar a manter o equilíbrio e o foco na tarefa.",
+            "Propor a leitura de um livro curto, com o professor passando o dedo por baixo das palavras para guiar o olhar do aluno e manter a atenção na leitura.",
           ],
         },
         AG: {
           objetivo:
             "Estimular a manutenção do foco em atividades através de comandos gestuais, incentivando a autorregulação da atenção e a imitação.",
           estrategias: [
-            "Fazer gestos discretos para 'olhe aqui', 'continue', 'concentre-se', quando o aluno começar a dispersar.",
-            "Utilizar um gesto de 'pare' para o aluno interromper a distração e retornar à tarefa, sem necessidade de fala.",
-            "Propor jogos de 'siga a instrução silenciosa' onde o professor gesticula ações para manter o foco na tarefa.",
+            "Fazer gestos discretos como 'olhe aqui' (apontando para os próprios olhos), 'continue' (balançando a mão para frente), ou 'concentre-se' (tocando o dedo na testa) quando o aluno se dispersar.",
+            "Utilizar um gesto de 'pare' (mão aberta) para o aluno interromper uma distração e retornar à tarefa, sem necessidade de fala.",
+            "Propor jogos de 'siga a instrução silenciosa', onde o professor gesticula ações como 'pegar o lápis', 'abrir o livro' ou 'apontar o dedo'.",
+            "Utilizar o gesto de 'ponto focal' (apontar para a tarefa) e um aceno de cabeça para incentivar o aluno a manter o foco em um ponto específico.",
+            "Realizar jogos de imitação de movimentos no ritmo de uma música (ex: dança, gestos), com o professor fazendo os gestos e o aluno imitando para manter a atenção na sequência.",
+            "Propor um jogo de quebra-cabeça com o professor apontando para a peça correta de forma gestual, sem falar, para que o aluno mantenha o foco na busca.",
+            "Utilizar o gesto de 'silêncio' (dedo na boca) quando o aluno começar a verbalizar distrações, direcionando-o de volta à tarefa.",
+            "Desenhar e apagar formas na lousa, com o professor gesticulando para o aluno replicar a ação, mantendo o foco na lousa e no giz.",
+            "Realizar um circuito motor simples com gestos (ex: 'pular aqui', 'abaixar ali', 'rolar para lá') para manter o aluno atento à sequência de movimentos.",
+            "Propor atividades de contagem de objetos, com o professor apontando para cada objeto que deve ser contado, mantendo a atenção do aluno na contagem.",
           ],
         },
         AV: {
           objetivo:
             "Aprimorar a manutenção do foco em atividades, seguindo instruções verbais para prolongar o tempo de concentração e evitar distrações.",
           estrategias: [
-            "Dar instruções verbais claras e frequentes para 'fique na tarefa', 'olhe para o livro', 'continue fazendo'.",
-            "Propor a utilização de um timer verbal ('faltam 5 minutos, continue!') para que o aluno gerencie seu tempo de foco.",
+            "Dar instruções verbais claras e frequentes como 'fique na tarefa', 'olhe para o livro', 'continue fazendo' para redirecionar o foco.",
+            "Utilizar um timer verbal ('faltam 5 minutos, continue!') para que o aluno gerencie seu tempo de foco.",
             "Estimular o aluno a verbalizar o que o distrai e o que o ajuda a manter o foco para desenvolver a metacognição.",
+            "Propor a utilização de fones de ouvido com música instrumental (sem letra) para abafar sons externos e ajudar na concentração.",
+            "Realizar um jogo de 'estátua' onde o professor dá o comando verbal 'estátua!' para o aluno parar, e 'já!' para continuar, praticando o controle inibitório e a atenção ao comando.",
+            "Fazer atividades de leitura compartilhada, onde o professor e o aluno se alternam na leitura de frases, com o professor oferecendo apoio verbal sutil para o aluno não se perder.",
+            "Incentivar o aluno a criar uma lista de verificação (checklist) de tarefas para se manter focado e organizado durante o trabalho.",
+            "Utilizar jogos de 'detetive' onde o aluno precisa encontrar um objeto com base em descrições verbais detalhadas do professor.",
+            "Realizar atividades de yoga ou alongamento, com o professor dando instruções verbais claras e precisas para cada postura, incentivando a atenção ao próprio corpo e respiração.",
+            "Propor um jogo de tabuleiro com regras mais complexas, onde o professor repete as regras verbalmente para garantir que o aluno mantenha o foco na estratégia.",
           ],
         },
         AVi: {
@@ -2074,20 +2103,35 @@ const estruturaPEI = {
           estrategias: [
             "Utilizar um cronômetro visual (ex: timer de cor, aplicativo de timer) para indicar o tempo de permanência na tarefa.",
             "Disponibilizar um 'campo de trabalho' visualmente limpo, com poucos objetos ao redor da área de foco.",
-            "Criar um 'cartão de foco' que o aluno possa colocar sobre partes não relevantes de um texto para se concentrar em uma linha.",
+            "Criar um 'cartão de foco' que o aluno possa colocar sobre partes não relevantes de um texto para se concentrar em uma linha ou parágrafo.",
+            "Propor a utilização de um 'plano de trabalho' com desenhos ou símbolos para o aluno acompanhar a sequência de passos de uma tarefa.",
+            "Realizar um jogo de 'Siga o Mestre' com diferentes cores no chão (ex: tapetes coloridos, bambolês), onde o professor aponta para a próxima cor e o aluno deve se mover até ela, seguindo a pista visual.",
+            "Utilizar uma lista de verificação visual (checklist com imagens) para que o aluno marque cada passo concluído de uma atividade.",
+            "Incentivar o uso de um marcador de texto para destacar informações importantes durante a leitura.",
+            "Disponibilizar um 'sinal de não perturbe' visual que o aluno pode colocar na mesa quando precisar de total concentração.",
+            "Propor atividades de ginástica com cartões visuais de posturas, onde o aluno deve olhar para o cartão e replicar o movimento.",
+            "Utilizar um 'mural de ideias' com post-its coloridos para que o aluno organize visualmente seus pensamentos antes de começar uma escrita.",
           ],
         },
         I: {
           objetivo:
             "Demonstrar autonomia e persistência em manter o foco em atividades por períodos prolongados (acima de 15 minutos), adaptando-se a diferentes ambientes.",
           estrategias: [
-            "Propor projetos de pesquisa ou tarefas que exijam longos períodos de atenção concentrada (ex: leitura de capítulos, montagem complexa).",
+            "Propor projetos de pesquisa ou tarefas que exijam longos períodos de atenção concentrada (ex: leitura de capítulos, montagem de maquetes complexas).",
             "Incentivar o aluno a identificar e utilizar suas próprias estratégias para manter o foco em ambientes variados (sala de aula, biblioteca, casa).",
             "Observar e registrar a capacidade do aluno de iniciar e manter o foco em tarefas complexas, minimizando distrações externas e internas.",
+            "Propor a criação de um guia de estudo ou de um resumo visual sobre um tema complexo, exigindo atenção detalhada e organização.",
+            "Realizar atividades de 'desafio da concentração', como equilibrar-se em um pé só por um tempo crescente ou andar na trave de equilíbrio, registrando o próprio desempenho.",
+            "Incentivar o aluno a participar de debates ou discussões em grupo, onde ele deve manter o foco em ouvir e argumentar por períodos prolongados.",
+            "Propor jogos de estratégia de longa duração, como xadrez, damas ou um jogo de tabuleiro complexo, onde a atenção é fundamental para o resultado.",
+            "Pedir ao aluno que planeje e execute uma apresentação para a turma, o que exige foco prolongado na preparação e na execução.",
+            "Realizar atividades de escalada em parede ou slackline, onde a concentração total no movimento e no equilíbrio é essencial para a segurança e sucesso.",
+            "Propor ao aluno que ajude outros colegas com dificuldades de foco, explicando as estratégias que ele próprio utiliza.",
           ],
         },
       },
     },
+
     "Autonomia Acadêmica": {
       "Solicitar ajuda quando encontrar dificuldades acadêmicas": {
         NR: {
