@@ -135,9 +135,12 @@ const verificarPermissaoIniciarPrimeiroPEI = (usuarioPerfil, usuarioCargo) => {
   const perfisIniciadores = ["gestao", "aee", "seme", "desenvolvedor"];
   const cargosIniciadores = ["PROFESSOR REGENTE", "PROFESSOR DE SUPORTE"];
 
+  // Converte o cargo do usuário para maiúsculas antes de verificar
+  const cargoEmMaiusculas = usuarioCargo ? usuarioCargo.toUpperCase() : "";
+
   return (
     perfisIniciadores.includes(usuarioPerfil) ||
-    cargosIniciadores.includes(usuarioCargo)
+    cargosIniciadores.includes(cargoEmMaiusculas)
   );
 };
 
@@ -580,7 +583,14 @@ export default function CriarPEI() {
           usuarioLogado.perfil,
           usuarioLogado.cargo
         );
-
+        // --- ADICIONE ESTES CONSOLE.LOGS AQUI ---
+        console.log("Usuário logado:", usuarioLogado);
+        console.log("Cargo do usuário:", usuarioLogado.cargo);
+        console.log(
+          "Resultado da permissão (podeIniciarPrimeiroPEI):",
+          podeIniciarPrimeiroPEI
+        );
+        // --- FIM DOS CONSOLE.LOGS ---
         if (peiExistingParaEsteCriador) {
           // CENÁRIO A: ENCONTROU UM PEI FEITO POR ESTE CRIADOR -> CARREGA PARA EDIÇÃO
           // Esta é a edição do PEI DELE. Objetivos e estratégias já foram definidos por ele.
