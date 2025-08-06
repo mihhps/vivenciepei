@@ -10,7 +10,8 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import { useAlunos } from "../hooks/useAlunos";
 import SelecaoAluno from "../components/SelecaoAluno";
 import { useAuth } from "../context/AuthContext";
-import { fetchAvaliacaoInteresses as fetchAvaliacaoInteressesGlobal } from "../utils/firebaseUtils";
+// A função fetchAvaliacaoInteressesGlobal não é mais necessária, pois a lógica de busca será feita diretamente no componente.
+// import { fetchAvaliacaoInteresses as fetchAvaliacaoInteressesGlobal } from "../utils/firebaseUtils";
 
 // Importa as constantes do novo arquivo
 import {
@@ -21,7 +22,7 @@ import {
 } from "../constants/avaliacaoConstants";
 
 // Importa a nova função de geração de PDF
-import { gerarPDFAvaliacaoInteressesParaPreencher } from "../utils/pdfGeneratorInteresses"; // <--- NOVA IMPORTAÇÃO
+import { gerarPDFAvaliacaoInteressesParaPreencher } from "../utils/pdfGeneratorInteresses";
 
 // Função helper para gerar o estado inicial do formulário
 const getInitialFormData = () => {
@@ -62,7 +63,7 @@ const getInitialFormData = () => {
 function AvaliacaoInteressesPage() {
   const { alunoId: alunoIdFromParams } = useParams();
   const navigate = useNavigate();
-  const { userId, isAuthReady, isLoadingProfile, user } = useAuth();
+  const { userId, isAuthReady, isLoadingProfile } = useAuth();
 
   const [aluno, setAluno] = useState(null);
   const [alunoSelecionadoDropdown, setAlunoSelecionadoDropdown] =
@@ -82,23 +83,7 @@ function AvaliacaoInteressesPage() {
   const [formData, setFormData] = useState(getInitialFormData());
   const [originalData, setOriginalData] = useState(getInitialFormData());
 
-  console.log(
-    "[AvaliacaoInteressesPage] Renderizando. userId:",
-    userId,
-    "isAuthReady:",
-    isAuthReady,
-    "isLoadingProfile:",
-    isLoadingProfile,
-    "alunoIdFromParams:",
-    alunoIdFromParams,
-    "alunoSelecionadoDropdown:",
-    alunoSelecionadoDropdown?.id
-  );
-
   useEffect(() => {
-    console.log(
-      "[AvaliacaoInteressesPage] useEffect [alunoIdFromParams, alunosListFromHook, alunoSelecionadoDropdown] disparado."
-    );
     if (
       alunoIdFromParams &&
       alunosListFromHook.length > 0 &&
@@ -109,10 +94,6 @@ function AvaliacaoInteressesPage() {
       );
       if (foundAluno) {
         setAlunoSelecionadoDropdown(foundAluno);
-        console.log(
-          "[AvaliacaoInteressesPage] Aluno encontrado e definido no dropdown:",
-          foundAluno.id
-        );
       }
     }
   }, [alunoIdFromParams, alunosListFromHook, alunoSelecionadoDropdown]);
@@ -122,26 +103,12 @@ function AvaliacaoInteressesPage() {
       const currentAlunoIdToFetch =
         alunoSelecionadoDropdown?.id || alunoIdFromParams;
 
-      console.log(
-        "[AvaliacaoInteressesPage] fetchAlunoAndInteresses: userId:",
-        userId,
-        "isAuthReady:",
-        isAuthReady,
-        "isLoadingProfile:",
-        isLoadingProfile,
-        "currentAlunoIdToFetch:",
-        currentAlunoIdToFetch
-      );
-
       if (
         !isAuthReady ||
         isLoadingProfile ||
         !currentAlunoIdToFetch ||
         !userId
       ) {
-        console.log(
-          "[AvaliacaoInteressesPage] fetchAlunoAndInteresses: Condição de autenticação/aluno NÃO atendida. Retornando."
-        );
         setCarregando(false);
         return;
       }
@@ -150,10 +117,6 @@ function AvaliacaoInteressesPage() {
       setErro(null);
       setSucesso(null);
       setShowViewButton(false);
-      console.log(
-        "[AvaliacaoInteressesPage] fetchAlunoAndInteresses: Iniciando fetch para aluno:",
-        currentAlunoIdToFetch
-      );
 
       try {
         const alunoDocRef = doc(db, "alunos", currentAlunoIdToFetch);
@@ -162,15 +125,20 @@ function AvaliacaoInteressesPage() {
         if (alunoDocSnap.exists()) {
           const fetchedAluno = { id: alunoDocSnap.id, ...alunoDocSnap.data() };
           setAluno(fetchedAluno);
-          console.log(
-            "[AvaliacaoInteressesPage] Aluno carregado do Firestore:",
-            fetchedAluno.id
-          );
 
-          const loadedInteressesData = await fetchAvaliacaoInteressesGlobal(
-            fetchedAluno.id,
-            userId
-          );
+          // **** ALTERAÇÃO INICIADA ****
+          // A lógica de busca foi movida para cá para usar um caminho público.
+          const appId =
+            typeof __app_id !== "undefined" ? __app_id : "default-app-id";
+          // O caminho agora aponta para uma coleção pública de avaliações.
+          const avaliacaoDocPath = `artifacts/${appId}/public/data/avaliacoesInteresses/${fetchedAluno.id}`;
+          const avaliacaoDocRef = doc(db, avaliacaoDocPath);
+          const avaliacaoDocSnap = await getDoc(avaliacaoDocRef);
+          const loadedInteressesData = avaliacaoDocSnap.exists()
+            ? avaliacaoDocSnap.data()
+            : null;
+          // **** ALTERAÇÃO FINALIZADA ****
+
           const formDataFromDb = loadedInteressesData?.data;
 
           if (formDataFromDb && Object.keys(formDataFromDb).length > 0) {
@@ -179,9 +147,6 @@ function AvaliacaoInteressesPage() {
             setOriginalData(fullFormData);
             setSucesso("Avaliação de interesses anterior carregada.");
             setShowViewButton(true);
-            console.log(
-              "[AvaliacaoInteressesPage] Avaliação existente carregada."
-            );
           } else {
             const initialData = getInitialFormData();
             setFormData(initialData);
@@ -190,24 +155,16 @@ function AvaliacaoInteressesPage() {
               "Inicie uma nova avaliação de interesses para este aluno."
             );
             setShowViewButton(false);
-            console.log(
-              "[AvaliacaoInteressesPage] Nenhuma avaliação existente encontrada. Iniciando nova."
-            );
           }
         } else {
           setErro("Aluno não encontrado no Firebase.");
           setAluno(null);
-          console.warn(
-            "[AvaliacaoInteressesPage] Aluno não encontrado no Firebase:",
-            currentAlunoIdToFetch
-          );
         }
       } catch (error) {
         console.error("Erro ao carregar dados:", error);
         setErro("Erro ao carregar dados. Tente novamente.");
       } finally {
         setCarregando(false);
-        console.log("[AvaliacaoInteressesPage] Carregamento finalizado.");
       }
     };
 
@@ -217,19 +174,9 @@ function AvaliacaoInteressesPage() {
       userId &&
       (alunoSelecionadoDropdown || alunoIdFromParams)
     ) {
-      console.log(
-        "[AvaliacaoInteressesPage] Condições para fetch atendidas. Chamando fetchAlunoAndInteresses."
-      );
       fetchAlunoAndInteresses();
     } else if (isAuthReady && !isLoadingProfile) {
-      console.log(
-        "[AvaliacaoInteressesPage] Autenticação e perfil prontos, mas sem aluno selecionado/param."
-      );
       setCarregando(false);
-    } else {
-      console.log(
-        "[AvaliacaoInteressesPage] Autenticação ou perfil AINDA NÃO prontos."
-      );
     }
   }, [
     userId,
@@ -250,9 +197,6 @@ function AvaliacaoInteressesPage() {
           "Você tem alterações não salvas. Deseja continuar e descartá-las?"
         )
       ) {
-        console.log(
-          "[AvaliacaoInteressesPage] Navegação cancelada devido a alterações não salvas."
-        );
         return;
       }
 
@@ -262,19 +206,8 @@ function AvaliacaoInteressesPage() {
       );
 
       if (foundAluno) {
-        console.log(
-          "[AvaliacaoInteressesPage] Selecionando aluno:",
-          foundAluno.id,
-          "Navegando para:",
-          `/nova-avaliacao/${foundAluno.id}`
-        );
         navigate(`/nova-avaliacao/${foundAluno.id}`);
         setAlunoSelecionadoDropdown(foundAluno);
-      } else {
-        console.warn(
-          "[AvaliacaoInteressesPage] Aluno selecionado no dropdown não encontrado na lista:",
-          selectedAlunoNome
-        );
       }
     },
     [formData, originalData, alunosListFromHook, navigate]
@@ -299,42 +232,42 @@ function AvaliacaoInteressesPage() {
       e.preventDefault();
       if (!alunoSelecionadoDropdown || !userId) {
         setErro("Aluno não selecionado ou usuário não autenticado.");
-        console.error(
-          "[AvaliacaoInteressesPage] Erro ao salvar: Aluno não selecionado ou userId ausente."
-        );
         return;
       }
 
       setSalvando(true);
       setErro(null);
-      console.log("[AvaliacaoInteressesPage] Tentando salvar avaliação...");
 
       try {
         const appId =
           typeof __app_id !== "undefined" ? __app_id : "default-app-id";
-        const docPath = `artifacts/${appId}/users/${userId}/avaliacoesInteresses`;
-        const avaliacaoDocRef = doc(db, docPath, alunoSelecionadoDropdown.id);
+
+        // **** ALTERAÇÃO INICIADA ****
+        // O caminho do documento foi alterado para a coleção pública.
+        // O antigo caminho era: `artifacts/${appId}/users/${userId}/avaliacoesInteresses`
+        const collectionPath = `artifacts/${appId}/public/data/avaliacoesInteresses`;
+        const avaliacaoDocRef = doc(
+          db,
+          collectionPath,
+          alunoSelecionadoDropdown.id
+        );
+        // **** ALTERAÇÃO FINALIZADA ****
 
         await setDoc(avaliacaoDocRef, {
           alunoId: alunoSelecionadoDropdown.id,
           data: formData,
           dataAvaliacao: new Date().toISOString(),
-          salvoPor: userId,
+          salvoPor: userId, // Mantém o registro de quem salvou
         });
 
         setOriginalData(formData);
         setSucesso("Avaliação salva com sucesso!");
         setShowViewButton(true);
-        console.log(
-          "[AvaliacaoInteressesPage] Avaliação salva com sucesso para aluno:",
-          alunoSelecionadoDropdown.id
-        );
       } catch (error) {
         console.error("Erro ao salvar avaliação:", error);
         setErro("Erro ao salvar. Tente novamente.");
       } finally {
         setSalvando(false);
-        console.log("[AvaliacaoInteressesPage] Salvamento finalizado.");
       }
     },
     [alunoSelecionadoDropdown, userId, formData]
@@ -342,15 +275,10 @@ function AvaliacaoInteressesPage() {
 
   const handleVisualizarAvaliacao = useCallback(() => {
     if (alunoSelecionadoDropdown?.id) {
-      console.log(
-        "[AvaliacaoInteressesPage] Navegando para visualizar avaliação:",
-        `/visualizar-interesses/${alunoSelecionadoDropdown.id}`
-      );
       navigate(`/visualizar-interesses/${alunoSelecionadoDropdown.id}`);
     }
   }, [alunoSelecionadoDropdown, navigate]);
 
-  // Handler para gerar o PDF de preenchimento manual
   const handleGerarPDFManual = useCallback(() => {
     if (alunoSelecionadoDropdown) {
       gerarPDFAvaliacaoInteressesParaPreencher({
@@ -359,12 +287,9 @@ function AvaliacaoInteressesPage() {
     } else {
       setErro("Selecione um aluno para gerar a ficha de avaliação.");
     }
-  }, [alunoSelecionadoDropdown]); // Depende apenas do aluno selecionado
+  }, [alunoSelecionadoDropdown]);
 
   if (!isAuthReady || isLoadingProfile) {
-    console.log(
-      "[AvaliacaoInteressesPage] Exibindo loader inicial: Autenticação ou perfil não prontos."
-    );
     return (
       <div className="avaliacao-container loading">
         Carregando autenticação e perfil...
@@ -433,7 +358,6 @@ function AvaliacaoInteressesPage() {
             Aluno: {alunoSelecionadoDropdown.nome || "Nome Indisponível"}
           </h2>
 
-          {/* NOVO BOTÃO PARA GERAR PDF MANUAL */}
           <div className="form-actions">
             <button
               type="button"
@@ -444,7 +368,6 @@ function AvaliacaoInteressesPage() {
               Gerar Ficha para Avaliação Manual 📝
             </button>
           </div>
-          {/* FIM DO NOVO BOTÃO */}
 
           {/* Seção 1: Interesses e Pontos Fortes */}
           <section className="form-section">

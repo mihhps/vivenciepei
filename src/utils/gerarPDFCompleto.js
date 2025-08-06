@@ -11,7 +11,8 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase";
 
-import { fetchAvaliacaoInteresses } from "./firebaseUtils";
+// A função fetchAvaliacaoInteresses de firebaseUtils não é mais necessária aqui.
+// import { fetchAvaliacaoInteresses } from "./firebaseUtils";
 
 import estruturaPEI from "../data/estruturaPEI2";
 import objetivosCurtoPrazoData from "../data/objetivosCurtoPrazo";
@@ -1013,7 +1014,7 @@ function addAvaliacaoInteressesSection(doc, avaliacaoInteressesData, y) {
       {
         question:
           "Descreva uma situação recente em que a criança se desregulou. O que aconteceu antes, durante e depois?",
-        dataKey: "situacaoRecentDesregulacao",
+        dataKey: "situacaoRecenteDesregulacao", // CORREÇÃO DE TYPO
       },
     ],
     estrategiasEApoio: [
@@ -1979,22 +1980,36 @@ export async function gerarPDFCompleto(
     return;
   }
 
-  const avaliacaoInteressesData = await fetchAvaliacaoInteresses(
-    aluno.id,
-    usuarioLogado.id,
-    usuarioLogado.perfil
-  );
+  // **** ALTERAÇÃO INICIADA ****
+  // Busca a avaliação de interesses diretamente do caminho público.
+  let avaliacaoInteressesData = null;
+  try {
+    const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
+    const avaliacaoDocPath = `artifacts/${appId}/public/data/avaliacoesInteresses/${aluno.id}`;
+    const avaliacaoDocRef = firestoreDoc(db, avaliacaoDocPath);
+    const avaliacaoDocSnap = await getDoc(avaliacaoDocRef);
+
+    if (avaliacaoDocSnap.exists()) {
+      // Os dados do formulário estão dentro do campo 'data'
+      avaliacaoInteressesData = avaliacaoDocSnap.data().data;
+      console.log(
+        "[PDF_DEBUG] Avaliação de interesses encontrada no caminho público."
+      );
+    } else {
+      console.log(
+        "[PDF_DEBUG] Nenhuma avaliação de interesses encontrada no caminho público."
+      );
+      avaliacaoInteressesData = {};
+    }
+  } catch (error) {
+    console.error("Erro ao buscar avaliação de interesses para o PDF:", error);
+    avaliacaoInteressesData = {};
+  }
+  // **** ALTERAÇÃO FINALIZADA ****
+
   console.log(
-    "[PDF_DEBUG] avaliacaoInteressesData BUSCADA (internamente):",
+    "[PDF_DEBUG] avaliacaoInteressesData processada:",
     avaliacaoInteressesData
-  );
-  console.log(
-    "[PDF_DEBUG] Tipo de avaliacaoInteressesData:",
-    typeof avaliacaoInteressesData
-  );
-  console.log(
-    "[PDF_DEBUG] avaliacaoInteressesData está vazio?",
-    Object.keys(avaliacaoInteressesData || {}).length === 0
   );
 
   let peisParaProcessar =

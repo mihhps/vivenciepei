@@ -9,8 +9,9 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 import {
   getAuth,
   onAuthStateChanged,
-  signInWithCustomToken,
-  signInAnonymously,
+  // As funções abaixo não são mais necessárias neste fluxo simplificado
+  // signInWithCustomToken,
+  // signInAnonymously,
 } from "firebase/auth";
 import { getFirestore, doc, getDoc } from "firebase/firestore";
 
@@ -34,13 +35,12 @@ export function AuthProvider({ children }) {
   const authRef = useRef(null);
   const dbRef = useRef(null);
 
-  // Variáveis globais do ambiente Canvas (MANDATÓRIO USAR)
-  const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
+  // Variáveis globais do ambiente (agora sem usar o token inicial)
   const firebaseConfig = JSON.parse(
     typeof __firebase_config !== "undefined" ? __firebase_config : "{}"
   );
-  const initialAuthToken =
-    typeof __initial_auth_token !== "undefined" ? __initial_auth_token : null;
+  // const initialAuthToken =
+  //   typeof __initial_auth_token !== "undefined" ? __initial_auth_token : null;
 
   useEffect(() => {
     console.log(
@@ -121,33 +121,17 @@ export function AuthProvider({ children }) {
           setIsAuthReady(true);
           console.log("[AuthContext] isAuthReady definido como true.");
         } else {
-          // Usuário não autenticado, tentar login com token personalizado ou anonimamente
+          // --- CORREÇÃO APLICADA AQUI ---
+          // Se não há usuário logado, apenas preparamos o app para a tela de login,
+          // sem tentar nenhum login automático que causava o erro.
           console.log(
-            "[AuthContext] Usuário não autenticado. Tentando login inicial..."
+            "[AuthContext] Nenhum usuário logado. Aguardando login via email/senha."
           );
-          try {
-            if (initialAuthToken) {
-              console.log("[AuthContext] Tentando signInWithCustomToken...");
-              await signInWithCustomToken(authRef.current, initialAuthToken);
-            } else {
-              console.log("[AuthContext] Tentando signInAnonymously...");
-              await signInAnonymously(authRef.current);
-            }
-            // Após o login, o onAuthStateChanged será disparado novamente com o usuário
-          } catch (error) {
-            console.error(
-              "[AuthContext] Erro ao tentar autenticação inicial:",
-              error
-            );
-            setCurrentUser(null);
-            setUserId(null);
-            setUserProfileData(null);
-            setIsLoadingProfile(false);
-            setIsAuthReady(true); // Ainda define como true para indicar que a verificação inicial terminou
-            console.log(
-              "[AuthContext] Erro na autenticação inicial. isAuthReady true, isLoadingProfile false."
-            );
-          }
+          setCurrentUser(null);
+          setUserId(null);
+          setUserProfileData(null);
+          setIsLoadingProfile(false);
+          setIsAuthReady(true); // Importante: informa que o app pode continuar e exibir a tela de login
         }
       });
 

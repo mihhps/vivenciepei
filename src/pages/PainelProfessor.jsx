@@ -1,26 +1,19 @@
-// src/pages/PainelProfessor.jsx
-
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import BotaoSair from "../components/BotaoSair";
-import TrocarEscola from "../components/TrocarEscola"; // Assumindo que este componente existe e está correto
-import { verificarPrazosPEI } from "../src/services/peiStatusChecker"; // Importa o serviço criado no Passo 1
-import { ToastContainer, toast } from "react-toastify"; // Import Toastify
-import "react-toastify/dist/ReactToastify.css"; // Import CSS for Toastify
+import TrocarEscola from "../components/TrocarEscola";
+import { verificarPrazosPEI } from "../src/services/peiStatusChecker";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export default function PainelProfessor() {
   const navigate = useNavigate();
   const [usuarioLogado, setUsuarioLogado] = useState(null);
-  const [avisosPEI, setAvisosPEI] = useState(null); // Estado para armazenar os resultados do serviço
-  const [carregandoAvisos, setCarregandoAvisos] = useState(true); // Estado para controle de carregamento dos avisos
+  const [avisosPEI, setAvisosPEI] = useState(null);
+  const [carregandoAvisos, setCarregandoAvisos] = useState(true);
 
-  // Lógica para navegar para uma rota específica
   const irPara = (rota) => navigate(rota);
 
-  /**
-   * Função useCallback para carregar os avisos de PEI do professor logado.
-   * Utiliza o serviço `verificarPrazosPEI`.
-   */
   const carregarAvisos = useCallback(async () => {
     setCarregandoAvisos(true);
     let currentUser = null;
@@ -28,7 +21,7 @@ export default function PainelProfessor() {
       const userData = localStorage.getItem("usuarioLogado");
       if (userData) {
         currentUser = JSON.parse(userData);
-        setUsuarioLogado(currentUser); // Define o usuário logado no estado
+        setUsuarioLogado(currentUser);
       }
     } catch (e) {
       console.error("Erro ao parsear dados do usuário logado:", e);
@@ -36,21 +29,19 @@ export default function PainelProfessor() {
       setAvisosPEI({
         erro: "Não foi possível carregar o perfil do usuário logado.",
       });
-      toast.error("Erro ao carregar perfil do usuário."); // Notificação de erro
+      toast.error("Erro ao carregar perfil do usuário.");
       return;
     }
 
-    // Se o usuário não está logado ou não é um professor, exibe erro
     if (!currentUser || currentUser.perfil !== "professor") {
       setCarregandoAvisos(false);
       setAvisosPEI({
         erro: "Acesso restrito a professores ou perfil inválido.",
       });
-      toast.warn("Acesso restrito. Faça login como professor."); // Notificação de aviso
+      toast.warn("Acesso restrito. Faça login como professor.");
       return;
     }
 
-    // Usando currentUser.id (ID do documento Firestore)
     const idProfessor = currentUser.id || null;
     const anoLetivoAtual = new Date().getFullYear();
 
@@ -61,13 +52,13 @@ export default function PainelProfessor() {
       } catch (error) {
         console.error("Erro ao verificar prazos PEI:", error);
         setAvisosPEI({ erro: "Falha ao verificar prazos dos PEIs." });
-        toast.error("Erro ao verificar prazos dos PEIs."); // Notificação de erro
+        toast.error("Erro ao verificar prazos dos PEIs.");
       }
     } else {
       setAvisosPEI({
         erro: "ID do professor não encontrado no perfil de usuário logado. Verifique os dados do seu perfil.",
       });
-      toast.error("ID do professor não encontrada."); // Notificação de erro
+      toast.error("ID do professor não encontrada.");
     }
     setCarregandoAvisos(false);
   }, []);
@@ -96,7 +87,6 @@ export default function PainelProfessor() {
       return <p style={estilos.nenhumPeiEncontrado}>{mensagem}</p>;
     }
 
-    // DEPOIS (com a mensagem alterada)
     if (statusGeral === "Atrasado" && totalAlunosAtrasados > 0) {
       return (
         <div style={estilos.alertaAtraso}>
@@ -138,39 +128,25 @@ export default function PainelProfessor() {
           >
             Criar PEI
           </button>
-          {/* Botão "Ver PEIs" Removido */}
-          {/* <button
-            style={estilos.botaoPrimario}
-            onClick={() => irPara("/ver-peis")}
-          >
-            Ver PEIs
-          </button> */}
           <button
             style={estilos.botaoPrimario}
             onClick={() => irPara("/ver-avaliacoes")}
           >
             Ver Avaliações Iniciais
           </button>
-          {/* Botão "Anamnese Completa" Removido */}
-          {/* <button
+          {/* **** BOTÃO ADICIONADO **** */}
+          <button
             style={estilos.botaoPrimario}
-            onClick={() => irPara("/anamnese-completa")}
+            onClick={() => irPara("/visualizar-interesses")}
           >
-            Anamnese Completa
-          </button> */}
+            Ver Avaliações de Interesses
+          </button>
           <button
             style={estilos.botaoPrimario}
             onClick={() => irPara("/prazos-professor")}
           >
             Ver Prazos Anuais do PEI
           </button>
-          {/* Botão "Meu Acompanhamento PEI" Removido */}
-          {/* <button
-            style={estilos.botaoPrimario}
-            onClick={() => irPara("/meu-acompanhamento-pei")}
-          >
-            Meu Acompanhamento PEI
-          </button> */}
         </div>
 
         <div style={estilos.botoesSecundarios}>
@@ -178,8 +154,7 @@ export default function PainelProfessor() {
           <BotaoSair style={estilos.botaoSair} />
         </div>
       </div>
-      <ToastContainer position="bottom-right" autoClose={3000} />{" "}
-      {/* Adiciona o ToastContainer */}
+      <ToastContainer position="bottom-right" autoClose={3000} />
     </div>
   );
 }
