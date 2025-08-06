@@ -409,35 +409,16 @@ export default function CriarPEI() {
   );
 
   // --- LÓGICA DE CARREGAMENTO DE DADOS INICIAIS ---
+  // AQUI É A ÚNICA FUNÇÃO QUE FOI MODIFICADA
   const carregarDadosIniciais = useCallback(async () => {
     setCarregando(true);
     exibirMensagem("sucesso", "Carregando dados iniciais...");
     try {
       const currentYear = new Date().getFullYear();
 
-      // Buscamos TODOS os PEIs do ano atual (para saber quais alunos JÁ TÊM PEI)
-      const qTodosPeisDoAno = query(
-        collection(db, "peis"),
-        where("anoLetivo", "==", currentYear)
-      );
-
-      // Consulta PEIs criados SOMENTE pelo usuário logado para o ano atual (para filtragem pessoal)
-      const qPeisDoUsuarioLogado = query(
-        collection(db, "peis"),
-        where("anoLetivo", "==", currentYear),
-        where("criadorId", "==", usuarioLogado.email)
-      );
-
-      const [
-        alunosSnap,
-        avaliacoesSnap,
-        todosPeisDoAnoSnap,
-        peisDoUsuarioLogadoSnap,
-      ] = await Promise.all([
+      const [alunosSnap, avaliacoesSnap] = await Promise.all([
         getDocs(collection(db, "alunos")),
         getDocs(collection(db, "avaliacoesIniciais")),
-        getDocs(qTodosPeisDoAno),
-        getDocs(qPeisDoUsuarioLogado),
       ]);
 
       const todosAlunos = alunosSnap.docs.map((doc) => ({
@@ -446,33 +427,17 @@ export default function CriarPEI() {
       }));
       const todasAvaliacoes = avaliacoesSnap.docs.map((doc) => doc.data());
 
-      const todosPeisDoAno = todosPeisDoAnoSnap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      const peisDoUsuarioLogado = peisDoUsuarioLogadoSnap.docs.map((doc) =>
-        doc.data()
-      );
-
-      // Sets para verificação rápida
-      const alunosComQualquerPeiIds = new Set(
-        todosPeisDoAno.map((pei) => pei.alunoId)
-      );
-      const alunosComPeiFeitoPeloUsuarioIds = new Set(
-        peisDoUsuarioLogado.map((pei) => pei.alunoId)
-      );
-
-      const { cargo, perfil, turmas } = usuarioLogado;
+      const { perfil, turmas } = usuarioLogado;
       const turmasVinculadas = turmas ? Object.keys(turmas) : [];
 
       let alunosFiltradosParaExibir = todosAlunos;
 
-      // Aplicar o filtro por turma/escola (se não tiver acesso amplo a todos os alunos do sistema)
+      // Filtra alunos por turma, a menos que o perfil tenha acesso amplo
       const podeVerTodosAlunosNoSistema =
         perfil === "gestao" ||
         perfil === "aee" ||
         perfil === "seme" ||
-        perfil === "desenvolvedor"; // Professores Regentes/Suporte não veem todos, só os da sua turma/escola
+        perfil === "desenvolvedor";
 
       if (!podeVerTodosAlunosNoSistema) {
         alunosFiltradosParaExibir = alunosFiltradosParaExibir.filter((aluno) =>
@@ -480,34 +445,9 @@ export default function CriarPEI() {
         );
       }
 
-      // LÓGICA DE FILTRAGEM FINAL PARA A LISTA DE SELEÇÃO DE ALUNOS (Baseado na nova regra)
-      alunosFiltradosParaExibir = alunosFiltradosParaExibir.filter((aluno) => {
-        // Regra 1: Um aluno SOME da lista de seleção DESTE professor SE
-        // este professor JÁ CRIOU um PEI para ele.
-        if (alunosComPeiFeitoPeloUsuarioIds.has(aluno.id)) {
-          return false; // Remove da lista de seleção deste professor
-        }
-
-        // Regra 2: "Quem pode iniciar o PRIMEIRO PEI"
-        const podeIniciarPrimeiroPEI = verificarPermissaoIniciarPrimeiroPEI(
-          perfil,
-          cargo
-        );
-
-        // Se o aluno NÃO TEM NENHUM PEI AINDA:
-        //   - Só aparece para perfis que podem iniciar o primeiro PEI.
-        //   - Some da lista para os demais (que só podem criar PEI se já existe um).
-        if (!alunosComQualquerPeiIds.has(aluno.id)) {
-          return podeIniciarPrimeiroPEI; // Retorna true se pode iniciar, false se não
-        }
-
-        // Se o aluno JÁ TEM PELO MENOS UM PEI (criado por OUTRO professor):
-        //   - Aparece para TODOS os professores (mesmo os que não podem iniciar o primeiro PEI).
-        //   - Pois eles criarão o PEI individual deles a partir deste ponto.
-        //   (Já filtramos os que ele mesmo criou no primeiro 'if')
-        return true;
-      });
-
+      // NOVO: A lista de alunos para a seleção será apenas a lista
+      // dos alunos da turma do professor (ou todos, para perfis de gestão/AEE).
+      // A lógica de "tem PEI ou não" será tratada na próxima etapa, em handleSelectStudent.
       setAlunos(alunosFiltradosParaExibir);
       setAvaliacoes(todasAvaliacoes);
       exibirMensagem("sucesso", "Dados carregados com sucesso.");

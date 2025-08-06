@@ -11,11 +11,6 @@ import {
   serverTimestamp,
 } from "firebase/firestore"; // Removi 'query' e 'where' que não são usados aqui para simplificar a importação.
 
-// --- Styled Components ---
-// Você pode reutilizar os styled components do CadastroAluno.js ou definir novos aqui.
-// Para esta refatoração, vou usar nomes genéricos para ilustrar.
-// **IMPORTANTE**: Certifique-se de que estes styled components estejam definidos
-// no seu arquivo de estilos global ou copiados para este arquivo se não forem globais.
 const PageContainer = styled.div`
   display: flex;
   flex-direction: column;
