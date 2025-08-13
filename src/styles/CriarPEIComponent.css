@@ -282,66 +282,57 @@ body {
 }
 
 /* ================================== */
-/* 6. COMPONENTE: ESTRATÉGIAS (CHECKBOX) */
-/* ================================== */
-/* ================================== */
-/* 6. COMPONENTE: ESTRATÉGIAS (CHECKBOX) */
+/* 6. COMPONENTE: ESTRATÉGIAS (CHECKBOX) - REFATORADO */
 /* ================================== */
 
 /* O container do checkbox agora é o <label> que envolve o input e o texto */
 .checkbox-container {
   display: flex;
-  align-items: center; /* Alinha o checkbox e o texto centralmente */
+  align-items: flex-start; /* Alinha o checkbox e a primeira linha do texto no topo */
   margin-bottom: var(--space-xs);
   cursor: pointer;
-  position: relative; /* Essencial para o posicionamento absoluto do .checkmark */
-  padding-left: calc(
-    var(--font-size-md) + var(--space-md)
-  ); /* Espaço para o checkbox customizado + um pouco de margem */
-  user-select: none; /* Impede que o texto seja selecionado ao clicar repetidamente */
-  color: var(--text-primary); /* Cor padrão do texto do label */
-  font-size: var(--font-size-sm); /* Tamanho padrão da fonte */
-  line-height: 1.4; /* Espaçamento da linha para o texto do label */
+  position: relative;
+  user-select: none;
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+  gap: var(--space-md); /* Espaçamento entre o checkbox e o texto */
 }
 
 /* Esconde o checkbox original do navegador */
 .checkbox-container input[type="checkbox"] {
   position: absolute;
-  opacity: 0; /* Torna o input invisível, mas funcional */
+  opacity: 0;
   height: 0;
   width: 0;
-  cursor: pointer; /* Mantém o cursor de ponteiro */
+  cursor: pointer;
 }
 
 /* O elemento span que será o visual do nosso checkbox */
 .checkmark {
-  position: absolute;
-  left: 0;
-  /* Top 50% e transform para alinhamento vertical perfeito */
-  top: 50%;
-  transform: translateY(-50%);
+  display: block; /* Garante que se comporte como um bloco */
+  flex-shrink: 0; /* Impede que o checkbox diminua de tamanho */
   height: 18px; /* Tamanho do quadrado do checkbox */
   width: 18px;
-  background-color: var(
-    --bg-button-neutral
-  ); /* Cor de fundo padrão (cinza claro) */
-  border: 1px solid var(--border-color-default); /* Borda */
-  border-radius: var(--radius-xs); /* Cantos levemente arredondados */
-  transition: all var(--transition-fast); /* Transição suave para mudanças de estado */
+  background-color: var(--bg-button-neutral);
+  border: 1px solid var(--border-color-default);
+  border-radius: var(--radius-xs);
+  transition: all var(--transition-fast);
+  margin-top: 2px; /* Pequeno ajuste para alinhar com a primeira linha do texto */
 }
 
 /* Estilo do checkmark (o 'V') */
 .checkmark:after {
   content: "";
   position: absolute;
-  display: none; /* Escondido por padrão */
+  display: none;
   left: 6px;
   top: 3px;
   width: 5px;
   height: 10px;
-  border: solid var(--text-light); /* Cor branca para o 'V' */
-  border-width: 0 2px 2px 0; /* Apenas bordas direita e inferior para o 'V' */
-  transform: rotate(45deg); /* Gira para formar o 'V' */
+  border: solid var(--text-light);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
 }
 
 /* Mostra o checkmark (o 'V') quando o input está marcado */
@@ -351,13 +342,13 @@ body {
 
 /* Muda a cor de fundo e borda do checkbox customizado quando o input está marcado */
 .checkbox-container input[type="checkbox"]:checked ~ .checkmark {
-  background-color: var(--color-primary); /* Azul escuro do tema */
+  background-color: var(--color-primary);
   border-color: var(--color-primary);
 }
 
 /* Estilo de hover para o checkbox customizado */
 .checkbox-container:hover input[type="checkbox"]:not(:disabled) ~ .checkmark {
-  background-color: #d1d1d1; /* Um cinza um pouco mais escuro no hover */
+  background-color: #d1d1d1;
   border-color: #a0a0a0;
 }
 
@@ -365,30 +356,48 @@ body {
 .checkbox-container:hover
   input[type="checkbox"]:checked:not(:disabled)
   ~ .checkmark {
-  background-color: var(--color-tertiary); /* Verde água no hover de marcado */
+  background-color: var(--color-tertiary);
   border-color: var(--color-tertiary);
 }
 
 /* Estilos quando o checkbox está desabilitado */
 .checkbox-container input[type="checkbox"]:disabled ~ .checkmark {
-  opacity: 0.5; /* Reduz a opacidade */
-  background-color: #e0e0e0; /* Fundo mais neutro */
+  opacity: 0.5;
+  background-color: #e0e0e0;
   border-color: #bbb;
   cursor: not-allowed;
 }
 
 .checkbox-container input[type="checkbox"]:disabled ~ .checkbox-label {
-  opacity: 0.7; /* Reduz a opacidade do texto do label */
+  opacity: 0.7;
   cursor: not-allowed;
 }
 
 /* Estilo para o texto do label que acompanha o checkbox customizado */
+.checkbox-label {
+  flex-grow: 1; /* Permite que o texto ocupe o espaço restante */
+  word-wrap: break-word; /* Força quebra de palavras longas */
+  overflow-wrap: break-word; /* Versão mais moderna de word-wrap */
+  white-space: pre-wrap; /* Essencial para permitir a quebra de linha natural */
+}
+
+/* Estilos de foco para acessibilidade */
+.checkbox-container input[type="checkbox"]:focus-visible ~ .checkmark {
+  box-shadow:
+    0 0 0 3px rgba(var(--color-primary-rgb), 0.4),
+    inset 0 0 0 1px var(--color-primary);
+  border-color: var(--color-primary);
+}
+/* Estilo para o texto do label que acompanha o checkbox customizado */
 /* Não precisamos mais de 'flex: 1' ou outros 'flex-basis' aqui diretamente,
    pois o flexbox do container já lida com o alinhamento e o padding-left/position:absolute
    se encarregam do espaçamento. */
+/* Estilo para o texto do label que acompanha o checkbox customizado */
 .checkbox-label {
-  /* Pode ser usado para estilos específicos do texto se necessário,
-     mas muitos já virão do .checkbox-container */
+  flex-grow: 1; /* Permite que o texto ocupe o espaço restante */
+  word-wrap: break-word; /* Força quebra de palavras longas */
+  overflow-wrap: break-word; /* Versão mais moderna de word-wrap */
+  white-space: pre-wrap; /* Essencial para permitir a quebra de linha natural */
 }
 
 /* Estilos de foco para acessibilidade */
