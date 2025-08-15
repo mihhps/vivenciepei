@@ -412,16 +412,23 @@ export default function CriarPEI() {
   );
 
   // --- LÓGICA DE CARREGAMENTO DE DADOS INICIAIS ---
-  // AQUI É A ÚNICA FUNÇÃO QUE FOI MODIFICADA
+  // FUNÇÃO MODIFICADA PARA FILTRAR ALUNOS COM PEI
   const carregarDadosIniciais = useCallback(async () => {
     setCarregando(true);
     exibirMensagem("sucesso", "Carregando dados iniciais...");
     try {
       const currentYear = new Date().getFullYear();
 
-      const [alunosSnap, avaliacoesSnap] = await Promise.all([
+      // Buscamos todos os PEIs do ano letivo
+      const qPeis = query(
+        collection(db, "peis"),
+        where("anoLetivo", "==", currentYear)
+      );
+
+      const [alunosSnap, avaliacoesSnap, peisSnap] = await Promise.all([
         getDocs(collection(db, "alunos")),
         getDocs(collection(db, "avaliacoesIniciais")),
+        getDocs(qPeis),
       ]);
 
       const todosAlunos = alunosSnap.docs.map((doc) => ({
@@ -430,28 +437,51 @@ export default function CriarPEI() {
       }));
       const todasAvaliacoes = avaliacoesSnap.docs.map((doc) => doc.data());
 
-      const { perfil, turmas } = usuarioLogado;
+      // NOVO: Coleta os IDs dos alunos que já têm um PEI
+      const alunosComPeiIds = new Set();
+      peisSnap.docs.forEach((doc) => {
+        const peiData = doc.data();
+        alunosComPeiIds.add(peiData.alunoId);
+      });
+
+      const { perfil, turmas, email } = usuarioLogado;
       const turmasVinculadas = turmas ? Object.keys(turmas) : [];
 
       let alunosFiltradosParaExibir = todosAlunos;
 
-      // Filtra alunos por turma, a menos que o perfil tenha acesso amplo
       const podeVerTodosAlunosNoSistema =
         perfil === "gestao" ||
         perfil === "aee" ||
         perfil === "seme" ||
         perfil === "desenvolvedor";
 
+      // Filtra alunos por turma, a menos que o perfil tenha acesso amplo
       if (!podeVerTodosAlunosNoSistema) {
         alunosFiltradosParaExibir = alunosFiltradosParaExibir.filter((aluno) =>
           turmasVinculadas.includes(aluno.turma)
         );
       }
 
-      // NOVO: A lista de alunos para a seleção será apenas a lista
-      // dos alunos da turma do professor (ou todos, para perfis de gestão/AEE).
-      // A lógica de "tem PEI ou não" será tratada na próxima etapa, em handleSelectStudent.
-      setAlunos(alunosFiltradosParaExibir);
+      // FILTRO ADICIONAL: Remove alunos que já têm um PEI criado por outra pessoa
+      const alunosParaSelecaoFinal = alunosFiltradosParaExibir.filter(
+        (aluno) => {
+          // Verifica se o aluno já tem um PEI criado por ESTE usuário logado
+          const peiJaCriadoPorEsteUsuario = peisSnap.docs.some(
+            (doc) =>
+              doc.data().alunoId === aluno.id && doc.data().criadorId === email
+          );
+
+          // Se o usuário já criou um PEI para este aluno, ele continua na lista para poder editar.
+          if (peiJaCriadoPorEsteUsuario) {
+            return true;
+          }
+
+          // Se o usuário NÃO é o criador do PEI, remove o aluno da lista se ele já tiver um PEI.
+          return !alunosComPeiIds.has(aluno.id);
+        }
+      );
+
+      setAlunos(alunosParaSelecaoFinal); // Define a nova lista filtrada
       setAvaliacoes(todasAvaliacoes);
       exibirMensagem("sucesso", "Dados carregados com sucesso.");
     } catch (err) {
