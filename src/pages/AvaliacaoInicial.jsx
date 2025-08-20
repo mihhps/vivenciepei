@@ -168,45 +168,23 @@ function AvaliacaoInicial() {
             Idade: <strong>{form.idade}</strong> anos
           </p>
 
-          <div style={estilos.botoesContainer}>
-            {/* Botões Principais de Ação */}
-            {form.avaliacaoExiste ? (
+          <div style={estilos.botoesPDF}>
+            <button
+              onClick={handleGerarPDFAvaliacaoVazia}
+              disabled={carregandoGeral}
+              style={estilos.botaoPDFVazio}
+            >
+              Baixar PDF Vazio
+            </button>
+            {form.avaliacaoExiste && (
               <button
-                onClick={handleIniciarReavaliacao}
+                onClick={handleGerarPDFAvaliacaoPreenchida}
                 disabled={carregandoGeral}
-                style={estilos.botaoReavaliacao}
+                style={estilos.botaoPDFPreenchido}
               >
-                Iniciar Reavaliação
-              </button>
-            ) : (
-              <button
-                onClick={onSalvarClick}
-                disabled={carregandoGeral}
-                style={estilos.botaoSalvar}
-              >
-                {form.estado.salvando ? "Salvando..." : "Salvar Avaliação"}
+                Baixar PDF Preenchido
               </button>
             )}
-
-            {/* Agrupamento de Botões de PDF */}
-            <div style={estilos.botoesPDF}>
-              <button
-                onClick={handleGerarPDFAvaliacaoVazia}
-                disabled={carregandoGeral}
-                style={estilos.botaoPDFVazio}
-              >
-                Baixar PDF Vazio
-              </button>
-              {form.avaliacaoExiste && (
-                <button
-                  onClick={handleGerarPDFAvaliacaoPreenchida}
-                  disabled={carregandoGeral}
-                  style={estilos.botaoPDFPreenchido}
-                >
-                  Baixar PDF Preenchido
-                </button>
-              )}
-            </div>
           </div>
 
           <div className="date-inputs-container">
@@ -217,7 +195,8 @@ function AvaliacaoInicial() {
                 type="date"
                 value={form.inicio}
                 onChange={(e) => form.setInicio(e.target.value)}
-                disabled={form.avaliacaoExiste || carregandoGeral}
+                // CORREÇÃO AQUI: Usa avaliacaoDocId em vez de avaliacaoExiste
+                disabled={!!form.avaliacaoDocId || carregandoGeral}
               />
             </div>
             <div className="date-input-group">
@@ -227,7 +206,8 @@ function AvaliacaoInicial() {
                 type="date"
                 value={form.proximaAvaliacao}
                 onChange={(e) => form.setProximaAvaliacao(e.target.value)}
-                disabled={form.avaliacaoExiste || carregandoGeral}
+                // CORREÇÃO AQUI: Usa avaliacaoDocId em vez de avaliacaoExiste
+                disabled={!!form.avaliacaoDocId || carregandoGeral}
               />
             </div>
           </div>
@@ -260,10 +240,37 @@ function AvaliacaoInicial() {
               observacoes={form.observacoes[areaSelecionada] || ""}
               onResponder={handleResposta}
               onObservar={handleObservacao}
-              // AQUI ESTÁ A CORREÇÃO FINAL: Remova a propriedade 'disabled'.
-              // Isso permite que o formulário esteja sempre habilitado para o preenchimento inicial.
             />
           )}
+
+          <div style={estilos.botoesContainer}>
+            {form.avaliacaoExiste ? (
+              <>
+                <button
+                  onClick={onSalvarClick}
+                  disabled={carregandoGeral}
+                  style={estilos.botaoSalvar}
+                >
+                  {form.estado.salvando ? "Salvando..." : "Salvar Alterações"}
+                </button>
+                <button
+                  onClick={handleIniciarReavaliacao}
+                  disabled={carregandoGeral}
+                  style={estilos.botaoReavaliacao}
+                >
+                  Iniciar Reavaliação
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={onSalvarClick}
+                disabled={carregandoGeral}
+                style={estilos.botaoSalvar}
+              >
+                {form.estado.salvando ? "Salvando..." : "Salvar Avaliação"}
+              </button>
+            )}
+          </div>
         </>
       )}
     </div>
