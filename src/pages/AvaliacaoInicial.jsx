@@ -260,7 +260,8 @@ function AvaliacaoInicial() {
               observacoes={form.observacoes[areaSelecionada] || ""}
               onResponder={handleResposta}
               onObservar={handleObservacao}
-              disabled={true}
+              // AQUI ESTÁ A CORREÇÃO FINAL: Remova a propriedade 'disabled'.
+              // Isso permite que o formulário esteja sempre habilitado para o preenchimento inicial.
             />
           )}
         </>
