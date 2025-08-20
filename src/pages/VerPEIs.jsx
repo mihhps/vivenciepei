@@ -13,18 +13,14 @@ import {
   orderBy,
   limit,
 } from "firebase/firestore";
-import { fetchAvaliacaoInteresses } from "../utils/firebaseUtils"; // Confirme que este caminho está correto
+import { fetchAvaliacaoInteresses } from "../utils/firebaseUtils";
 
 // IMPORTS DOS DADOS PARA OBJETIVOS DE PRAZO
-// Certifique-se de que os caminhos estão corretos para o seu projeto!
-import estruturaPEI from "../data/estruturaPEI2"; // Seu arquivo principal (para objetivo de LONGO PRAZO e estratégias)
+import estruturaPEI from "../data/estruturaPEI2";
 import objetivosCurtoPrazoData from "../data/objetivosCurtoPrazo";
 import objetivosMedioPrazoData from "../data/objetivosMedioPrazo";
 
-// --- Funções de Mapeamento de Dados (Replicadas do gerarPDFCompleto.js / CriarPEI.jsx) ---
-/**
- * Mapeia a estrutura principal de habilidades para facilitar o acesso a objetivos de Longo Prazo e estratégias.
- */
+// --- Funções de Mapeamento de Dados (Replicadas) ---
 const getEstruturaPEIMap = (estrutura) => {
   const map = {};
   if (!estrutura) return map;
@@ -43,7 +39,7 @@ const getEstruturaPEIMap = (estrutura) => {
                 }
                 if (typeof niveisData === "object" && niveisData !== null) {
                   Object.entries(niveisData).forEach(([nivel, data]) => {
-                    map[habilidadeName][nivel] = data; // Contém objetivo (Longo Prazo) e estratégias
+                    map[habilidadeName][nivel] = data;
                   });
                 }
               }
@@ -56,9 +52,6 @@ const getEstruturaPEIMap = (estrutura) => {
   return map;
 };
 
-/**
- * Mapeia as estruturas de objetivos por prazo (Curto, Médio) para facilitar o acesso.
- */
 const getObjetivosPrazoMap = (prazoData) => {
   const map = {};
   if (!prazoData) return map;
@@ -77,7 +70,7 @@ const getObjetivosPrazoMap = (prazoData) => {
                 }
                 if (typeof niveisData === "object" && niveisData !== null) {
                   Object.entries(niveisData).forEach(([nivel, objData]) => {
-                    map[habilidadeName][nivel] = objData.objetivo; // Salva diretamente o texto do objetivo
+                    map[habilidadeName][nivel] = objData.objetivo;
                   });
                 }
               }
@@ -90,11 +83,10 @@ const getObjetivosPrazoMap = (prazoData) => {
   return map;
 };
 
-// --- Funções Auxiliares Comuns (existentes) ---
+// --- Funções Auxiliares Comuns ---
 const calcularIdadeEFaixa = (nascimento) => {
   if (!nascimento) return ["-", "-"];
   const hoje = new Date();
-  // Garante que nascimento é tratado como Date ou Firestore Timestamp
   const nasc =
     typeof nascimento.toDate === "function"
       ? nascimento.toDate()
@@ -174,7 +166,6 @@ export default function VerPEIs() {
     []
   );
 
-  // Mapeamentos para buscar os objetivos de prazos específicos
   const estruturaPEIMap = useMemo(() => getEstruturaPEIMap(estruturaPEI), []);
   const objetivosCurtoPrazoMap = useMemo(
     () => getObjetivosPrazoMap(objetivosCurtoPrazoData),
@@ -186,17 +177,6 @@ export default function VerPEIs() {
   );
 
   const carregarDados = useCallback(async () => {
-    console.log("--- DEBUG carregarDados START ---");
-    console.log(
-      "usuarioLogado (início):",
-      JSON.stringify(usuarioLogado, null, 2)
-    );
-    console.log("Tipo de perfil (usuarioLogado.perfil):", tipo);
-    console.log(
-      "Escolas vinculadas ao usuário logado (IDs):",
-      usuarioLogado.escolasVinculadasIds
-    );
-
     setCarregando(true);
     setErro(null);
 
@@ -214,7 +194,6 @@ export default function VerPEIs() {
       ]);
 
       const todasAvaliacoes = {};
-
       avaliacoesSnapshot.docs.forEach((doc) => {
         const data = doc.data();
         let nomeAlunoAvaliacao = "";
@@ -235,36 +214,15 @@ export default function VerPEIs() {
         id: doc.id,
         ...doc.data(),
       }));
-      setAlunos(alunosSalvos);
 
       const usuariosSalvos = usuariosSnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
-      console.log(
-        "Total de usuários salvos (Firestore):",
-        usuariosSalvos.length
-      );
-      console.log(
-        "Amostra do 1º usuário salvo:",
-        usuariosSalvos.length > 0
-          ? JSON.stringify(usuariosSalvos[0], null, 2)
-          : "Nenhum"
-      );
 
       let professoresDaEscola = [];
-      const todosPeis = peisSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-
       if (perfisComAcessoAmplo.includes(tipo)) {
-        console.log(`Caminho principal: Perfil com acesso amplo (${tipo}).`);
         if (usuarioLogado.escolasVinculadasIds.length > 0) {
-          console.log(
-            "  -> Com escolas vinculadas. Filtrando professores por:",
-            usuarioLogado.escolasVinculadasIds
-          );
           professoresDaEscola = usuariosSalvos.filter(
             (u) =>
               u.perfil === "professor" &&
@@ -273,61 +231,58 @@ export default function VerPEIs() {
                 usuarioLogado.escolasVinculadasIds.includes(escolaId)
               )
           );
-          console.log(
-            "  Professores filtrados por escola vinculada:",
-            professoresDaEscola.length
-          );
         } else {
-          console.log(
-            "  -> Sem escolas vinculadas. Mostrando TODOS os professores do sistema."
-          );
           professoresDaEscola = usuariosSalvos.filter(
             (u) => u.perfil === "professor"
           );
-          console.log(
-            "  Total de professores para exibir (perfil amplo sem escolas):",
-            professoresDaEscola.length
-          );
         }
       } else if (tipo === "professor") {
-        console.log("Caminho principal: Perfil Professor.");
         professoresDaEscola = usuariosSalvos.filter(
           (u) => u.id === usuarioLogado.id
         );
-        console.log(
-          "  Professores filtrados (apenas o logado):",
-          professoresDaEscola.length,
-          professoresDaEscola.length > 0
-            ? JSON.stringify(professoresDaEscola[0], null, 2)
-            : "Nenhum"
+      }
+      setUsuarios(professoresDaEscola);
+
+      const todosPeis = peisSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      let alunosVisiveis;
+      let peisVisiveis;
+
+      if (tipo === "professor") {
+        const professorCompleto = usuariosSalvos.find(
+          (u) => u.id === usuarioLogado.id
         );
+        const turmasDoProfessor = professorCompleto?.turmas
+          ? Object.keys(professorCompleto.turmas)
+          : [];
+
+        alunosVisiveis = alunosSalvos.filter((aluno) =>
+          turmasDoProfessor.includes(aluno.turma)
+        );
+
+        peisVisiveis = todosPeis.filter(
+          (pei) => pei.criadorId === usuarioLogado.email
+        );
+      } else if (perfisComAcessoAmplo.includes(tipo)) {
+        alunosVisiveis = alunosSalvos;
+        if (filtroUsuario) {
+          peisVisiveis = todosPeis.filter((p) => p.criadorId === filtroUsuario);
+        } else {
+          peisVisiveis = todosPeis;
+        }
       } else {
-        console.warn(
-          `[VerPEIs] Perfil '${tipo}' não tem regra de filtragem definida. Nenhum professor visível.`
-        );
-        professoresDaEscola = [];
+        alunosVisiveis = [];
+        peisVisiveis = [];
       }
 
-      setUsuarios(professoresDaEscola);
-      console.log(
-        "Final: Total de professores para o dropdown (setUsuarios):",
-        professoresDaEscola.length
-      );
-
-      const peisFiltradosPorDropdown = filtroUsuario
-        ? todosPeis.filter((p) => p.criadorId === filtroUsuario)
-        : todosPeis;
-
-      const peisFiltradosFinal =
-        tipo === "professor"
-          ? peisFiltradosPorDropdown.filter(
-              (p) => p.criadorId === usuarioLogado.email
-            )
-          : peisFiltradosPorDropdown;
+      setAlunos(alunosVisiveis);
 
       const agrupados = {};
-      alunosSalvos.forEach((aluno) => {
-        agrupados[aluno.nome] = peisFiltradosFinal
+      alunosVisiveis.forEach((aluno) => {
+        agrupados[aluno.nome] = peisVisiveis
           .filter((p) => p.aluno === aluno.nome)
           .sort((a, b) => {
             const dataA =
@@ -335,26 +290,25 @@ export default function VerPEIs() {
                 ? a.dataCriacao
                 : a.dataCriacao?.toDate
                   ? a.dataCriacao.toDate()
-                  : new Date(0); // Correção para dataCriacao ser um Timestamp
+                  : new Date(0);
             const dataB =
               b.dataCriacao instanceof Date
                 ? b.dataCriacao
                 : b.dataCriacao?.toDate
                   ? b.dataCriacao.toDate()
-                  : new Date(0); // Correção para dataCriacao ser um Timestamp
+                  : new Date(0);
             return dataB.getTime() - dataA.getTime();
           });
       });
 
       setPeisPorAluno(agrupados);
-      console.log("--- DEBUG carregarDados END ---");
     } catch (erro) {
       console.error("Erro ao carregar dados:", erro);
       setErro("Erro ao carregar dados. Tente recarregar a página.");
     } finally {
       setCarregando(false);
     }
-  }, [abaAtiva, filtroUsuario, tipo, usuarioLogado, perfisComAcessoAmplo]); // Removi estruturaPEIMap, objetivosCurtoPrazoMap, objetivosMedioPrazoMap das dependências do useCallback, pois são memoizados e globais ao escopo do módulo.
+  }, [filtroUsuario, tipo, usuarioLogado, perfisComAcessoAmplo]);
 
   useEffect(() => {
     carregarDados();
@@ -375,11 +329,7 @@ export default function VerPEIs() {
     }
   };
 
-  // --- FUNÇÃO handleGerarPDF CORRIGIDA ---
   const handleGerarPDF = async () => {
-    // Não precisa mais receber 'peiOriginal'
-    console.log("--- DEBUG handleGerarPDF START ---");
-
     try {
       const alunoCompletoParaPDF = alunos.find((a) => a.nome === abaAtiva);
 
@@ -387,21 +337,12 @@ export default function VerPEIs() {
         alert(
           `Dados completos do aluno (${abaAtiva}) não encontrados. Não é possível gerar o PDF.`
         );
-        console.error("DEBUG: alunoCompletoParaPDF é nulo ou undefined.");
         return;
       }
 
-      // Verifica se o alunoCompletoParaPDF tem as informações essenciais
       if (!alunoCompletoParaPDF.nome || !alunoCompletoParaPDF.id) {
         alert(
           `Dados essenciais (nome ou ID) do aluno completo estão faltando para o PEI de ${alunoCompletoParaPDF.nome || "aluno selecionado"}. Não é possível gerar o PDF.`
-        );
-        console.error(
-          "DEBUG: alunoCompletoParaPDF.nome ou alunoCompletoParaPDF.id está faltando.",
-          {
-            alunoCompletoNome: alunoCompletoParaPDF.nome,
-            alunoCompletoId: alunoCompletoParaPDF.id,
-          }
         );
         return;
       }
@@ -412,57 +353,34 @@ export default function VerPEIs() {
         alert(
           `Avaliação Inicial não encontrada para ${alunoCompletoParaPDF.nome}.`
         );
-        console.error("DEBUG: Avaliação está faltando.");
         return;
       }
 
       let avaliacaoInteressesData = null;
       try {
-        console.log(
-          `[PDF_DEBUG] Buscando avaliação de interesses para alunoId: ${alunoCompletoParaPDF.id} e userId: ${usuarioLogado.id}`
-        );
         const interessesDoc = await fetchAvaliacaoInteresses(
           alunoCompletoParaPDF.id,
           usuarioLogado.id
         );
         if (interessesDoc) {
           avaliacaoInteressesData = interessesDoc;
-          console.log(
-            "[PDF_DEBUG] Avaliação de Interesses encontrada:",
-            JSON.stringify(avaliacaoInteressesData, null, 2)
-          );
-        } else {
-          console.warn(
-            "[PDF_DEBUG] Nenhuma avaliação de interesses encontrada para este aluno."
-          );
         }
       } catch (err) {
         console.error("Erro ao buscar avaliação de interesses:", err);
       }
 
-      console.log(
-        "Chamando gerarPDFCompleto sem passar PEIs individualmente. Ele buscará todos."
-      );
-
-      // A mudança chave: OMITIMOS o array 'peisParaGeral' completamente,
-      // ou passamos um array vazio para forçar o gerarPDFCompleto a buscar.
       await gerarPDFCompleto(
         alunoCompletoParaPDF,
         avaliacao,
         usuarioLogado,
-        // Remover o '[peiParaPDF]' daqui. A função `gerarPDFCompleto` irá chamar `fetchPeis` internamente.
-        // Se você precisa passar um array vazio explicitamente para acionar a lógica de `fetchPeis` interna, use `[]`.
-        [], // Garante que a lógica de fallback do gerarPDFCompleto é acionada
+        [],
         avaliacaoInteressesData
       );
-      console.log("--- DEBUG handleGerarPDF END ---");
     } catch (error) {
       console.error("Erro ao gerar PDF:", error);
       alert("Erro ao gerar PDF. Por favor, tente novamente.");
     }
   };
-
-  // --- FIM DA FUNÇÃO handleGerarPDF CORRIGIDA ---
 
   if (carregando) {
     return (
@@ -518,7 +436,7 @@ export default function VerPEIs() {
 
         {alunos.length === 0 ? (
           <p style={estilos.semDados}>
-            Nenhum aluno cadastrado ou PEI encontrado.
+            Nenhum aluno encontrado para o seu perfil.
           </p>
         ) : (
           <>
@@ -551,7 +469,7 @@ export default function VerPEIs() {
                 <option value="">Selecione o Aluno</option>
                 {alunos.map((aluno) => (
                   <option key={aluno.id} value={aluno.nome}>
-                    {aluno.nome}
+                    {aluno.nome} - {aluno.turma}
                   </option>
                 ))}
               </select>
@@ -592,7 +510,6 @@ export default function VerPEIs() {
                               <p>
                                 <strong>Turma no PEI:</strong> {pei.turma}
                               </p>
-
                               {(() => {
                                 let nomeAlunoPeiParaAvaliacao = "";
                                 if (
@@ -641,8 +558,9 @@ export default function VerPEIs() {
 
                             <div style={estilos.botoes}>
                               {(usuarioLogado.email === pei.criadorId ||
-                                usuarioLogado.perfil === "gestao" ||
-                                usuarioLogado.perfil === "aee") && (
+                                perfisComAcessoAmplo.includes(
+                                  usuarioLogado.perfil
+                                )) && (
                                 <>
                                   <button
                                     style={estilos.editar}
@@ -674,16 +592,15 @@ export default function VerPEIs() {
                                 Visualizar
                               </button>
                               <button
-                                className="botao-secundario" // Mantido como className para possível CSS global
+                                className="botao-secundario"
                                 onClick={() =>
                                   navigate(`/acompanhar-metas/${pei.id}`)
                                 }
                               >
                                 Acompanhar Metas
                               </button>
-                              {/* NOVO BOTÃO DE OBSERVAÇÕES */}
                               <button
-                                style={estilos.observacoes} // Usando o novo estilo definido
+                                style={estilos.observacoes}
                                 onClick={() =>
                                   navigate(`/observacoes-aluno/${pei.id}`, {
                                     state: {
@@ -700,10 +617,7 @@ export default function VerPEIs() {
                         ))
                       )}
                       {alunoDaAba && (
-                        <button
-                          style={estilos.gerar}
-                          onClick={handleGerarPDF} // Chamada sem passar argumentos, handleGerarPDF obtém do estado
-                        >
+                        <button style={estilos.gerar} onClick={handleGerarPDF}>
                           Gerar PDF
                         </button>
                       )}
@@ -729,7 +643,6 @@ const estilos = {
     width: "100vw",
     minHeight: "100vh",
   },
-
   listaAlunos: {
     display: "flex",
     flexDirection: "column",
@@ -739,7 +652,6 @@ const estilos = {
     borderRight: "2px solid #ccc",
     paddingRight: "10px",
   },
-
   itemAluno: {
     padding: "12px",
     cursor: "pointer",
@@ -851,9 +763,8 @@ const estilos = {
     borderRadius: "6px",
     cursor: "pointer",
   },
-  // NOVO ESTILO PARA O BOTÃO DE OBSERVAÇÕES
   observacoes: {
-    backgroundColor: "#ffc107", // Cor amarela para destaque
+    backgroundColor: "#ffc107",
     color: "#fff",
     border: "none",
     padding: "8px 16px",

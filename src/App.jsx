@@ -14,6 +14,7 @@ import CadastrarProfessor from "./pages/CadastrarProfessor";
 import RecuperarSenha from "./pages/RecuperarSenha";
 import EscolaAtual from "./components/EscolaAtual";
 import PrivateRoute from "./components/PrivateRoute";
+import CorrigirTurmas from "./pages/CorrigirTurmas";
 
 // Lazy-loaded Pages
 const PainelGestao = lazy(() => import("./pages/PainelGestao"));
@@ -55,7 +56,6 @@ const VisualizacaoPrazosPEIProfessor = lazy(
 const MeuAcompanhamentoProfessor = lazy(
   () => import("./pages/MeuAcompanhamentoProfessor")
 );
-
 const CadastroTurma = lazy(() => import("./pages/CadastroTurma.jsx"));
 
 // NOVO: Importar a página de avaliação de interesses
@@ -65,7 +65,7 @@ const AvaliacaoInteressesPage = lazy(
 
 // NOVO: Importar o componente de seleção de aluno para interesses
 const SelecionarAlunoParaInteresses = lazy(
-  () => import("./pages/SelecionarAlunoParaInteresses") // Caminho atualizado
+  () => import("./pages/SelecionarAlunoParaInteresses")
 );
 
 // NOVO: Importar a página de visualização de interesses
@@ -74,7 +74,10 @@ const VisualizarAvaliacaoInteressesPage = lazy(
 );
 
 // NOVO: Importar a página de observações do aluno
-const ObservacoesAluno = lazy(() => import("./pages/ObservacoesAluno")); // <--- ADICIONADO AQUI
+const ObservacoesAluno = lazy(() => import("./pages/ObservacoesAluno"));
+
+// NOVO: Importar o componente de reavaliação
+const Reavaliacao = lazy(() => import("./pages/Reavaliacao"));
 
 // PDF.js Worker para importação de PDFs
 import * as pdfjsLib from "pdfjs-dist/build/pdf";
@@ -149,7 +152,7 @@ export default function App() {
                 path="/visualizar-interesses/:alunoId"
                 element={<VisualizarAvaliacaoInteressesPage />}
               />
-
+              <Route path="/corrigir-turmas" element={<CorrigirTurmas />} />
               {/* PEI */}
               <Route path="/criar-pei" element={<CriarPei />} />
               <Route path="/ver-peis" element={<VerPeis />} />
@@ -162,7 +165,7 @@ export default function App() {
               />
               {/* NOVO: Rota para Observações do Aluno */}
               <Route
-                path="/observacoes-aluno/:peiId" // <--- ADICIONADO AQUI
+                path="/observacoes-aluno/:peiId"
                 element={<ObservacoesAluno />}
               />
 
@@ -186,7 +189,7 @@ export default function App() {
                 element={<MeuAcompanhamentoProfessor />}
               />
             </Route>
-
+            <Route path="/reavaliacao/:alunoId" element={<Reavaliacao />} />
             {/* Rota Coringa */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

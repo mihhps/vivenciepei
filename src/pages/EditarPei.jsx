@@ -2,19 +2,27 @@ import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import BotaoVoltar from "../components/BotaoVoltar";
 import { db } from "../firebase";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  updateDoc,
+  collection,
+  query,
+  where,
+  orderBy,
+  limit,
+  getDocs,
+  serverTimestamp,
+} from "firebase/firestore";
 import "../styles/EditarPei.css";
 
-// IMPORTAÇÕES DOS DADOS PARA OBJETIVOS DE PRAZO
-// Certifique-se de que os caminhos estão corretos para o seu projeto!
-import estruturaPEI from "../data/estruturaPEI2"; // Seu arquivo principal (para objetivo de LONGO PRAZO e estratégias)
+// IMPORTAÇÕES DOS DADOS
+import estruturaPEI from "../data/estruturaPEI2";
 import objetivosCurtoPrazoData from "../data/objetivosCurtoPrazo";
 import objetivosMedioPrazoData from "../data/objetivosMedioPrazo";
+import { avaliacaoInicial } from "../data/avaliacaoInicialData";
 
-// --- Funções de Mapeamento de Dados (Replicadas do gerarPDFCompleto.js / CriarPEI.jsx) ---
-/**
- * Mapeia a estrutura principal de habilidades para facilitar o acesso a objetivos de Longo Prazo e estratégias.
- */
+// --- Funções de Mapeamento de Dados ---
 const getEstruturaPEIMap = (estrutura) => {
   const map = {};
   if (!estrutura) return map;
@@ -33,7 +41,7 @@ const getEstruturaPEIMap = (estrutura) => {
                 }
                 if (typeof niveisData === "object" && niveisData !== null) {
                   Object.entries(niveisData).forEach(([nivel, data]) => {
-                    map[habilidadeName][nivel] = data; // Contém objetivo (Longo Prazo) e estratégias
+                    map[habilidadeName][nivel] = data;
                   });
                 }
               }
@@ -46,9 +54,6 @@ const getEstruturaPEIMap = (estrutura) => {
   return map;
 };
 
-/**
- * Mapeia as estruturas de objetivos por prazo (Curto, Médio) para facilitar o acesso.
- */
 const getObjetivosPrazoMap = (prazoData) => {
   const map = {};
   if (!prazoData) return map;
@@ -67,7 +72,7 @@ const getObjetivosPrazoMap = (prazoData) => {
                 }
                 if (typeof niveisData === "object" && niveisData !== null) {
                   Object.entries(niveisData).forEach(([nivel, objData]) => {
-                    map[habilidadeName][nivel] = objData.objetivo; // Salva diretamente o texto do objetivo
+                    map[habilidadeName][nivel] = objData.objetivo;
                   });
                 }
               }
@@ -80,7 +85,7 @@ const getObjetivosPrazoMap = (prazoData) => {
   return map;
 };
 
-// --- Constantes de Níveis (já existentes) ---
+// --- Constantes e Funções Auxiliares ---
 const LEGENDA_NIVEIS = {
   NR: "Não realizou",
   AF: "Apoio físico",
@@ -90,14 +95,12 @@ const LEGENDA_NIVEIS = {
   I: "Independente",
 };
 
-// --- Funções Auxiliares ---
 const normalizarEstrategias = (estrategias) => {
   if (Array.isArray(estrategias)) return estrategias;
   if (typeof estrategias === "string" && estrategias) return [estrategias];
   return [];
 };
 
-// Componente principal
 function EditarPei() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -108,7 +111,20 @@ function EditarPei() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState(null);
 
-  // Mapeamentos para buscar os objetivos de prazos específicos
+  const [areaAtiva, setAreaAtiva] = useState("");
+  const [activeTab, setActiveTab] = useState("longoPrazo");
+
+  const [objetivosSelecionados, setObjetivosSelecionados] = useState({});
+
+  const usuarioLogado = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem("usuarioLogado")) || {};
+    } catch (e) {
+      console.error("Erro ao fazer parse do usuário logado:", e);
+      return {};
+    }
+  }, []);
+
   const estruturaPEIMap = useMemo(() => getEstruturaPEIMap(estruturaPEI), []);
   const objetivosCurtoPrazoMap = useMemo(
     () => getObjetivosPrazoMap(objetivosCurtoPrazoData),
@@ -118,6 +134,8 @@ function EditarPei() {
     () => getObjetivosPrazoMap(objetivosMedioPrazoData),
     []
   );
+
+  const todasAsAreas = useMemo(() => Object.keys(avaliacaoInicial), []);
 
   const carregarPei = useCallback(async () => {
     setCarregando(true);
@@ -129,77 +147,166 @@ function EditarPei() {
         setErro("PEI não encontrado.");
         return;
       }
-
       const dados = docSnap.data();
-      const resumoPeiProcessado = (dados.resumoPEI || []).map((meta) => {
-        const estrategiasSalvas = normalizarEstrategias(
-          meta.estrategias || meta.estrategiasSelecionadas
-        ); // Adapta para nome antigo/novo de estratégias
+      const alunoId = dados.alunoId;
+      const currentYear = new Date().getFullYear();
 
-        let objetivosCompletos = {
-          curtoPrazo: "",
-          medioPrazo: "",
-          longoPrazo: "",
-        };
+      const qPrimeiroPeiDoAluno = query(
+        collection(db, "peis"),
+        where("alunoId", "==", alunoId),
+        where("anoLetivo", "==", currentYear),
+        orderBy("dataCriacao", "asc"),
+        limit(1)
+      );
+      const primeiroPeiSnap = await getDocs(qPrimeiroPeiDoAluno);
+      const primeiroPeiDoAluno = !primeiroPeiSnap.empty
+        ? primeiroPeiSnap.docs[0].data()
+        : null;
 
-        // Lógica para preencher os objetivos de curto, médio e longo prazo
-        if (meta.objetivos && typeof meta.objetivos === "object") {
-          // Caso 1: PEI salvo na nova estrutura (objetivos é um objeto)
-          objetivosCompletos.curtoPrazo =
-            meta.objetivos.curtoPrazo ||
-            objetivosCurtoPrazoMap[meta.habilidade]?.[meta.nivelAlmejado] ||
-            "";
-          objetivosCompletos.medioPrazo =
-            meta.objetivos.medioPrazo ||
-            objetivosMedioPrazoMap[meta.habilidade]?.[meta.nivelAlmejado] ||
-            "";
-          objetivosCompletos.longoPrazo =
-            meta.objetivos.longoPrazo ||
-            estruturaPEIMap[meta.habilidade]?.[meta.nivelAlmejado]?.objetivo ||
-            "";
-        } else if (typeof meta.objetivo === "string") {
-          // Caso 2: PEI salvo na estrutura antiga (objetivo era uma string, que assumimos ser o Longo Prazo)
-          objetivosCompletos.longoPrazo = meta.objetivo; // O objetivo antigo é o Longo Prazo
-          objetivosCompletos.curtoPrazo =
-            objetivosCurtoPrazoMap[meta.habilidade]?.[meta.nivelAlmejado] || "";
-          objetivosCompletos.medioPrazo =
-            objetivosMedioPrazoMap[meta.habilidade]?.[meta.nivelAlmejado] || "";
-        } else {
-          // Caso 3: Nenhuma informação de objetivo, tenta preencher tudo pelos mapas (pode ser um PEI recém-criado sem ter sido salvo ainda com todos os dados)
-          objetivosCompletos.curtoPrazo =
-            objetivosCurtoPrazoMap[meta.habilidade]?.[meta.nivelAlmejado] || "";
-          objetivosCompletos.medioPrazo =
-            objetivosMedioPrazoMap[meta.habilidade]?.[meta.nivelAlmejado] || "";
-          objetivosCompletos.longoPrazo =
-            estruturaPEIMap[meta.habilidade]?.[meta.nivelAlmejado]?.objetivo ||
-            "";
+      const qTodosPeisDoAluno = query(
+        collection(db, "peis"),
+        where("alunoId", "==", alunoId),
+        where("anoLetivo", "==", currentYear)
+      );
+      const todosPeisDoAlunoSnap = await getDocs(qTodosPeisDoAluno);
+      const estrategiasJaEmUsoGlobalmente = new Set();
+      todosPeisDoAlunoSnap.docs.forEach((doc) => {
+        const peiData = doc.data();
+        if (Array.isArray(peiData.resumoPEI)) {
+          peiData.resumoPEI.forEach((meta) => {
+            if (Array.isArray(meta.estrategiasSelecionadas)) {
+              meta.estrategiasSelecionadas.forEach((estrat) =>
+                estrategiasJaEmUsoGlobalmente.add(estrat)
+              );
+            }
+          });
         }
-
-        return {
-          ...meta,
-          objetivos: objetivosCompletos, // A meta agora sempre terá o objeto de objetivos
-          estrategias: estrategiasSalvas, // Estratégias já existentes
-        };
       });
 
-      setPei({ id, ...dados, resumoPEI: resumoPeiProcessado });
-      setAtividadeAplicada(dados.atividadeAplicada || "");
+      // NOVO: Coleta todas as metas do PEI do professor logado e do PEI base
+      const metasDoProfessor = dados.resumoPEI || [];
+      const metasDoPeiBase = primeiroPeiDoAluno?.resumoPEI || [];
 
+      const todasAsHabilidades = new Set(
+        [...metasDoProfessor, ...metasDoPeiBase].map((m) => m.habilidade)
+      );
+
+      const peiAgrupadoPorArea = {};
+      const objetivosParaSelecao = {};
       const entradaInicial = {};
-      resumoPeiProcessado.forEach((meta) => {
-        entradaInicial[meta.habilidade] = {
-          estrategias: meta.estrategias, // As estratégias que já vieram do Firebase
-          estrategiasManuais: "", // Inicia vazio para novas entradas manuais
+
+      todasAsHabilidades.forEach((habilidade) => {
+        const metaDoProfessor = metasDoProfessor.find(
+          (m) => m.habilidade === habilidade
+        );
+        const metaDoPeiBase = metasDoPeiBase.find(
+          (m) => m.habilidade === habilidade
+        );
+
+        const metaPrincipal = metaDoProfessor || metaDoPeiBase;
+        if (!metaPrincipal) return; // Se por algum motivo não encontrar, ignora
+
+        const area = metaPrincipal.area;
+        const manualKey = `${area}-${habilidade.replace(/[^a-zA-Z0-9-]/g, "")}`;
+
+        // --- Processamento de Estratégias ---
+        const estrategiasSalvas = normalizarEstrategias(
+          metaDoProfessor?.estrategiasSelecionadas ||
+            metaDoProfessor?.estrategias ||
+            []
+        );
+        const suggestedStrategiesFromMap = normalizarEstrategias(
+          estruturaPEIMap[habilidade]?.[metaPrincipal.nivelAlmejado]
+            ?.estrategias
+        );
+        const selectedStrategiesForThisPei = new Set(estrategiasSalvas);
+        const availableSuggestedStrategies = suggestedStrategiesFromMap.filter(
+          (estrat) =>
+            !estrategiasJaEmUsoGlobalmente.has(estrat) ||
+            selectedStrategiesForThisPei.has(estrat)
+        );
+        const selectedSuggestedFromSaved = estrategiasSalvas.filter((saved) =>
+          suggestedStrategiesFromMap.includes(saved)
+        );
+        const manualSavedStrategies = estrategiasSalvas.filter(
+          (saved) => !suggestedStrategiesFromMap.includes(saved)
+        );
+
+        // --- Processamento de Objetivos ---
+        const objetivosBase = metaDoPeiBase?.objetivos || {
+          longoPrazo: metaDoPeiBase?.objetivo || "",
+          curtoPrazo:
+            objetivosCurtoPrazoMap[habilidade]?.[
+              metaDoPeiBase?.nivelAlmejado
+            ] || "",
+          medioPrazo:
+            objetivosMedioPrazoMap[habilidade]?.[
+              metaDoPeiBase?.nivelAlmejado
+            ] || "",
+        };
+
+        const objetivosDoProfessor = metaDoProfessor?.objetivos || {
+          curtoPrazo:
+            objetivosCurtoPrazoMap[habilidade]?.[metaPrincipal.nivelAlmejado] ||
+            "",
+          medioPrazo:
+            objetivosMedioPrazoMap[habilidade]?.[metaPrincipal.nivelAlmejado] ||
+            "",
+          longoPrazo:
+            estruturaPEIMap[habilidade]?.[metaPrincipal.nivelAlmejado]
+              ?.objetivo || "",
+        };
+
+        const todosOsObjetivosDestaMeta = {
+          curtoPrazo: Array.from(
+            new Set([objetivosDoProfessor.curtoPrazo, objetivosBase.curtoPrazo])
+          ).filter(Boolean),
+          medioPrazo: Array.from(
+            new Set([objetivosDoProfessor.medioPrazo, objetivosBase.medioPrazo])
+          ).filter(Boolean),
+          longoPrazo: Array.from(
+            new Set([objetivosDoProfessor.longoPrazo, objetivosBase.longoPrazo])
+          ).filter(Boolean),
+        };
+
+        objetivosParaSelecao[manualKey] = {
+          curtoPrazo: [objetivosDoProfessor.curtoPrazo].filter(Boolean),
+          medioPrazo: [objetivosDoProfessor.medioPrazo].filter(Boolean),
+          longoPrazo: [objetivosDoProfessor.longoPrazo].filter(Boolean),
+        };
+
+        if (!peiAgrupadoPorArea[area]) {
+          peiAgrupadoPorArea[area] = [];
+        }
+        peiAgrupadoPorArea[area].push({
+          ...metaPrincipal,
+          objetivos: todosOsObjetivosDestaMeta,
+          estrategias: availableSuggestedStrategies,
+          estrategiasSelecionadas: estrategiasSalvas,
+        });
+
+        entradaInicial[manualKey] = {
+          estrategias: selectedSuggestedFromSaved,
+          estrategiasManuais: manualSavedStrategies.join("\n"),
         };
       });
+
+      setPei({ id, ...dados, resumoPEI: peiAgrupadoPorArea });
+      setAtividadeAplicada(dados.atividadeAplicada || "");
       setEntradaManual(entradaInicial);
+      setObjetivosSelecionados(objetivosParaSelecao);
+
+      const primeiraArea = Object.keys(peiAgrupadoPorArea)[0];
+      if (primeiraArea) {
+        setAreaAtiva(primeiraArea);
+      }
     } catch (error) {
       console.error("Erro ao carregar PEI:", error);
       setErro("Erro ao carregar dados do PEI. Tente novamente.");
     } finally {
       setCarregando(false);
     }
-  }, [id, estruturaPEIMap, objetivosCurtoPrazoMap, objetivosMedioPrazoMap]); // Adiciona os mapas como dependências
+  }, [id, estruturaPEIMap, objetivosCurtoPrazoMap, objetivosMedioPrazoMap]);
 
   useEffect(() => {
     if (id) {
@@ -215,31 +322,44 @@ function EditarPei() {
     setCarregando(true);
     setErro(null);
     try {
-      const resumoAtualizado = pei.resumoPEI.map((meta) => {
-        const entrada = entradaManual[meta.habilidade] || {};
-        const estrategiasSelecionadas = entrada.estrategias || [];
-        const estrategiasManuaisNovas = (entrada.estrategiasManuais || "")
-          .split("\n")
-          .map((e) => e.trim())
-          .filter(Boolean);
+      const resumoAtualizado = Object.values(pei.resumoPEI).flatMap((metas) =>
+        metas.map((meta) => {
+          const manualKey = meta.area
+            ? `${meta.area}-${meta.habilidade.replace(/[^a-zA-Z0-9-]/g, "")}`
+            : meta.habilidade.replace(/[^a-zA-Z0-9-]/g, "");
+          const entrada = entradaManual[manualKey] || {};
+          const objetivosSelecionadosParaMeta =
+            objetivosSelecionados[manualKey] || {};
 
-        const todasEstrategias = [
-          ...new Set([...estrategiasSelecionadas, ...estrategiasManuaisNovas]),
-        ];
+          const estrategiasSelecionadas = entrada.estrategias || [];
+          const estrategiasManuaisNovas = (entrada.estrategiasManuais || "")
+            .split("\n")
+            .map((e) => e.trim())
+            .filter(Boolean);
 
-        // Retorna a meta com o objeto de objetivos original (não foi editado)
-        // e as estratégias atualizadas.
-        return {
-          ...meta,
-          estrategiasSelecionadas: todasEstrategias, // Garante que o nome do campo é 'estrategiasSelecionadas' ao salvar
-          // O campo 'objetivos' já está na meta com os 3 prazos, não precisa ser alterado aqui.
-        };
-      });
+          const todasEstrategias = [
+            ...new Set([
+              ...estrategiasSelecionadas,
+              ...estrategiasManuaisNovas,
+            ]),
+          ].filter((e) => typeof e === "string" && e.trim() !== "");
+
+          return {
+            ...meta,
+            objetivos: {
+              curtoPrazo: objetivosSelecionadosParaMeta.curtoPrazo?.[0] || "",
+              medioPrazo: objetivosSelecionadosParaMeta.medioPrazo?.[0] || "",
+              longoPrazo: objetivosSelecionadosParaMeta.longoPrazo?.[0] || "",
+            },
+            estrategiasSelecionadas: todasEstrategias,
+          };
+        })
+      );
 
       await updateDoc(doc(db, "peis", id), {
-        // Assumindo que a coleção é 'peis' para edição
         resumoPEI: resumoAtualizado,
         atividadeAplicada: atividadeAplicada,
+        dataUltimaRevisao: serverTimestamp(),
       });
       alert("PEI atualizado com sucesso! 🎉");
       navigate("/ver-peis");
@@ -259,33 +379,67 @@ function EditarPei() {
     ) {
       setPei((prevPei) => {
         if (!prevPei) return null;
-        const novaListaMetas = prevPei.resumoPEI.filter(
-          (meta) => meta.habilidade !== habilidadeMetaRemover
+        const novasAreas = { ...prevPei.resumoPEI };
+        let metaRemovida = false;
+        for (const area in novasAreas) {
+          const metasDaArea = novasAreas[area];
+          const novaListaMetas = metasDaArea.filter(
+            (meta) => meta.habilidade !== habilidadeMetaRemover
+          );
+          if (novaListaMetas.length !== metasDaArea.length) {
+            novasAreas[area] = novaListaMetas;
+            metaRemovida = true;
+            break;
+          }
+        }
+        if (!metaRemovida) return prevPei;
+        const novaEntradaManual = { ...entradaManual };
+        const novaObjetivosSelecionados = { ...objetivosSelecionados };
+        const metaRemovidaArea = Object.keys(novasAreas).find((area) =>
+          novasAreas[area].some(
+            (meta) => meta.habilidade === habilidadeMetaRemover
+          )
         );
-        return { ...prevPei, resumoPEI: novaListaMetas };
-      });
-      setEntradaManual((prevEntrada) => {
-        const { [habilidadeMetaRemover]: _, ...novaEntradaManual } =
-          prevEntrada;
-        return novaEntradaManual;
+        const manualKey = `${metaRemovidaArea}-${habilidadeMetaRemover.replace(/[^a-zA-Z0-9-]/g, "")}`;
+        delete novaEntradaManual[manualKey];
+        delete novaObjetivosSelecionados[manualKey];
+        setEntradaManual(novaEntradaManual);
+        setObjetivosSelecionados(novaObjetivosSelecionados);
+        return { ...prevPei, resumoPEI: novasAreas };
       });
     }
   };
 
-  const handleCheckboxChange = (habilidade, estrategia, estaMarcado) => {
+  const handleCheckboxChange = (manualKey, estrategia, estaMarcado) => {
     setEntradaManual((prev) => {
-      const estrategiasAtuais = prev[habilidade]?.estrategias || [];
+      const estrategiasAtuais = prev[manualKey]?.estrategias || [];
       const novasEstrategias = estaMarcado
         ? [...estrategiasAtuais, estrategia]
         : estrategiasAtuais.filter((est) => est !== estrategia);
       return {
         ...prev,
-        [habilidade]: { ...prev[habilidade], estrategias: novasEstrategias },
+        [manualKey]: { ...prev[manualKey], estrategias: novasEstrategias },
       };
     });
   };
 
-  // --- Renderização Condicional ---
+  const handleObjetivoChange = (manualKey, prazo, objetivo, estaMarcado) => {
+    setObjetivosSelecionados((prev) => {
+      const objetivosDoPrazo = prev[manualKey]?.[prazo] || [];
+      const novosObjetivosDoPrazo = estaMarcado
+        ? [objetivo]
+        : objetivosDoPrazo.filter((obj) => obj !== objetivo);
+
+      return {
+        ...prev,
+        [manualKey]: {
+          ...prev[manualKey],
+          [prazo]: novosObjetivosDoPrazo,
+        },
+      };
+    });
+  };
+
   if (carregando)
     return (
       <div className="estado-container">
@@ -299,13 +453,33 @@ function EditarPei() {
         <BotaoVoltar />
       </div>
     );
-  if (!pei)
+  if (!pei || !pei.resumoPEI || Object.keys(pei.resumoPEI).length === 0)
     return (
       <div className="estado-container">
         <p>Nenhum PEI carregado ou encontrado para edição.</p>
         <BotaoVoltar />
       </div>
     );
+
+  const estilos = {
+    areaButton: {
+      padding: "10px 18px",
+      borderRadius: "20px",
+      border: "none",
+      margin: "4px",
+      backgroundColor: "#e0e0e0",
+      color: "#333",
+      cursor: "pointer",
+      transition: "all 0.3s",
+    },
+    areaButtonAtiva: {
+      backgroundColor: "#1d3557",
+      color: "white",
+      fontWeight: "bold",
+    },
+  };
+
+  const metasDaAreaAtiva = pei.resumoPEI[areaAtiva] || [];
 
   return (
     <div className="editar-pei-fundo">
@@ -315,150 +489,232 @@ function EditarPei() {
           Editar PEI: {pei.aluno || "Aluno não identificado"}
         </h2>
 
-        {(pei.resumoPEI || []).map((meta) => {
-          const entrada = entradaManual[meta.habilidade] || {
-            estrategias: [],
-            estrategiasManuais: "",
-          };
+        <div className="area-buttons-container">
+          {todasAsAreas.map((area) => (
+            <button
+              key={area}
+              onClick={() => {
+                setAreaAtiva(area);
+                setActiveTab("longoPrazo");
+              }}
+              style={{
+                ...estilos.areaButton,
+                ...(areaAtiva === area && estilos.areaButtonAtiva),
+              }}
+              aria-current={areaAtiva === area ? "true" : "false"}
+            >
+              {area}
+            </button>
+          ))}
+          <button
+            onClick={() => setAreaAtiva("atividadeAplicada")}
+            style={{
+              ...estilos.areaButton,
+              ...(areaAtiva === "atividadeAplicada" && estilos.areaButtonAtiva),
+            }}
+          >
+            Atividade Aplicada
+          </button>
+        </div>
 
-          // Garante que meta.objetivos é um objeto, mesmo se vier null/undefined
-          const objetivosExibir = meta.objetivos || {};
+        {areaAtiva && areaAtiva !== "atividadeAplicada" && (
+          <div className="tab-buttons-container">
+            <button
+              onClick={() => setActiveTab("curtoPrazo")}
+              style={{
+                ...estilos.areaButton,
+                ...(activeTab === "curtoPrazo" && estilos.areaButtonAtiva),
+              }}
+            >
+              Curto Prazo
+            </button>
+            <button
+              onClick={() => setActiveTab("medioPrazo")}
+              style={{
+                ...estilos.areaButton,
+                ...(activeTab === "medioPrazo" && estilos.areaButtonAtiva),
+              }}
+            >
+              Médio Prazo
+            </button>
+            <button
+              onClick={() => setActiveTab("longoPrazo")}
+              style={{
+                ...estilos.areaButton,
+                ...(activeTab === "longoPrazo" && estilos.areaButtonAtiva),
+              }}
+            >
+              Longo Prazo
+            </button>
+          </div>
+        )}
 
-          return (
-            <article key={meta.habilidade} className="meta-card">
-              <div className="meta-header">
-                <h3 className="meta-card-titulo">{meta.habilidade}</h3>
-                <button
-                  onClick={() => handleRemoverMeta(meta.habilidade)}
-                  className="botao-remover"
-                  disabled={carregando}
-                >
-                  Remover
-                </button>
-              </div>
-              <p>
-                <strong>Nível atual:</strong> {meta.nivel} —{" "}
-                {LEGENDA_NIVEIS[meta.nivel] || meta.nivel}
-              </p>
-              <p>
-                <strong>Nível almejado:</strong> {meta.nivelAlmejado} —{" "}
-                {LEGENDA_NIVEIS[meta.nivelAlmejado] || meta.nivelAlmejado}
-              </p>
+        {areaAtiva === "atividadeAplicada" ? (
+          <article className="meta-card">
+            <h3 className="meta-card-titulo">Atividade Aplicada</h3>
+            <label
+              htmlFor="atividade-aplicada"
+              className="label-estrategias-manuais"
+            >
+              Descreva a atividade que foi aplicada com o aluno:
+            </label>
+            <textarea
+              id="atividade-aplicada"
+              value={atividadeAplicada}
+              onChange={(e) => setAtividadeAplicada(e.target.value)}
+              className="textarea-pei"
+              rows={4}
+              placeholder="Ex: Brincadeira simbólica usando fantoches para desenvolver comunicação e imaginação..."
+            />
+          </article>
+        ) : (
+          <div className="section-content">
+            {metasDaAreaAtiva.length > 0 ? (
+              metasDaAreaAtiva.map((meta) => {
+                const manualKey = `${areaAtiva}-${meta.habilidade.replace(/[^a-zA-Z0-9-]/g, "")}`;
+                const entrada = entradaManual[manualKey] || {};
 
-              {/* OBJETIVOS DE PRAZO - Agora como campos de texto desabilitados */}
-              <div className="objetivos-prazo-container">
-                <label className="label-objetivo-prazo">
-                  Objetivo de Curto Prazo:
-                  <textarea
-                    value={objetivosExibir.curtoPrazo || "Não definido."}
-                    readOnly
-                    disabled // Desabilitado para não permitir edição
-                    rows={2}
-                    className="textarea-objetivo-prazo"
-                  />
-                </label>
-                <label className="label-objetivo-prazo">
-                  Objetivo de Médio Prazo:
-                  <textarea
-                    value={objetivosExibir.medioPrazo || "Não definido."}
-                    readOnly
-                    disabled // Desabilitado para não permitir edição
-                    rows={2}
-                    className="textarea-objetivo-prazo"
-                  />
-                </label>
-                <label className="label-objetivo-prazo">
-                  Objetivo de Longo Prazo:
-                  <textarea
-                    value={objetivosExibir.longoPrazo || "Não definido."}
-                    readOnly
-                    disabled // Desabilitado para não permitir edição
-                    rows={2}
-                    className="textarea-objetivo-prazo"
-                  />
-                </label>
-              </div>
-              {/* FIM DOS OBJETIVOS DE PRAZO */}
+                const estrategiasAtuaisSelecionadas = normalizarEstrategias(
+                  entrada.estrategias || []
+                );
+                const estrategiasDisponiveis = normalizarEstrategias(
+                  meta.estrategias
+                );
 
-              <fieldset className="meta-fieldset">
-                <legend className="meta-legend">Estratégias:</legend>
-                {/* As estratégias virão do 'meta.estrategias' (sugeridas) ou de 'entrada.estrategias' (selecionadas) */}
-                {normalizarEstrategias(meta.estrategias).map(
-                  // Renderiza as estratégias sugeridas para seleção
-                  (estrategia, i) => (
-                    <div
-                      key={`${estrategia}-${i}`}
-                      className="checkbox-container"
-                    >
-                      <input
-                        type="checkbox"
-                        id={`estrategia-${meta.habilidade}-${i}`}
-                        // Verifica se esta estratégia já está nas que foram selecionadas anteriormente
-                        checked={entrada.estrategias.includes(estrategia)}
+                const todasEstrategiasParaExibir = Array.from(
+                  new Set([
+                    ...estrategiasDisponiveis,
+                    ...estrategiasAtuaisSelecionadas,
+                  ])
+                );
+
+                let objetivosDoPrazo = meta.objetivos?.[activeTab] || [];
+                let objetivosSelecionadosDoEstado =
+                  objetivosSelecionados[manualKey]?.[activeTab] || [];
+
+                return (
+                  <article key={meta.habilidade} className="meta-card">
+                    <div className="meta-header">
+                      <h3 className="meta-card-titulo">{meta.habilidade}</h3>
+                      <button
+                        onClick={() => handleRemoverMeta(meta.habilidade)}
+                        className="botao-remover"
+                        disabled={carregando}
+                      >
+                        Remover
+                      </button>
+                    </div>
+                    <p>
+                      <strong>Nível atual:</strong> {meta.nivel} —{" "}
+                      {LEGENDA_NIVEIS[meta.nivel] || meta.nivel}
+                    </p>
+                    <p>
+                      <strong>Nível almejado:</strong> {meta.nivelAlmejado} —{" "}
+                      {LEGENDA_NIVEIS[meta.nivelAlmejado] || meta.nivelAlmejado}
+                    </p>
+
+                    <fieldset className="meta-fieldset">
+                      <legend className="meta-legend">Objetivos:</legend>
+                      {objetivosDoPrazo.length > 0 ? (
+                        objetivosDoPrazo.map((objetivo, i) => (
+                          <label
+                            key={`obj-${objetivo}-${i}`}
+                            className="checkbox-container"
+                          >
+                            <input
+                              type="checkbox"
+                              id={`obj-${manualKey}-${activeTab}-${i}`}
+                              checked={objetivosSelecionadosDoEstado.includes(
+                                objetivo
+                              )}
+                              disabled={carregando}
+                              onChange={(e) =>
+                                handleObjetivoChange(
+                                  manualKey,
+                                  activeTab,
+                                  objetivo,
+                                  e.target.checked
+                                )
+                              }
+                              className="checkbox-input"
+                            />
+                            <span className="checkmark"></span>
+                            <span className="checkbox-label">{objetivo}</span>
+                          </label>
+                        ))
+                      ) : (
+                        <p className="info-text">
+                          Nenhum objetivo para este prazo.
+                        </p>
+                      )}
+                    </fieldset>
+
+                    <fieldset className="meta-fieldset">
+                      <legend className="meta-legend">Estratégias:</legend>
+                      {todasEstrategiasParaExibir.length > 0 ? (
+                        todasEstrategiasParaExibir.map((estrategia, i) => (
+                          <label
+                            key={`${estrategia}-${i}`}
+                            className="checkbox-container"
+                          >
+                            <input
+                              type="checkbox"
+                              id={`estrategia-${meta.habilidade}-${i}`}
+                              checked={estrategiasAtuaisSelecionadas.includes(
+                                estrategia
+                              )}
+                              disabled={carregando}
+                              onChange={(e) =>
+                                handleCheckboxChange(
+                                  manualKey,
+                                  estrategia,
+                                  e.target.checked
+                                )
+                              }
+                              className="checkbox-input"
+                            />
+                            <span className="checkmark"></span>
+                            <span className="checkbox-label">{estrategia}</span>
+                          </label>
+                        ))
+                      ) : (
+                        <p className="info-text">
+                          Nenhuma estratégia sugerida disponível para seleção
+                          nesta meta.
+                        </p>
+                      )}
+                      <label
+                        htmlFor={`estrategias-manuais-${meta.habilidade}`}
+                        className="label-estrategias-manuais"
+                      >
+                        Adicionar estratégias personalizadas (uma por linha):
+                      </label>
+                      <textarea
+                        id={`estrategias-manuais-${meta.habilidade}`}
+                        value={entrada.estrategiasManuais || ""}
                         disabled={carregando}
                         onChange={(e) =>
-                          handleCheckboxChange(
-                            meta.habilidade,
-                            estrategia,
-                            e.target.checked
-                          )
+                          setEntradaManual((prev) => ({
+                            ...prev,
+                            [manualKey]: {
+                              ...prev[manualKey],
+                              estrategiasManuais: e.target.value,
+                            },
+                          }))
                         }
-                        className="checkbox-input"
+                        className="textarea-pei"
+                        rows={3}
+                        placeholder="Ex: Utilizar reforçador visual a cada 5 segundos de atenção."
                       />
-                      <label
-                        htmlFor={`estrategia-${meta.habilidade}-${i}`}
-                        className="checkbox-label"
-                      >
-                        {estrategia}
-                      </label>
-                    </div>
-                  )
-                )}
-                <label
-                  htmlFor={`estrategias-manuais-${meta.habilidade}`}
-                  className="label-estrategias-manuais"
-                >
-                  Adicionar estratégias personalizadas (uma por linha):
-                </label>
-                <textarea
-                  id={`estrategias-manuais-${meta.habilidade}`}
-                  value={entrada.estrategiasManuais || ""}
-                  disabled={carregando}
-                  onChange={(e) =>
-                    setEntradaManual((prev) => ({
-                      ...prev,
-                      [meta.habilidade]: {
-                        ...prev[meta.habilidade],
-                        estrategiasManuais: e.target.value,
-                      },
-                    }))
-                  }
-                  className="textarea-pei"
-                  rows={3}
-                  placeholder="Ex: Utilizar reforçador visual a cada 5 segundos de atenção."
-                />
-              </fieldset>
-            </article>
-          );
-        })}
-
-        <article className="meta-card">
-          <h3 className="meta-card-titulo">Atividade Aplicada</h3>
-          <label
-            htmlFor="atividade-aplicada"
-            className="label-estrategias-manuais"
-          >
-            Descreva a atividade que foi aplicada com o aluno:
-          </label>
-          <textarea
-            id="atividade-aplicada"
-            value={atividadeAplicada}
-            onChange={(e) => setAtividadeAplicada(e.target.value)}
-            className="textarea-pei"
-            rows={4}
-            placeholder="Ex: Brincadeira simbólica usando fantoches para desenvolver comunicação e imaginação..."
-          />
-        </article>
+                    </fieldset>
+                  </article>
+                );
+              })
+            ) : (
+              <p className="info-text">Nenhuma meta de PEI para esta área.</p>
+            )}
+          </div>
+        )}
 
         <button
           className="botao-salvar"

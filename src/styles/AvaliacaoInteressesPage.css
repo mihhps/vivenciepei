@@ -464,6 +464,74 @@ hr {
   border-bottom: 1px dashed var(--border-light);
 }
 
+/* Adicionado: Estilos para o novo botão de gerar PDF e seu tooltip */
+.pdf-generator-button-modern {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px; /* Tamanho do círculo */
+  height: 48px;
+  background-color: #007bff; /* Cor principal, azul */
+  color: #fff;
+  border-radius: 50%; /* Torna o botão redondo */
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease; /* Efeitos de transição */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.pdf-generator-button-modern:hover {
+  background-color: #0056b3; /* Cor mais escura ao passar o mouse */
+  transform: scale(1.1); /* Aumenta um pouco o tamanho */
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+}
+
+/* Estilos para o Tooltip (texto que aparece ao passar o mouse) */
+.tooltip-container {
+  position: relative;
+}
+
+.tooltip-text {
+  visibility: hidden;
+  width: 200px; /* Largura do balão do tooltip */
+  background-color: #555;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 8px 0;
+  position: absolute;
+  z-index: 1;
+  bottom: 125%; /* Posição acima do elemento */
+  left: 50%;
+  margin-left: -100px; /* Centraliza o tooltip */
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+/* Triângulo do tooltip */
+.tooltip-text::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #555 transparent transparent transparent;
+}
+
+/* Mostra o tooltip ao passar o mouse */
+.tooltip-container:hover .tooltip-text {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* Estilo para o ícone */
+.pdf-generator-button-modern svg {
+  vertical-align: middle;
+}
+
 /* Responsividade */
 @media (max-width: 768px) {
   .avaliacao-container {

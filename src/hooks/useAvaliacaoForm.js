@@ -3,12 +3,15 @@ import { db } from "../firebase";
 import {
   collection,
   doc,
-  getDoc,
   setDoc,
   updateDoc,
   query,
   where,
   getDocs,
+  serverTimestamp,
+  addDoc,
+  limit,
+  orderBy, // Adicionado
 } from "firebase/firestore";
 
 export function useAvaliacaoForm(alunos) {
@@ -25,7 +28,6 @@ export function useAvaliacaoForm(alunos) {
     sucesso: null,
   });
 
-  // ID do documento da avaliação atual no Firestore, se existir
   const [avaliacaoDocId, setAvaliacaoDocId] = useState(null);
 
   const avaliacaoExiste = useMemo(() => {
@@ -48,7 +50,6 @@ export function useAvaliacaoForm(alunos) {
     return "";
   }, [alunoSelecionado]);
 
-  // Função para carregar a avaliação do aluno do Firestore
   const carregarAvaliacaoDoAluno = useCallback(async (alunoId) => {
     if (!alunoId) {
       setRespostas({});
@@ -66,9 +67,13 @@ export function useAvaliacaoForm(alunos) {
       sucesso: null,
     }));
     try {
-      // APONTANDO PARA 'avaliacoesIniciais'
       const avaliacoesRef = collection(db, "avaliacoesIniciais");
-      const q = query(avaliacoesRef, where("aluno.id", "==", alunoId));
+      const q = query(
+        avaliacoesRef,
+        where("aluno.id", "==", alunoId),
+        orderBy("dataCriacao", "desc"),
+        limit(1)
+      );
       const querySnapshot = await getDocs(q);
 
       if (!querySnapshot.empty) {
@@ -176,29 +181,31 @@ export function useAvaliacaoForm(alunos) {
             id: alunoSelecionado.id,
             nome: alunoSelecionado.nome,
           },
+          turma: alunoSelecionado.turma,
           inicio,
           proximaAvaliacao,
           respostas,
           observacoes,
-          criadoPor: usuarioLogado.nome,
-          dataUltimaAtualizacao: new Date().toISOString(),
+          criador: usuarioLogado.nome,
+          criadorId: usuarioLogado.id,
+          escolaId: usuarioLogado.escolas
+            ? Object.keys(usuarioLogado.escolas)[0]
+            : null,
+          dataCriacao: serverTimestamp(),
         };
 
-        // SALVANDO APENAS NA COLEÇÃO 'avaliacoesIniciais'
         const avaliacoesRef = collection(db, "avaliacoesIniciais");
 
         if (avaliacaoDocId) {
           const docRef = doc(db, "avaliacoesIniciais", avaliacaoDocId);
-          await updateDoc(docRef, dadosAvaliacao);
+          await updateDoc(docRef, {
+            ...dadosAvaliacao,
+            dataUltimaAtualizacao: serverTimestamp(),
+          });
           console.log("Avaliação atualizada com sucesso! ID:", avaliacaoDocId);
         } else {
-          const newDocRef = doc(avaliacoesRef);
-          await setDoc(newDocRef, {
-            ...dadosAvaliacao,
-            dataCriacao: new Date().toISOString(),
-          });
-          setAvaliacaoDocId(newDocRef.id);
-          console.log("Nova avaliação salva com sucesso! ID:", newDocRef.id);
+          await addDoc(avaliacoesRef, dadosAvaliacao);
+          console.log("Nova avaliação salva com sucesso!");
         }
 
         setEstado((prev) => ({
@@ -228,20 +235,42 @@ export function useAvaliacaoForm(alunos) {
     ]
   );
 
-  return {
-    alunoSelecionado,
-    handleSelecionarAluno,
-    inicio,
-    setInicio,
-    proximaAvaliacao,
-    setProximaAvaliacao,
-    respostas,
-    setRespostas,
-    observacoes,
-    setObservacoes,
-    handleSalvar,
-    idade,
-    avaliacaoExiste,
-    estado,
-  };
+  // CORREÇÃO: Usar useMemo para garantir que o objeto retornado tenha uma referência estável.
+  return useMemo(
+    () => ({
+      alunoSelecionado,
+      setAlunoSelecionado,
+      handleSelecionarAluno,
+      inicio,
+      setInicio,
+      proximaAvaliacao,
+      setProximaAvaliacao,
+      respostas,
+      setRespostas,
+      observacoes,
+      setObservacoes,
+      handleSalvar,
+      idade,
+      avaliacaoExiste,
+      estado,
+      setEstado,
+    }),
+    [
+      alunoSelecionado,
+      handleSelecionarAluno,
+      inicio,
+      setInicio,
+      proximaAvaliacao,
+      setProximaAvaliacao,
+      respostas,
+      setRespostas,
+      observacoes,
+      setObservacoes,
+      handleSalvar,
+      idade,
+      avaliacaoExiste,
+      estado,
+      setEstado,
+    ]
+  );
 }

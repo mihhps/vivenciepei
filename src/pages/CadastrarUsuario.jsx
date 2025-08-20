@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { setDoc, doc } from "firebase/firestore";
+import { setDoc, doc, collection, getDocs } from "firebase/firestore";
 import { auth, db } from "../firebase";
 import { useNavigate } from "react-router-dom";
 import BotaoVoltar from "../components/BotaoVoltar";
@@ -11,17 +11,23 @@ import { perfilRedirectMap } from "../config/routesConfig";
 
 export default function CadastrarUsuario() {
   const [nome, setNome] = useState("");
-  const [cargo, setCargo] = useState(""); // Este será o "Cargo" geral (Professora AEE, Gestão, etc.)
+  const [cargo, setCargo] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [mostrarSenha, setMostrarSenha] = useState(false);
-  const [perfil, setPerfil] = useState(""); // Perfil selecionado pelo usuário (gestao, aee, professor, etc.)
-  const [disciplina, setDisciplina] = useState(""); // Usado ESPECIFICAMENTE para disciplina de professor/AEE
+  const [perfil, setPerfil] = useState(""); // <--- A chave: o valor inicial é uma string vazia
+  const [disciplina, setDisciplina] = useState("");
 
   // --- NOVOS ESTADOS PARA FEEDBACK ---
-  const [erro, setErro] = useState(null); // Estado para mensagens de erro
-  const [sucesso, setSucesso] = useState(null); // Estado para mensagens de sucesso
-  const [loadingCadastro, setLoadingCadastro] = useState(false); // Estado para indicar que o cadastro está em andamento
+  const [erro, setErro] = useState(null);
+  const [sucesso, setSucesso] = useState(null);
+  const [loadingCadastro, setLoadingCadastro] = useState(false);
+  // --- FIM DOS NOVOS ESTADOS ---
+
+  // --- NOVOS ESTADOS PARA ESCOLAS ---
+  const [listaEscolas, setListaEscolas] = useState([]);
+  const [escolasSelecionadas, setEscolasSelecionadas] = useState({});
+  const [loadingEscolas, setLoadingEscolas] = useState(false);
   // --- FIM DOS NOVOS ESTADOS ---
 
   const navigate = useNavigate();
@@ -31,14 +37,35 @@ export default function CadastrarUsuario() {
     setTimeout(() => {
       setErro(null);
       setSucesso(null);
-    }, 5000); // Mensagem some após 5 segundos
+    }, 5000);
   };
 
-  const handleCadastro = async () => {
-    setErro(null); // Limpar erros anteriores
-    setSucesso(null); // Limpar sucessos anteriores
+  // Efeito para carregar a lista de escolas
+  // ESTE EFEITO SEMPRE BUSCARÁ A LISTA DE ESCOLAS QUANDO A PÁGINA CARREGAR.
+  useEffect(() => {
+    const fetchEscolas = async () => {
+      setLoadingEscolas(true);
+      try {
+        const querySnapshot = await getDocs(collection(db, "escolas"));
+        const escolasData = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          nome: doc.data().nome,
+        }));
+        setListaEscolas(escolasData);
+      } catch (err) {
+        console.error("Erro ao buscar escolas:", err);
+        setErro("Não foi possível carregar a lista de escolas.");
+      } finally {
+        setLoadingEscolas(false);
+      }
+    };
+    fetchEscolas();
+  }, []);
 
-    // Validação de campos obrigatórios
+  const handleCadastro = async () => {
+    setErro(null);
+    setSucesso(null);
+
     if (!nome || !email || !senha || !perfil) {
       setErro(
         "Por favor, preencha todos os campos obrigatórios (Nome, E-mail, Senha, Perfil)."
@@ -47,7 +74,6 @@ export default function CadastrarUsuario() {
       return;
     }
 
-    // Validação adicional baseada no perfil
     if (perfil === PERFIS.PROFESSOR || perfil === PERFIS.AEE) {
       if (!disciplina) {
         setErro("Por favor, selecione a disciplina para Professores ou AEE.");
@@ -55,21 +81,36 @@ export default function CadastrarUsuario() {
         return;
       }
     } else {
-      // Se não for professor ou AEE, o campo 'disciplina' pode ser opcional ou não se aplicar.
-      // Se o campo 'cargo' (input de texto) for obrigatório para TODOS, mantenha a validação abaixo
       if (!cargo) {
-        // Se 'Cargo' é obrigatório para Gestão, Diretor, SEME
         setErro("Por favor, preencha o Cargo.");
         limparFeedback();
         return;
       }
     }
 
-    setLoadingCadastro(true); // Ativa o estado de loading
+    // Validação de escola para perfis que precisam
+    // AQUI A VARIÁVEL 'perfisComEscola' É DEFINIDA E VALIDADA
+    const perfisComEscola = [
+      PERFIS.GESTAO,
+      PERFIS.AEE,
+      PERFIS.PROFESSOR,
+      PERFIS.DIRETOR,
+      PERFIS.DIRETOR_ADJUNTO,
+      PERFIS.ORIENTADOR_PEDAGOGICO,
+    ];
+    if (
+      perfisComEscola.includes(perfil) &&
+      Object.keys(escolasSelecionadas).length === 0
+    ) {
+      setErro("Por favor, selecione pelo menos uma escola.");
+      limparFeedback();
+      return;
+    }
+
+    setLoadingCadastro(true);
 
     try {
       console.log("[CAD_USER_DEBUG] Iniciando cadastro...");
-      // 1. Cria o usuário na Autenticação e pega o 'credential' que contém o uid
       const cred = await createUserWithEmailAndPassword(
         auth,
         email.trim(),
@@ -81,63 +122,47 @@ export default function CadastrarUsuario() {
         novoUsuarioUid
       );
 
-      // 2. Define os dados do usuário a serem salvos no Firestore
       const dadosUsuarioFirestore = {
-        uid: novoUsuarioUid, // UID da autenticação
+        uid: novoUsuarioUid,
         nome: nome.trim(),
         email: email.trim(),
-        // O cargo aqui será o 'cargo' geral (digitado), e a disciplina será a selecionada
         cargo: cargo.trim(),
-        perfil: perfil, // Perfil selecionado no formulário (ex: 'professor', 'aee')
-        // Salva a disciplina APENAS se for professor ou AEE, caso contrário, deixa vazio
+        perfil: perfil,
         disciplina:
           perfil === PERFIS.PROFESSOR || perfil === PERFIS.AEE
             ? disciplina
             : "",
-        escolas: {}, // Inicializa escolas como um objeto vazio
-        turmas: {}, // Inicializa turmas como um objeto vazio
+        escolas: escolasSelecionadas, // Agora salva as escolas selecionadas
+        turmas: {},
       };
 
-      // 3. Salva o documento no Firestore usando o UID como ID do documento
       await setDoc(doc(db, "usuarios", novoUsuarioUid), dadosUsuarioFirestore);
       console.log(
         "[CAD_USER_DEBUG] Documento Firestore salvo com ID:",
         novoUsuarioUid
       );
 
-      // 4. Salva o usuário no localStorage COM O ID DO DOCUMENTO FIRESTORE
       const usuarioParaLocalStorage = {
-        ...dadosUsuarioFirestore, // Copia todos os dados salvos no Firestore
-        id: novoUsuarioUid, // Adiciona o ID do documento Firestore (que é o UID neste caso)
+        ...dadosUsuarioFirestore,
+        id: novoUsuarioUid,
       };
       localStorage.setItem(
         "usuarioLogado",
         JSON.stringify(usuarioParaLocalStorage)
       );
-      console.log(
-        "[CAD_USER_DEBUG] Usuário salvo no localStorage:",
-        usuarioParaLocalStorage
-      );
 
-      setSucesso("Usuário cadastrado com sucesso!"); // Feedback de sucesso
+      setSucesso("Usuário cadastrado com sucesso!");
       limparFeedback();
 
-      // Limpar formulário após o cadastro
       setNome("");
       setCargo("");
       setEmail("");
       setSenha("");
       setPerfil("");
       setDisciplina("");
+      setEscolasSelecionadas({});
 
-      // 5. Redireciona para o painel apropriado do perfil recém-cadastrado
       const rotaRedirecionamento = perfilRedirectMap[perfil];
-      console.log("[CAD_USER_DEBUG] Perfil selecionado:", perfil);
-      console.log(
-        "[CAD_USER_DEBUG] Rota de redirecionamento mapeada:",
-        rotaRedirecionamento
-      );
-
       if (rotaRedirecionamento) {
         navigate(rotaRedirecionamento, {
           state: { usuario: usuarioParaLocalStorage },
@@ -159,11 +184,25 @@ export default function CadastrarUsuario() {
         mensagemErro = "A senha precisa ter no mínimo 6 caracteres.";
       }
 
-      setErro(mensagemErro); // Exibe o erro na tela
-      limparFeedback(); // Limpa a mensagem após um tempo
+      setErro(mensagemErro);
+      limparFeedback();
     } finally {
-      setLoadingCadastro(false); // Desativa o estado de loading
+      setLoadingCadastro(false);
     }
+  };
+
+  // Handler para selecionar/desselecionar escolas
+  const handleSelecionarEscola = (e) => {
+    const { value, checked } = e.target;
+    setEscolasSelecionadas((prev) => {
+      const newState = { ...prev };
+      if (checked) {
+        newState[value] = true;
+      } else {
+        delete newState[value];
+      }
+      return newState;
+    });
   };
 
   return (
@@ -182,7 +221,6 @@ export default function CadastrarUsuario() {
         </div>
         <h2 style={estilos.titulo}>Cadastro de Usuário</h2>
 
-        {/* --- Mensagens de Feedback --- */}
         {erro && (
           <p
             style={{
@@ -211,7 +249,6 @@ export default function CadastrarUsuario() {
             {sucesso}
           </p>
         )}
-        {/* --- Fim das Mensagens de Feedback --- */}
 
         <input
           type="text"
@@ -256,10 +293,13 @@ export default function CadastrarUsuario() {
           </button>
         </div>
 
-        {/* Campo de seleção de Perfil */}
         <select
           value={perfil}
-          onChange={(e) => setPerfil(e.target.value)}
+          onChange={(e) => {
+            setPerfil(e.target.value);
+            setEscolasSelecionadas({}); // Limpa seleção de escolas ao mudar de perfil
+            setDisciplina(""); // Limpa disciplina ao mudar de perfil
+          }}
           style={estilos.select}
           disabled={loadingCadastro}
         >
@@ -273,11 +313,9 @@ export default function CadastrarUsuario() {
             Orientador Pedagógico
           </option>
           <option value={PERFIS.SEME}>SEME</option>
-          {/* Adicione o perfil DESENVOLVEDOR se quiser cadastrá-lo pelo formulário */}
-          {/* <option value={PERFIS.DESENVOLVEDOR}>Desenvolvedor</option> */}
         </select>
 
-        {/* Campo de seleção de Disciplina (visível apenas para Professor e AEE) */}
+        {/* Esta seção SÓ APARECE se o perfil for PROFESSOR ou AEE */}
         {(perfil === PERFIS.PROFESSOR || perfil === PERFIS.AEE) && (
           <select
             value={disciplina}
@@ -301,15 +339,49 @@ export default function CadastrarUsuario() {
             <option value="COMUNICAÇÃO E LINGUAGEM">
               COMUNICAÇÃO E LINGUAGEM
             </option>
-            <option value="AEE">AEE</option>{" "}
-            {/* A disciplina "AEE" para o perfil AEE */}
+            <option value="AEE">AEE</option>
           </select>
+        )}
+
+        {/* Esta seção SÓ APARECE se o perfil for um dos listados. */}
+        {[
+          PERFIS.GESTAO,
+          PERFIS.AEE,
+          PERFIS.PROFESSOR,
+          PERFIS.DIRETOR,
+          PERFIS.DIRETOR_ADJUNTO,
+          PERFIS.ORIENTADOR_PEDAGOGICO,
+        ].includes(perfil) && (
+          <div style={estilos.escolaSelectContainer}>
+            <h3 style={estilos.escolaSelectTitulo}>
+              Selecione a(s) escola(s):
+            </h3>
+            {loadingEscolas ? (
+              <p>Carregando escolas...</p>
+            ) : (
+              <div style={estilos.escolaCheckboxList}>
+                {listaEscolas.map((escola) => (
+                  <label key={escola.id} style={estilos.escolaCheckboxLabel}>
+                    <input
+                      type="checkbox"
+                      value={escola.id}
+                      checked={!!escolasSelecionadas[escola.id]}
+                      onChange={handleSelecionarEscola}
+                      disabled={loadingCadastro}
+                      style={estilos.escolaCheckboxInput}
+                    />
+                    {escola.nome}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
         )}
 
         <button
           style={estilos.botao}
           onClick={handleCadastro}
-          disabled={loadingCadastro}
+          disabled={loadingCadastro || loadingEscolas}
         >
           {loadingCadastro ? "Cadastrando..." : "Cadastrar"}
         </button>
@@ -325,7 +397,7 @@ const estilos = {
     alignItems: "center",
     height: "100vh",
     width: "100vw",
-    background: "linear-gradient(to bottom, #00264d, #005b96)", // Alterado para combinar com outros painéis
+    background: "linear-gradient(to bottom, #00264d, #005b96)",
     fontFamily: "'Segoe UI', sans-serif",
   },
   card: {
@@ -383,7 +455,6 @@ const estilos = {
     appearance: "none",
     WebkitAppearance: "none",
     MozAppearance: "none",
-    // Adicionado ícone de seta para selects para melhorar a aparência
     backgroundImage: `url("data:image/svg+xml;utf8,<svg fill='gray' height='20' viewBox='0 0 24 24' width='20' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>")`,
     backgroundRepeat: "no-repeat",
     backgroundPosition: "right 10px center",
@@ -398,6 +469,38 @@ const estilos = {
     fontSize: "16px",
     borderRadius: "6px",
     border: "none",
+    cursor: "pointer",
+  },
+  // NOVOS ESTILOS PARA SELEÇÃO DE ESCOLAS
+  escolaSelectContainer: {
+    marginTop: "10px",
+    marginBottom: "20px",
+    textAlign: "left",
+    border: "1px solid #ccc",
+    borderRadius: "6px",
+    padding: "10px",
+    maxHeight: "150px",
+    overflowY: "auto",
+  },
+  escolaSelectTitulo: {
+    fontSize: "16px",
+    fontWeight: "bold",
+    marginBottom: "10px",
+    color: "#1d3557",
+  },
+  escolaCheckboxList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+  },
+  escolaCheckboxLabel: {
+    display: "flex",
+    alignItems: "center",
+    fontSize: "14px",
+    cursor: "pointer",
+  },
+  escolaCheckboxInput: {
+    marginRight: "8px",
     cursor: "pointer",
   },
 };

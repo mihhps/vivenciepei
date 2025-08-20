@@ -2,6 +2,12 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BotaoSair from "../components/BotaoSair";
 import { auth, functions } from "../firebase";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+// Importe o componente de backup e o de correção em massa
+import BackupDados from "./BackupDados";
+import CorrigirTurmasEmMassa from "./CorrigirTurmasEmMassa";
 
 export default function PainelDev() {
   const navigate = useNavigate();
@@ -116,11 +122,9 @@ export default function PainelDev() {
   const botoes = [
     { label: "Avaliação Inicial", rota: "/avaliacao-inicial" },
 
-    // Para um ambiente de produção, é recomendado usar a rota /selecionar-aluno-para-interesses
-    // para que o usuário possa escolher um aluno.
     {
       label: "Avaliação de Interesses",
-      rota: "/nova-avaliacao/Avaliacaointeresses", // Rota atualizada aqui
+      rota: "/nova-avaliacao/Avaliacaointeresses",
     },
     { label: "Criar PEI", rota: "/criar-pei" },
     { label: "Anamnese", rota: "/anamnese-completa" },
@@ -203,15 +207,31 @@ export default function PainelDev() {
           Perfil: <strong>Desenvolvedora</strong>
         </p>
 
-        {botoes.map((botao, i) => (
-          <button
-            key={i}
-            onClick={() => navigate(botao.rota)}
-            style={estiloBotao}
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          {botoes.map((botao, i) => (
+            <button
+              key={i}
+              onClick={() => navigate(botao.rota)}
+              style={estiloBotao}
+            >
+              {botao.label}
+            </button>
+          ))}
+        </div>
+
+        <hr style={{ margin: "20px 0", border: "1px solid #e0e0e0" }} />
+
+        <div style={{ textAlign: "left" }}>
+          <h3 style={{ color: "#1d3557", marginBottom: "10px" }}>
+            Ferramentas de Manutenção
+          </h3>
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: "15px" }}
           >
-            {botao.label}
-          </button>
-        ))}
+            <BackupDados />
+            <CorrigirTurmasEmMassa />
+          </div>
+        </div>
 
         <button
           onClick={handleRecalcularTodosPrazos}

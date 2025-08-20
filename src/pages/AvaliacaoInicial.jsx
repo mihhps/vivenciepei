@@ -1,25 +1,17 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-
-// Dados estáticos da avaliação - Certifique-se de que este caminho está correto
 import { avaliacaoInicial } from "../data/avaliacaoInicialData";
-import { interesses } from "../data/interessesData"; // Importar dados de interesses
-
-// Hooks customizados que encapsulam a lógica
-import { useAlunos } from "../hooks/useAlunos"; // CORRIGIDO: Importação correta do hook useAlunos
+import { interesses } from "../data/interessesData";
+import { useAlunos } from "../hooks/useAlunos";
 import { useAvaliacaoForm } from "../hooks/useAvaliacaoForm";
-
-// Componentes de UI reutilizáveis
+import AvaliacaoHeader from "../components/AvaliacaoHeader";
 import SelecaoAluno from "../components/SelecaoAluno";
 import AreaPerguntas from "../components/AreaPerguntas";
-import AvaliacaoHeader from "../components/AvaliacaoHeader";
 import { gerarPDFAvaliacaoInicialParaPreencher } from "../utils/gerarPDFAvaliacaoInicial";
 import { gerarPDFAvaliacaoInicialPreenchida } from "../utils/gerarPDFAvaliacaoInicialPreenchida";
 
-// Estilos específicos da página
 import "../styles/AvaliacaoInicial.css";
 
-// Mapeamento de perfis para rotas, pode ficar fora do componente
 const painelDestinoMapeado = {
   desenvolvedor: "/painel-dev",
   desenvolvedora: "/painel-dev",
@@ -35,7 +27,6 @@ const painelDestinoMapeado = {
 function AvaliacaoInicial() {
   const navigate = useNavigate();
 
-  // --- Lógica de Usuário e Navegação ---
   const usuarioLogado = useMemo(
     () => JSON.parse(localStorage.getItem("usuarioLogado")) || {},
     []
@@ -43,41 +34,31 @@ function AvaliacaoInicial() {
   const perfilNormalizado = (usuarioLogado.perfil || "").toLowerCase().trim();
   const painelDestino = painelDestinoMapeado[perfilNormalizado] || "/";
 
-  // --- Hooks que gerenciam estado e lógica complexa ---
   const {
     alunos,
     carregando: carregandoAlunos,
     erro: erroAlunos,
   } = useAlunos();
 
-  // Certifique-se que useAvaliacaoForm retorna 'avaliacaoExiste'
   const form = useAvaliacaoForm(alunos);
 
-  // --- Estado local da UI ---
   const [areaSelecionada, setAreaSelecionada] = useState("");
-  const todasAsAreas = useMemo(() => {
-    return {
-      ...avaliacaoInicial,
-    };
-  }, []);
+  const todasAsAreas = useMemo(() => ({ ...avaliacaoInicial }), []);
   const areasParaAbas = useMemo(
     () => Object.keys(todasAsAreas),
     [todasAsAreas]
   );
 
-  // --- Handlers que conectam a UI (eventos) com a lógica dos hooks ---
   const handleSelecionarAlunoWrapper = useCallback(
     async (e) => {
       const alunoNome = e.target.value;
       await form.handleSelecionarAluno(alunoNome);
-      // Seleciona a primeira área automaticamente ao escolher um aluno
       setAreaSelecionada(alunoNome ? areasParaAbas[0] || "" : "");
     },
     [form, areasParaAbas]
   );
 
   const onSalvarClick = useCallback(async () => {
-    // Adiciona a validação antes de salvar
     if (!form.inicio || !form.proximaAvaliacao) {
       alert("Por favor, preencha as datas de Início e Próxima Avaliação.");
       return;
@@ -85,7 +66,6 @@ function AvaliacaoInicial() {
 
     const sucesso = await form.handleSalvar(usuarioLogado);
     if (sucesso) {
-      // Pequeno atraso para a mensagem de sucesso ser visível antes de navegar
       setTimeout(() => navigate("/ver-avaliacoes"), 1500);
     }
   }, [form, usuarioLogado, navigate]);
@@ -106,6 +86,14 @@ function AvaliacaoInicial() {
     },
     [form.setObservacoes]
   );
+
+  const handleGerarPDFAvaliacaoVazia = useCallback(() => {
+    if (form.alunoSelecionado) {
+      gerarPDFAvaliacaoInicialParaPreencher(form.alunoSelecionado);
+    } else {
+      alert("Selecione um aluno para gerar o PDF.");
+    }
+  }, [form.alunoSelecionado]);
 
   const handleGerarPDFAvaliacaoPreenchida = useCallback(() => {
     if (form.alunoSelecionado && form.avaliacaoExiste) {
@@ -132,26 +120,14 @@ function AvaliacaoInicial() {
     usuarioLogado,
   ]);
 
-  // NOVO: Handler para o botão de navegação para a nova página
-  const handleIrParaNovaPagina = useCallback(() => {
-    if (form.alunoSelecionado) {
-      // --- DEBUG AQUI ---
-      console.log(
-        "Aluno selecionado para nova avaliação:",
-        form.alunoSelecionado
-      );
-      console.log("ID do aluno para navegação:", form.alunoSelecionado.id);
-      // --- FIM DO DEBUG ---
-
-      navigate(`/nova-avaliacao/${form.alunoSelecionado.id}`);
-      // Ou se preferir sem ID na URL (útil se o estado do aluno já estiver em um contexto global)
-      // navigate('/nova-avaliacao');
+  const handleIniciarReavaliacao = useCallback(() => {
+    if (form.alunoSelecionado && form.alunoSelecionado.id) {
+      navigate(`/reavaliacao/${form.alunoSelecionado.id}`);
     } else {
       alert("Por favor, selecione um aluno primeiro.");
     }
   }, [navigate, form.alunoSelecionado]);
 
-  // Flag consolidada para desabilitar elementos durante carregamentos e salvamentos
   const carregandoGeral =
     carregandoAlunos || form.estado.carregandoAvaliacao || form.estado.salvando;
 
@@ -163,7 +139,6 @@ function AvaliacaoInicial() {
         disabled={carregandoGeral}
       />
 
-      {/* Área de Mensagens de Erro/Sucesso */}
       {erroAlunos && <div className="mensagem-erro">{erroAlunos}</div>}
       {form.estado.erro && (
         <div className="mensagem-erro">{form.estado.erro}</div>
@@ -172,7 +147,6 @@ function AvaliacaoInicial() {
         <div className="mensagem-sucesso">{form.estado.sucesso}</div>
       )}
 
-      {/* Seção de Seleção de Aluno */}
       {carregandoAlunos ? (
         <div className="loading-message">Carregando alunos...</div>
       ) : (
@@ -184,39 +158,57 @@ function AvaliacaoInicial() {
         />
       )}
 
-      {/* Mensagens de Carregamento de Avaliação */}
       {form.estado.carregandoAvaliacao && (
         <div className="loading-message">Carregando avaliação...</div>
       )}
 
-      {/* Conteúdo Principal da Avaliação (visível apenas após selecionar um aluno) */}
       {form.alunoSelecionado && (
         <>
           <p className="aluno-idade">
             Idade: <strong>{form.idade}</strong> anos
           </p>
 
-          {/* Botões de Geração de PDF */}
-          <div className="pdf-buttons-container">
-            <button
-              onClick={gerarPDFAvaliacaoInicialParaPreencher}
-              disabled={carregandoGeral}
-              className="pdf-button"
-            >
-              Baixar PDF (Modelo Vazio)
-            </button>
-            {form.avaliacaoExiste && (
+          <div style={estilos.botoesContainer}>
+            {/* Botões Principais de Ação */}
+            {form.avaliacaoExiste ? (
               <button
-                onClick={handleGerarPDFAvaliacaoPreenchida}
+                onClick={handleIniciarReavaliacao}
                 disabled={carregandoGeral}
-                className="pdf-button filled-pdf-button"
+                style={estilos.botaoReavaliacao}
               >
-                Baixar PDF (Preenchido)
+                Iniciar Reavaliação
+              </button>
+            ) : (
+              <button
+                onClick={onSalvarClick}
+                disabled={carregandoGeral}
+                style={estilos.botaoSalvar}
+              >
+                {form.estado.salvando ? "Salvando..." : "Salvar Avaliação"}
               </button>
             )}
+
+            {/* Agrupamento de Botões de PDF */}
+            <div style={estilos.botoesPDF}>
+              <button
+                onClick={handleGerarPDFAvaliacaoVazia}
+                disabled={carregandoGeral}
+                style={estilos.botaoPDFVazio}
+              >
+                Baixar PDF Vazio
+              </button>
+              {form.avaliacaoExiste && (
+                <button
+                  onClick={handleGerarPDFAvaliacaoPreenchida}
+                  disabled={carregandoGeral}
+                  style={estilos.botaoPDFPreenchido}
+                >
+                  Baixar PDF Preenchido
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* Datas da Avaliação */}
           <div className="date-inputs-container">
             <div className="date-input-group">
               <label htmlFor="dataInicio">Data de Início:</label>
@@ -225,7 +217,7 @@ function AvaliacaoInicial() {
                 type="date"
                 value={form.inicio}
                 onChange={(e) => form.setInicio(e.target.value)}
-                disabled={carregandoGeral}
+                disabled={form.avaliacaoExiste || carregandoGeral}
               />
             </div>
             <div className="date-input-group">
@@ -235,12 +227,11 @@ function AvaliacaoInicial() {
                 type="date"
                 value={form.proximaAvaliacao}
                 onChange={(e) => form.setProximaAvaliacao(e.target.value)}
-                disabled={carregandoGeral}
+                disabled={form.avaliacaoExiste || carregandoGeral}
               />
             </div>
           </div>
 
-          {/* Mensagem para Avaliação Nova */}
           {!form.avaliacaoExiste && (
             <p className="info-message">
               Nenhuma avaliação inicial encontrada para este aluno. Preencha o
@@ -248,7 +239,6 @@ function AvaliacaoInicial() {
             </p>
           )}
 
-          {/* Abas das Áreas de Conhecimento */}
           <div className="area-tabs-container">
             {areasParaAbas.map((area) => (
               <button
@@ -262,7 +252,6 @@ function AvaliacaoInicial() {
             ))}
           </div>
 
-          {/* Área de Perguntas da Aba Selecionada */}
           {areaSelecionada && (
             <AreaPerguntas
               area={areaSelecionada}
@@ -271,22 +260,78 @@ function AvaliacaoInicial() {
               observacoes={form.observacoes[areaSelecionada] || ""}
               onResponder={handleResposta}
               onObservar={handleObservacao}
-              disabled={carregandoGeral}
+              disabled={true}
             />
           )}
-
-          {/* Botão Salvar Avaliação */}
-          <button
-            onClick={onSalvarClick}
-            className="botao-salvar"
-            disabled={carregandoGeral}
-          >
-            {form.estado.salvando ? "Salvando..." : "Salvar Avaliação"}
-          </button>
         </>
       )}
     </div>
   );
 }
+
+// Estilos inline para os novos botões
+const estilos = {
+  botoesContainer: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "15px",
+    alignItems: "center",
+    width: "100%",
+    margin: "20px 0",
+  },
+  botaoReavaliacao: {
+    backgroundColor: "#ffc107",
+    color: "#fff",
+    border: "none",
+    padding: "12px 24px",
+    borderRadius: "8px",
+    fontSize: "16px",
+    fontWeight: "bold",
+    cursor: "pointer",
+    width: "100%",
+    transition: "background-color 0.2s",
+  },
+  botaoSalvar: {
+    backgroundColor: "#2a9d8f",
+    color: "#fff",
+    border: "none",
+    padding: "12px 24px",
+    borderRadius: "8px",
+    fontSize: "16px",
+    fontWeight: "bold",
+    cursor: "pointer",
+    width: "100%",
+    transition: "background-color 0.2s",
+  },
+  botoesPDF: {
+    display: "flex",
+    gap: "10px",
+    width: "100%",
+    flexWrap: "wrap",
+    justifyContent: "center",
+  },
+  botaoPDFVazio: {
+    backgroundColor: "#457b9d",
+    color: "#fff",
+    border: "none",
+    padding: "10px 15px",
+    borderRadius: "6px",
+    fontSize: "14px",
+    cursor: "pointer",
+    transition: "background-color 0.2s",
+    flex: "1 1 auto",
+  },
+  botaoPDFPreenchido: {
+    backgroundColor: "#1d3557",
+    color: "#fff",
+    border: "none",
+    padding: "10px 15px",
+    borderRadius: "6px",
+    fontSize: "14px",
+    cursor: "pointer",
+    transition: "background-color 0.2s",
+    flex: "1 1 auto",
+  },
+};
 
 export default AvaliacaoInicial;

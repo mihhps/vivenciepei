@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { db } from "../firebase";
 import {
   collection,
@@ -16,21 +16,25 @@ import "react-toastify/dist/ReactToastify.css";
 import Loader from "../components/Loader";
 
 import { useUserSchool } from "../hooks/useUserSchool";
+import { useNavigate } from "react-router-dom";
+
+import "./VincularProfessoresTurmas.css";
 
 export default function VincularProfessoresTurmas() {
   const [professores, setProfessores] = useState([]);
   const [turmas, setTurmas] = useState([]);
   const [selecionado, setSelecionado] = useState(null);
   const [turmasSelecionadas, setTurmasSelecionadas] = useState([]);
-  const [vinculoAtual, setVinculoAtual] = useState(null);
-  const [carregando, setCarregando] = useState(true); // Estado de carregamento geral
+  const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState(null);
+  const [expandedProfId, setExpandedProfId] = useState(null);
 
-  // Usar o hook useUserSchool. Observe os nomes das variáveis.
+  const navigate = useNavigate();
+
   const {
-    userSchoolData, // Objeto completo do usuário do Firestore (contém perfil, escolaId, etc.)
-    isLoading: isLoadingUserSchoolHook, // Estado de carregamento DO HOOK (renomeado para evitar conflito)
-    error: userSchoolErrorHook, // Erro DO HOOK (renomeado)
+    userSchoolData,
+    isLoading: isLoadingUserSchoolHook,
+    error: userSchoolErrorHook,
   } = useUserSchool();
 
   const exibirMensagem = useCallback((tipo, texto) => {
@@ -43,25 +47,15 @@ export default function VincularProfessoresTurmas() {
     }
   }, []);
 
-  // carregarProfessores agora usa os valores JÁ ESTÁVEIS do hook
   const carregarProfessores = useCallback(async () => {
-    console.log(
-      "VincularProfessoresTurmas - carregarProfessores: Iniciando função."
-    );
-    // Use os parâmetros da função, não os estados diretamente para valores que são passados.
-    // Ou, se usa estados, garanta que o useEffect tem as dependências corretas.
-
-    // A permissão já foi verificada pelo hook ou no useEffect que o dispara.
-    // Aqui, apenas busca os professores com base nos dados do hook.
     setCarregando(true);
     setErro(null);
 
     try {
-      const perfilUsuario = userSchoolData?.perfil; // Use os dados do hook
-      const userSchoolIdParaQuery = userSchoolData?.escolaId; // Use os dados do hook
+      const perfilUsuario = userSchoolData?.perfil;
+      const userSchoolIdParaQuery = userSchoolData?.escolaId;
 
       let professoresQuery;
-
       const perfisComFiltroPorEscola = [
         "aee",
         "gestao",
@@ -69,12 +63,10 @@ export default function VincularProfessoresTurmas() {
         "diretor",
         "diretor adjunto",
       ];
+      const perfisComAcessoAmplo = ["seme", "desenvolvedor"];
 
       if (perfisComFiltroPorEscola.includes(perfilUsuario)) {
         if (!userSchoolIdParaQuery) {
-          console.warn(
-            "VincularProfessoresTurmas - carregarProfessores: Perfil autorizado, mas userSchoolId é nulo. Não carrega professores."
-          );
           exibirMensagem(
             "erro",
             "Sua conta não está vinculada a uma escola para carregar professores. Contate o suporte."
@@ -88,27 +80,13 @@ export default function VincularProfessoresTurmas() {
           where("perfil", "==", "professor"),
           where(`escolas.${userSchoolIdParaQuery}`, "==", true)
         );
-        console.log(
-          `VincularProfessoresTurmas - carregarProfessores: Query de professores filtrando por escola ID: ${userSchoolIdParaQuery}`
-        );
-      } else if (
-        perfilUsuario === "seme" ||
-        perfilUsuario === "desenvolvedor"
-      ) {
+      } else if (perfisComAcessoAmplo.includes(perfilUsuario)) {
         professoresQuery = query(
           collection(db, "usuarios"),
           where("perfil", "==", "professor")
         );
-        console.log(
-          "VincularProfessoresTurmas - carregarProfessores: Buscando TODOS os professores (SEME/Desenvolvedor)."
-        );
       } else {
-        console.log(
-          "VincularProfessoresTurmas - carregarProfessores: Perfil não autorizado ou sem filtro específico. Nenhum professor carregado."
-        );
         setProfessores([]);
-        setCarregando(false);
-        return;
       }
 
       const professoresSnap = await getDocs(professoresQuery);
@@ -117,11 +95,6 @@ export default function VincularProfessoresTurmas() {
         ...doc.data(),
       }));
       setProfessores(fetchedProfessores);
-      console.log(
-        "VincularProfessoresTurmas - carregarProfessores: Professores carregados (após filtro do Firebase):",
-        fetchedProfessores.length,
-        fetchedProfessores
-      );
     } catch (err) {
       console.error("VincularProfessoresTurmas - Erro ao carregar dados:", err);
       exibirMensagem(
@@ -131,28 +104,16 @@ export default function VincularProfessoresTurmas() {
     } finally {
       setCarregando(false);
     }
-  }, [
-    userSchoolData, // Adicionado como dependência: garante que esses dados estão estáveis
-    exibirMensagem,
-  ]);
+  }, [userSchoolData, exibirMensagem]);
 
-  // useEffect PRINCIPAL para carregar professores APÓS o useUserSchool estar pronto
   useEffect(() => {
-    console.log(
-      "VincularProfessoresTurmas - useEffect principal: isLoadingUserSchoolHook:",
-      isLoadingUserSchoolHook,
-      "userSchoolData:",
-      userSchoolData
-    );
     if (!isLoadingUserSchoolHook && userSchoolData) {
-      // Dispara o carregamento de professores somente após o hook resolver e ter dados
       carregarProfessores();
     } else if (
       !isLoadingUserSchoolHook &&
       !userSchoolData &&
       userSchoolErrorHook
     ) {
-      // Se o hook terminou de carregar, mas não tem dados e tem erro (ex: não logado)
       setCarregando(false);
       setErro(userSchoolErrorHook);
     }
@@ -163,13 +124,8 @@ export default function VincularProfessoresTurmas() {
     userSchoolErrorHook,
   ]);
 
-  // Carregar turmas (separado para ser chamado em handleSelecionarProfessor)
   const carregarTurmas = useCallback(
     async (escolaId) => {
-      console.log(
-        "VincularProfessoresTurmas - carregarTurmas: Escola usada para buscar turmas:",
-        escolaId
-      );
       if (!escolaId) {
         setTurmas([]);
         return;
@@ -178,18 +134,25 @@ export default function VincularProfessoresTurmas() {
       try {
         const alunosQuery = query(
           collection(db, "alunos"),
-          where("escolaId", "==", escolaId) // 'escola_id' foi corrigido para 'escolaId'
+          where("escolaId", "==", escolaId)
         );
         const snap = await getDocs(alunosQuery);
-        const turmasUnicas = new Set();
 
+        const turmasMap = new Map();
         snap.docs.forEach((doc) => {
           const aluno = doc.data();
           if (aluno.turma) {
-            turmasUnicas.add(aluno.turma);
+            const nomeTurmaOriginal = aluno.turma.trim();
+            if (nomeTurmaOriginal) {
+              turmasMap.set(nomeTurmaOriginal.toLowerCase(), nomeTurmaOriginal);
+            }
           }
         });
-        setTurmas(Array.from(turmasUnicas).sort());
+        const turmasArray = Array.from(turmasMap.values()).sort((a, b) =>
+          a.localeCompare(b)
+        );
+
+        setTurmas(turmasArray);
       } catch (err) {
         console.error(
           "VincularProfessoresTurmas - Erro ao carregar turmas:",
@@ -203,50 +166,29 @@ export default function VincularProfessoresTurmas() {
   );
 
   const handleSelecionarProfessor = useCallback(
-    async (id) => {
-      const prof = professores.find((p) => p.id === id);
-      if (!prof) {
-        setSelecionado(null);
-        setTurmas([]);
-        setTurmasSelecionadas([]);
-        setVinculoAtual(null);
-        return;
-      }
-
-      let escolaNome = "Não informada";
+    async (prof) => {
+      setSelecionado(prof);
       const escolasIds = Object.keys(prof.escolas || {});
       const primeiraEscolaId = escolasIds[0];
-
-      if (primeiraEscolaId) {
-        try {
-          const escolaSnap = await getDoc(doc(db, "escolas", primeiraEscolaId));
-          if (escolaSnap.exists()) {
-            escolaNome = escolaSnap.data().nome;
-          }
-        } catch (err) {
-          console.error(
-            "VincularProfessoresTurmas - Erro ao buscar nome da escola:",
-            err
-          );
-        }
-      }
-
-      setSelecionado({ ...prof, escolaNome });
       await carregarTurmas(primeiraEscolaId);
       const turmasObj = prof.turmas || {};
-      const turmasMarcadas = Object.keys(turmasObj).filter((t) => turmasObj[t]);
+      const turmasMarcadas = Object.keys(turmasObj)
+        .filter((t) => turmasObj[t])
+        .map((t) => t.toLowerCase());
       setTurmasSelecionadas(turmasMarcadas);
-
-      const vinculoDocRef = doc(db, "vinculosProfessores", prof.id);
-      const vinculoSnap = await getDoc(vinculoDocRef);
-      if (vinculoSnap.exists()) {
-        setVinculoAtual(vinculoSnap.data());
-      } else {
-        setVinculoAtual(null);
-      }
     },
-    [professores, carregarTurmas]
+    [carregarTurmas]
   );
+
+  const handleToggleTurma = useCallback((turma) => {
+    setTurmasSelecionadas((prev) => {
+      const turmaNormalizada = turma.trim().toLowerCase();
+      if (prev.includes(turmaNormalizada)) {
+        return prev.filter((t) => t !== turmaNormalizada);
+      }
+      return [...prev, turmaNormalizada];
+    });
+  }, []);
 
   const handleSalvar = async () => {
     if (!selecionado) {
@@ -277,110 +219,16 @@ export default function VincularProfessoresTurmas() {
     }
   };
 
-  const gerarRelatorio = async () => {
-    let vinculosQuery;
-    const perfilUsuario = userSchoolData?.perfil; // Use dados do hook
-    const userSchoolIdParaRelatorio = userSchoolData?.escolaId; // Use dados do hook
-
-    const perfisComFiltroPorEscola = [
-      "aee",
-      "gestao",
-      "orientador pedagógico",
-      "diretor",
-      "diretor adjunto",
-    ];
-
-    if (
-      perfisComFiltroPorEscola.includes(perfilUsuario) &&
-      userSchoolIdParaRelatorio
-    ) {
-      vinculosQuery = query(
-        collection(db, "vinculosProfessores"),
-        where("escolaId", "==", userSchoolIdParaRelatorio)
-      );
-      console.log(
-        `VincularProfessoresTurmas - Gerar Relatório: Filtrando vínculos pela escola: ${userSchoolIdParaRelatorio}`
-      );
-    } else {
-      vinculosQuery = collection(db, "vinculosProfessores");
-      console.log(
-        "VincularProfessoresTurmas - Gerar Relatório: Gerando relatório COMPLETO (sem filtro por escola)."
-      );
-    }
-
-    try {
-      const snap = await getDocs(vinculosQuery);
-      const escolasSnap = await getDocs(collection(db, "escolas"));
-
-      const escolasMap = {};
-      escolasSnap.docs.forEach((doc) => {
-        escolasMap[doc.id] = doc.data().nome;
-      });
-
-      const linhasCSV = [["Professor", "Escola", "Turmas vinculadas"]];
-
-      snap.forEach((doc) => {
-        const d = doc.data();
-        linhasCSV.push([
-          d.nome || "N/A",
-          escolasMap[d.escolaId] || "Desconhecida",
-          (d.turmas || []).join(" / "),
-        ]);
-      });
-
-      const csv = linhasCSV.map((l) => l.join(";")).join("\n");
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", "relatorio_vinculos.csv");
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error(
-        "VincularProfessoresTurmas - Erro ao gerar relatório:",
-        err
-      );
-      exibirMensagem("erro", "Erro ao gerar relatório CSV.");
-    }
-  };
-
-  if (isLoadingUserSchoolHook) {
+  if (isLoadingUserSchoolHook || carregando) {
     return <Loader />;
   }
 
   if (erro || userSchoolErrorHook) {
     return (
-      <div
-        style={{
-          minHeight: "100vh",
-          width: "100vw",
-          background: "linear-gradient(to bottom, #00264d, #005b96)",
-          padding: "40px",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <div
-          style={{
-            background: "#fff",
-            maxWidth: "800px",
-            margin: "0 auto",
-            padding: "30px",
-            borderRadius: "16px",
-            boxShadow: "0 4px 15px rgba(0,0,0,0.1)",
-            textAlign: "center",
-          }}
-        >
+      <div className="vinculacao-container erro">
+        <div className="vinculacao-card">
           <BotaoVoltar />
-          <p style={{ color: "#dc3545", fontWeight: "bold" }}>
-            {erro || userSchoolErrorHook}
-          </p>
+          <p className="error-message">{erro || userSchoolErrorHook}</p>
         </div>
         <ToastContainer position="bottom-right" autoClose={3000} />
       </div>
@@ -388,157 +236,99 @@ export default function VincularProfessoresTurmas() {
   }
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        width: "100vw",
-        background: "linear-gradient(to bottom, #00264d, #005b96)",
-        padding: "40px",
-      }}
-    >
-      <div
-        style={{
-          background: "#fff",
-          maxWidth: "800px",
-          margin: "0 auto",
-          padding: "30px",
-          borderRadius: "16px",
-          boxShadow: "0 4px 15px rgba(0,0,0,0.1)",
-        }}
-      >
+    <div className="vinculacao-container">
+      <div className="vinculacao-card">
         <BotaoVoltar />
-        <h2
-          style={{
-            color: "#1d3557",
-            marginBottom: "20px",
-            textAlign: "center",
-          }}
-        >
-          Vincular Professores às Turmas
-        </h2>
+        <h2 className="vinculacao-titulo">Vincular Professores às Turmas</h2>
 
-        <label
-          style={{ fontWeight: "bold", display: "block", marginBottom: "10px" }}
-        >
-          Selecione um professor:
-        </label>
-        <select
-          onChange={(e) => handleSelecionarProfessor(e.target.value)}
-          value={selecionado?.id || ""}
-          style={{
-            padding: 10,
-            marginBottom: 20,
-            width: "100%",
-            borderRadius: "6px",
-            border: "1px solid #ccc",
-            fontSize: "16px",
-          }}
-        >
-          <option value="">Selecione...</option>
-          {professores.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.nome}
-            </option>
-          ))}
-        </select>
-
-        {selecionado && (
-          <>
-            <p>
-              <strong>Escola:</strong>{" "}
-              {selecionado.escolaNome || "Não informada"}
+        <div className="vinculacao-lista">
+          {professores.length === 0 ? (
+            <p className="info-message">
+              Nenhum professor encontrado com o seu perfil de acesso.
             </p>
-
-            <p style={{ marginTop: "20px" }}>
-              <strong>Turmas disponíveis na escola:</strong>
-            </p>
-            {turmas.map((turma) => (
-              <div
-                key={turma}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  marginBottom: "8px",
-                }}
-              >
-                <label
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    cursor: "pointer",
-                    fontSize: "16px",
+          ) : (
+            professores.map((prof) => (
+              <div key={prof.id} className="vinculacao-profissional-card">
+                <div
+                  className="vinculacao-profissional-header"
+                  onClick={() => {
+                    setExpandedProfId(
+                      prof.id === expandedProfId ? null : prof.id
+                    );
+                    if (prof.id !== expandedProfId) {
+                      handleSelecionarProfessor(prof);
+                    } else {
+                      setSelecionado(null);
+                    }
                   }}
                 >
-                  <input
-                    type="checkbox"
-                    checked={turmasSelecionadas.includes(turma)}
-                    onChange={(e) => {
-                      const atualizadas = e.target.checked
-                        ? [...turmasSelecionadas, turma]
-                        : turmasSelecionadas.filter((t) => t !== turma);
-                      setTurmasSelecionadas(atualizadas);
-                    }}
-                    style={{
-                      marginRight: "10px",
-                      height: "16px",
-                      width: "16px",
-                    }}
-                  />
-                  {turma}
-                </label>
+                  <h4>{prof.nome}</h4>
+                  <span
+                    className={`expand-icon ${prof.id === expandedProfId ? "expanded" : ""}`}
+                  ></span>
+                </div>
+
+                <div
+                  className={`vinculacao-profissional-detalhes ${prof.id === expandedProfId ? "expanded" : ""}`}
+                >
+                  <p>
+                    Perfil: <strong>{prof.perfil?.toUpperCase()}</strong>
+                  </p>
+                  <p className="vinculacao-profissional-cargo">
+                    Cargo:{" "}
+                    <strong>
+                      {prof.cargo || prof.disciplina || "Não informado"}
+                    </strong>
+                  </p>
+                  <p className="vinculacao-profissional-email">
+                    E-mail: <strong>{prof.email}</strong>
+                  </p>
+                  <div className="vinculacao-turmas">
+                    <h5 className="vinculacao-checkbox-titulo">
+                      Turmas disponíveis:
+                    </h5>
+                    <div className="vinculacao-turmas-scroll">
+                      <div className="vinculacao-checkbox-list-container">
+                        {turmas.length > 0 ? (
+                          turmas.map((turma) => (
+                            <label
+                              key={turma}
+                              className="vinculacao-checkbox-label"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={turmasSelecionadas.includes(
+                                  turma.toLowerCase()
+                                )}
+                                onChange={() => handleToggleTurma(turma)}
+                              />
+                              <span className="checkmark"></span>
+                              <span className="checkbox-text">{turma}</span>
+                            </label>
+                          ))
+                        ) : (
+                          <p className="info-message">
+                            Nenhuma turma encontrada para esta escola.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleSalvar}
+                    className="vinculacao-botao-salvar"
+                    disabled={carregando}
+                  >
+                    Salvar Vínculo
+                  </button>
+                </div>
               </div>
-            ))}
+            ))
+          )}
+        </div>
 
-            <button
-              onClick={handleSalvar}
-              style={{
-                marginTop: 20,
-                padding: "10px 20px",
-                backgroundColor: "#2a9d8f",
-                color: "#fff",
-                border: "none",
-                borderRadius: "6px",
-                fontWeight: "bold",
-                cursor: "pointer",
-                fontSize: "16px",
-              }}
-            >
-              Salvar Vínculo
-            </button>
-
-            {vinculoAtual && (
-              <div style={{ marginTop: 20 }}>
-                <p>
-                  <strong>Turmas atualmente vinculadas:</strong>
-                </p>
-                <ul>
-                  {vinculoAtual.turmas.map((turma, index) => (
-                    <li key={index}>{turma}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            <hr style={{ margin: "30px 0" }} />
-
-            <button
-              onClick={gerarRelatorio}
-              style={{
-                padding: "10px 20px",
-                backgroundColor: "#1d3557",
-                color: "#fff",
-                border: "none",
-                borderRadius: "6px",
-                fontWeight: "bold",
-                cursor: "pointer",
-              }}
-            >
-              Exportar Relatório de Vínculos (CSV)
-            </button>
-          </>
-        )}
+        <ToastContainer position="bottom-right" autoClose={3000} />
       </div>
-      <ToastContainer position="bottom-right" autoClose={3000} />
     </div>
   );
 }

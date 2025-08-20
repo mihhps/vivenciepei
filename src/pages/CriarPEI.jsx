@@ -144,17 +144,15 @@ const verificarPermissaoIniciarPrimeiroPEI = (usuarioPerfil, usuarioCargo) => {
   );
 };
 
-// Função para construir um novo PEI a partir da avaliação
-// AGORA RECEBE TAMBÉM OS OBJETIVOS CURTO E MÉDIO PRAZO MAPS
 const buildNewPeiFromAssessment = (
   avaliacao,
-  estruturaPEIMap, // Contém objetivo LONGO PRAZO e estratégias
-  objetivosCurtoPrazoMap, // NOVO: para objetivo CURTO PRAZO
-  objetivosMedioPrazoMap, // NOVO: para objetivo MÉDIO PRAZO
-  objetivosPrimeiroPEISet = new Set(), // Objetivos de Longo Prazo já escolhidos no PEI Base
-  estrategiasJaEmUsoGlobalmente = new Set() // Estratégias já usadas em qualquer PEI do aluno
+  estruturaPEIMap,
+  objetivosCurtoPrazoMap,
+  objetivosMedioPrazoMap,
+  objetivosPrimeiroPEISet = new Set(),
+  estrategiasJaEmUsoGlobalmente = new Set()
 ) => {
-  const newPeiData = {}; // A estrutura do estado `pei` será única por meta
+  const newPeiData = {};
   Object.entries(avaliacao.respostas || {}).forEach(
     ([area, habilidadesAvaliacao]) => {
       if (
@@ -168,16 +166,15 @@ const buildNewPeiFromAssessment = (
       }
       Object.entries(habilidadesAvaliacao).forEach(
         ([habilidade, nivelAtual]) => {
-          // --- Ignorar se o nível atual já é "I" (Independente) ou "NA" (Não Aplicável) ---
           if (nivelAtual === "I" || nivelAtual === "NA") {
             console.log(
               `Habilidade '${habilidade}' está no nível '${nivelAtual}'. Não será gerada meta de PEI.`
             );
-            return; // Pula esta habilidade e vai para a próxima
+            return;
           }
 
           const currentIndex = NIVEIS_PROGRESSAO.indexOf(nivelAtual);
-          let nivelAlmejado = nivelAtual; // Valor padrão, pode ser ajustado
+          let nivelAlmejado = nivelAtual;
 
           if (
             currentIndex !== -1 &&
@@ -191,7 +188,6 @@ const buildNewPeiFromAssessment = (
             return;
           }
 
-          // Pega os objetivos dos mapas correspondentes
           const suggestedObjetivoLongoPrazo =
             estruturaPEIMap[habilidade]?.[nivelAlmejado]?.objetivo;
           const suggestedObjetivoCurtoPrazo =
@@ -199,11 +195,9 @@ const buildNewPeiFromAssessment = (
           const suggestedObjetivoMedioPrazo =
             objetivosMedioPrazoMap[habilidade]?.[nivelAlmejado];
 
-          // Pega as estratégias do mapa principal (estruturaPEIMap)
           const suggestedStrategiesFromBase =
             estruturaPEIMap[habilidade]?.[nivelAlmejado]?.estrategias;
 
-          // Validação: Garante que todos os objetivos e as estratégias foram encontrados
           if (
             !suggestedObjetivoCurtoPrazo ||
             !suggestedObjetivoMedioPrazo ||
@@ -218,8 +212,6 @@ const buildNewPeiFromAssessment = (
             return;
           }
 
-          // FILTRAR OBJETIVOS: Se objetivosPrimeiroPEISet tem itens (indicando que é um PEI subsequente),
-          // e o objetivo sugerido de LONGO PRAZO NÃO está nesse set, ele é ignorado.
           if (
             objetivosPrimeiroPEISet.size > 0 &&
             !objetivosPrimeiroPEISet.has(suggestedObjetivoLongoPrazo)
@@ -227,7 +219,6 @@ const buildNewPeiFromAssessment = (
             return;
           }
 
-          // FILTRAR ESTRATÉGIAS: Filtra estratégias sugeridas que já estão em uso globalmente
           const estrategiasFiltradas = Array.isArray(
             suggestedStrategiesFromBase
           )
@@ -235,16 +226,14 @@ const buildNewPeiFromAssessment = (
                 (estrat) => !estrategiasJaEmUsoGlobalmente.has(estrat)
               )
             : [suggestedStrategiesFromBase].filter(
-                // Garante que é um array para filter
                 (estrat) => !estrategiasJaEmUsoGlobalmente.has(estrat)
               );
 
-          // Se após a filtragem não restarem estratégias, não adiciona a meta
           if (estrategiasFiltradas.length === 0) {
             console.log(
               `Nenhuma estratégia disponível para a meta de habilidade "${habilidade}" no nível "${nivelAlmejado}" após filtragem global.`
             );
-            return; // Pula a meta se todas as estratégias sugeridas já foram usadas
+            return;
           }
 
           if (!newPeiData[area]) newPeiData[area] = [];
@@ -253,13 +242,12 @@ const buildNewPeiFromAssessment = (
             nivel: nivelAtual,
             nivelAlmejado: nivelAlmejado,
             objetivos: {
-              // Objeto contendo os objetivos de todos os prazos
               curtoPrazo: suggestedObjetivoCurtoPrazo,
               medioPrazo: suggestedObjetivoMedioPrazo,
               longoPrazo: suggestedObjetivoLongoPrazo,
             },
-            estrategias: estrategiasFiltradas, // As estratégias sugeridas (filtradas)
-            estrategiasSelecionadas: [], // As que o professor de fato selecionou/digitou
+            estrategias: estrategiasFiltradas,
+            estrategiasSelecionadas: [],
           });
         }
       );
@@ -268,31 +256,22 @@ const buildNewPeiFromAssessment = (
   return newPeiData;
 };
 
-// Função para carregar um PEI existente
 const loadExistingPeiData = (
   peiExistingData,
-  estruturaPEIMap, // Mantido para acessar estratégias sugeridas E o objetivo principal/Longo Prazo
-  objetivosCurtoPrazoMap, // NOVO: para preencher CP de PEIs antigos
-  objetivosMedioPrazoMap, // NOVO: para preencher MP de PEIs antigos
+  estruturaPEIMap,
+  objetivosCurtoPrazoMap,
+  objetivosMedioPrazoMap,
   userEmail,
   criadorPEIId
 ) => {
   const mountedPei = {};
   const mountedManualInput = {};
   const activityAppliedExisting = peiExistingData.atividadeAplicada || "";
-
-  // Adaptação para PEIs salvos na estrutura antiga (`resumoPEI`)
-  const resumoPEIExisting = peiExistingData.resumoPEI || [];
-  // Para PEIs salvos na nova estrutura (com objetivos aninhados)
-  const newStructureGoals = peiExistingData.resumoPEI || []; // Assumimos que a nova estrutura salva em 'resumoPEI'
-
+  const newStructureGoals = peiExistingData.resumoPEI || [];
   const isCurrentUserThePEICreater = userEmail === criadorPEIId;
 
   (newStructureGoals || []).forEach((meta) => {
-    // Itera sobre as metas salvas
     if (!mountedPei[meta.area]) mountedPei[meta.area] = [];
-
-    // O objetivo salvo pode ser uma string (PEIs antigos) ou um objeto (PEIs novos)
     let finalObjectives = {
       curtoPrazo: "",
       medioPrazo: "",
@@ -300,16 +279,13 @@ const loadExistingPeiData = (
     };
 
     if (typeof meta.objetivos === "object" && meta.objetivos !== null) {
-      // Se já é a nova estrutura com objeto 'objetivos'
       finalObjectives = {
         curtoPrazo: meta.objetivos.curtoPrazo || "",
         medioPrazo: meta.objetivos.medioPrazo || "",
         longoPrazo: meta.objetivos.longoPrazo || "",
       };
     } else {
-      // Compatibilidade retroativa: Se 'meta.objetivo' é uma string (PEIs antigos)
-      finalObjectives.longoPrazo = meta.objetivo || ""; // O objetivo antigo era o Longo Prazo
-      // Preenche Curto e Médio Prazo com sugestões dos mapas
+      finalObjectives.longoPrazo = meta.objetivo || "";
       finalObjectives.curtoPrazo =
         objetivosCurtoPrazoMap[meta.habilidade]?.[meta.nivelAlmejado] || "";
       finalObjectives.medioPrazo =
@@ -356,9 +332,9 @@ const loadExistingPeiData = (
       habilidade: meta.habilidade,
       nivel: meta.nivel,
       nivelAlmejado: meta.nivelAlmejado || meta.nivel,
-      objetivos: finalObjectives, // Objeto com todos os objetivos de prazo
-      estrategias: availableSuggestedStrategies, // Estratégias sugeridas disponíveis para seleção
-      estrategiasSelecionadas: selectedSuggestedFromSaved, // Estratégias sugeridas JÁ selecionadas (para controle interno)
+      objetivos: finalObjectives,
+      estrategias: availableSuggestedStrategies,
+      estrategiasSelecionadas: selectedSuggestedFromSaved,
     });
   });
   return {
@@ -371,16 +347,15 @@ const loadExistingPeiData = (
 // --- COMPONENTE PRINCIPAL ---
 export default function CriarPEI() {
   const [alunos, setAlunos] = useState([]);
-  const [avaliacoes, setAvaliacoes] = useState([]);
   const [alunoSelecionado, setAlunoSelecionado] = useState(null);
   const [areaAtiva, setAreaAtiva] = useState("");
-  const [pei, setPei] = useState({}); // Agora 'pei' conterá o objeto 'objetivos' com os 3 prazos
-  const [entradaManual, setEntradaManual] = useState({}); // Estado para estratégias manuais e selecionadas
+  const [pei, setPei] = useState({});
+  const [entradaManual, setEntradaManual] = useState({});
   const [carregando, setCarregando] = useState(false);
   const [atividadeAplicada, setAtividadeAplicada] = useState("");
-  const [peiCriadorId, setPeiCriadorId] = useState(null); // ID do criador do PEI carregado
+  const [peiCriadorId, setPeiCriadorId] = useState(null);
 
-  const [activeTab, setActiveTab] = useState("longoPrazo"); // Define a aba padrão como "Longo Prazo"
+  const [activeTab, setActiveTab] = useState("longoPrazo");
 
   const navigate = useNavigate();
   const { erro, mensagemSucesso, exibirMensagem } = useMessageSystem();
@@ -394,7 +369,6 @@ export default function CriarPEI() {
     () => getObjetivosPrazoMap(objetivosMedioPrazoData),
     []
   );
-  // Nao precisa mais de objetivosLongoPrazoMap, pois o longo prazo vem de estruturaPEIMap.objetivo
 
   const todasAsAreas = useMemo(() => Object.keys(avaliacaoInicial), []);
   const usuarioLogado = useMemo(() => {
@@ -411,18 +385,15 @@ export default function CriarPEI() {
     [usuarioLogado.email, peiCriadorId]
   );
 
-  // --- LÓGICA DE CARREGAMENTO DE DADOS INICIAIS ---
-  // FUNÇÃO MODIFICADA PARA FILTRAR ALUNOS COM PEI
+  // --- INÍCIO DA FUNÇÃO carregarDadosIniciais ---
   const carregarDadosIniciais = useCallback(async () => {
     setCarregando(true);
     exibirMensagem("sucesso", "Carregando dados iniciais...");
     try {
       const currentYear = new Date().getFullYear();
 
-      const [alunosSnap, avaliacoesSnap, peisSnap] = await Promise.all([
+      const [alunosSnap, peisSnap] = await Promise.all([
         getDocs(collection(db, "alunos")),
-        getDocs(collection(db, "avaliacoesIniciais")),
-        // Para otimizar, filtramos os PEIs apenas pelo criador logado
         getDocs(
           query(
             collection(db, "peis"),
@@ -436,9 +407,7 @@ export default function CriarPEI() {
         id: doc.id,
         ...doc.data(),
       }));
-      const todasAvaliacoes = avaliacoesSnap.docs.map((doc) => doc.data());
 
-      // NOVO: Coleta os IDs dos alunos para os quais ESTE usuário já criou um PEI
       const alunosComPeiDesteUsuarioIds = new Set();
       peisSnap.docs.forEach((doc) => {
         const peiData = doc.data();
@@ -454,7 +423,6 @@ export default function CriarPEI() {
         perfil === "seme" ||
         perfil === "desenvolvedor";
 
-      // Primeiro, filtra alunos por turma/perfil de acesso
       let alunosFiltradosPorPermissao = todosAlunos;
       if (!podeVerTodosAlunosNoSistema) {
         alunosFiltradosPorPermissao = alunosFiltradosPorPermissao.filter(
@@ -462,13 +430,11 @@ export default function CriarPEI() {
         );
       }
 
-      // NOVO FILTRO: Remove os alunos para os quais o professor logado JÁ criou um PEI
       const alunosParaSelecaoFinal = alunosFiltradosPorPermissao.filter(
         (aluno) => !alunosComPeiDesteUsuarioIds.has(aluno.id)
       );
 
-      setAlunos(alunosParaSelecaoFinal); // Define a nova lista filtrada
-      setAvaliacoes(todasAvaliacoes);
+      setAlunos(alunosParaSelecaoFinal);
       exibirMensagem("sucesso", "Dados carregados com sucesso.");
     } catch (err) {
       console.error("Erro ao carregar dados do Firebase:", err);
@@ -480,12 +446,13 @@ export default function CriarPEI() {
       setCarregando(false);
     }
   }, [exibirMensagem, usuarioLogado]);
+  // --- FIM DA FUNÇÃO carregarDadosIniciais ---
 
   useEffect(() => {
     carregarDadosIniciais();
   }, [carregarDadosIniciais]);
 
-  // --- HANDLER DE SELEÇÃO DE ALUNO ---
+  // --- INÍCIO DA FUNÇÃO handleSelectStudent (CORRIGIDA) ---
   const handleSelectStudent = useCallback(
     async (nome) => {
       if (!nome) {
@@ -495,7 +462,7 @@ export default function CriarPEI() {
         setEntradaManual({});
         setAtividadeAplicada("");
         setPeiCriadorId(null);
-        setActiveTab("longoPrazo"); // Resetar aba ativa
+        setActiveTab("longoPrazo");
         exibirMensagem("erro", "Selecione um aluno válido.");
         return;
       }
@@ -512,31 +479,39 @@ export default function CriarPEI() {
       setAlunoSelecionado(aluno);
       exibirMensagem("sucesso", "Carregando PEI...");
       setCarregando(true);
-      setActiveTab("longoPrazo"); // Garantir que a aba inicia em Longo Prazo ao selecionar novo aluno
+      setActiveTab("longoPrazo");
 
       try {
         const currentYear = new Date().getFullYear();
 
-        // 1. Tenta buscar o PEI criado por ESTE USUÁRIO para este aluno
-        const qPeiDesseCriador = query(
-          collection(db, "peis"),
+        // --- DEBUG: ADICIONADO AQUI ---
+        console.log("Buscando avaliação inicial para:", aluno.nome);
+        console.log("ID do aluno usado na busca:", aluno.id);
+        console.log("Ano letivo usado na busca:", currentYear);
+        // --- FIM DO DEBUG ---
+
+        // 1. Buscando a ÚLTIMA AVALIAÇÃO (Inicial ou Reavaliação) do aluno
+        const qUltimaAvaliacao = query(
+          collection(db, "avaliacoesIniciais"),
           where("alunoId", "==", aluno.id),
-          where("anoLetivo", "==", currentYear),
-          where("criadorId", "==", usuarioLogado.email),
           orderBy("dataCriacao", "desc"),
           limit(1)
         );
-        const peiDesseCriadorSnap = await getDocs(qPeiDesseCriador);
+        const avaliacoesSnap = await getDocs(qUltimaAvaliacao);
 
-        let peiExistingParaEsteCriador = null;
-        if (!peiDesseCriadorSnap.empty) {
-          peiExistingParaEsteCriador = {
-            id: peiDesseCriadorSnap.docs[0].id,
-            ...peiDesseCriadorSnap.docs[0].data(),
-          };
+        if (avaliacoesSnap.empty) {
+          exibirMensagem(
+            "erro",
+            "Este aluno não possui avaliação inicial ou reavaliação."
+          );
+          setAlunoSelecionado(null);
+          setPeiCriadorId(null);
+          return;
         }
 
-        // 2. Busca o PRIMEIRO PEI do aluno (de QUALQUER criador) para saber seus objetivos base
+        const assessment = avaliacoesSnap.docs[0].data();
+
+        // 2. Busca o PRIMEIRO PEI do aluno para saber os objetivos base
         const qPrimeiroPeiDoAluno = query(
           collection(db, "peis"),
           where("alunoId", "==", aluno.id),
@@ -553,7 +528,7 @@ export default function CriarPEI() {
             }
           : null;
 
-        // 3. NOVO: Coleta TODAS as estratégias de TODOS os PEIs existentes para este aluno (para filtragem global)
+        // 3. Coleta TODAS as estratégias de TODOS os PEIs existentes para este aluno
         const qTodosPeisDoAluno = query(
           collection(db, "peis"),
           where("alunoId", "==", aluno.id),
@@ -564,7 +539,6 @@ export default function CriarPEI() {
         todosPeisDoAlunoSnap.docs.forEach((doc) => {
           const peiData = doc.data();
           if (Array.isArray(peiData.resumoPEI)) {
-            // Agora estratégias vêm de resumoPEI
             peiData.resumoPEI.forEach((meta) => {
               if (Array.isArray(meta.estrategiasSelecionadas)) {
                 meta.estrategiasSelecionadas.forEach((estrat) =>
@@ -575,9 +549,6 @@ export default function CriarPEI() {
           }
         });
 
-        // Extrair objetivos de LONGO PRAZO do PRIMEIRO PEI para filtragem posterior de NOVO PEI
-        // Compatibilidade: Se o PEI já tem a nova estrutura de objetivos (com .longoPrazo), use-a.
-        // Se for um PEI antigo, use a string `meta.objetivo` (que é o que era o longo prazo antes).
         const objetivosDoPrimeiroPEISet = new Set();
         if (primeiroPeiDoAluno && Array.isArray(primeiroPeiDoAluno.resumoPEI)) {
           primeiroPeiDoAluno.resumoPEI.forEach((meta) => {
@@ -588,129 +559,66 @@ export default function CriarPEI() {
             ) {
               objetivosDoPrimeiroPEISet.add(meta.objetivos.longoPrazo);
             } else if (typeof meta.objetivo === "string") {
-              // Compatibilidade com PEIs antigos (antes da reestruturação)
               objetivosDoPrimeiroPEISet.add(meta.objetivo);
             }
           });
         }
 
-        // 4. Determina quem são os perfis/cargos que podem iniciar o PRIMEIRO PEI
         const podeIniciarPrimeiroPEI = verificarPermissaoIniciarPrimeiroPEI(
           usuarioLogado.perfil,
           usuarioLogado.cargo
         );
-        // --- ADICIONE ESTES CONSOLE.LOGS AQUI ---
-        console.log("Usuário logado:", usuarioLogado);
-        console.log("Cargo do usuário:", usuarioLogado.cargo);
-        console.log(
-          "Resultado da permissão (podeIniciarPrimeiroPEI):",
-          podeIniciarPrimeiroPEI
-        );
-        // --- FIM DOS CONSOLE.LOGS ---
-        if (peiExistingParaEsteCriador) {
-          // CENÁRIO A: ENCONTROU UM PEI FEITO POR ESTE CRIADOR -> CARREGA PARA EDIÇÃO
-          // Esta é a edição do PEI DELE. Objetivos e estratégias já foram definidos por ele.
-          setPeiCriadorId(peiExistingParaEsteCriador.criadorId || null);
 
-          const {
-            pei: loadedPei,
-            atividadeAplicada: loadedAtividade,
-            entradaManual: loadedManual,
-          } = loadExistingPeiData(
-            peiExistingParaEsteCriador,
-            estruturaPEIMap,
-            objetivosCurtoPrazoMap, // Passar para preencher objetivos CP/MP de PEIs antigos
-            objetivosMedioPrazoMap, // Passar para preencher objetivos CP/MP de PEIs antigos
-            usuarioLogado.email,
-            peiExistingParaEsteCriador.criadorId
-          );
-
-          setPei(loadedPei);
-          setAreaAtiva(Object.keys(loadedPei)[0] || todasAsAreas[0] || "");
-          setAtividadeAplicada(loadedAtividade);
-          setEntradaManual(loadedManual);
+        if (!alunoJaTemQualquerPei && !podeIniciarPrimeiroPEI) {
           exibirMensagem(
-            "sucesso",
-            "PEI existente (criado por você) carregado para edição."
+            "erro",
+            `Este aluno não possui PEI. Apenas AEE, Gestão, Prof. de Suporte e Prof. Regente podem iniciar o primeiro PEI.`
           );
-        } else {
-          // CENÁRIO B: NÃO ENCONTROU UM PEI FEITO POR ESTE CRIADOR (criar um NOVO PEI dele)
-
-          // 5. VERIFICAÇÃO DE PERMISSÃO PARA INICIAR PEI (SEJA O PRIMEIRO OU UM SUBSEQUENTE)
-          // Se o aluno NÃO TEM NENHUM PEI AINDA E o usuário NÃO PODE iniciar o primeiro PEI
-          if (!alunoJaTemQualquerPei && !podeIniciarPrimeiroPEI) {
-            exibirMensagem(
-              "erro",
-              `Este aluno não possui PEI. Apenas AEE, Gestão, Prof. de Suporte e Prof. Regente podem iniciar o primeiro PEI.`
-            );
-            setAlunoSelecionado(null);
-            setPeiCriadorId(null);
-            return;
-          }
-
-          // Se chegou até aqui, o usuário PODE CRIAR UM NOVO PEI (DELE).
-          // Agora, precisamos da Avaliação Inicial.
-          const assessment = avaliacoes.find((a) => {
-            // CORREÇÃO AQUI: Lidar com 'a.aluno' que pode ser objeto ou string
-            const nomeAvaliacao =
-              typeof a.aluno === "object" && a.aluno !== null && a.aluno.nome
-                ? a.aluno.nome
-                : a.aluno;
-            return (
-              String(nomeAvaliacao).trim().toLowerCase() ===
-              nome.trim().toLowerCase()
-            );
-          });
-
-          if (!assessment) {
-            exibirMensagem("erro", "Este aluno não possui avaliação inicial.");
-            setAlunoSelecionado(null);
-            setPeiCriadorId(null);
-            return;
-          }
-
-          const newPei = buildNewPeiFromAssessment(
-            assessment,
-            estruturaPEIMap,
-            objetivosCurtoPrazoMap,
-            objetivosMedioPrazoMap,
-            objetivosDoPrimeiroPEISet, // Passa os objetivos de Longo Prazo para filtrar
-            estrategiasJaEmUsoGlobalmente
-          );
-
-          // VERIFICA SE O PEI GERADO ESTÁ VAZIO APÓS A FILTRAGEM DE OBJETIVOS E ESTRATÉGIAS
-          const isNewPeiEmpty = Object.keys(newPei).every(
-            (area) => newPei[area].length === 0
-          );
-
-          if (isNewPeiEmpty) {
-            let errorMessageDetail = "";
-            if (alunoJaTemQualquerPei) {
-              errorMessageDetail =
-                "Os objetivos sugeridos para este aluno já foram abordados no PEI inicial ou não se aplicam ao seu nível, e/ou todas as estratégias disponíveis já estão em uso.";
-            } else {
-              errorMessageDetail =
-                "Não há objetivos ou estratégias sugeridas para este aluno com base em sua avaliação.";
-            }
-            exibirMensagem(
-              "erro",
-              `Não foi possível iniciar um novo PEI. ${errorMessageDetail}`
-            );
-            setAlunoSelecionado(null);
-            setPeiCriadorId(null);
-            return;
-          }
-
-          setPei(newPei);
-          setAreaAtiva(Object.keys(newPei)[0] || todasAsAreas[0] || "");
-          setAtividadeAplicada("");
-          setEntradaManual({});
-          setPeiCriadorId(usuarioLogado.email);
-          exibirMensagem(
-            "sucesso",
-            `Novo PEI iniciado com base na avaliação inicial. Você está criando o SEU PEI para este aluno.`
-          );
+          setAlunoSelecionado(null);
+          setPeiCriadorId(null);
+          return;
         }
+
+        const newPei = buildNewPeiFromAssessment(
+          assessment,
+          estruturaPEIMap,
+          objetivosCurtoPrazoMap,
+          objetivosMedioPrazoMap,
+          objetivosDoPrimeiroPEISet,
+          estrategiasJaEmUsoGlobalmente
+        );
+
+        const isNewPeiEmpty = Object.keys(newPei).every(
+          (area) => newPei[area].length === 0
+        );
+
+        if (isNewPeiEmpty) {
+          let errorMessageDetail = "";
+          if (alunoJaTemQualquerPei) {
+            errorMessageDetail =
+              "Os objetivos sugeridos para este aluno já foram abordados no PEI inicial ou não se aplicam ao seu nível, e/ou todas as estratégias disponíveis já estão em uso.";
+          } else {
+            errorMessageDetail =
+              "Não há objetivos ou estratégias sugeridas para este aluno com base em sua avaliação.";
+          }
+          exibirMensagem(
+            "erro",
+            `Não foi possível iniciar um novo PEI. ${errorMessageDetail}`
+          );
+          setAlunoSelecionado(null);
+          setPeiCriadorId(null);
+          return;
+        }
+
+        setPei(newPei);
+        setAreaAtiva(Object.keys(newPei)[0] || todasAsAreas[0] || "");
+        setAtividadeAplicada("");
+        setEntradaManual({});
+        setPeiCriadorId(usuarioLogado.email);
+        exibirMensagem(
+          "sucesso",
+          `Novo PEI iniciado com base na avaliação mais recente. Você está criando o SEU PEI para este aluno.`
+        );
       } catch (err) {
         console.error("Erro ao buscar/criar PEI:", err);
         exibirMensagem(
@@ -723,22 +631,21 @@ export default function CriarPEI() {
     },
     [
       alunos,
-      avaliacoes,
       exibirMensagem,
       verificarPermissaoIniciarPrimeiroPEI,
       buildNewPeiFromAssessment,
       estruturaPEIMap,
-      objetivosCurtoPrazoMap, // Dependência
-      objetivosMedioPrazoMap, // Dependência
-      loadExistingPeiData,
-      todasAsAreas,
+      objetivosCurtoPrazoMap,
+      objetivosMedioPrazoMap,
       usuarioLogado.cargo,
       usuarioLogado.perfil,
       usuarioLogado.email,
+      todasAsAreas,
     ]
   );
+  // --- FIM DA FUNÇÃO handleSelectStudent ---
 
-  // --- HANDLER DE SALVAMENTO DO PEI ---
+  // --- INÍCIO DA FUNÇÃO handleSavePEI ---
   const handleSavePEI = async () => {
     if (!alunoSelecionado) {
       exibirMensagem("erro", "Selecione um aluno antes de salvar.");
@@ -778,7 +685,6 @@ export default function CriarPEI() {
               ]),
             ].filter((e) => typeof e === "string" && e.trim() !== "");
 
-            // Não salva metas sem estratégias ou se os objetivos de prazo não estiverem definidos
             if (
               allStrategies.length === 0 ||
               !meta.objetivos ||
@@ -794,8 +700,8 @@ export default function CriarPEI() {
               habilidade: meta.habilidade,
               nivel: meta.nivel,
               nivelAlmejado: meta.nivelAlmejado,
-              objetivos: meta.objetivos, // Objeto com curtoPrazo, medioPrazo, longoPrazo
-              estrategiasSelecionadas: allStrategies, // As estratégias que o professor selecionou/digitou
+              objetivos: meta.objetivos,
+              estrategiasSelecionadas: allStrategies,
             };
           })
           .filter(Boolean)
@@ -814,23 +720,23 @@ export default function CriarPEI() {
       }
 
       const currentYear = new Date().getFullYear();
-      // A query de existência para atualização agora também verifica pelo criadorId
       const qExisting = query(
         collection(db, "peis"),
         where("alunoId", "==", alunoSelecionado.id),
         where("anoLetivo", "==", currentYear),
-        where("criadorId", "==", usuarioLogado.email), // <-- ADICIONADO: Filtra por criadorId
+        where("criadorId", "==", usuarioLogado.email),
         limit(1)
       );
       const snapExisting = await getDocs(qExisting);
 
       const commonFields = {
-        resumoPEI: finalPeiData, // O campo `resumoPEI` agora contém as metas com o objeto `objetivos` dentro
+        resumoPEI: finalPeiData,
         atividadeAplicada: atividadeAplicada,
         nomeCriador: usuarioLogado.nome || "Desconhecido",
         cargoCriador: usuarioLogado.cargo || "Desconhecido",
         criadorId: usuarioLogado.email || "",
         criadorPerfil: usuarioLogado.perfil || "",
+        anoLetivo: currentYear,
       };
 
       if (!snapExisting.empty) {
@@ -847,7 +753,6 @@ export default function CriarPEI() {
           turma: alunoSelecionado.turma,
           ...commonFields,
           dataCriacao: serverTimestamp(),
-          anoLetivo: currentYear,
         });
         exibirMensagem("sucesso", "Novo PEI salvo com sucesso!");
       }
@@ -858,8 +763,8 @@ export default function CriarPEI() {
       setCarregando(false);
     }
   };
+  // --- FIM DA FUNÇÃO handleSavePEI ---
 
-  // --- Estilos CSS inline para elementos específicos (se houver) ---
   const estilos = {
     areaButton: {
       padding: "10px 18px",
@@ -881,7 +786,6 @@ export default function CriarPEI() {
   return (
     <div className="container" aria-busy={carregando}>
       <div className="card">
-        {/* Header do Card com Botões de Navegação */}
         <div className="card-header">
           <BotaoVoltar />
           <BotaoVerPEIs />
@@ -889,7 +793,6 @@ export default function CriarPEI() {
 
         <h1 className="titulo">Criar PEI</h1>
 
-        {/* Mensagens de feedback */}
         {erro && (
           <div className="mensagem-erro" role="alert">
             {erro}
@@ -957,7 +860,6 @@ export default function CriarPEI() {
               </button>
             </div>
 
-            {/* Abas para Curto, Médio e Longo Prazo (aparecem se uma área de habilidades está ativa) */}
             {areaAtiva && areaAtiva !== "atividadeAplicada" && (
               <div className="tab-buttons-container">
                 <button
@@ -1010,7 +912,6 @@ export default function CriarPEI() {
               <div className="section-content">
                 {pei[areaAtiva]?.length > 0 ? (
                   pei[areaAtiva].map((meta, idx) => {
-                    // Garante que meta.objetivos existe e é um objeto
                     if (
                       !meta ||
                       typeof meta !== "object" ||
@@ -1038,12 +939,11 @@ export default function CriarPEI() {
 
                     const strategiesToDisplay = Array.from(
                       new Set([
-                        ...(meta.estrategias || []), // Estratégias sugeridas da estruturaPEI (base)
-                        ...currentlySelectedStrategiesSet, // Estratégias selecionadas/digitadas pelo usuário
+                        ...(meta.estrategias || []),
+                        ...currentlySelectedStrategiesSet,
                       ])
                     ).filter((s) => s && s.trim().length > 0);
 
-                    // AQUI É A LÓGICA DE EXIBIÇÃO DOS OBJETIVOS POR ABA
                     let objetivoParaExibir = "";
                     if (activeTab === "curtoPrazo") {
                       objetivoParaExibir = meta.objetivos.curtoPrazo;
@@ -1071,7 +971,6 @@ export default function CriarPEI() {
                           — {LEGENDA_NIVEIS[meta.nivelAlmejado]}
                         </p>
 
-                        {/* Exibindo o objetivo da aba selecionada, como readonly */}
                         <div>
                           <p className="form-label">
                             Objetivo de{" "}
@@ -1086,8 +985,8 @@ export default function CriarPEI() {
                             className="textarea-form"
                             rows="2"
                             value={objetivoParaExibir}
-                            readOnly // Campo desabilitado
-                            disabled // Campo desabilitado
+                            readOnly
+                            disabled
                           />
                         </div>
 
@@ -1099,10 +998,6 @@ export default function CriarPEI() {
                               const isChecked =
                                 currentlySelectedStrategiesSet.has(estrategia);
 
-                              // Lógica de desabilitar checkbox:
-                              // Apenas o CRIADOR ORIGINAL do PEI pode desmarcar uma estratégia.
-                              // Outros professores NÃO PODEM desmarcar estratégias já marcadas.
-                              // Se isChecked é TRUE (estratégia já marcada) E o usuário NÃO É o criador original do PEI.
                               const isDisabledCheckbox =
                                 !isPEICriador && isChecked;
 
@@ -1134,7 +1029,6 @@ export default function CriarPEI() {
                                           estrategia;
 
                                       if (newCheckedState) {
-                                        // Se está marcando (sempre permitido se não estiver disabled)
                                         if (isOriginalSuggested) {
                                           let currentSuggestedSelected =
                                             new Set(
@@ -1171,7 +1065,6 @@ export default function CriarPEI() {
                                             );
                                         }
                                       } else {
-                                        // Se está desmarcando (permitido APENAS se não estiver disabled, ou seja, se for o criador original)
                                         if (isOriginalSuggested) {
                                           let currentSuggestedSelected =
                                             new Set(
@@ -1235,7 +1128,8 @@ export default function CriarPEI() {
                             htmlFor={`estrategias-manuais-${manualKey}`}
                             className="form-label"
                           >
-                            Estratégias personalizadas (uma por linha):
+                            Adicionar estratégias personalizadas (uma por
+                            linha):
                           </label>
                           <textarea
                             id={`estrategias-manuais-${manualKey}`}
