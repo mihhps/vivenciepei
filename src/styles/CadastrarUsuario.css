@@ -1,0 +1,65 @@
+/* Estilos para a lista de escolas */
+.escola-select-container {
+  margin-top: 10px;
+  margin-bottom: 20px;
+  text-align: left;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 10px;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.escola-select-titulo {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: #1d3557;
+}
+
+.escola-checkbox-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px; /* Espaço entre os itens da lista */
+}
+
+/* Estilos para o checkbox e o label */
+.escola-checkbox-label {
+  display: flex;
+  align-items: center; /* Alinha o checkbox e o texto verticalmente */
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.escola-checkbox-input {
+  /* Remove as margens extras e garante alinhamento */
+  margin: 0;
+  margin-right: 8px; /* Espaço entre o checkbox e o texto */
+  flex-shrink: 0; /* Impede que o checkbox seja esmagado */
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #fff;
+  transition: all 0.2s;
+  cursor: pointer;
+  position: relative;
+}
+
+/* Estilo do checkmark quando o input está selecionado */
+.escola-checkbox-input:checked {
+  background-color: #1976d2; /* Cor de fundo quando selecionado */
+  border-color: #1976d2; /* Cor da borda quando selecionado */
+}
+
+.escola-checkbox-input:checked::after {
+  content: "✓";
+  color: #fff;
+  font-size: 12px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}

@@ -9,30 +9,29 @@ import BotaoVoltar from "../components/BotaoVoltar";
 import { PERFIS } from "../config/constants";
 import { perfilRedirectMap } from "../config/routesConfig";
 
+// Importe o novo arquivo CSS
+import "../styles/CadastrarUsuario.css";
+
+// O componente em si não muda
 export default function CadastrarUsuario() {
   const [nome, setNome] = useState("");
   const [cargo, setCargo] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [mostrarSenha, setMostrarSenha] = useState(false);
-  const [perfil, setPerfil] = useState(""); // <--- A chave: o valor inicial é uma string vazia
+  const [perfil, setPerfil] = useState("");
   const [disciplina, setDisciplina] = useState("");
 
-  // --- NOVOS ESTADOS PARA FEEDBACK ---
   const [erro, setErro] = useState(null);
   const [sucesso, setSucesso] = useState(null);
   const [loadingCadastro, setLoadingCadastro] = useState(false);
-  // --- FIM DOS NOVOS ESTADOS ---
 
-  // --- NOVOS ESTADOS PARA ESCOLAS ---
   const [listaEscolas, setListaEscolas] = useState([]);
   const [escolasSelecionadas, setEscolasSelecionadas] = useState({});
   const [loadingEscolas, setLoadingEscolas] = useState(false);
-  // --- FIM DOS NOVOS ESTADOS ---
 
   const navigate = useNavigate();
 
-  // Função para limpar mensagens de feedback após um tempo
   const limparFeedback = () => {
     setTimeout(() => {
       setErro(null);
@@ -40,8 +39,6 @@ export default function CadastrarUsuario() {
     }, 5000);
   };
 
-  // Efeito para carregar a lista de escolas
-  // ESTE EFEITO SEMPRE BUSCARÁ A LISTA DE ESCOLAS QUANDO A PÁGINA CARREGAR.
   useEffect(() => {
     const fetchEscolas = async () => {
       setLoadingEscolas(true);
@@ -88,8 +85,6 @@ export default function CadastrarUsuario() {
       }
     }
 
-    // Validação de escola para perfis que precisam
-    // AQUI A VARIÁVEL 'perfisComEscola' É DEFINIDA E VALIDADA
     const perfisComEscola = [
       PERFIS.GESTAO,
       PERFIS.AEE,
@@ -132,7 +127,7 @@ export default function CadastrarUsuario() {
           perfil === PERFIS.PROFESSOR || perfil === PERFIS.AEE
             ? disciplina
             : "",
-        escolas: escolasSelecionadas, // Agora salva as escolas selecionadas
+        escolas: escolasSelecionadas,
         turmas: {},
       };
 
@@ -191,7 +186,6 @@ export default function CadastrarUsuario() {
     }
   };
 
-  // Handler para selecionar/desselecionar escolas
   const handleSelecionarEscola = (e) => {
     const { value, checked } = e.target;
     setEscolasSelecionadas((prev) => {
@@ -297,8 +291,8 @@ export default function CadastrarUsuario() {
           value={perfil}
           onChange={(e) => {
             setPerfil(e.target.value);
-            setEscolasSelecionadas({}); // Limpa seleção de escolas ao mudar de perfil
-            setDisciplina(""); // Limpa disciplina ao mudar de perfil
+            setEscolasSelecionadas({});
+            setDisciplina("");
           }}
           style={estilos.select}
           disabled={loadingCadastro}
@@ -315,7 +309,6 @@ export default function CadastrarUsuario() {
           <option value={PERFIS.SEME}>SEME</option>
         </select>
 
-        {/* Esta seção SÓ APARECE se o perfil for PROFESSOR ou AEE */}
         {(perfil === PERFIS.PROFESSOR || perfil === PERFIS.AEE) && (
           <select
             value={disciplina}
@@ -343,7 +336,6 @@ export default function CadastrarUsuario() {
           </select>
         )}
 
-        {/* Esta seção SÓ APARECE se o perfil for um dos listados. */}
         {[
           PERFIS.GESTAO,
           PERFIS.AEE,
@@ -352,23 +344,21 @@ export default function CadastrarUsuario() {
           PERFIS.DIRETOR_ADJUNTO,
           PERFIS.ORIENTADOR_PEDAGOGICO,
         ].includes(perfil) && (
-          <div style={estilos.escolaSelectContainer}>
-            <h3 style={estilos.escolaSelectTitulo}>
-              Selecione a(s) escola(s):
-            </h3>
+          <div className="escola-select-container">
+            <h3 className="escola-select-titulo">Selecione a(s) escola(s):</h3>
             {loadingEscolas ? (
               <p>Carregando escolas...</p>
             ) : (
-              <div style={estilos.escolaCheckboxList}>
+              <div className="escola-checkbox-list">
                 {listaEscolas.map((escola) => (
-                  <label key={escola.id} style={estilos.escolaCheckboxLabel}>
+                  <label key={escola.id} className="escola-checkbox-label">
                     <input
                       type="checkbox"
                       value={escola.id}
                       checked={!!escolasSelecionadas[escola.id]}
                       onChange={handleSelecionarEscola}
                       disabled={loadingCadastro}
-                      style={estilos.escolaCheckboxInput}
+                      className="escola-checkbox-input"
                     />
                     {escola.nome}
                   </label>
@@ -390,6 +380,7 @@ export default function CadastrarUsuario() {
   );
 }
 
+// Os estilos inline que não precisam de alteração permanecem aqui
 const estilos = {
   container: {
     display: "flex",
@@ -469,38 +460,6 @@ const estilos = {
     fontSize: "16px",
     borderRadius: "6px",
     border: "none",
-    cursor: "pointer",
-  },
-  // NOVOS ESTILOS PARA SELEÇÃO DE ESCOLAS
-  escolaSelectContainer: {
-    marginTop: "10px",
-    marginBottom: "20px",
-    textAlign: "left",
-    border: "1px solid #ccc",
-    borderRadius: "6px",
-    padding: "10px",
-    maxHeight: "150px",
-    overflowY: "auto",
-  },
-  escolaSelectTitulo: {
-    fontSize: "16px",
-    fontWeight: "bold",
-    marginBottom: "10px",
-    color: "#1d3557",
-  },
-  escolaCheckboxList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "8px",
-  },
-  escolaCheckboxLabel: {
-    display: "flex",
-    alignItems: "center",
-    fontSize: "14px",
-    cursor: "pointer",
-  },
-  escolaCheckboxInput: {
-    marginRight: "8px",
     cursor: "pointer",
   },
 };
