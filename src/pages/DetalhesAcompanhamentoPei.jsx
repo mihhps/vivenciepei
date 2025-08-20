@@ -487,6 +487,19 @@ export default function DetalhesAcompanhamentoPei() {
                     >
                       {aluno.statusPeiGeral}
                     </span>
+                    {/* Botão que aparece apenas se o status for "Atrasado - Sem PEI" */}
+                    {aluno.statusPeiGeral.includes("Atrasado - Sem PEI") && (
+                      <button
+                        onClick={() =>
+                          navigate("/criar-pei", {
+                            state: { alunoParaSelecionar: aluno.nome },
+                          })
+                        }
+                        style={estilos.botaoCriarPEI}
+                      >
+                        Criar PEI
+                      </button>
+                    )}
                   </td>
                   <td style={estilos.td}>
                     <span
@@ -641,4 +654,18 @@ const estilos = {
     maxWidth: "800px",
     fontStyle: "italic",
   },
+  // --- NOVO ESTILO PARA O BOTÃO ---
+  botaoCriarPEI: {
+    backgroundColor: "#28a745",
+    color: "#fff",
+    border: "none",
+    borderRadius: "4px",
+    padding: "4px 8px",
+    fontSize: "0.8em",
+    cursor: "pointer",
+    marginLeft: "10px",
+    transition: "background-color 0.3s ease",
+    whiteSpace: "nowrap", // Impede que o texto quebre para uma nova linha
+  },
+  // --- FIM DO NOVO ESTILO ---
 };

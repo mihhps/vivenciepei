@@ -14,8 +14,22 @@ import {
 import BotaoVoltar from "../components/BotaoVoltar";
 import Loader from "../components/Loader";
 import { useAuth } from "../context/AuthContext";
+import styled from "styled-components";
+// Importação do ícone de quebra-cabeça
+import { FaPuzzlePiece } from "react-icons/fa";
 
-// Função auxiliar para formatar datas (mantida como está)
+// --- FUNÇÃO PARA IDENTIFICAR ALUNOS COM TEA ---
+const verificaTea = (diagnostico) => {
+  if (!diagnostico) return false;
+  const diagnosticoLowerCase = diagnostico.toLowerCase();
+  const palavrasChave = ["tea", "autismo", "espectro autista"];
+  return palavrasChave.some((palavra) =>
+    diagnosticoLowerCase.includes(palavra)
+  );
+};
+// --- FIM DA FUNÇÃO DE VERIFICAÇÃO DE TEA ---
+
+// Função auxiliar para formatar datas
 const formatDate = (date) => {
   if (!date) return "N/A";
   if (typeof date === "string") {
@@ -34,35 +48,128 @@ const formatDate = (date) => {
   });
 };
 
+// --- STYLED COMPONENTS ---
+
+const CardGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+`;
+
+const StudentCard = styled.div`
+  background-color: #f8f9fa;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease-in-out;
+  position: relative;
+
+  &:hover {
+    transform: translateY(-5px);
+  }
+`;
+
+const StudentName = styled.h3`
+  color: #1d3557;
+  font-size: 1.5em;
+  margin-top: 0;
+  margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+  gap: 10px; // Espaço entre o nome e o ícone
+`;
+
+const StudentInfo = styled.p`
+  color: #457b9d;
+  font-size: 1em;
+  margin: 0;
+`;
+
+const StatusSection = styled.div`
+  margin-top: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+`;
+
+const StatusItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.95em;
+`;
+
+const StatusLabel = styled.span`
+  font-weight: bold;
+  color: #1d3557;
+  min-width: 120px;
+`;
+
+const StatusChip = styled.span`
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 0.85em;
+  color: #fff;
+  white-space: nowrap;
+  text-align: center;
+  background-color: ${(props) => {
+    if (props.status.includes("Atrasado")) return "#e63946";
+    if (props.status.includes("Criado") || props.status.includes("Feita"))
+      return "#28a745";
+    return "#ffc107";
+  }};
+`;
+
+const AcaoButton = styled.button`
+  background-color: #28a745;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 15px;
+  font-size: 1em;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: auto;
+  transition: background-color 0.3s ease;
+
+  &:hover {
+    background-color: #218838;
+  }
+`;
+
+const TeaIcon = styled(FaPuzzlePiece)`
+  font-size: 1.1em;
+  color: #457b9d;
+`;
+
+// --- FIM DOS STYLED COMPONENTS ---
+
 export default function MeuAcompanhamentoProfessor() {
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth(); // user é o objeto do usuário logado do AuthContext
+  const { user, loading: authLoading } = useAuth();
 
   const [alunosComStatusPei, setAlunosComStatusPei] = useState([]);
-  const [loading, setLoading] = useState(true); // Controla o carregamento dos dados da página
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // 1. Verifique se o AuthContext ainda está carregando ou se o usuário é nulo.
-    // Se user é null E authLoading é false, significa que o usuário NÃO está logado.
     if (authLoading) {
-      setLoading(true); // Mantém o loading ativo enquanto a autenticação carrega
+      setLoading(true);
       return;
     }
 
-    // 2. Verificação de permissão: Agora, de forma mais robusta
-    // user?.perfil?.trim() garante que perfil existe e remove espaços.
-    // user.perfil !== "professor" verifica se o perfil não é "professor".
     if (!user || user.perfil?.trim() !== "professor") {
       alert("Acesso negado. Esta página é restrita a professores.");
       navigate("/");
-      return; // Interrompe a execução do useEffect
+      return;
     }
 
-    // A partir daqui, sabemos que user está carregado e tem o perfil "professor".
-    setLoading(true); // Inicia o loading para os dados da página
+    setLoading(true);
 
-    // Extrai as informações diretamente do objeto 'user' do contexto
     const escolasVinculadas = user.escolas ? Object.keys(user.escolas) : [];
     const turmasVinculadas = user.turmas ? Object.keys(user.turmas) : [];
 
@@ -75,7 +182,7 @@ export default function MeuAcompanhamentoProfessor() {
     }
 
     const carregarMeusDetalhes = async () => {
-      setError(null); // Limpa erros anteriores
+      setError(null);
       try {
         const anoAtual = new Date().getFullYear();
         const hoje = new Date();
@@ -122,10 +229,14 @@ export default function MeuAcompanhamentoProfessor() {
           return;
         }
 
-        const alunosList = alunosSnap.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
+        const alunosList = alunosSnap.docs.map((doc) => {
+          const alunoData = doc.data();
+          return {
+            id: doc.id,
+            ...alunoData,
+            isTea: verificaTea(alunoData.diagnostico),
+          };
+        });
 
         const alunosComStatus = await Promise.all(
           alunosList.map(async (aluno) => {
@@ -133,11 +244,8 @@ export default function MeuAcompanhamentoProfessor() {
               collection(db, "peis"),
               where("alunoId", "==", aluno.id),
               where("anoLetivo", "==", anoAtual),
-              // IMPORTANTE: Garante que o professor só busque PEIs que ele mesmo criou
-              // ou que ele está autorizado a ver (depende de como 'professorId' é armazenado no PEI)
-              // Se 'professorId' no PEI for o UID, então user.uid está correto aqui.
-              where("criadorId", "==", user.email), // Assumindo que criadorId no PEI é o email
-              orderBy("dataCriacao", "desc"), // Usar dataCriacao para ordernar, ou o campo que você usa
+              where("criadorId", "==", user.email),
+              orderBy("dataCriacao", "desc"),
               limit(1)
             );
             const peiSnap = await getDocs(qPei);
@@ -146,7 +254,7 @@ export default function MeuAcompanhamentoProfessor() {
             let statusRevisao1 = "N/A";
             let statusRevisao2 = "N/A";
             let dataUltimaAtualizacaoPei = null;
-            let isAtrasadoRealmenteLocal = false; // Flag para status real de atraso
+            let isAtrasadoRealmenteLocal = false;
 
             const resetTimeLocal = (date) => {
               if (date instanceof Date) {
@@ -181,13 +289,12 @@ export default function MeuAcompanhamentoProfessor() {
             } else {
               const peiData = peiSnap.docs[0].data();
 
-              // Tratamento de datas
               const dataCriacaoPei =
-                peiData?.dataCriacao instanceof Date // Se já é Date
+                peiData?.dataCriacao instanceof Date
                   ? peiData.dataCriacao
-                  : peiData?.dataCriacao?.toDate instanceof Function // Se é Timestamp
+                  : peiData?.dataCriacao?.toDate instanceof Function
                     ? peiData.dataCriacao.toDate()
-                    : typeof peiData.dataCriacao === "string" // Se é string
+                    : typeof peiData.dataCriacao === "string"
                       ? new Date(peiData.dataCriacao)
                       : null;
 
@@ -203,7 +310,6 @@ export default function MeuAcompanhamentoProfessor() {
               dataUltimaAtualizacaoPei =
                 dataUltimaAtualizacaoPei || dataCriacaoPei;
 
-              // --- LÓGICA DE STATUS REPLICADA DA CLOUD FUNCTION ---
               if (dataLimiteCriacaoPEI) {
                 if (hojeZeradoLocal >= resetTimeLocal(dataLimiteCriacaoPEI)) {
                   if (
@@ -234,8 +340,6 @@ export default function MeuAcompanhamentoProfessor() {
               }
 
               if (dataCriacaoPei) {
-                // Só avalia revisões se o PEI foi criado
-                // Revisão 1
                 if (dataLimiteRevisao1Sem) {
                   if (
                     hojeZeradoLocal >= resetTimeLocal(dataLimiteRevisao1Sem)
@@ -259,7 +363,6 @@ export default function MeuAcompanhamentoProfessor() {
                   }
                 }
 
-                // Revisão 2
                 if (dataLimiteRevisao2Sem) {
                   if (
                     hojeZeradoLocal >= resetTimeLocal(dataLimiteRevisao2Sem)
@@ -286,9 +389,8 @@ export default function MeuAcompanhamentoProfessor() {
                   }
                 }
               }
-            } // Fim do if (peiSnap.empty) / else
+            }
 
-            // Lógica para determinar se o aluno está REALMENTE atrasado
             if (
               statusPeiGeral.includes("Atrasado") ||
               statusRevisao1 === "Atrasado" ||
@@ -309,7 +411,7 @@ export default function MeuAcompanhamentoProfessor() {
             };
           })
         );
-        setAlunosComStatusPei(alunosComStatus); // Exibe TODOS os alunos para o professor
+        setAlunosComStatusPei(alunosComStatus);
       } catch (err) {
         console.error("Erro ao carregar acompanhamento:", err);
         setError("Ocorreu um erro ao carregar seus dados: " + err.message);
@@ -319,12 +421,10 @@ export default function MeuAcompanhamentoProfessor() {
     };
 
     carregarMeusDetalhes();
-  }, [user, authLoading, navigate]); // Dependências
+  }, [user, authLoading, navigate]);
 
-  // Renderização condicional para carregamento
   if (authLoading || loading) return <Loader />;
 
-  // Renderização condicional para erro
   if (error) return <div style={estilos.errorMessage}>{error}</div>;
 
   const temAlunosParaExibir = alunosComStatusPei.length > 0;
@@ -347,77 +447,59 @@ export default function MeuAcompanhamentoProfessor() {
             vinculadas.
           </div>
         ) : (
-          <table style={estilos.table}>
-            <thead>
-              <tr>
-                <th style={estilos.th}>Aluno</th>
-                <th style={estilos.th}>Status Geral PEI</th>
-                <th style={estilos.th}>1ª Revisão</th>
-                <th style={estilos.th}>2ª Revisão</th>
-                <th style={estilos.th}>Última Atualização PEI</th>
-              </tr>
-            </thead>
-            <tbody>
-              {alunosComStatusPei.map((aluno) => (
-                <tr key={aluno.id}>
-                  <td style={estilos.td}>{aluno.nome}</td>
-                  <td style={estilos.td}>
-                    <span
-                      style={{
-                        fontWeight: "bold",
-                        color: aluno.statusPeiGeral.includes("Atrasado")
-                          ? "#dc3545"
-                          : aluno.statusPeiGeral.includes("Criado")
-                            ? "#28a745"
-                            : "#ffc107",
-                      }}
-                    >
+          <CardGrid>
+            {alunosComStatusPei.map((aluno) => (
+              <StudentCard key={aluno.id}>
+                <StudentName>
+                  {aluno.nome}
+                  {aluno.isTea && <TeaIcon title="Aluno com TEA" />}
+                </StudentName>
+                <StudentInfo>Turma: {aluno.turma}</StudentInfo>
+                <StatusSection>
+                  <StatusItem>
+                    <StatusLabel>Status Geral PEI:</StatusLabel>
+                    <StatusChip status={aluno.statusPeiGeral}>
                       {aluno.statusPeiGeral}
-                    </span>
-                  </td>
-                  <td style={estilos.td}>
-                    <span
-                      style={{
-                        fontWeight: "bold",
-                        color: aluno.statusRevisao1.includes("Atrasado")
-                          ? "#dc3545"
-                          : aluno.statusRevisao1.includes("Feita")
-                            ? "#28a745"
-                            : "#ffc107",
-                      }}
-                    >
+                    </StatusChip>
+                  </StatusItem>
+                  <StatusItem>
+                    <StatusLabel>1ª Revisão:</StatusLabel>
+                    <StatusChip status={aluno.statusRevisao1}>
                       {aluno.statusRevisao1}
-                    </span>
-                  </td>
-                  <td style={estilos.td}>
-                    <span
-                      style={{
-                        fontWeight: "bold",
-                        color: aluno.statusRevisao2.includes("Atrasado")
-                          ? "#dc3545"
-                          : aluno.statusRevisao2.includes("Feita")
-                            ? "#28a745"
-                            : "#ffc107",
-                      }}
-                    >
+                    </StatusChip>
+                  </StatusItem>
+                  <StatusItem>
+                    <StatusLabel>2ª Revisão:</StatusLabel>
+                    <StatusChip status={aluno.statusRevisao2}>
                       {aluno.statusRevisao2}
-                    </span>
-                  </td>
-                  <td style={estilos.td}>
-                    {/* Aqui a data já vem formatada da lógica */}
-                    {aluno.dataUltimaAtualizacaoPei}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    </StatusChip>
+                  </StatusItem>
+                  <StatusItem>
+                    <StatusLabel>Última Atualização:</StatusLabel>
+                    <span>{aluno.dataUltimaAtualizacaoPei}</span>
+                  </StatusItem>
+                </StatusSection>
+                {aluno.statusPeiGeral.includes("Atrasado - Sem PEI") && (
+                  <AcaoButton
+                    onClick={() =>
+                      navigate("/criar-pei", {
+                        state: { alunoParaSelecionar: aluno },
+                      })
+                    }
+                  >
+                    Criar PEI
+                  </AcaoButton>
+                )}
+              </StudentCard>
+            ))}
+          </CardGrid>
         )}
       </div>
     </div>
   );
 }
 
-// Seus estilos (mantidos como estão)
+// Seus estilos (mantidos como estão, mas alguns não serão mais usados)
 const estilos = {
   container: {
     minHeight: "100vh",
@@ -446,26 +528,6 @@ const estilos = {
     fontSize: "22px",
     textAlign: "center",
     fontWeight: "600",
-  },
-  table: {
-    width: "100%",
-    borderCollapse: "collapse",
-    marginTop: "20px",
-  },
-  th: {
-    backgroundColor: "#eaf2f7",
-    color: "#1d3557",
-    padding: "12px 15px",
-    textAlign: "left",
-    borderBottom: "2px solid #ddd",
-    fontSize: "15px",
-    fontWeight: "bold",
-  },
-  td: {
-    padding: "12px 15px",
-    borderBottom: "1px solid #ddd",
-    fontSize: "14px",
-    verticalAlign: "top",
   },
   errorMessage: {
     color: "#e63946",

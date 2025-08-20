@@ -5,6 +5,69 @@ import TrocarEscola from "../components/TrocarEscola";
 import { verificarPrazosPEI } from "../src/services/peiStatusChecker";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import styled from "styled-components";
+
+// --- NOVOS COMPONENTES ESTILIZADOS PARA OS AVISOS ---
+
+const AvisoCard = styled.div`
+  padding: 15px;
+  border-radius: 12px;
+  margin-bottom: 25px;
+  text-align: left;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  font-family: "Segoe UI", sans-serif;
+
+  h3 {
+    margin: 0 0 10px 0;
+    font-size: 1.2em;
+  }
+  p {
+    margin: 0;
+    font-size: 1em;
+  }
+`;
+
+const AvisoAlerta = styled(AvisoCard)`
+  background-color: #fff4e5;
+  border: 1px solid #ffd1a8;
+  color: #a0522d;
+`;
+
+const AvisoSucesso = styled(AvisoCard)`
+  background-color: #e6f2f0;
+  border: 1px solid #b2d8d1;
+  color: #1d7168;
+`;
+
+const AvisoErro = styled(AvisoCard)`
+  background-color: #ffeaea;
+  border: 1px solid #ffb2b2;
+  color: #b71c1c;
+`;
+
+const AvisoInfo = styled(AvisoCard)`
+  background-color: #e8f4fa;
+  border: 1px solid #b8e0f2;
+  color: #004085;
+`;
+
+const BotaoDetalhes = styled.button`
+  background-color: #005b96;
+  color: #fff;
+  padding: 8px 15px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9em;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: background-color 0.3s ease;
+
+  &:hover {
+    background-color: #004a7a;
+  }
+`;
+
+// --- FIM DOS NOVOS COMPONENTES ESTILIZADOS ---
 
 export default function PainelProfessor() {
   const navigate = useNavigate();
@@ -70,7 +133,9 @@ export default function PainelProfessor() {
   const exibirResumoAvisos = () => {
     if (carregandoAvisos) {
       return (
-        <p style={estilos.mensagemAviso}>Verificando prazos dos PEIs...</p>
+        <AvisoInfo>
+          <p>Verificando prazos dos PEIs...</p>
+        </AvisoInfo>
       );
     }
     if (!avisosPEI) return null;
@@ -79,33 +144,35 @@ export default function PainelProfessor() {
 
     if (erro) {
       return (
-        <p style={estilos.mensagemErro}>Erro ao carregar avisos: {erro}</p>
+        <AvisoErro>
+          <p>Erro ao carregar avisos: {erro}</p>
+        </AvisoErro>
       );
     }
 
     if (mensagem) {
-      return <p style={estilos.nenhumPeiEncontrado}>{mensagem}</p>;
+      return (
+        <AvisoInfo>
+          <p>{mensagem}</p>
+        </AvisoInfo>
+      );
     }
 
     if (statusGeral === "Atrasado" && totalAlunosAtrasados > 0) {
       return (
-        <div style={estilos.alertaAtraso}>
+        <AvisoAlerta>
           <h3>Atenção: PEIs com Pendências!</h3>
-          <p>Existem PEIs com pendências de prazo.</p>
-          <button
-            style={estilos.botaoVerDetalhes}
-            onClick={() => navigate(`/meu-acompanhamento-pei`)}
-          >
+          <BotaoDetalhes onClick={() => navigate(`/meu-acompanhamento-pei`)}>
             Ver Detalhes
-          </button>
-        </div>
+          </BotaoDetalhes>
+        </AvisoAlerta>
       );
     }
 
     return (
-      <p style={estilos.mensagemSucesso}>
-        Parabéns! Todos os PEIs de seus alunos estão em dia.
-      </p>
+      <AvisoSucesso>
+        <p>Parabéns! Todos os PEIs de seus alunos estão em dia.</p>
+      </AvisoSucesso>
     );
   };
 
@@ -118,6 +185,10 @@ export default function PainelProfessor() {
           style={estilos.logo}
         />
         <h2 style={estilos.titulo}>Painel do Professor</h2>
+
+        {usuarioLogado && (
+          <h3 style={estilos.nomeProfessor}>{usuarioLogado.nome}</h3>
+        )}
 
         {exibirResumoAvisos()}
 
@@ -134,7 +205,6 @@ export default function PainelProfessor() {
           >
             Ver Avaliações Iniciais
           </button>
-          {/* **** BOTÃO ADICIONADO **** */}
           <button
             style={estilos.botaoPrimario}
             onClick={() => irPara("/visualizar-interesses")}
@@ -185,9 +255,15 @@ const estilos = {
   },
   titulo: {
     color: "#003366",
-    marginBottom: "30px",
+    marginBottom: "10px",
     fontSize: "24px",
     fontWeight: "bold",
+  },
+  nomeProfessor: {
+    color: "#457b9d",
+    fontSize: "18px",
+    marginBottom: "30px",
+    fontWeight: "600",
   },
   botoes: {
     display: "flex",
@@ -235,67 +311,5 @@ const estilos = {
     cursor: "pointer",
     flexGrow: 1,
     maxWidth: "150px",
-  },
-  alertaAtraso: {
-    backgroundColor: "#fff6e6",
-    border: "1px solid #ff9900",
-    color: "#cc6600",
-    padding: "15px",
-    borderRadius: "8px",
-    marginBottom: "20px",
-    textAlign: "left",
-    fontWeight: "bold",
-  },
-  mensagemAviso: {
-    backgroundColor: "#e6f2ff",
-    border: "1px solid #6699cc",
-    color: "#004085",
-    padding: "15px",
-    borderRadius: "8px",
-    marginBottom: "20px",
-    textAlign: "center",
-    fontWeight: "bold",
-  },
-  mensagemSucesso: {
-    backgroundColor: "#e0f2f7",
-    border: "1px solid #2a9d8f",
-    color: "#1d7168",
-    padding: "15px",
-    borderRadius: "8px",
-    marginBottom: "20px",
-    textAlign: "center",
-    fontWeight: "bold",
-  },
-  mensagemErro: {
-    backgroundColor: "#ffe6e6",
-    border: "1px solid #cc0000",
-    color: "#990000",
-    padding: "15px",
-    borderRadius: "8px",
-    marginBottom: "20px",
-    textAlign: "center",
-    fontWeight: "bold",
-  },
-  botaoVerDetalhes: {
-    backgroundColor: "#005b96", // Cor azul
-    color: "#fff",
-    padding: "8px 15px",
-    border: "none",
-    borderRadius: "5px",
-    fontSize: "0.9em",
-    cursor: "pointer",
-    marginTop: "10px",
-    transition: "background-color 0.3s ease",
-  },
-  nenhumPeiEncontrado: {
-    backgroundColor: "#e6f2ff",
-    border: "1px solid #00264d",
-    color: "#00264d",
-    padding: "15px",
-    borderRadius: "8px",
-    marginBottom: "20px",
-    textAlign: "center",
-    fontWeight: "bold",
-    fontStyle: "italic",
   },
 };

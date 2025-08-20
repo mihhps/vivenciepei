@@ -1,3 +1,5 @@
+// src/pages/VerPEIs.jsx
+
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import BotaoVoltar from "../components/BotaoVoltar";
@@ -20,7 +22,7 @@ import estruturaPEI from "../data/estruturaPEI2";
 import objetivosCurtoPrazoData from "../data/objetivosCurtoPrazo";
 import objetivosMedioPrazoData from "../data/objetivosMedioPrazo";
 
-// --- Funções de Mapeamento de Dados (Replicadas) ---
+// --- Funções de Mapeamento de Dados ---
 const getEstruturaPEIMap = (estrutura) => {
   const map = {};
   if (!estrutura) return map;
@@ -131,6 +133,17 @@ const removerAcentosLocal = (str) => {
     .trim();
 };
 
+// --- FUNÇÃO PARA IDENTIFICAR ALUNOS COM TEA ---
+const verificaTea = (diagnostico) => {
+  if (!diagnostico) return false;
+  const diagnosticoLowerCase = diagnostico.toLowerCase();
+  const palavrasChave = ["tea", "autismo", "espectro autista"];
+  return palavrasChave.some((palavra) =>
+    diagnosticoLowerCase.includes(palavra)
+  );
+};
+// --- FIM DA FUNÇÃO DE VERIFICAÇÃO DE TEA ---
+
 export default function VerPEIs() {
   const navigate = useNavigate();
   const usuarioLogado = useMemo(() => {
@@ -210,10 +223,15 @@ export default function VerPEIs() {
       });
       setAvaliacoesIniciais(todasAvaliacoes);
 
-      const alunosSalvos = alunosSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      // MODIFICADO: Adiciona a propriedade 'isTea' ao objeto de cada aluno
+      const alunosSalvos = alunosSnapshot.docs.map((doc) => {
+        const alunoData = doc.data();
+        return {
+          id: doc.id,
+          ...alunoData,
+          isTea: verificaTea(alunoData.diagnostico),
+        };
+      });
 
       const usuariosSalvos = usuariosSnapshot.docs.map((doc) => ({
         id: doc.id,
@@ -469,7 +487,7 @@ export default function VerPEIs() {
                 <option value="">Selecione o Aluno</option>
                 {alunos.map((aluno) => (
                   <option key={aluno.id} value={aluno.nome}>
-                    {aluno.nome} - {aluno.turma}
+                    {aluno.nome} - {aluno.turma} {aluno.isTea ? " 🧩" : ""}
                   </option>
                 ))}
               </select>
@@ -494,6 +512,11 @@ export default function VerPEIs() {
                         {alunoDaAba?.turma && (
                           <p>
                             <strong>Turma:</strong> {alunoDaAba.turma}
+                          </p>
+                        )}
+                        {alunoDaAba?.isTea && (
+                          <p style={{ fontWeight: "bold", color: "#1d3557" }}>
+                            Transtorno do Espectro Autista (TEA) 🧩
                           </p>
                         )}
                       </div>

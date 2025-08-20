@@ -1,3 +1,5 @@
+// src/pages/CriarPEI.jsx
+
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import PropTypes from "prop-types";
 import { db } from "../firebase";
@@ -14,20 +16,19 @@ import {
 } from "firebase/firestore";
 import BotaoVoltar from "../components/BotaoVoltar";
 import BotaoVerPEIs from "../components/BotaoVerPEIs";
-import { useNavigate } from "react-router-dom";
+// Importar useLocation para ler o estado da navegação
+import { useNavigate, useLocation } from "react-router-dom";
+import { FaPuzzlePiece } from "react-icons/fa";
 
 // Imports dos seus dados
-import estruturaPEI from "../data/estruturaPEI2"; // Seu arquivo principal de habilidades/estratégias
-import { avaliacaoInicial } from "../data/avaliacaoInicialData"; // Avaliação inicial
-
-// NOVOS IMPORTS DOS OBJETIVOS POR PRAZO
+import estruturaPEI from "../data/estruturaPEI2";
+import { avaliacaoInicial } from "../data/avaliacaoInicialData";
 import objetivosCurtoPrazoData from "../data/objetivosCurtoPrazo";
 import objetivosMedioPrazoData from "../data/objetivosMedioPrazo";
 
-// IMPORTAR O NOVO ARQUIVO CSS AQUI
 import "../styles/CriarPEIComponent.css";
 
-// --- CONSTANTES E FUNÇÕES AUXILIARES GERAIS ---
+// ... (Resto do código sem alteração) ...
 
 const NIVEIS_PROGRESSAO = ["NR", "AF", "AG", "AV", "AVi", "I"];
 const LEGENDA_NIVEIS = {
@@ -40,7 +41,15 @@ const LEGENDA_NIVEIS = {
   NA: "Não aplicável",
 };
 
-// Memoized map para busca rápida na estrutura do PEI (habilidades e estratégias gerais)
+const verificaTea = (diagnostico) => {
+  if (!diagnostico) return false;
+  const diagnosticoLowerCase = diagnostico.toLowerCase();
+  const palavrasChave = ["tea", "autismo", "espectro autista"];
+  return palavrasChave.some((palavra) =>
+    diagnosticoLowerCase.includes(palavra)
+  );
+};
+
 const getEstruturaPEIMap = (estrutura) => {
   const map = {};
   Object.entries(estrutura).forEach(([areaName, subareasByArea]) => {
@@ -58,7 +67,7 @@ const getEstruturaPEIMap = (estrutura) => {
                 }
                 if (typeof niveisData === "object" && niveisData !== null) {
                   Object.entries(niveisData).forEach(([nivel, data]) => {
-                    map[habilidadeName][nivel] = data; // Contém objetivo e estratégias
+                    map[habilidadeName][nivel] = data;
                   });
                 } else {
                   console.warn(
@@ -75,7 +84,6 @@ const getEstruturaPEIMap = (estrutura) => {
   return map;
 };
 
-// Função para criar mapas para os objetivos de cada prazo
 const getObjetivosPrazoMap = (prazoData) => {
   const map = {};
   Object.entries(prazoData).forEach(([areaName, subareasByArea]) => {
@@ -92,8 +100,8 @@ const getObjetivosPrazoMap = (prazoData) => {
                   map[habilidadeName] = {};
                 }
                 if (typeof niveisData === "object" && niveisData !== null) {
-                  Object.entries(niveisData).forEach(([nivel, data]) => {
-                    map[habilidadeName][nivel] = data.objetivo; // Salva diretamente o texto do objetivo
+                  Object.entries(niveisData).forEach(([nivel, objData]) => {
+                    map[habilidadeName][nivel] = objData.objetivo;
                   });
                 }
               }
@@ -106,7 +114,6 @@ const getObjetivosPrazoMap = (prazoData) => {
   return map;
 };
 
-// Hook customizado para sistema de mensagens
 const useMessageSystem = () => {
   const [erro, setErro] = useState(null);
   const [mensagemSucesso, setMensagemSucesso] = useState(null);
@@ -128,14 +135,10 @@ const useMessageSystem = () => {
   return { erro, mensagemSucesso, exibirMensagem };
 };
 
-// --- FUNÇÕES AUXILIARES ESPECÍFICAS DO PEI ---
-
-// Função para verificar permissão de criação/edição do PEI
 const verificarPermissaoIniciarPrimeiroPEI = (usuarioPerfil, usuarioCargo) => {
   const perfisIniciadores = ["gestao", "aee", "seme", "desenvolvedor"];
   const cargosIniciadores = ["PROFESSOR REGENTE", "PROFESSOR DE SUPORTE"];
 
-  // Converte o cargo do usuário para maiúsculas antes de verificar
   const cargoEmMaiusculas = usuarioCargo ? usuarioCargo.toUpperCase() : "";
 
   return (
@@ -358,6 +361,7 @@ export default function CriarPEI() {
   const [activeTab, setActiveTab] = useState("longoPrazo");
 
   const navigate = useNavigate();
+  const location = useLocation(); // Hook para ler o estado da navegação
   const { erro, mensagemSucesso, exibirMensagem } = useMessageSystem();
 
   const estruturaPEIMap = useMemo(() => getEstruturaPEIMap(estruturaPEI), []);
@@ -385,7 +389,6 @@ export default function CriarPEI() {
     [usuarioLogado.email, peiCriadorId]
   );
 
-  // --- INÍCIO DA FUNÇÃO carregarDadosIniciais ---
   const carregarDadosIniciais = useCallback(async () => {
     setCarregando(true);
     exibirMensagem("sucesso", "Carregando dados iniciais...");
@@ -403,10 +406,14 @@ export default function CriarPEI() {
         ),
       ]);
 
-      const todosAlunos = alunosSnap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      const todosAlunos = alunosSnap.docs.map((doc) => {
+        const alunoData = doc.data();
+        return {
+          id: doc.id,
+          ...alunoData,
+          isTea: verificaTea(alunoData.diagnostico),
+        };
+      });
 
       const alunosComPeiDesteUsuarioIds = new Set();
       peisSnap.docs.forEach((doc) => {
@@ -446,30 +453,21 @@ export default function CriarPEI() {
       setCarregando(false);
     }
   }, [exibirMensagem, usuarioLogado]);
-  // --- FIM DA FUNÇÃO carregarDadosIniciais ---
 
   useEffect(() => {
     carregarDadosIniciais();
   }, [carregarDadosIniciais]);
 
-  // --- INÍCIO DA FUNÇÃO handleSelectStudent (CORRIGIDA) ---
   const handleSelectStudent = useCallback(
-    async (nome) => {
-      if (!nome) {
-        setAlunoSelecionado(null);
-        setPei({});
-        setAreaAtiva("");
-        setEntradaManual({});
-        setAtividadeAplicada("");
-        setPeiCriadorId(null);
-        setActiveTab("longoPrazo");
-        exibirMensagem("erro", "Selecione um aluno válido.");
-        return;
-      }
-
-      const aluno = alunos.find(
-        (a) => a.nome.trim().toLowerCase() === nome.trim().toLowerCase()
-      );
+    async (alunoOuNome) => {
+      // Verifica se o input é um objeto (passado pelo state) ou uma string (do select)
+      const aluno =
+        typeof alunoOuNome === "object"
+          ? alunoOuNome
+          : alunos.find(
+              (a) =>
+                a.nome.trim().toLowerCase() === alunoOuNome.trim().toLowerCase()
+            );
 
       if (!aluno) {
         exibirMensagem("erro", "Aluno não encontrado.");
@@ -484,13 +482,6 @@ export default function CriarPEI() {
       try {
         const currentYear = new Date().getFullYear();
 
-        // --- DEBUG: ADICIONADO AQUI ---
-        console.log("Buscando avaliação inicial para:", aluno.nome);
-        console.log("ID do aluno usado na busca:", aluno.id);
-        console.log("Ano letivo usado na busca:", currentYear);
-        // --- FIM DO DEBUG ---
-
-        // 1. Buscando a ÚLTIMA AVALIAÇÃO (Inicial ou Reavaliação) do aluno
         const qUltimaAvaliacao = query(
           collection(db, "avaliacoesIniciais"),
           where("alunoId", "==", aluno.id),
@@ -511,7 +502,6 @@ export default function CriarPEI() {
 
         const assessment = avaliacoesSnap.docs[0].data();
 
-        // 2. Busca o PRIMEIRO PEI do aluno para saber os objetivos base
         const qPrimeiroPeiDoAluno = query(
           collection(db, "peis"),
           where("alunoId", "==", aluno.id),
@@ -528,7 +518,6 @@ export default function CriarPEI() {
             }
           : null;
 
-        // 3. Coleta TODAS as estratégias de TODOS os PEIs existentes para este aluno
         const qTodosPeisDoAluno = query(
           collection(db, "peis"),
           where("alunoId", "==", aluno.id),
@@ -643,9 +632,20 @@ export default function CriarPEI() {
       todasAsAreas,
     ]
   );
-  // --- FIM DA FUNÇÃO handleSelectStudent ---
 
-  // --- INÍCIO DA FUNÇÃO handleSavePEI ---
+  // NOVO useEffect para ler o estado da navegação e pré-selecionar o aluno
+  useEffect(() => {
+    if (location.state?.alunoParaSelecionar && alunos.length > 0) {
+      const alunoDoState = location.state.alunoParaSelecionar;
+      const alunoEncontrado = alunos.find((a) => a.id === alunoDoState.id);
+
+      // Se o aluno foi encontrado na lista, carrega ele automaticamente
+      if (alunoEncontrado) {
+        handleSelectStudent(alunoEncontrado);
+      }
+    }
+  }, [location.state, alunos, handleSelectStudent]);
+
   const handleSavePEI = async () => {
     if (!alunoSelecionado) {
       exibirMensagem("erro", "Selecione um aluno antes de salvar.");
@@ -763,7 +763,6 @@ export default function CriarPEI() {
       setCarregando(false);
     }
   };
-  // --- FIM DA FUNÇÃO handleSavePEI ---
 
   const estilos = {
     areaButton: {
@@ -812,7 +811,10 @@ export default function CriarPEI() {
             id="selecionar-aluno"
             value={alunoSelecionado?.nome || ""}
             onChange={(e) => handleSelectStudent(e.target.value)}
-            disabled={carregando}
+            disabled={
+              carregando ||
+              (alunoSelecionado && location.state?.alunoParaSelecionar)
+            }
             className="filter-select"
             aria-label="Selecione um aluno para criar o PEI"
           >
@@ -821,7 +823,7 @@ export default function CriarPEI() {
             </option>
             {alunos.map((aluno) => (
               <option key={aluno.id} value={aluno.nome}>
-                {aluno.nome} - {aluno.turma}
+                {aluno.nome} - {aluno.turma} {aluno.isTea ? " 🧩" : ""}
               </option>
             ))}
           </select>

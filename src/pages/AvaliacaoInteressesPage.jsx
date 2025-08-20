@@ -9,6 +9,7 @@ import { FaFilePdf } from "react-icons/fa";
 import { useAlunos } from "../hooks/useAlunos";
 import SelecaoAluno from "../components/SelecaoAluno";
 import { useAuth } from "../context/AuthContext";
+import styled from "styled-components";
 
 import {
   ATIVIDADES_FAVORITAS_LIST,
@@ -18,6 +19,313 @@ import {
 } from "../constants/avaliacaoConstants";
 
 import { gerarPDFAvaliacaoInteressesParaPreencher } from "../utils/pdfGeneratorInteresses";
+
+// --- NOVOS COMPONENTES ESTILIZADOS ---
+
+const BotaoGerarPdf = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #457b9d;
+  color: #fff;
+  padding: 12px 25px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1em;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+
+  &:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+  }
+
+  &:hover:enabled {
+    background-color: #3b6883;
+  }
+`;
+
+const FormActions = styled.div`
+  display: flex;
+  justify-content: center;
+  margin-bottom: 30px;
+`;
+
+const PdfButtonContainer = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 50px;
+  background-color: #457b9d;
+  color: #fff;
+  border-radius: 50%;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition:
+    background-color 0.3s ease,
+    transform 0.3s ease;
+
+  &:hover {
+    background-color: #3b6883;
+    transform: scale(1.05);
+  }
+`;
+
+const TooltipText = styled.span`
+  visibility: hidden;
+  width: 200px;
+  background-color: #555;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 5px;
+  position: absolute;
+  z-index: 1;
+  bottom: 120%;
+  left: 50%;
+  margin-left: -100px;
+  opacity: 0;
+  transition: opacity 0.3s;
+  font-size: 0.9em;
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #555 transparent transparent transparent;
+  }
+
+  ${PdfButtonContainer}:hover & {
+    visibility: visible;
+    opacity: 1;
+  }
+`;
+
+const HeaderButtonsGroup = styled.div`
+  display: flex;
+  gap: 10px;
+  align-items: center;
+`;
+
+const HeaderButton = styled.button`
+  background-color: #457b9d;
+  color: #fff;
+  padding: 8px 15px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9em;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+
+  &:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+  }
+  &:hover:enabled {
+    background-color: #3b6883;
+  }
+`;
+
+const AvaliacaoHeader = styled.header`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e0e0e0;
+`;
+
+const HeaderTitle = styled.h1`
+  color: #1d3557;
+  font-size: 1.8em;
+  font-weight: 600;
+  margin: 0;
+  flex-grow: 1;
+  text-align: center;
+`;
+
+const BackButton = styled.button`
+  background: none;
+  border: 1px solid #ccc;
+  color: #1d3557;
+  padding: 8px 15px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: #f0f0f0;
+  }
+`;
+
+const AvaliacaoContainer = styled.div`
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 30px;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  font-family: "Segoe UI", sans-serif;
+`;
+
+const SubmitButton = styled.button`
+  width: 100%;
+  padding: 15px;
+  background-color: #00264d;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1em;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  margin-top: 30px;
+
+  &:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+  }
+
+  &:hover:enabled {
+    background-color: #001a36;
+  }
+`;
+
+const ErrorMessage = styled.div`
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 15px;
+  margin: 20px 0;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: 600;
+`;
+
+const SuccessMessage = styled.div`
+  background-color: #d4edda;
+  color: #155724;
+  padding: 15px;
+  margin: 20px 0;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: 600;
+`;
+
+const InfoMessage = styled.div`
+  background-color: #e7f3ff;
+  color: #0c5460;
+  padding: 15px;
+  margin: 20px 0;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: 600;
+`;
+
+const FormSection = styled.section`
+  margin-top: 30px;
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+
+  h2 {
+    color: #1d3557;
+    border-bottom: 2px solid #e0e0e0;
+    padding-bottom: 10px;
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 1.5em;
+  }
+
+  p.section-description {
+    color: #555;
+    margin-bottom: 20px;
+  }
+`;
+
+const FormGroup = styled.div`
+  margin-bottom: 20px;
+`;
+
+const InputLabel = styled.label`
+  font-weight: 600;
+  color: #1d3557;
+  display: block;
+  margin-bottom: 8px;
+`;
+
+const TextInput = styled.input`
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 1em;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: #007bff;
+  }
+`;
+
+const TextArea = styled.textarea`
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 1em;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: #007bff;
+  }
+`;
+
+const RadioWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+`;
+
+const RadioOptions = styled.div`
+  display: flex;
+  gap: 5px;
+`;
+
+const RadioLabel = styled.label`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 45px;
+  height: 35px;
+  border-radius: 18px;
+  font-size: 0.9em;
+  font-weight: bold;
+  cursor: pointer;
+  border: 1px solid #ccc;
+  transition: all 0.2s ease;
+
+  background-color: ${(props) =>
+    props.checked ? (props.value === "Sim" ? "#28a745" : "#dc3545") : "#fff"};
+  color: ${(props) => (props.checked ? "#fff" : "#555")};
+
+  &:hover {
+    border-color: #007bff;
+  }
+`;
+
+// --- FIM DOS COMPONENTES ESTILIZADOS ---
 
 const getInitialFormData = () => {
   const initialRadioState = (items) =>
@@ -98,7 +406,6 @@ function AvaliacaoInteressesPage() {
         alunoSelecionadoDropdown?.id || alunoIdFromParams;
 
       if (!currentAlunoIdToFetch) {
-        // NÃO exibe mensagem de erro. É o estado inicial normal.
         setCarregando(false);
         return;
       }
@@ -109,7 +416,7 @@ function AvaliacaoInteressesPage() {
       }
 
       setCarregando(true);
-      setErro(null); // Limpa o erro ao tentar carregar um novo aluno.
+      setErro(null);
       setSucesso(null);
       setShowViewButton(false);
 
@@ -148,7 +455,7 @@ function AvaliacaoInteressesPage() {
             setShowViewButton(false);
           }
         } else {
-          setErro("Aluno não encontrado no Firebase."); // Exibe erro se o ID for inválido.
+          setErro("Aluno não encontrado no Firebase.");
           setAluno(null);
         }
       } catch (error) {
@@ -276,36 +583,41 @@ function AvaliacaoInteressesPage() {
   }
 
   return (
-    <div className="avaliacao-container">
-      <header className="avaliacao-header">
-        <button
-          onClick={() => navigate(-1)}
-          className="back-button"
-          disabled={salvando}
-        >
+    <AvaliacaoContainer>
+      <AvaliacaoHeader>
+        <BackButton onClick={() => navigate(-1)} disabled={salvando}>
           &larr; Voltar
-        </button>
-        <h1>Avaliação de Interesses e Gatilhos</h1>
-        <div className="header-buttons-group right-aligned-buttons">
-          <button
+        </BackButton>
+        <HeaderTitle>Avaliação de Interesses e Gatilhos</HeaderTitle>
+        <HeaderButtonsGroup>
+          <HeaderButton
             onClick={() => navigate("/visualizar-interesses")}
-            className="view-all-button"
             disabled={salvando}
           >
             Ver Avaliações de Interesses
-          </button>
+          </HeaderButton>
           {showViewButton && alunoSelecionadoDropdown && (
-            <button
+            <HeaderButton
               type="button"
               onClick={handleVisualizarAvaliacao}
-              className="view-evaluation-button"
               disabled={salvando}
             >
               Visualizar Avaliação Salva
-            </button>
+            </HeaderButton>
           )}
-        </div>
-      </header>
+          {alunoSelecionadoDropdown && (
+            <PdfButtonContainer
+              onClick={handleGerarPDFManual}
+              role="button"
+              aria-label="Gerar PDF para Avaliação Manual"
+              disabled={salvando}
+            >
+              <FaFilePdf size={20} color="#f4f4f4" />
+              <TooltipText>Gerar PDF para Avaliação Manual</TooltipText>
+            </PdfButtonContainer>
+          )}
+        </HeaderButtonsGroup>
+      </AvaliacaoHeader>
 
       {erroAlunosFromHook && (
         <div className="mensagem-erro">{erroAlunosFromHook}</div>
@@ -336,20 +648,6 @@ function AvaliacaoInteressesPage() {
             <h2 className="aluno-nome-header">
               Aluno: {alunoSelecionadoDropdown.nome || "Nome Indisponível"}
             </h2>
-
-            <div className="form-actions">
-              <div
-                className="pdf-generator-button-modern tooltip-container"
-                onClick={handleGerarPDFManual}
-                role="button"
-                aria-label="Gerar PDF para Avaliação Manual"
-              >
-                <FaFilePdf size={24} color="#f4f4f4" />
-                <span className="tooltip-text">
-                  Gerar PDF para Avaliação Manual
-                </span>
-              </div>
-            </div>
 
             {/* Seção 1: Interesses e Pontos Fortes */}
             <section className="form-section">
@@ -743,7 +1041,7 @@ function AvaliacaoInteressesPage() {
           </form>
         )
       )}
-    </div>
+    </AvaliacaoContainer>
   );
 }
 

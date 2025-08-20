@@ -12,11 +12,12 @@ import {
   getDoc,
   orderBy,
 } from "firebase/firestore";
-// BotaoVoltar não é mais importado como componente React, pois faremos um botão customizado
-// com navegação condicional. Se você o usa em outros lugares, mantenha o arquivo BotaoVoltar.jsx/js.
-import { FaPencilAlt, FaTrashAlt, FaPlus } from "react-icons/fa";
+// Importação do novo ícone de quebra-cabeça
+import { FaPencilAlt, FaTrashAlt, FaPlus, FaPuzzlePiece } from "react-icons/fa";
 import Loader from "../components/Loader";
-import { useNavigate } from "react-router-dom"; // Adicionado useNavigate
+import { useNavigate } from "react-router-dom";
+
+// --- Funções Auxiliares ---
 
 // Função utilitária para obter dados do localStorage de forma segura
 const getLocalStorageSafe = (key, defaultValue = null) => {
@@ -32,7 +33,39 @@ const getLocalStorageSafe = (key, defaultValue = null) => {
   }
 };
 
-// Estilos JSX (mantidos para o layout principal)
+// Função auxiliar para calcular idade com base na data de nascimento
+const calcularIdade = (dataNascimento) => {
+  if (!dataNascimento) return "N/A";
+  try {
+    const parts = dataNascimento.split("-");
+    if (parts.length !== 3) return "Data inválida";
+    const [ano, mes, dia] = parts.map(Number);
+    const nascimento = new Date(ano, mes - 1, dia);
+    if (isNaN(nascimento.getTime())) return "Data inválida";
+    const hoje = new Date();
+    let idade = hoje.getFullYear() - nascimento.getFullYear();
+    const m = hoje.getMonth() - nascimento.getMonth();
+    if (m < 0 || (m === 0 && hoje.getDate() < nascimento.getDate())) idade--;
+    return idade >= 0 ? idade : "N/A";
+  } catch (e) {
+    console.error("Erro ao calcular idade para:", dataNascimento, e);
+    return "N/A";
+  }
+};
+
+// --- FUNÇÃO PARA IDENTIFICAR ALUNOS COM TEA ---
+const verificaTea = (diagnostico) => {
+  if (!diagnostico) return false;
+  const diagnosticoLowerCase = diagnostico.toLowerCase();
+  const palavrasChave = ["tea", "autismo", "espectro autista"];
+
+  // Verifica se o texto do diagnóstico inclui alguma das palavras-chave
+  return palavrasChave.some((palavra) =>
+    diagnosticoLowerCase.includes(palavra)
+  );
+};
+
+// --- Estilos JSX ---
 const styles = {
   container: {
     minHeight: "100vh",
@@ -127,51 +160,26 @@ const styles = {
     justifyContent: "center",
     transition: "background-color 0.3s ease",
   },
-  // REMOVIDOS estilos de modal: modalContent, inputField, modalActions, saveButton, cancelButton, formFieldContainer, label, requiredAsterisk
 };
-
-// Função auxiliar para calcular idade com base na data de nascimento
-const calcularIdade = (dataNascimento) => {
-  if (!dataNascimento) return "N/A";
-  try {
-    const parts = dataNascimento.split("-");
-    if (parts.length !== 3) return "Data inválida";
-    const [ano, mes, dia] = parts.map(Number);
-    const nascimento = new Date(ano, mes - 1, dia);
-    if (isNaN(nascimento.getTime())) return "Data inválida";
-    const hoje = new Date();
-    let idade = hoje.getFullYear() - nascimento.getFullYear();
-    const m = hoje.getMonth() - nascimento.getMonth();
-    if (m < 0 || (m === 0 && hoje.getDate() < nascimento.getDate())) idade--;
-    return idade >= 0 ? idade : "N/A";
-  } catch (e) {
-    console.error("Erro ao calcular idade para:", dataNascimento, e);
-    return "N/A";
-  }
-};
+// --- Fim dos Estilos JSX ---
 
 export default function VerAlunos() {
-  const navigate = useNavigate(); // Hook de navegação
+  const navigate = useNavigate();
 
-  // Estados do componente
   const [alunos, setAlunos] = useState([]);
-  const [escolas, setEscolas] = useState([]); // Todas as escolas disponíveis no sistema
-  const [escolaSelecionada, setEscolaSelecionada] = useState(null); // ID da escola atualmente selecionada/visualizada
-  // REMOVIDOS estados de modal: modalAberto, formulario
-  const [loading, setLoading] = useState(true); // Estado de carregamento principal da tela
-  const [loadingSalvar, setLoadingSalvar] = useState(false); // Estado de carregamento para operações de exclusão
-  const [error, setError] = useState(null); // Estado para exibir mensagens de erro
+  const [escolas, setEscolas] = useState([]);
+  const [escolaSelecionada, setEscolaSelecionada] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [loadingSalvar, setLoadingSalvar] = useState(false);
+  const [error, setError] = useState(null);
 
-  // Novos estados para armazenar escolas e turmas permitidas para o usuário logado
   const [escolasPermitidasParaUsuario, setEscolasPermitidasParaUsuario] =
     useState([]);
   const [turmasPermitidasParaUsuario, setTurmasPermitidasParaUsuario] =
     useState([]);
 
-  // Memoiza o usuário logado para evitar recargas desnecessárias
   const usuario = useMemo(() => getLocalStorageSafe("usuarioLogado", {}), []);
 
-  // Determina se o usuário logado tem permissão para editar alunos
   const podeEditar = useMemo(
     () =>
       ["gestao", "aee", "desenvolvedor"].includes(
@@ -180,11 +188,9 @@ export default function VerAlunos() {
     [usuario?.perfil]
   );
 
-  // --- Função principal de carregamento de todos os dados (escolas e alunos) ---
   const carregarTodosOsDados = useCallback(async () => {
-    console.log("VERALUNOS DEBUG: Iniciando carregarTodosOsDados...");
-    setLoading(true); // Ativa o loading
-    setError(null); // Limpa qualquer erro anterior
+    setLoading(true);
+    setError(null);
     try {
       if (!usuario?.perfil) {
         setError("Você não está logado ou não tem um perfil válido.");
@@ -192,24 +198,17 @@ export default function VerAlunos() {
         return;
       }
 
-      // 1. Carregar todas as escolas disponíveis no sistema
       const escolasSnap = await getDocs(collection(db, "escolas"));
       const escolasListadas = escolasSnap.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
       setEscolas(escolasListadas);
-      console.log(
-        "VERALUNOS DEBUG: Todas as escolas carregadas:",
-        escolasListadas.length
-      );
 
-      let tempEscolasPermitidas = []; // Variável temporária para IDs de escolas permitidas
-      let tempTurmasPermitidas = []; // Variável temporária para nomes de turmas permitidas (para AEE)
+      let tempEscolasPermitidas = [];
+      let tempTurmasPermitidas = [];
 
-      // 2. Determinar as permissões de escola e turma do usuário logado
       if (usuario.perfil === "aee" || usuario.perfil === "professor") {
-        // Para AEE e Professores, buscar os vínculos de escola e turma do próprio documento de usuário
         const userDocRef = doc(db, "usuarios", usuario.uid);
         const userDocSnap = await getDoc(userDocRef);
         const userData = userDocSnap.data();
@@ -228,27 +227,8 @@ export default function VerAlunos() {
           tempTurmasPermitidas = Object.keys(userData.turmas);
         }
 
-        console.log(
-          `VERALUNOS DEBUG: Usuário ${usuario.perfil?.toUpperCase()} (UID: ${
-            usuario.uid
-          })`
-        );
-        console.log(
-          "VERALUNOS DEBUG: Escolas Permitidas:",
-          tempEscolasPermitidas
-        );
-        console.log(
-          "VERALUNOS DEBUG: Turmas Permitidas (AEE):",
-          tempTurmasPermitidas
-        );
-
-        // Se a escola selecionada ainda não foi definida, usa a primeira escola permitida como padrão
         if (escolaSelecionada === null && tempEscolasPermitidas.length > 0) {
           setEscolaSelecionada(tempEscolasPermitidas[0]);
-          console.log(
-            "VERALUNOS DEBUG: Escola selecionada inicial (AEE/Prof):",
-            tempEscolasPermitidas[0]
-          );
         }
       } else if (
         [
@@ -257,65 +237,38 @@ export default function VerAlunos() {
           "diretor",
           "diretor adjunto",
           "orientador pedagógico",
-          "seme", // Adicionado SEME aqui para ver todas as escolas por padrão
+          "seme",
         ].includes(usuario.perfil)
       ) {
-        // Para perfis de gestão/desenvolvedor/diretores, eles podem ver todas as escolas inicialmente
-        tempEscolasPermitidas = escolasListadas.map((e) => e.id); // Todos os IDs de escolas
-
-        // Se a escola selecionada ainda não foi definida, usa a primeira escola do sistema como padrão
+        tempEscolasPermitidas = escolasListadas.map((e) => e.id);
         if (escolasListadas.length > 0 && escolaSelecionada === null) {
           setEscolaSelecionada(escolasListadas[0]?.id || null);
-          console.log(
-            "VERALUNOS DEBUG: Escola selecionada inicial (Gestão/Dev/Diretor/SEME):",
-            escolasListadas[0]?.id
-          );
         }
       } else {
-        // Outros perfis não autorizados (se não foram pegos na verificação inicial)
         setError("Seu perfil não tem permissão para visualizar alunos.");
         setLoading(false);
         return;
       }
 
-      // Atualiza os estados que serão usados no JSX para exibir filtros e dados
       setEscolasPermitidasParaUsuario(tempEscolasPermitidas);
       setTurmasPermitidasParaUsuario(tempTurmasPermitidas);
-      console.log("VERALUNOS DEBUG: Estados de permissão atualizados.");
 
-      // 3. Construção da Query de Alunos com base na escola selecionada e permissões
       let alunosParaExibir = [];
-      let escolaAtualmenteSelecionada = escolaSelecionada; // Pega o valor atual do estado de escola selecionada
+      let escolaAtualmenteSelecionada = escolaSelecionada;
 
-      // Se escolaAtualmenteSelecionada ainda não foi definida (ex: primeiro load para AEE/Prof)
-      // e o usuário tem escolas permitidas, define a primeira como a "selecionada atual"
       if (!escolaAtualmenteSelecionada && tempEscolasPermitidas.length > 0) {
         escolaAtualmenteSelecionada = tempEscolasPermitidas[0];
-        setEscolaSelecionada(escolaAtualmenteSelecionada); // Atualiza o estado da UI
-        console.log(
-          "VERALUNOS DEBUG: Escola ativa final definida para query (fallback):",
-          escolaAtualmenteSelecionada
-        );
+        setEscolaSelecionada(escolaAtualmenteSelecionada);
       }
 
-      // === AQUI ESTÁ A CHAVE: SALVAR NO LOCALSTORAGE ===
-      // Salva a escola selecionada no localStorage para que o componente EscolaAtual possa exibi-la
       if (escolaAtualmenteSelecionada) {
         localStorage.setItem(
           "escolaAtiva",
           JSON.stringify(escolaAtualmenteSelecionada)
         );
-        console.log(
-          "VERALUNOS DEBUG: 'escolaAtiva' salva no localStorage:",
-          JSON.parse(localStorage.getItem("escolaAtiva"))
-        );
       } else {
         localStorage.removeItem("escolaAtiva");
-        console.log(
-          "VERALUNOS DEBUG: 'escolaAtiva' removida do localStorage (nenhuma escola determinada)."
-        );
       }
-      // === FIM DO SALVAMENTO NO LOCALSTORAGE ===
 
       if (escolaAtualmenteSelecionada) {
         let qAlunos = query(
@@ -332,18 +285,20 @@ export default function VerAlunos() {
             );
           } else {
             console.warn(
-              "Atenção: AEE tem mais de 10 turmas vinculadas. Alunos serão filtrados no cliente (NÃO RECOMENDADO PARA GRANDES VOLUMES)."
+              "Atenção: AEE tem mais de 10 turmas vinculadas. Alunos serão filtrados no cliente."
             );
-            // Neste caso, você pode considerar uma estrutura de dados diferente ou Cloud Functions
-            // para lidar com filtros de muitas turmas.
           }
         }
 
         const alunosSnap = await getDocs(qAlunos);
-        let fetchedAlunos = alunosSnap.docs.map((docSnap) => ({
-          id: docSnap.id,
-          ...docSnap.data(),
-        }));
+        let fetchedAlunos = alunosSnap.docs.map((docSnap) => {
+          const dadosAluno = docSnap.data();
+          return {
+            id: docSnap.id,
+            ...dadosAluno,
+            isTea: verificaTea(dadosAluno.diagnostico), // Adiciona a propriedade 'isTea'
+          };
+        });
 
         if (usuario.perfil === "aee" && tempTurmasPermitidas.length > 10) {
           fetchedAlunos = fetchedAlunos.filter((aluno) =>
@@ -351,23 +306,13 @@ export default function VerAlunos() {
           );
         }
         alunosParaExibir = fetchedAlunos;
-        console.log(
-          "VERALUNOS DEBUG: Alunos carregados para exibição:",
-          alunosParaExibir.length
-        );
       } else {
         alunosParaExibir = [];
-        console.log(
-          "VERALUNOS DEBUG: Nenhuma escola ativa, nenhum aluno carregado."
-        );
       }
 
-      setAlunos(alunosParaExibir); // Atualiza o estado dos alunos para exibição
+      setAlunos(alunosParaExibir);
     } catch (e) {
-      console.error(
-        "VERALUNOS DEBUG: Erro fatal ao carregar todos os dados:",
-        e
-      );
+      console.error("Erro fatal ao carregar todos os dados:", e);
       setError(
         e.message || "Falha ao carregar dados. Por favor, tente novamente."
       );
@@ -377,16 +322,13 @@ export default function VerAlunos() {
       setTurmasPermitidasParaUsuario([]);
     } finally {
       setLoading(false);
-      console.log("VERALUNOS DEBUG: Finalizando carregarTodosOsDados.");
     }
-  }, [usuario, escolaSelecionada]); // Dependências: A função re-executa se o usuário ou a escola selecionada mudar
+  }, [usuario, escolaSelecionada]);
 
-  // Efeito para Carregamento Inicial do componente
   useEffect(() => {
     carregarTodosOsDados();
-  }, [carregarTodosOsDados]); // Dispara a função carregarTodosOsDados na montagem e quando ela muda
+  }, [carregarTodosOsDados]);
 
-  // --- Função de Exclusão de Aluno (Mantida) ---
   const handleExcluir = useCallback(
     async (idAluno) => {
       if (loadingSalvar) return;
@@ -401,7 +343,7 @@ export default function VerAlunos() {
       setLoadingSalvar(true);
       try {
         await deleteDoc(doc(db, "alunos", idAluno));
-        await carregarTodosOsDados(); // Recarrega a lista após exclusão
+        await carregarTodosOsDados();
       } catch (error) {
         console.error("Erro ao excluir aluno:", error);
         setError("Erro ao excluir aluno. Por favor, tente novamente.");
@@ -412,23 +354,17 @@ export default function VerAlunos() {
     [loadingSalvar, carregarTodosOsDados]
   );
 
-  // Memoiza a lista de alunos para exibição na UI
   const alunosDaEscola = useMemo(() => {
     return alunos;
   }, [alunos]);
 
-  // --- Renderização Condicional da UI ---
-
-  // Exibe um loader global enquanto a tela principal está carregando
   if (loading && !error) {
     return <Loader />;
   }
 
-  // Exibe uma mensagem de erro principal se houver um erro e não estiver carregando
   if (error && !loading) {
     return (
       <div style={styles.container}>
-        {/* Botão Voltar personalizado */}
         <button
           onClick={() => {
             const perfilUsuario = usuario?.perfil?.toLowerCase();
@@ -482,11 +418,9 @@ export default function VerAlunos() {
     );
   }
 
-  // Exibe uma mensagem se não há escolas disponíveis para o perfil
   if (!loading && escolas.length === 0 && usuario?.perfil !== "aee") {
     return (
       <div style={styles.container}>
-        {/* Botão Voltar personalizado */}
         <button
           onClick={() => {
             const perfilUsuario = usuario?.perfil?.toLowerCase();
@@ -534,19 +468,15 @@ export default function VerAlunos() {
             marginTop: "50px",
           }}
         >
-          Nenhuma escola cadastrada ou disponível para sua visualização. Por
-          favor, verifique se há escolas no sistema ou se seu perfil tem as
-          permissões corretas.
+          Nenhuma escola cadastrada ou disponível para sua visualização.
         </p>
       </div>
     );
   }
 
-  // === INÍCIO DO RETURN PRINCIPAL DO COMPONENTE ===
   return (
     <div style={styles.container}>
       <div style={styles.content}>
-        {/* Botão Voltar personalizado */}
         <button
           onClick={() => {
             const perfilUsuario = usuario?.perfil?.toLowerCase();
@@ -594,7 +524,7 @@ export default function VerAlunos() {
 
                 if (
                   !targetEscolaId &&
-                  !["desenvolvedor", "gestao", "seme"].includes(usuario.perfil) // Adicionado SEME aqui também
+                  !["desenvolvedor", "gestao", "seme"].includes(usuario.perfil)
                 ) {
                   alert(
                     "Por favor, selecione uma escola primeiro para adicionar um novo aluno."
@@ -602,7 +532,6 @@ export default function VerAlunos() {
                   return;
                 }
 
-                // Redireciona para a página de cadastro de aluno
                 navigate("/cadastrar-aluno");
               }}
               style={styles.buttonPrimary}
@@ -613,7 +542,6 @@ export default function VerAlunos() {
           )}
         </div>
 
-        {/* Filtro de Escola para Perfis com múltiplas escolas permitidas */}
         {escolas.length > 0 &&
           escolaSelecionada &&
           escolasPermitidasParaUsuario.length > 0 && (
@@ -636,7 +564,6 @@ export default function VerAlunos() {
             </div>
           )}
 
-        {/* Exibe a escola atualmente visualizada (para todos os perfis) */}
         {escolas.length > 0 && escolaSelecionada && (
           <div
             style={{
@@ -652,7 +579,6 @@ export default function VerAlunos() {
           </div>
         )}
 
-        {/* Mensagem se não há alunos para os critérios selecionados */}
         {!loading && !error && alunosDaEscola.length === 0 && (
           <p
             style={{
@@ -670,7 +596,6 @@ export default function VerAlunos() {
           </p>
         )}
 
-        {/* Grid de Alunos */}
         {!loading && !error && alunosDaEscola.length > 0 && (
           <div style={styles.studentGrid}>
             {alunosDaEscola.map((aluno) => (
@@ -690,6 +615,18 @@ export default function VerAlunos() {
                 <p>
                   <strong>Diagnóstico:</strong> {aluno.diagnostico || "N/A"}
                 </p>
+                {/* Exibe o ícone de quebra-cabeça se o aluno for TEA */}
+                {aluno.isTea && (
+                  <FaPuzzlePiece
+                    style={{
+                      fontSize: "1.2em",
+                      color: "#29ABE2", // Um tom de azul mais moderno
+                      marginTop: "5px",
+                    }}
+                    title="Aluno com TEA"
+                  />
+                )}
+
                 {podeEditar && (
                   <div style={styles.actionButtons}>
                     <button
