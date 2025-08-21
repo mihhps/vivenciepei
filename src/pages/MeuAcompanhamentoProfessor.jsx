@@ -171,7 +171,9 @@ export default function MeuAcompanhamentoProfessor() {
     setLoading(true);
 
     const escolasVinculadas = user.escolas ? Object.keys(user.escolas) : [];
-    const turmasVinculadas = user.turmas ? Object.keys(user.turmas) : [];
+    const turmasVinculadas = user.turmas
+      ? Object.keys(user.turmas).map((t) => t.trim().toLowerCase())
+      : [];
 
     if (escolasVinculadas.length === 0 || turmasVinculadas.length === 0) {
       setError(
@@ -189,7 +191,7 @@ export default function MeuAcompanhamentoProfessor() {
         hoje.setHours(0, 0, 0, 0);
 
         const escolasParaQuery = escolasVinculadas.slice(0, 30);
-        const turmasParaQuery = turmasVinculadas.slice(0, 30);
+        // Não é mais necessário o turmasParaQuery, pois a filtragem será no cliente
 
         const qPrazos = query(
           collection(db, "prazosPEIAnuais"),
@@ -216,20 +218,20 @@ export default function MeuAcompanhamentoProfessor() {
         const dataLimiteRevisao2Sem =
           prazoAnualDoc.dataLimiteRevisao2Sem?.toDate();
 
+        // Alteração principal: Busque apenas por escolaId
         const qAlunos = query(
           collection(db, "alunos"),
-          where("turma", "in", turmasParaQuery),
           where("escolaId", "in", escolasParaQuery)
         );
         const alunosSnap = await getDocs(qAlunos);
 
         if (alunosSnap.empty) {
-          setError("Nenhum aluno encontrado para suas turmas e escolas.");
+          setError("Nenhum aluno encontrado para suas escolas.");
           setLoading(false);
           return;
         }
 
-        const alunosList = alunosSnap.docs.map((doc) => {
+        const todosAlunosDaEscola = alunosSnap.docs.map((doc) => {
           const alunoData = doc.data();
           return {
             id: doc.id,
@@ -238,8 +240,21 @@ export default function MeuAcompanhamentoProfessor() {
           };
         });
 
+        // Nova lógica: Filtra os alunos no código JavaScript
+        const alunosFiltradosPorTurma = todosAlunosDaEscola.filter(
+          (aluno) =>
+            aluno.turma &&
+            turmasVinculadas.includes(aluno.turma.trim().toLowerCase())
+        );
+
+        if (alunosFiltradosPorTurma.length === 0) {
+          setError("Nenhum aluno encontrado para suas turmas e escolas.");
+          setLoading(false);
+          return;
+        }
+
         const alunosComStatus = await Promise.all(
-          alunosList.map(async (aluno) => {
+          alunosFiltradosPorTurma.map(async (aluno) => {
             const qPei = query(
               collection(db, "peis"),
               where("alunoId", "==", aluno.id),

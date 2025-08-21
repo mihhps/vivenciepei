@@ -422,7 +422,6 @@ export default function CriarPEI() {
       });
 
       const { perfil, turmas } = usuarioLogado;
-      const turmasVinculadas = turmas ? Object.keys(turmas) : [];
 
       const podeVerTodosAlunosNoSistema =
         perfil === "gestao" ||
@@ -431,10 +430,20 @@ export default function CriarPEI() {
         perfil === "desenvolvedor";
 
       let alunosFiltradosPorPermissao = todosAlunos;
+
+      // ALTERAÇÃO: A lógica de filtragem agora é feita em uma única etapa
       if (!podeVerTodosAlunosNoSistema) {
-        alunosFiltradosPorPermissao = alunosFiltradosPorPermissao.filter(
-          (aluno) => turmasVinculadas.includes(aluno.turma)
+        const turmasVinculadas = turmas ? Object.keys(turmas) : [];
+        const turmasVinculadasNormalizadas = turmasVinculadas.map((t) =>
+          t.trim().toLowerCase()
         );
+
+        alunosFiltradosPorPermissao = todosAlunos.filter((aluno) => {
+          const turmaAlunoNormalizada = aluno.turma
+            ? aluno.turma.trim().toLowerCase()
+            : "";
+          return turmasVinculadasNormalizadas.includes(turmaAlunoNormalizada);
+        });
       }
 
       const alunosParaSelecaoFinal = alunosFiltradosPorPermissao.filter(
@@ -482,13 +491,25 @@ export default function CriarPEI() {
       try {
         const currentYear = new Date().getFullYear();
 
-        const qUltimaAvaliacao = query(
+        // 1. Tenta encontrar a avaliação pelo campo 'alunoId' (formato mais novo)
+        const qUltimaAvaliacaoNovo = query(
           collection(db, "avaliacoesIniciais"),
-          where("aluno.id", "==", aluno.id), // <-- Corrigido para "aluno.id"
+          where("alunoId", "==", aluno.id),
           orderBy("dataCriacao", "desc"),
           limit(1)
         );
-        const avaliacoesSnap = await getDocs(qUltimaAvaliacao);
+        let avaliacoesSnap = await getDocs(qUltimaAvaliacaoNovo);
+
+        // 2. Se a primeira busca não encontrou nada, tenta o formato antigo 'aluno.id'
+        if (avaliacoesSnap.empty) {
+          const qUltimaAvaliacaoAntigo = query(
+            collection(db, "avaliacoesIniciais"),
+            where("aluno.id", "==", aluno.id),
+            orderBy("dataCriacao", "desc"),
+            limit(1)
+          );
+          avaliacoesSnap = await getDocs(qUltimaAvaliacaoAntigo);
+        }
 
         if (avaliacoesSnap.empty) {
           exibirMensagem(

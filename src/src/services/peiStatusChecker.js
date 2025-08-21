@@ -1,5 +1,3 @@
-// src/pages/services/peiStatusChecker.js
-
 import { db } from "../../firebase";
 import {
   collection,
@@ -93,7 +91,7 @@ export const verificarPrazosPEI = async (anoLetivoAtual, professorId) => {
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
 
-    // --- ETAPA 1: Otimização - Buscar dados de professor e prazos em paralelo ---
+    // --- ETAPA 1: Buscar dados de professor e prazos em paralelo ---
     const professorDocRef = doc(db, "usuarios", professorId);
     const qPrazos = query(
       collection(db, "prazosPEIAnuais"),
@@ -129,10 +127,11 @@ export const verificarPrazosPEI = async (anoLetivoAtual, professorId) => {
       prazoAnualDoc.dataLimiteRevisao2Sem
     );
 
-    // --- ETAPA 2: Buscar alunos com base nos dados do professor ---
+    // --- ETAPA 2: Buscar alunos por escola e fazer a filtragem no código ---
     const turmasDoProfessor = profData.turmas
-      ? Object.keys(profData.turmas)
+      ? Object.keys(profData.turmas).map((t) => t.trim().toLowerCase()) // Normalização das turmas do professor
       : [];
+
     const escolasDoProfessor = profData.escolas
       ? Object.keys(profData.escolas)
       : [];
@@ -142,29 +141,45 @@ export const verificarPrazosPEI = async (anoLetivoAtual, professorId) => {
       return resultado;
     }
 
-    // Firestore limita a cláusula 'in' a 30 itens. Aqui garantimos não passar disso.
+    // CORREÇÃO AQUI: Removemos a cláusula "where('turma', 'in', ...)" da consulta
+    // e faremos a filtragem no código.
     const qAlunos = query(
       collection(db, "alunos"),
-      where("turma", "in", turmasDoProfessor.slice(0, 30)),
       where("escolaId", "in", escolasDoProfessor.slice(0, 30))
     );
     const alunosSnap = await getDocs(qAlunos);
 
     if (alunosSnap.empty) {
+      resultado.mensagem = "Nenhum aluno encontrado para suas escolas.";
+      return resultado;
+    }
+
+    // AQUI ESTÁ A NOVA LÓGICA: Filtrar os alunos após recebê-los
+    const todosAlunosDaEscola = alunosSnap.docs.map((d) => ({
+      id: d.id,
+      ...d.data(),
+    }));
+
+    const alunosFiltrados = todosAlunosDaEscola.filter(
+      (aluno) =>
+        aluno.turma &&
+        turmasDoProfessor.includes(aluno.turma.trim().toLowerCase())
+    );
+
+    if (alunosFiltrados.length === 0) {
       resultado.mensagem =
         "Nenhum aluno encontrado para suas turmas e escolas.";
       return resultado;
     }
-    const alunosList = alunosSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
-    // --- ETAPA 3: Processar cada aluno e seu PEI ---
-    const peisPromises = alunosList.map(async (aluno) => {
+    // --- ETAPA 3: Processar cada aluno e seu PEI (agora com a lista filtrada) ---
+    const peisPromises = alunosFiltrados.map(async (aluno) => {
       const qPei = query(
         collection(db, "peis"),
         where("alunoId", "==", aluno.id),
         where("anoLetivo", "==", anoLetivoAtual),
-        where("professorId", "==", professorId),
-        orderBy("dataCriacao", "desc"), // CORREÇÃO APLICADA
+        where("criadorId", "==", professorId),
+        orderBy("dataCriacao", "desc"),
         limit(1)
       );
       const peiSnap = await getDocs(qPei);
