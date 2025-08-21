@@ -484,7 +484,7 @@ export default function CriarPEI() {
 
         const qUltimaAvaliacao = query(
           collection(db, "avaliacoesIniciais"),
-          where("alunoId", "==", aluno.id),
+          where("aluno.id", "==", aluno.id), // <-- Corrigido para "aluno.id"
           orderBy("dataCriacao", "desc"),
           limit(1)
         );

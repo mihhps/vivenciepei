@@ -11,7 +11,7 @@ import {
   serverTimestamp,
   addDoc,
   limit,
-  orderBy, // Adicionado
+  orderBy,
 } from "firebase/firestore";
 
 export function useAvaliacaoForm(alunos) {
@@ -181,6 +181,7 @@ export function useAvaliacaoForm(alunos) {
             id: alunoSelecionado.id,
             nome: alunoSelecionado.nome,
           },
+          alunoId: alunoSelecionado.id, // <-- Linha adicionada
           turma: alunoSelecionado.turma,
           inicio,
           proximaAvaliacao,
@@ -235,7 +236,6 @@ export function useAvaliacaoForm(alunos) {
     ]
   );
 
-  // CORREÇÃO: Usar useMemo para garantir que o objeto retornado tenha uma referência estável.
   return useMemo(
     () => ({
       alunoSelecionado,
@@ -259,18 +259,13 @@ export function useAvaliacaoForm(alunos) {
       alunoSelecionado,
       handleSelecionarAluno,
       inicio,
-      setInicio,
       proximaAvaliacao,
-      setProximaAvaliacao,
       respostas,
-      setRespostas,
       observacoes,
-      setObservacoes,
       handleSalvar,
       idade,
       avaliacaoExiste,
       estado,
-      setEstado,
     ]
   );
 }
