@@ -490,7 +490,7 @@ async function addStudentAndHeaderInfo(
     }
   }
 
-  let professoresNomes = "Não informado";
+  let professores = "Não informado";
   if (aluno.escolaId && aluno.turma) {
     try {
       const professoresQuery = query(
@@ -500,44 +500,98 @@ async function addStudentAndHeaderInfo(
       );
       const professoresSnap = await getDocs(professoresQuery);
 
-      const nomesEncontrados = [];
+      const profsEncontrados = new Set();
+      const turmaAlunoNormalizada = aluno.turma.trim().toLowerCase();
+
       professoresSnap.docs.forEach((doc) => {
         const userData = doc.data();
-        if (userData.turmas && userData.turmas[aluno.turma]) {
-          nomesEncontrados.push(userData.nome);
-        } else if (
+
+        // Verifica a turma normalizada
+        if (userData.turmas) {
+          const turmasProfessorNormalizadas = Object.keys(userData.turmas).map(
+            (t) => t.trim().toLowerCase()
+          );
+          if (turmasProfessorNormalizadas.includes(turmaAlunoNormalizada)) {
+            profsEncontrados.add({
+              nome: userData.nome,
+              cargo: userData.cargo || "Não informado",
+            });
+          }
+        }
+
+        // Lógica para perfis de AEE, que podem não ter a turma no mapa
+        if (
           Array.isArray(userData.turmas) &&
           userData.turmas.includes(aluno.turma)
         ) {
-          nomesEncontrados.push(userData.nome);
+          profsEncontrados.add({
+            nome: userData.nome,
+            cargo: userData.cargo || "Não informado",
+          });
         }
       });
 
-      if (nomesEncontrados.length > 0) {
-        professoresNomes = nomesEncontrados.join(", ");
-      } else {
-        if (Array.isArray(aluno.professores) && aluno.professores.length > 0) {
-          const profDetailsPromises = aluno.professores.map(
-            async (profRefId) => {
-              const profDoc = await getDoc(
-                firestoreDoc(db, "usuarios", profRefId)
-              );
-              return profDoc.exists() ? profDoc.data().nome : null;
-            }
-          );
-          const resolvedNames = (await Promise.all(profDetailsPromises)).filter(
-            Boolean
-          );
-          if (resolvedNames.length > 0)
-            professoresNomes = resolvedNames.join(", ");
-        }
+      // Lógica para buscar professores por ID (se houver)
+      if (Array.isArray(aluno.professores) && aluno.professores.length > 0) {
+        const profDetailsPromises = aluno.professores.map(async (profRefId) => {
+          const profDoc = await getDoc(firestoreDoc(db, "usuarios", profRefId));
+          return profDoc.exists()
+            ? {
+                nome: profDoc.data().nome,
+                cargo: profDoc.data().cargo || "Não informado",
+              }
+            : null;
+        });
+        const resolvedProfs = (await Promise.all(profDetailsPromises)).filter(
+          Boolean
+        );
+        resolvedProfs.forEach((p) => profsEncontrados.add(p));
+      }
+
+      // ...código anterior para buscar os professores...
+
+      if (profsEncontrados.size > 0) {
+        // Converte o Set para um array para poder ordená-lo
+        const profsArray = Array.from(profsEncontrados);
+
+        // Define a ordem de prioridade
+        const ordemCargos = [
+          "Professor Regente",
+          "Professor de Apoio",
+          "AEE",
+          "Não informado",
+        ];
+
+        // Classifica os professores
+        profsArray.sort((a, b) => {
+          const cargoA = a.cargo || "Não informado";
+          const cargoB = b.cargo || "Não informado";
+
+          const indexA = ordemCargos.indexOf(cargoA);
+          const indexB = ordemCargos.indexOf(cargoB);
+
+          // Se ambos os cargos estão na lista de prioridade, ordena por ela.
+          if (indexA !== -1 && indexB !== -1) {
+            return indexA - indexB;
+          }
+          // Se apenas um está, ele vem primeiro.
+          if (indexA !== -1) return -1;
+          if (indexB !== -1) return 1;
+
+          // Se nenhum está, ordena por nome
+          return a.nome.localeCompare(b.nome);
+        });
+
+        professores = profsArray
+          .map((p) => `${p.nome} (${p.cargo})`)
+          .join(", ");
       }
     } catch (error) {
       console.error(
         "Erro ao buscar professores na função addStudentAndHeaderInfo:",
         error
       );
-      professoresNomes = "Erro ao carregar professores";
+      professores = "Erro ao carregar professores";
     }
   }
 
@@ -616,7 +670,7 @@ async function addStudentAndHeaderInfo(
     body: [
       [
         {
-          content: `Professor(a): ${professoresNomes}`,
+          content: `Professor(a): ${professores}`,
           colSpan: 2,
         },
       ],

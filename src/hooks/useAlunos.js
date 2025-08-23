@@ -84,20 +84,27 @@ export function useAlunos() {
     const temAcessoAmplo = perfisComAcessoAmplo.includes(usuarioLogado.perfil);
 
     try {
-      // Array para armazenar as promessas de busca
       const queryPromises = [];
       const alunosIds = new Set();
 
-      // Busca da coleção principal de alunos
       let mainAlunosQuery = collection(firestore, "alunos");
 
-      if (!temAcessoAmplo && usuarioLogado.turmas.length > 0) {
+      // CORREÇÃO: Normaliza as turmas do professor para a consulta
+      const turmasDoProfessorNormalizadas = usuarioLogado.turmas.map((t) =>
+        t.trim().toLowerCase()
+      );
+
+      if (temAcessoAmplo) {
+        // Para perfis com acesso amplo, busca todos os alunos
+        // A consulta não precisa de filtro
+      } else if (turmasDoProfessorNormalizadas.length > 0) {
+        // Para perfis de professor, usa o filtro de turmas
         mainAlunosQuery = query(
           mainAlunosQuery,
-          where("turma", "in", usuarioLogado.turmas)
+          where("turma", "in", turmasDoProfessorNormalizadas)
         );
-      } else if (!temAcessoAmplo && usuarioLogado.turmas.length === 0) {
-        // Professor sem turmas, não há alunos
+      } else {
+        // Se não tem acesso amplo e não tem turmas, não há alunos
         setAlunos([]);
         setCarregando(false);
         return;
