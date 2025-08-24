@@ -929,14 +929,18 @@ function addAvaliacaoInteressesSection(doc, avaliacaoInteressesData, y) {
   }
 
   const addRadioQuestionTable = (questionTitle, dataKey, list) => {
-    const radioTableBody = [];
-    const responses = avaliacaoInteressesData[dataKey] || {};
+    // A única mudança é a inclusão deste bloco para preencher a tabela.
+    const radioTableBody = list
+      .filter((item) => {
+        const resposta = avaliacaoInteressesData[dataKey]?.[item];
+        return resposta !== "NA" && resposta !== undefined;
+      })
+      .map((item) => [
+        item,
+        avaliacaoInteressesData[dataKey]?.[item] || "Não Informado",
+      ]);
 
-    const filledItems = list.filter(
-      (item) => responses[item] !== "NA" && responses[item] !== undefined
-    );
-
-    if (filledItems.length === 0) return false;
+    if (radioTableBody.length === 0) return false;
 
     y = ensurePageSpace(doc, y, 15);
     doc.setFont(styles.font, "bold");
@@ -2171,6 +2175,6 @@ export async function gerarPDFCompleto(
 
   await addSignaturePage(doc, aluno, usuarioLogado);
 
-  doc.save(`PEI_${aluno.nome?.replace(/\s+/g, "_")}_Completo.pdf`);
+  doc.save(`Pei ${aluno.nome}.pdf`);
   console.log("[PDF_DEBUG] Geração do PDF concluída.");
 }
