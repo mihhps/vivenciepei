@@ -1,13 +1,6 @@
-// src/utils/gerarPDFAvaliacaoInicialPreenchida.js
 import jsPDF from "jspdf";
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-  doc as firestoreDoc,
-  getDoc,
-} from "firebase/firestore";
+import autoTable from "jspdf-autotable";
+import { getDoc, doc as firestoreDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { avaliacaoInicial } from "../data/avaliacaoInicialData";
 import {
@@ -15,358 +8,166 @@ import {
   coresPorNivel,
   legendaNiveis,
   formatarData,
-  addFooter,
   drawDocumentHeader,
-  getSafeColor,
+  addHeaderAndFooter,
+  ensurePageSpace,
 } from "./pdfUtils";
+
+// Mapa de busca para as descrições detalhadas
+const habilidadeDescricaoMap = {};
+Object.values(avaliacaoInicial).forEach((areaArray) => {
+  areaArray.forEach((skillObject) => {
+    habilidadeDescricaoMap[skillObject.habilidade] = skillObject.niveis;
+  });
+});
 
 export async function gerarPDFAvaliacaoInicialPreenchida(
   aluno,
-  inicioAvaliacaoFirestore, // Parâmetro renomeado para 'inicio' no Firestore
-  proximaAvaliacaoFirestore, // Parâmetro 'proximaAvaliacao' no Firestore
+  inicioAvaliacaoFirestore,
+  proximaAvaliacaoFirestore,
   respostasDoFormulario,
   observacoesDoFormulario
 ) {
   const doc = new jsPDF();
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const leftMargin = 10;
-  const rightMarginDoc = doc.internal.pageSize.getWidth() - 10;
+  let y;
 
-  let y = 10;
-
-  // --- Variáveis de Configuração da Tabela (Simplificada para 2 Colunas) ---
-  const defaultFontFamily = pdfStyles.font;
-  const defaultFontSize = pdfStyles.fontSize.small;
-  const defaultLineHeight = defaultFontSize * pdfStyles.lineHeightMultiplier;
-  const cellPaddingX = pdfStyles.cellPadding.x;
-  const cellPaddingY = pdfStyles.cellPadding.y;
-
-  // Simplificando as definições das colunas da tabela:
-  // Removendo 'niveisDisponiveis', 'colNivelWidth', 'totalLevelsWidth', etc.
-  const colNivelAvaliadoWidth = 25; // Largura da coluna para a bolinha de nível
-  const colHabilidadeWidth =
-    rightMarginDoc - leftMargin - colNivelAvaliadoWidth - 1; // Largura da coluna "Habilidade"
-  const totalTableWidth = colHabilidadeWidth + colNivelAvaliadoWidth; // Largura total da tabela
-  const tableXEnd = leftMargin + totalTableWidth; // Posição X final da tabela
-
-  const minCellContentHeight = defaultFontSize * 1.5 + 2 * cellPaddingY;
-  const minRowHeight = Math.max(16, minCellContentHeight);
-
-  const evaluatedLevelCircleRadius = 4; // Raio da bolinha
-  const evaluatedLevelFontSize = 8; // Tamanho da fonte da sigla na bolinha
-  const evaluatedLevelTextOffsetY = evaluatedLevelFontSize * 0.35;
-
-  const PAGE_BOTTOM_MARGIN = 20;
-  const OBSERVATION_TITLE_SPACING = 6;
-  const OBSERVATION_LINE_SPACING = 8;
-  const SECTION_SPACING = 15;
-  const AREA_TITLE_SPACING_AFTER = 10;
-  const TABLE_SPACING_AFTER = 10;
-
-  doc.setFont(defaultFontFamily, "normal");
-  doc.setFontSize(defaultFontSize);
-
-  // --- Funções Auxiliares de Desenho (locais) ---
-
-  /**
-   * Desenha o cabeçalho da tabela de habilidades com apenas duas colunas: Habilidade e Nível Avaliado.
-   * @param {number} startY Posição Y inicial para desenhar o cabeçalho.
-   * @returns {number} A nova posição Y após desenhar o cabeçalho.
-   */
-  const drawSkillsTableHeader = (startY) => {
-    const headerRowHeight = minRowHeight;
-    const headerStartY = startY;
-
-    doc.setDrawColor(...getSafeColor(pdfStyles.colors.darkGray));
-    doc.setLineWidth(0.35);
-    doc.line(leftMargin, headerStartY, tableXEnd, headerStartY);
-
-    doc.setFillColor(...getSafeColor(pdfStyles.colors.lightGray));
-    doc.rect(leftMargin, headerStartY, totalTableWidth, headerRowHeight, "F");
-
-    doc.setFontSize(defaultFontSize + 1);
-    doc.setTextColor(...getSafeColor(pdfStyles.colors.black));
-    doc.setFont(pdfStyles.font, "bold");
-    doc.text(
-      "Habilidade",
-      leftMargin + cellPaddingX,
-      headerStartY + headerRowHeight / 2,
-      { baseline: "middle" }
-    );
-
-    doc.text(
-      "Nível Avaliado",
-      leftMargin + colHabilidadeWidth + colNivelAvaliadoWidth / 2, // Alinha ao centro da coluna Nível Avaliado
-      headerStartY + headerRowHeight / 2,
-      { align: "center", baseline: "middle" }
-    );
-    doc.setFont(defaultFontFamily, "normal");
-    doc.setFontSize(defaultFontSize);
-
-    doc.setDrawColor(...getSafeColor(pdfStyles.colors.darkGray));
-    doc.line(
-      leftMargin,
-      headerStartY,
-      leftMargin,
-      headerStartY + headerRowHeight
-    ); // Borda esquerda
-    doc.line(
-      leftMargin + colHabilidadeWidth,
-      headerStartY,
-      leftMargin + colHabilidadeWidth,
-      headerStartY + headerRowHeight
-    ); // Borda entre Habilidade e Nível
-    doc.line(
-      tableXEnd,
-      headerStartY,
-      tableXEnd,
-      headerStartY + headerRowHeight
-    ); // Borda direita
-    doc.line(
-      leftMargin,
-      headerStartY + headerRowHeight,
-      tableXEnd,
-      headerStartY + headerRowHeight
-    ); // Linha inferior do cabeçalho
-
-    return headerStartY + headerRowHeight;
-  };
-
-  const checkPageBreak = (
-    currentY,
-    requiredSpace,
-    isTableContinuation = false
-  ) => {
-    if (currentY + requiredSpace > pageHeight - PAGE_BOTTOM_MARGIN) {
-      doc.addPage();
-      doc.setFont(defaultFontFamily, "normal");
-      doc.setFontSize(defaultFontSize);
-      let newY = PAGE_BOTTOM_MARGIN;
-
-      if (isTableContinuation) {
-        newY = drawSkillsTableHeader(newY); // Redesenha o cabeçalho da tabela na nova página
-      }
-      return newY;
-    }
-    return currentY;
-  };
-
-  const drawObservations = (areaName) => {
-    const observacao = observacoesDoFormulario[areaName] || "";
-    const obsLinesHeight = observacao
-      ? doc.splitTextToSize(observacao, rightMarginDoc - leftMargin).length *
-        defaultLineHeight
-      : 0;
-    y = checkPageBreak(
-      y,
-      SECTION_SPACING + obsLinesHeight + OBSERVATION_LINE_SPACING * 2
-    );
-
-    doc.setFontSize(defaultFontSize);
-    doc.setTextColor(...getSafeColor(pdfStyles.colors.black));
-    doc.setFont(defaultFontFamily, "bold");
-    doc.text("Observações:", leftMargin, y);
-    y += OBSERVATION_TITLE_SPACING;
-
-    if (observacao) {
-      doc.setFont(defaultFontFamily, "normal");
-      const obsLines = doc.splitTextToSize(
-        observacao,
-        rightMarginDoc - leftMargin
-      );
-      obsLines.forEach((line) => {
-        doc.text(line, leftMargin, y);
-        y += defaultLineHeight;
-      });
-    } else {
-      doc.line(leftMargin, y, rightMarginDoc, y);
-      y += OBSERVATION_LINE_SPACING;
-      doc.line(leftMargin, y, rightMarginDoc, y);
-    }
-    y += SECTION_SPACING;
-  };
-
-  // --- INÍCIO DA GERAÇÃO DO PDF ---
-
-  // 1. Buscar nome da escola
+  // --- BUSCAR NOME DA ESCOLA ---
   let nomeEscola = "-";
-  if (!aluno?.escolaId) {
-    console.warn(
-      "Aluno.escolaId está faltando. Nome da escola não será preenchido."
-    );
-  } else {
+  if (aluno?.escolaId) {
     try {
       const escolaRef = firestoreDoc(db, "escolas", aluno.escolaId);
       const escolaSnap = await getDoc(escolaRef);
       if (escolaSnap.exists()) {
         nomeEscola = escolaSnap.data().nome || "-";
-      } else {
-        console.warn(`Escola com ID ${aluno.escolaId} não encontrada.`);
       }
     } catch (err) {
-      console.error("Erro ao buscar nome da escola para o cabeçalho:", err);
+      console.error("Erro ao buscar nome da escola:", err);
     }
   }
 
-  // 2. Validação dos dados do aluno e das datas de avaliação
-  if (!aluno?.nascimento) {
-    console.warn(
-      "aluno.nascimento (Data de Nascimento) está faltando ou é inválido."
-    );
-  }
-  if (!aluno?.cpf) {
-    // Campo CPF está ausente no seu objeto aluno, mas é validado aqui se você o adicionar.
-    console.warn("aluno.cpf está faltando.");
-  }
-  if (!aluno?.turma) {
-    console.warn("aluno.turma está faltando.");
-  }
-  if (!inicioAvaliacaoFirestore) {
-    console.warn(
-      "O parâmetro 'inicioAvaliacaoFirestore' (Data de Início da Avaliação) está faltando na chamada da função."
-    );
-  }
-  if (!proximaAvaliacaoFirestore) {
-    console.warn(
-      "O parâmetro 'proximaAvaliacaoFirestore' (Próxima Avaliação) está faltando na chamada da função."
-    );
-  }
+  // --- CONSTRUIR CABEÇALHO USANDO A FUNÇÃO CORRETA ---
+  const avaliacaoInfo = {
+    dataAvaliacao: inicioAvaliacaoFirestore,
+    proximaAvaliacao: proximaAvaliacaoFirestore,
+  };
 
-  // 3. Chamar a função de cabeçalho (drawDocumentHeader)
   y = await drawDocumentHeader(
     doc,
-    y,
+    10, // Posição Y inicial
     "Avaliação Inicial - Relatório Preenchido",
     aluno,
     nomeEscola,
-    {
-      dataAvaliacao: inicioAvaliacaoFirestore,
-      proximaAvaliacao: proximaAvaliacaoFirestore,
-    }
+    avaliacaoInfo
   );
 
-  // --- Iterar e Desenhar Áreas e Habilidades (corpo da tabela) ---
+  // --- ITERAR E DESENHAR SEÇÕES ---
   Object.entries(avaliacaoInicial).forEach(([area, habilidades]) => {
-    y = checkPageBreak(y, SECTION_SPACING + minRowHeight);
+    const linhasDaArea = habilidades
+      .map((item) => {
+        const habilidade = item.habilidade;
+        const nivel = respostasDoFormulario?.[area]?.[habilidade];
+        if (!nivel) return null;
+        const descricao =
+          (habilidadeDescricaoMap[habilidade] &&
+            habilidadeDescricaoMap[habilidade][nivel]) ||
+          "N/A";
+        return [habilidade, nivel, descricao];
+      })
+      .filter(Boolean);
+
+    if (linhasDaArea.length === 0) return;
+
+    y = ensurePageSpace(doc, y, 30);
 
     doc.setFontSize(pdfStyles.fontSize.large);
-    doc.setTextColor(...getSafeColor(pdfStyles.colors.darkBlue));
+    doc.setTextColor(41, 52, 98);
     doc.setFont(pdfStyles.font, "bold");
-    doc.text(`Área: ${area}`, leftMargin, y);
-    y += AREA_TITLE_SPACING_AFTER;
+    doc.text(`Área: ${area}`, 20, y);
+    y += 8;
 
-    y = drawSkillsTableHeader(y); // Desenha o cabeçalho da tabela (com 2 colunas)
-
-    habilidades.forEach((item) => {
-      const cleanHabilidadeText = item.habilidade.startsWith("- ")
-        ? item.habilidade.substring(2)
-        : item.habilidade;
-
-      const textColWidthForSplit = colHabilidadeWidth - 2 * cellPaddingX;
-      doc.setFontSize(defaultFontSize);
-      doc.setFont(pdfStyles.font, "normal");
-      const textLines = doc.splitTextToSize(
-        cleanHabilidadeText,
-        textColWidthForSplit
-      );
-      const textRenderHeight = textLines.length * defaultLineHeight;
-      const currentRowHeight = Math.max(
-        textRenderHeight + 2 * cellPaddingY,
-        minRowHeight
-      );
-
-      y = checkPageBreak(y, currentRowHeight, true);
-
-      const rowStartY = y;
-
-      doc.setDrawColor(...getSafeColor(pdfStyles.colors.mediumGray));
-      doc.setLineWidth(0.35);
-      doc.setFillColor(...getSafeColor(pdfStyles.colors.white));
-      doc.rect(leftMargin, rowStartY, totalTableWidth, currentRowHeight, "F");
-
-      doc.setTextColor(...getSafeColor(pdfStyles.colors.black));
-      doc.setFontSize(defaultFontSize);
-      doc.text(
-        textLines,
-        leftMargin + cellPaddingX,
-        rowStartY + currentRowHeight / 2,
-        { baseline: "middle" }
-      );
-
-      // Desenhar as linhas verticais das colunas da tabela (apenas 2 colunas)
-      doc.line(leftMargin, rowStartY, leftMargin, rowStartY + currentRowHeight); // Borda esquerda
-      doc.line(
-        leftMargin + colHabilidadeWidth,
-        rowStartY,
-        leftMargin + colHabilidadeWidth,
-        rowStartY + currentRowHeight
-      ); // Borda entre Habilidade e Nível
-      doc.line(tableXEnd, rowStartY, tableXEnd, rowStartY + currentRowHeight); // Borda direita
-
-      // --- Desenhar APENAS a bolinha do nível AVALIADO na coluna "Nível Avaliado" ---
-      const respostaNivel = respostasDoFormulario?.[area]?.[item.habilidade];
-
-      if (respostaNivel && coresPorNivel[respostaNivel]) {
-        // Verifica se o nível existe nas cores
-        const nivelColX = leftMargin + colHabilidadeWidth; // Posição X da coluna "Nível Avaliado"
-        const circleX = nivelColX + colNivelAvaliadoWidth / 2; // Centro da coluna
-        const circleY = rowStartY + currentRowHeight / 2;
-
-        const corParaPreencher = getSafeColor(coresPorNivel[respostaNivel]);
-        doc.setFillColor(...corParaPreencher);
-        doc.circle(circleX, circleY, evaluatedLevelCircleRadius, "F");
-
-        doc.setTextColor(...getSafeColor(pdfStyles.colors.white));
-        doc.setFontSize(evaluatedLevelFontSize);
-        doc.setFont(pdfStyles.font, "bold");
-        doc.text(respostaNivel, circleX, circleY + evaluatedLevelTextOffsetY, {
-          align: "center",
-          baseline: "middle",
-        });
-        doc.setFont(defaultFontFamily, "normal");
-        doc.setFontSize(defaultFontSize);
-      } else if (respostaNivel) {
-        console.warn(
-          `Nível '${respostaNivel}' encontrado para a habilidade '${item.habilidade}' na área '${area}', mas não está definido em 'coresPorNivel'. Bolinha não será colorida ou será preta.`
-        );
-      }
-
-      y += currentRowHeight;
-      doc.setDrawColor(...getSafeColor(pdfStyles.colors.mediumGray));
-      doc.line(leftMargin, y, tableXEnd, y); // Linha inferior da linha da tabela
+    autoTable(doc, {
+      startY: y,
+      head: [["Habilidade", "Nível", "Descrição do Nível"]],
+      body: linhasDaArea,
+      theme: "grid",
+      headStyles: {
+        fillColor: [230, 230, 230],
+        textColor: 0,
+        fontStyle: "bold",
+      },
+      columnStyles: {
+        0: { cellWidth: "auto" },
+        1: { cellWidth: 20, halign: "center" },
+        2: { cellWidth: "auto" },
+      },
+      didParseCell: (data) => {
+        if (data.column.index === 1 && data.section === "body") {
+          const nivel = data.cell.raw.toString();
+          const cor = coresPorNivel[nivel];
+          if (cor) {
+            data.cell.styles.fillColor = cor;
+            const [r, g, b] = cor;
+            const luminancia = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+            data.cell.styles.textColor =
+              luminancia > 0.5 ? [0, 0, 0] : [255, 255, 255];
+          }
+        }
+      },
+      margin: { bottom: 40 }, // Garante que a tabela não invada o rodapé.
+      didDrawPage: (data) => {
+        addHeaderAndFooter(doc);
+      },
     });
 
-    y += TABLE_SPACING_AFTER;
-    drawObservations(area);
-  });
+    y = doc.lastAutoTable.finalY + 5;
 
-  // --- Legenda dos Níveis ---
-  y = checkPageBreak(
-    y,
-    SECTION_SPACING + Object.keys(legendaNiveis).length * 10
-  );
-
-  doc.setFontSize(pdfStyles.fontSize.large);
-  doc.setTextColor(...getSafeColor(pdfStyles.colors.darkBlue));
-  doc.setFont(pdfStyles.font, "bold");
-  doc.text("Legenda dos Níveis:", leftMargin, y);
-  y += AREA_TITLE_SPACING_AFTER;
-
-  doc.setFontSize(defaultFontSize);
-  doc.setFont(pdfStyles.font, "normal");
-  Object.entries(legendaNiveis).forEach(([nivel, descricao]) => {
-    y = checkPageBreak(y, 10);
-
-    const corDaLegenda = getSafeColor(coresPorNivel[nivel]);
-    doc.setFillColor(...corDaLegenda);
-
-    doc.rect(leftMargin, y - 4, 8, 6, "F"); // Desenha um pequeno retângulo colorido
-    doc.setTextColor(...getSafeColor(pdfStyles.colors.black));
-    doc.text(`${nivel} – ${descricao}`, leftMargin + 10, y);
+    const observacao = (observacoesDoFormulario[area] || "").trim();
+    if (observacao) {
+      y = ensurePageSpace(doc, y, 20);
+      doc.setFontSize(pdfStyles.fontSize.medium);
+      doc.setFont(pdfStyles.font, "bold");
+      doc.text("Observações:", 20, y);
+      y += 6;
+      doc.setFont(pdfStyles.font, "normal");
+      doc.setFontSize(pdfStyles.fontSize.small);
+      const obsLines = doc.splitTextToSize(
+        observacao,
+        doc.internal.pageSize.getWidth() - 40
+      );
+      doc.text(obsLines, 20, y);
+      y += obsLines.length * 4 + 10;
+    }
     y += 10;
   });
 
-  addFooter(doc, pageHeight);
+  // --- ADICIONAR LEGENDA NO FINAL ---
+  y = ensurePageSpace(doc, y, 50);
+  doc.setFont(pdfStyles.font, "bold");
+  doc.setFontSize(pdfStyles.fontSize.large);
+  doc.text("Legenda dos Níveis:", 20, y);
+  y += 8;
+
+  let legendaY = y;
+  let legendaX = 20;
+
+  Object.entries(legendaNiveis).forEach(([sigla, descricao]) => {
+    doc.setFontSize(pdfStyles.fontSize.small);
+    doc.setFont(pdfStyles.font, "normal");
+
+    const texto = `${sigla} – ${descricao}`;
+    const textoWidth = doc.getTextWidth(texto) + 15;
+
+    if (legendaX + textoWidth > doc.internal.pageSize.getWidth() - 20) {
+      legendaY += 6;
+      legendaX = 20;
+    }
+
+    const corDaLegenda = coresPorNivel[sigla] || [0, 0, 0];
+    doc.setFillColor(...corDaLegenda);
+    doc.rect(legendaX, legendaY - 3, 4, 4, "F");
+    doc.text(texto, legendaX + 6, legendaY);
+    legendaX += textoWidth;
+  });
 
   doc.save(
     `avaliacao_inicial_${aluno?.nome?.replace(/\s+/g, "_") || "aluno"}.pdf`

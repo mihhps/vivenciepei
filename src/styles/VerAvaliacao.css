@@ -1,220 +1,214 @@
-/* --- Estilos da página de Visualização da Avaliação --- */
+/* Importa a fonte moderna 'Inter' do Google Fonts */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 
-/* Estilos gerais do card e do container para combinar com o seu estilo */
-.pagina-container {
-  max-width: 900px;
-  width: 100%;
-  margin: 20px auto;
-  padding: 30px;
-  background-color: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-  box-sizing: border-box;
+/* --- Estilos Gerais e Tipografia --- */
+body {
+  background-color: #f8f9fa; /* Um fundo sutil para a página toda */
 }
 
-/* --- Cabeçalho e Título --- */
+.pagina-container {
+  max-width: 950px;
+  width: 100%;
+  margin: 40px auto;
+  padding: 0; /* Padding será interno */
+  background-color: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(21, 21, 21, 0.08);
+  border: 1px solid #e9ecef;
+  font-family: "Inter", sans-serif;
+  overflow: hidden; /* Garante que tudo fique dentro dos cantos arredondados */
+}
+
+/* --- Cabeçalho --- */
 .avaliacao-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 25px;
-  border-bottom: 1px solid #eee;
-  padding-bottom: 1rem;
+  padding: 24px 32px;
+  border-bottom: 1px solid #e9ecef;
 }
 
 .avaliacao-titulo {
-  color: #1d3557;
+  color: #212529;
   font-size: 1.5rem;
-  text-align: center;
+  font-weight: 600;
   margin: 0;
 }
 
-/* --- Seção de Informações do Aluno e Data --- */
+/* --- Informações do Aluno --- */
 .info-aluno-container {
-  margin-bottom: 25px;
-  padding: 15px;
-  background-color: #f7f9fc;
-  border-radius: 8px;
+  padding: 24px 32px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
 }
 
 .info-aluno-container p {
-  font-size: 1rem;
-  margin: 8px 0;
-  color: #333;
+  font-size: 0.95rem;
+  margin: 5px 0;
+  color: #6c757d;
 }
 
 .info-aluno-container strong {
-  color: #1d3557;
+  color: #343a40;
+  font-weight: 500;
 }
 
-/* --- Seções de Áreas e Habilidades --- */
+/* --- Seção de cada ÁREA --- */
 .area-perguntas-wrapper {
-  margin-top: 25px;
-  border: 1px solid #e0e0e0;
-  border-radius: 10px;
-  padding: 20px;
-  background-color: #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  padding: 24px 32px 32px 32px;
+  margin-top: 0;
+  border-bottom: 1px solid #e9ecef;
 }
-
-.area-titulo {
-  font-size: 1.25rem;
-  color: #1d3557;
-  font-weight: bold;
-  margin-bottom: 15px;
-  padding-bottom: 5px;
-  border-bottom: 1px dashed #e0e0e0;
-}
-
-.linha-habilidade {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 0;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.linha-habilidade:last-child {
+.area-perguntas-wrapper:last-of-type {
   border-bottom: none;
 }
 
+.area-titulo {
+  font-size: 1.3rem;
+  color: #1d3557;
+  font-weight: 600;
+  margin: 0 0 20px 0;
+}
+
+/* ==================================================================
+ CÓDIGO FINAL E CORRETO PARA O LAYOUT DE TRÊS COLUNAS
+================================================================== 
+*/
+
+.habilidades-lista {
+  display: flex;
+  flex-direction: column;
+}
+
+.linha-habilidade {
+  display: grid;
+  /* Define 3 colunas:
+     1. Habilidade (flexível, com no mínimo 250px)
+     2. Tag (tamanho automático)
+     3. Descrição (flexível, com um pouco mais de espaço) */
+  grid-template-columns: minmax(250px, 1fr) auto 1.5fr;
+  align-items: center;
+  gap: 24px;
+  padding: 18px 0;
+  border-top: 1px solid #f1f3f5;
+}
+.habilidades-lista > .linha-habilidade:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+/* Coluna 1: Texto da Habilidade */
 .texto-habilidade {
-  flex-grow: 1;
-  font-size: 1rem;
+  font-weight: 500;
+  color: #343a40;
+  line-height: 1.5;
+}
+
+/* Coluna 2: A Tag */
+.circulo-nivel {
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+  justify-self: center; /* Centraliza a tag em sua coluna */
+}
+
+/* Cores das tags */
+.circulo-nivel.NR {
+  background-color: #ffe3e3;
+  color: #d90429;
+}
+.circulo-nivel.AF {
+  background-color: #fff0d4;
+  color: #b56b02;
+}
+.circulo-nivel.AG {
+  background-color: #fff7d6;
+  color: #a37c00;
+}
+.circulo-nivel.AV {
+  background-color: #d4f3ef;
+  color: #00705f;
+}
+.circulo-nivel.AVi {
+  background-color: #dff2fa;
+  color: #006d9e;
+}
+.circulo-nivel.I {
+  background-color: #dff9e7;
+  color: #228042;
+}
+.circulo-nivel.NA {
+  background-color: #e9ecef;
   color: #495057;
 }
 
-/* --- Estilos dos Níveis (Bolinhas) --- */
-.niveis-habilidade {
-  display: flex;
-  gap: 8px;
-}
-
-.circulo-nivel {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.75rem;
-  font-weight: bold;
-  color: #fff;
-  border: 2px solid transparent;
-  transition: all 0.3s ease;
-}
-
-.circulo-nivel.ativo {
-  transform: scale(1.15);
-  box-shadow: 0 0 0 3px #457b9d;
-  border-color: #ffffff; /* Borda branca para destacar ainda mais */
-}
-
-/* Cores das bolinhas com base nas suas definições */
-.circulo-nivel.NR {
-  background-color: #e63946;
-  color: white;
-}
-.circulo-nivel.AF {
-  background-color: #f1a208;
-  color: black;
-}
-.circulo-nivel.AG {
-  background-color: #e9c46a;
-  color: black;
-}
-.circulo-nivel.AV {
-  background-color: #2a9d8f;
-  color: white;
-}
-.circulo-nivel.AVi {
-  background-color: #8ecae6;
-  color: black;
-}
-.circulo-nivel.I {
-  background-color: #4caf50;
-  color: white;
-}
-.circulo-nivel.NA {
-  background-color: #adb5bd;
-  color: black;
+/* Coluna 3: A Descrição */
+.descricao-habilidade {
+  font-size: 0.9rem;
+  color: #6c757d;
+  line-height: 1.5;
 }
 
 /* --- Observações --- */
 .observacoes-area {
-  margin-top: 20px;
-  padding: 15px;
-  background-color: #f7f9fc;
-  border-left: 4px solid #457b9d;
-  border-radius: 0 8px 8px 0;
+  margin-top: 24px;
+  padding: 16px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
 }
-
 .observacoes-area label {
-  font-weight: bold;
+  font-weight: 600;
   color: #1d3557;
-  margin-bottom: 5px;
-  display: block;
 }
-
 .observacoes-area p {
-  margin: 0;
-  font-style: italic;
-  color: #555;
-  line-height: 1.4;
+  margin: 4px 0 0 0;
+  color: #495057;
 }
 
-/* --- Estilos de Carregamento e Erro --- */
-.loading,
-.mensagem-erro {
-  text-align: center;
-  margin-top: 50px;
-  font-size: 1.2rem;
-  color: #6c757d;
-}
-
-.mensagem-erro {
-  color: #e63946;
-  font-weight: bold;
-}
-/* --- Legenda dos Níveis --- */
+/* Legenda, etc. */
 .legenda-niveis-container {
-  margin-top: 40px;
-  padding-top: 20px;
-  border-top: 1px solid #e0e0e0;
+  padding: 32px;
+  background-color: #f8f9fa;
 }
-
 .legenda-niveis-container h4 {
-  color: #1d3557;
-  font-size: 1.2rem;
-  margin-bottom: 15px;
+  font-weight: 600;
+  color: #343a40;
 }
-
 .legenda-niveis {
   display: flex;
   flex-wrap: wrap;
-  gap: 20px; /* Espaçamento entre cada item da legenda */
+  gap: 16px;
 }
-
 .legenda-item {
-  /* Agora a bolinha e o texto ficarão lado a lado */
-  display: flex;
-  align-items: center; /* Alinha verticalmente no centro */
-  gap: 10px; /* Espaço entre a bolinha e o texto */
-}
-
-.legenda-circulo {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 0.7rem;
-  font-weight: bold;
+  gap: 8px;
 }
-
+.legenda-circulo {
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+  justify-self: center; /* Centraliza a tag em sua coluna */
+}
 .legenda-descricao {
   font-size: 0.9rem;
-  color: #555;
-  white-space: nowrap; /* Impede que o texto quebre para a próxima linha */
+  color: #495057;
+}
+
+/* Mensagens de Feedback */
+.loading,
+.mensagem-erro {
+  text-align: center;
+  padding: 40px;
+  font-size: 1.1rem;
+  color: #6c757d;
+}
+.mensagem-erro {
+  color: #e63946;
+  font-weight: 500;
 }

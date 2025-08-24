@@ -1,6 +1,5 @@
-// src/utils/pdfUtils.js
-
 import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 // --- 1. Definições de Estilos e Cores Globais ---
 export const pdfStyles = {
@@ -127,6 +126,29 @@ export function formatarData(dateInput) {
   }
 }
 
+export function formatarMesPorExtenso(dateInput) {
+  if (!dateInput) return "-";
+  let dateObj;
+  try {
+    if (typeof dateInput.toDate === "function") {
+      dateObj = dateInput.toDate();
+    } else if (dateInput instanceof Date) {
+      dateObj = dateInput;
+    } else if (typeof dateInput === "string") {
+      dateObj = new Date(dateInput);
+    } else {
+      return "-";
+    }
+    if (isNaN(dateObj.getTime())) return "-";
+    const mes = dateObj.toLocaleString("pt-BR", { month: "long" });
+    const ano = dateObj.getFullYear();
+    return `${mes} de ${ano}`;
+  } catch (e) {
+    console.error("Erro ao formatar mês por extenso:", e);
+    return "-";
+  }
+}
+
 // --- 3. Funções Auxiliares de Desenho de PDF ---
 
 export function addFooter(doc, pageHeight) {
@@ -152,7 +174,7 @@ export function addFooter(doc, pageHeight) {
 }
 
 /**
- * Desenha o cabeçalho do documento com informações essenciais do aluno e da avaliação.
+ * Desenha o cabeçalho do documento com informações essenciais do aluno e da avaliação em formato de tabela.
  *
  * @param {jsPDF} doc O documento jsPDF.
  * @param {number} startY Posição Y inicial para desenhar o cabeçalho (tipicamente 10).
@@ -171,10 +193,7 @@ export async function drawDocumentHeader(
   avaliacaoInfo
 ) {
   let y = startY;
-  const leftAlignX = 20;
-  const infoLabelWidth = 60; // Largura para o rótulo (ex: "Escola:", "Nome:")
-  const infoValueX = leftAlignX + infoLabelWidth; // Posição X para o valor
-  const lineHeight = pdfStyles.fontSize.large * pdfStyles.lineHeightMultiplier;
+  const dataNascTexto = formatarData(aluno?.nascimento);
 
   // --- 1. Logo ---
   doc.addImage("/logo.jpg", "JPEG", 10, y, 128, 25);
@@ -182,56 +201,100 @@ export async function drawDocumentHeader(
 
   // --- 2. Título do Documento Principal ---
   doc.setFont(pdfStyles.font, "bold");
-  doc.setFontSize(pdfStyles.fontSize.title);
+  doc.setFontSize(pdfStyles.fontSize.extraLarge);
   doc.setTextColor(...getSafeColor(pdfStyles.colors.black));
-
   doc.text(documentTitle, doc.internal.pageSize.getWidth() / 2, y, {
     align: "center",
   });
-  y += 10;
+  y += 15;
 
-  // --- 3. Informações Essenciais do Aluno e Avaliação (dispostas em bloco vertical) ---
-  doc.setFont(pdfStyles.font, "normal");
-  doc.setFontSize(pdfStyles.fontSize.large);
-  doc.setTextColor(...getSafeColor(pdfStyles.colors.black));
+  // --- 3. Informações Essenciais do Aluno e Avaliação (em tabela) ---
+  const body = [
+    [{ content: `Escola: ${nomeEscola || "-"}`, colSpan: 3 }],
+    [{ content: `Nome: ${aluno?.nome || "-"}`, colSpan: 3 }],
+    [`Data de Nasc.: ${dataNascTexto}`, `Turma: ${aluno?.turma || "-"}`, ""],
+    [
+      {
+        content: `Data da Avaliação Inicial: ${formatarData(avaliacaoInfo?.dataAvaliacao) || "-"}`,
+        colSpan: 3,
+      },
+    ],
+    [
+      {
+        content: `Próxima Avaliação: ${formatarData(avaliacaoInfo?.proximaAvaliacao) || "-"}`,
+        colSpan: 3,
+      },
+    ],
+  ];
 
-  // Função auxiliar para desenhar uma linha de informação formatada
-  const drawInfoLine = (label, value) => {
-    doc.setFont(pdfStyles.font, "bold"); // Rótulo em negrito
-    doc.text(label, leftAlignX, y);
-    doc.setFont(pdfStyles.font, "normal"); // Valor normal
-    doc.text(value, infoValueX, y); // Alinha o valor após o rótulo
-    y += lineHeight;
-  };
+  autoTable(doc, {
+    startY: y,
+    head: [], // Cabeçalho vazio, pois o corpo já contém as informações
+    body: body,
+    theme: "grid",
+    styles: {
+      font: pdfStyles.font,
+      fontSize: pdfStyles.fontSize.medium,
+      cellPadding: 2,
+    },
+    // Remova as bordas para um visual mais limpo
+    tableLineColor: [0, 0, 0],
+    tableLineWidth: 0.1,
+    margin: { left: 20, right: 20 },
+  });
 
-  // Informações do Aluno e Turma
-  drawInfoLine("Escola:", nomeEscola || "-");
-  drawInfoLine("Nome:", aluno?.nome || "-");
-  drawInfoLine("Data de Nascimento:", formatarData(aluno?.nascimento) || "-");
-  drawInfoLine("Turma:", aluno?.turma || "-"); // Adicionado campo Turma aqui
-
-  // Informações da Avaliação Inicial
-  y += 5; // Pequeno espaçamento
-  drawInfoLine(
-    "Data da Avaliação Inicial:",
-    formatarData(avaliacaoInfo?.dataAvaliacao) || "-"
-  );
-  drawInfoLine(
-    "Próxima Avaliação:",
-    formatarData(avaliacaoInfo?.proximaAvaliacao) || "-"
-  );
+  // O y agora será a última posição Y da tabela.
+  y = doc.lastAutoTable.finalY + 10;
 
   // --- 4. Linha Divisória Final do Cabeçalho ---
-  y += 10;
   doc.setDrawColor(...getSafeColor(pdfStyles.colors.darkBlue));
   doc.setLineWidth(0.5);
-  doc.line(
-    leftAlignX - 10,
-    y,
-    doc.internal.pageSize.getWidth() - leftAlignX + 10,
-    y
-  );
+  doc.line(20, y, doc.internal.pageSize.getWidth() - 20, y);
   y += 10;
 
   return y;
+}
+
+/**
+ * Adiciona rodapé e número de página.
+ * @param {jsPDF} doc O documento jsPDF.
+ */
+export function addHeaderAndFooter(doc) {
+  const pageCount = doc.internal.getNumberOfPages();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const pageWidth = doc.internal.pageSize.getWidth();
+
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+
+    // Rodapé
+    addFooter(doc, pageHeight);
+
+    // Número da página
+    doc.setFontSize(pdfStyles.fontSize.small);
+    doc.setTextColor(
+      pdfStyles.colors.black[0],
+      pdfStyles.colors.black[1],
+      pdfStyles.colors.black[2]
+    );
+    doc.text(`Página ${i} de ${pageCount}`, pageWidth - 40, pageHeight - 15);
+  }
+}
+
+/**
+ * Garante que há espaço suficiente na página para o conteúdo.
+ * Se não houver, adiciona uma nova página e retorna a nova posição Y.
+ * @param {jsPDF} doc O documento jsPDF.
+ * @param {number} y A posição Y atual.
+ * @param {number} requiredSpace A altura necessária para o próximo conteúdo.
+ * @returns {number} A nova posição Y.
+ */
+export function ensurePageSpace(doc, y, requiredSpace) {
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const bottomMargin = 40; // Aumentamos a margem para dar mais espaço ao rodapé
+  if (y + requiredSpace > pageHeight - bottomMargin) {
+    doc.addPage();
+    return 20; // Retorna uma posição Y inicial na nova página
+  }
+  return y; // Retorna a posição Y atual se houver espaço
 }

@@ -1,11 +1,8 @@
-// src/components/AreaPerguntas.jsx
 import React, { useState, useMemo } from "react";
 import PropTypes from "prop-types";
-import { legendaNiveis } from "../data/avaliacaoInicialData";
+import { FaChevronDown } from "react-icons/fa";
 import "../styles/NiveisDeAvaliacao.css";
-import { FaChevronDown } from "react-icons/fa"; // Importe o ícone de seta
-
-const niveis = ["NR", "AF", "AG", "AV", "AVi", "I", "NA"];
+import { avaliacaoInicial } from "../data/avaliacaoInicialData";
 
 const AreaPerguntas = ({
   area,
@@ -17,9 +14,13 @@ const AreaPerguntas = ({
   disabled,
 }) => {
   const [subareasExpandidas, setSubareasExpandidas] = useState(() => {
-    // Inicia com todas as subáreas abertas por padrão para facilitar a visualização inicial
     const uniqueSubareas = [...new Set(dados.map((item) => item.subarea))];
     return uniqueSubareas;
+  });
+
+  const [tooltipVisivel, setTooltipVisivel] = useState({
+    habilidade: null,
+    nivel: null,
   });
 
   const toggleSubarea = (subareaName) => {
@@ -40,37 +41,50 @@ const AreaPerguntas = ({
     }, {});
   }, [dados]);
 
-  // Função para marcar todas as habilidades da área como "NA"
   const handleMarcarAreaComoNA = () => {
     if (disabled) return;
-
     if (
       window.confirm(
         `Tem certeza que deseja marcar TODAS as habilidades da área "${area}" como "NÃO APLICÁVEL" (NA)?`
       )
     ) {
-      // Chama onResponder para cada habilidade, atualizando o estado no componente pai
       dados.forEach((habilidadeItem) => {
         if (habilidadeItem.habilidade) {
           onResponder(area, habilidadeItem.habilidade, "NA");
         }
       });
-      // Opcional: pode colapsar as subáreas após marcar como NA
-      // setSubareasExpandidas([]);
     }
   };
 
-  // Verifica se a área é uma daquelas que podem ter o botão "NA"
+  const handleToggleTooltip = (habilidade, nivel) => {
+    setTooltipVisivel((prev) =>
+      prev.habilidade === habilidade && prev.nivel === nivel
+        ? { habilidade: null, nivel: null }
+        : { habilidade, nivel }
+    );
+  };
+
   const areaPodeSerIgnorada = [
     "Altas Habilidades",
     "Comunicação Alternativa e Não Verbal",
   ].includes(area);
 
+  const legendaNiveis = useMemo(() => {
+    const primeiraHabilidade = dados[0];
+    if (primeiraHabilidade && primeiraHabilidade.niveis) {
+      return Object.entries(primeiraHabilidade.niveis).map(
+        ([sigla, descricao]) => ({
+          sigla,
+          descricao,
+        })
+      );
+    }
+    return [];
+  }, [dados]);
+
   return (
     <div className="area-perguntas-wrapper" aria-disabled={disabled}>
       <div className="area-header-with-button">
-        {" "}
-        {/* Novo container para título e botão */}
         <h3 className="area-titulo">{area}</h3>
         {areaPodeSerIgnorada && (
           <button
@@ -119,39 +133,55 @@ const AreaPerguntas = ({
                   <div key={habilidade} className="linha-habilidade">
                     <div className="texto-habilidade">{habilidade}</div>
                     <div className="niveis-habilidade">
-                      {niveis.map((nivel) => (
-                        <div
-                          key={nivel}
-                          className={`circulo-nivel ${nivel} ${
-                            respostas && respostas[habilidade] === nivel
-                              ? "ativo"
-                              : ""
-                          }`}
-                          onClick={
-                            !disabled
-                              ? () => onResponder(area, habilidade, nivel)
-                              : undefined
-                          }
-                          aria-label={`Marcar ${habilidade} como ${legendaNiveis[nivel]}`}
-                          role="radio"
-                          aria-checked={
-                            respostas && respostas[habilidade] === nivel
-                          }
-                          tabIndex={disabled ? -1 : 0}
-                          onKeyPress={(e) => {
-                            if (
-                              !disabled &&
-                              (e.key === "Enter" || e.key === " ")
-                            ) {
-                              e.preventDefault();
-                              onResponder(area, habilidade, nivel);
+                      {Object.entries(pergunta.niveis).map(
+                        ([nivel, descricao]) => (
+                          <div
+                            key={nivel}
+                            className={`circulo-nivel ${nivel} ${
+                              respostas && respostas[habilidade] === nivel
+                                ? "ativo"
+                                : ""
+                            }`}
+                            onClick={() => {
+                              if (!disabled) {
+                                onResponder(area, habilidade, nivel);
+                                handleToggleTooltip(habilidade, nivel);
+                              }
+                            }}
+                            onMouseLeave={() =>
+                              setTooltipVisivel({
+                                habilidade: null,
+                                nivel: null,
+                              })
                             }
-                          }}
-                          style={{ pointerEvents: disabled ? "none" : "auto" }}
-                        >
-                          {nivel}
-                        </div>
-                      ))}
+                            aria-label={`Marcar ${habilidade} como ${descricao}`}
+                            role="radio"
+                            aria-checked={
+                              respostas && respostas[habilidade] === nivel
+                            }
+                            tabIndex={disabled ? -1 : 0}
+                            onKeyPress={(e) => {
+                              if (
+                                !disabled &&
+                                (e.key === "Enter" || e.key === " ")
+                              ) {
+                                e.preventDefault();
+                                onResponder(area, habilidade, nivel);
+                                handleToggleTooltip(habilidade, nivel);
+                              }
+                            }}
+                            style={{
+                              pointerEvents: disabled ? "none" : "auto",
+                            }}
+                          >
+                            {nivel}
+                            {tooltipVisivel.habilidade === habilidade &&
+                              tooltipVisivel.nivel === nivel && (
+                                <div className="tooltip-texto">{descricao}</div>
+                              )}
+                          </div>
+                        )
+                      )}
                     </div>
                   </div>
                 );
@@ -176,7 +206,7 @@ const AreaPerguntas = ({
       <div className="legenda-niveis">
         <strong>Legenda:</strong>
         <ul>
-          {Object.entries(legendaNiveis).map(([sigla, descricao]) => (
+          {legendaNiveis.map(({ sigla, descricao }) => (
             <li key={sigla}>
               <div
                 className={`circulo-nivel ${sigla}`}
@@ -199,6 +229,7 @@ AreaPerguntas.propTypes = {
     PropTypes.shape({
       habilidade: PropTypes.string.isRequired,
       subarea: PropTypes.string.isRequired,
+      niveis: PropTypes.object.isRequired,
     })
   ).isRequired,
   respostas: PropTypes.object,

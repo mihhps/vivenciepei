@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { doc, getDoc, Timestamp } from "firebase/firestore";
+import { useParams } from "react-router-dom";
+import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import BotaoVoltar from "../components/BotaoVoltar";
 
-// Verifique se o caminho para o CSS está correto
 import "../styles/VerAvaliacao.css";
+import { avaliacaoInicial } from "../data/avaliacaoInicialData";
 
-// Configuração de estilos e níveis
+// Configuração de estilos e níveis (pode ser mantida como está)
 const NIVEL_CONFIG = {
   NR: {
     cor: "#e63946",
@@ -26,9 +26,59 @@ const NIVEL_CONFIG = {
   NA: { cor: "#adb5bd", descricao: "Não aplicável", corTexto: "#000000" },
 };
 
+// ========= FUNÇÕES HELPER CORRIGIDAS =========
+
+/**
+ * Normaliza uma string para comparação, removendo acentos, espaços e convertendo para minúsculas.
+ */
+const limparString = (str) => {
+  if (typeof str !== "string") return "";
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+};
+
+/**
+ * Encontra a descrição da habilidade com base na área, nome da habilidade e nível.
+ * ESTA É A FUNÇÃO CORRIGIDA.
+ */
+const encontrarDescricaoCompleta = (areaPrincipal, habilidade, nivel) => {
+  // Encontra a área correspondente nos dados locais, ignorando acentos/maiúsculas.
+  const areaData = avaliacaoInicial[areaPrincipal];
+
+  // Se a área não for encontrada nos dados, retorna uma mensagem de erro.
+  if (!areaData) {
+    console.warn(
+      `Área "${areaPrincipal}" não encontrada em avaliacaoInicialData.`
+    );
+    return "Área não encontrada na base de dados.";
+  }
+
+  // Normaliza a habilidade vinda do Firebase para comparação.
+  const habilidadeLimpa = limparString(habilidade);
+
+  // Procura o objeto da habilidade dentro do array da área.
+  const habilidadeObj = areaData.find(
+    (item) => limparString(item.habilidade) === habilidadeLimpa
+  );
+
+  // Se o objeto da habilidade for encontrado, retorna a descrição do nível específico.
+  if (habilidadeObj && habilidadeObj.niveis) {
+    return (
+      habilidadeObj.niveis[nivel] || "Descrição para este nível não encontrada."
+    );
+  }
+
+  // Se a habilidade específica não for encontrada dentro da área, retorna um aviso.
+  return "Habilidade não encontrada na base de dados.";
+};
+
+// ========= COMPONENTE REACT =========
+
 function VerAvaliacao() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const [avaliacao, setAvaliacao] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -50,6 +100,7 @@ function VerAvaliacao() {
           setError("Avaliação não encontrada.");
         }
       } catch (err) {
+        console.error("Erro ao carregar avaliação:", err);
         setError("Falha ao carregar os dados da avaliação.");
       } finally {
         setLoading(false);
@@ -102,15 +153,14 @@ function VerAvaliacao() {
           )}
         </div>
         {Object.entries(avaliacao.respostas || {}).map(
-          ([area, habilidades]) => {
+          ([areaPrincipal, habilidades]) => {
             const todasHabilidadesDaArea = Object.entries(habilidades || {});
-
             if (todasHabilidadesDaArea.length === 0) return null;
 
             return (
-              <div key={area} className="area-perguntas-wrapper">
+              <div key={areaPrincipal} className="area-perguntas-wrapper">
                 <div className="area-header-with-button">
-                  <h3 className="area-titulo">{area}</h3>
+                  <h3 className="area-titulo">{areaPrincipal}</h3>
                 </div>
                 <div className="accordion-item">
                   <div className="accordion-content open">
@@ -119,6 +169,12 @@ function VerAvaliacao() {
                         if (nivel === "NA") {
                           return null;
                         }
+
+                        const descricaoCompleta = encontrarDescricaoCompleta(
+                          areaPrincipal,
+                          habilidade,
+                          nivel
+                        );
 
                         return (
                           <div key={habilidade} className="linha-habilidade">
@@ -129,9 +185,12 @@ function VerAvaliacao() {
                               <span
                                 key={nivel}
                                 className={`circulo-nivel ${nivel} ativo`}
-                                title={NIVEL_CONFIG[nivel]?.descricao || ""}
+                                title={descricaoCompleta}
                               >
                                 {nivel}
+                              </span>
+                              <span className="descricao-habilidade">
+                                {descricaoCompleta}
                               </span>
                             </div>
                           </div>
@@ -140,22 +199,20 @@ function VerAvaliacao() {
                     </div>
                   </div>
                 </div>
-                {avaliacao.observacoes?.[area] && (
+                {avaliacao.observacoes?.[areaPrincipal] && (
                   <div className="observacoes-area">
                     <label>Observações:</label>
-                    <p>{avaliacao.observacoes[area]}</p>
+                    <p>{avaliacao.observacoes[areaPrincipal]}</p>
                   </div>
                 )}
               </div>
             );
           }
         )}
-        {/* NOVO CÓDIGO AQUI: Legenda no final da avaliação */}
         <div className="legenda-niveis-container">
           <h4>Legenda dos Níveis</h4>
           <div className="legenda-niveis">
             {Object.entries(NIVEL_CONFIG).map(([nivel, config]) => {
-              // Exclui o nível "NA" da legenda
               if (nivel === "NA") {
                 return null;
               }

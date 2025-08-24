@@ -17,7 +17,137 @@ import { db } from "../firebase";
 import estruturaPEI from "../data/estruturaPEI2";
 import objetivosCurtoPrazoData from "../data/objetivosCurtoPrazo";
 import objetivosMedioPrazoData from "../data/objetivosMedioPrazo";
+import { avaliacaoInicial } from "../data/avaliacaoInicialData.js";
 
+// Crie este "mapa" de busca logo após seus imports, no topo do arquivo.
+const habilidadeDescricaoMap = {};
+Object.values(avaliacaoInicial).forEach((areaArray) => {
+  areaArray.forEach((skillObject) => {
+    habilidadeDescricaoMap[skillObject.habilidade] = skillObject.niveis;
+  });
+});
+
+// SUBSTITUA SUA FUNÇÃO INTEIRA POR ESTA VERSÃO DE TESTE
+function addInitialAssessment(doc, avaliacao, y) {
+  // LINHA DE TESTE: Verifique se esta mensagem aparece no console do navegador
+  console.log(
+    "--- EXECUTANDO A VERSÃO CORRETA DA FUNÇÃO (com mapa específico) ---"
+  );
+
+  const dadosAvaliacao = avaliacao?.respostas || avaliacao?.habilidades;
+
+  const habilidadesFiltradas = {};
+  if (dadosAvaliacao) {
+    for (const area in dadosAvaliacao) {
+      const habilidadesNaArea = dadosAvaliacao[area];
+
+      const habilidadesValidasNaArea = Object.entries(habilidadesNaArea || {})
+        .filter(([habilidade, nivel]) => nivel !== "NA" && nivel !== "I")
+        .map(([habilidade, nivel]) => {
+          const descricaoEspecifica =
+            (habilidadeDescricaoMap[habilidade] &&
+              habilidadeDescricaoMap[habilidade][nivel]) ||
+            "Descrição específica não encontrada.";
+
+          return [habilidade, nivel, descricaoEspecifica];
+        });
+
+      if (habilidadesValidasNaArea.length > 0) {
+        habilidadesFiltradas[area] = habilidadesValidasNaArea;
+      }
+    }
+  }
+
+  if (Object.keys(habilidadesFiltradas).length === 0) {
+    return y;
+  }
+
+  y = ensurePageSpace(doc, y, 30);
+  doc.setFont(styles.font, "bold");
+  doc.setFontSize(styles.fontSize.large);
+  doc.text("Avaliação Inicial (Habilidades a Desenvolver)", 20, y);
+  y += 8;
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const availableWidth = pageWidth - 40;
+
+  for (const area in habilidadesFiltradas) {
+    const linhasDaArea = habilidadesFiltradas[area];
+
+    y = ensurePageSpace(doc, y, 15);
+    doc.setFont(styles.font, "bold");
+    doc.setFontSize(styles.fontSize.medium);
+    doc.text(area, 20, y);
+    y += 6;
+
+    autoTable(doc, {
+      startY: y,
+      head: [["Habilidade", "Nível", "Descrição do Nível Atual"]],
+      body: linhasDaArea,
+      styles: {
+        font: styles.font,
+        fontSize: styles.fontSize.small,
+        cellPadding: 1.5,
+        valign: "middle",
+        textColor: styles.colors.black,
+        fillColor: styles.colors.white,
+        lineColor: styles.colors.black,
+        lineWidth: 0.1,
+      },
+      headStyles: {
+        fillColor: styles.colors.white,
+        textColor: styles.colors.black,
+        fontStyle: "bold",
+        halign: "center",
+      },
+      columnStyles: {
+        0: { cellWidth: availableWidth * 0.55 },
+        1: { cellWidth: availableWidth * 0.1, halign: "center" },
+        2: { cellWidth: availableWidth * 0.35 },
+      },
+      margin: {
+        left: 20,
+        right: 20,
+        top: HEADER_AREA_HEIGHT + 10,
+        bottom: FOOTER_AREA_HEIGHT,
+      },
+      didParseCell: (data) => {
+        if (data.column.index === 1) {
+          const nivel = data.cell.text[0];
+          if (coresPorNivel[nivel]) {
+            data.cell.styles.fillColor = coresPorNivel[nivel];
+            data.cell.styles.textColor = styles.colors.white;
+          }
+        } else {
+          data.cell.styles.fillColor = styles.colors.white;
+          data.cell.styles.textColor = styles.colors.black;
+        }
+      },
+      didDrawPage: (data) => {
+        addHeaderAndFooter(doc);
+      },
+    });
+    y = doc.lastAutoTable.finalY + 5;
+
+    const observacaoArea = avaliacao.observacoes?.[area];
+    if (observacaoArea && observacaoArea.trim().length > 0) {
+      y = ensurePageSpace(doc, y, 15);
+      doc.setFont(styles.font, "bold");
+      doc.setFontSize(styles.fontSize.medium);
+      doc.text(`Observações (${area}):`, 20, y);
+      y += 6;
+      doc.setFont(styles.font, "normal");
+      doc.setFontSize(styles.fontSize.small);
+      autoTable(doc, {
+        startY: y,
+        body: [[observacaoArea]],
+        // ... (restante da função de observação)
+      });
+      y = doc.lastAutoTable.finalY + 5;
+    }
+  }
+  return y + 10;
+}
 // --- Constantes e Estilos ---
 const styles = {
   font: "times",
@@ -765,146 +895,6 @@ async function addStudentAndHeaderInfo(
   y = doc.lastAutoTable.finalY + 10;
 
   return y;
-}
-
-function addInitialAssessment(doc, avaliacao, y) {
-  const dadosAvaliacao = avaliacao?.respostas || avaliacao?.habilidades;
-
-  const habilidadesFiltradas = {};
-  if (dadosAvaliacao) {
-    for (const area in dadosAvaliacao) {
-      const habilidadesNaArea = dadosAvaliacao[area];
-      const habilidadesValidasNaArea = Object.entries(habilidadesNaArea || {})
-        .filter(([habilidade, nivel]) => nivel !== "NA" && nivel !== "I")
-        .map(([habilidade, nivel]) => [habilidade, nivel]);
-
-      if (habilidadesValidasNaArea.length > 0) {
-        habilidadesFiltradas[area] = habilidadesValidasNaArea;
-      }
-    }
-  }
-
-  if (Object.keys(habilidadesFiltradas).length === 0) {
-    console.log(
-      "[PDF_DEBUG] Avaliação Inicial: Nenhuma habilidade para exibir (todas NA ou I)."
-    );
-    return y;
-  }
-
-  y = ensurePageSpace(doc, y, 30);
-  doc.setFont(styles.font, "bold");
-  doc.setFontSize(styles.fontSize.large);
-  doc.text("Avaliação Inicial (Habilidades a Desenvolver)", 20, y);
-  y += 8;
-
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const availableWidth = pageWidth - 40;
-
-  for (const area in habilidadesFiltradas) {
-    const linhasDaArea = habilidadesFiltradas[area];
-
-    y = ensurePageSpace(doc, y, 15);
-    doc.setFont(styles.font, "bold");
-    doc.setFontSize(styles.fontSize.medium);
-    doc.text(area, 20, y);
-    y += 6;
-
-    autoTable(doc, {
-      startY: y,
-      head: [["Habilidade", "Nível"]],
-      body: linhasDaArea,
-      styles: {
-        font: styles.font,
-        fontSize: styles.fontSize.small,
-        cellPadding: 1.5,
-        valign: "middle",
-        textColor: styles.colors.black,
-        fillColor: styles.colors.white,
-        lineColor: styles.colors.black,
-        lineWidth: 0.1,
-      },
-      headStyles: {
-        fillColor: styles.colors.white,
-        textColor: styles.colors.black,
-        fontStyle: "bold",
-        halign: "center",
-      },
-      columnStyles: {
-        0: {
-          cellWidth: availableWidth * 0.85,
-        },
-        1: {
-          cellWidth: availableWidth * 0.15,
-          halign: "center",
-        },
-      },
-      margin: {
-        left: 20,
-        right: 20,
-        top: HEADER_AREA_HEIGHT + 10,
-        bottom: FOOTER_AREA_HEIGHT,
-      },
-      didParseCell: (data) => {
-        const nivel = data.cell.text[0];
-        if (data.column.index === 1 && coresPorNivel[nivel]) {
-          data.cell.styles.fillColor = coresPorNivel[nivel];
-          data.cell.styles.textColor = styles.colors.white;
-        } else {
-          data.cell.styles.fillColor = styles.colors.white;
-          data.cell.styles.textColor = styles.colors.black;
-        }
-      },
-      didDrawPage: (data) => {
-        addHeaderAndFooter(doc);
-      },
-    });
-    y = doc.lastAutoTable.finalY + 5;
-
-    const observacaoArea = avaliacao.observacoes?.[area];
-    if (observacaoArea && observacaoArea.trim().length > 0) {
-      y = ensurePageSpace(doc, y, 15);
-      doc.setFont(styles.font, "bold");
-      doc.setFontSize(styles.fontSize.medium);
-      doc.text(`Observações (${area}):`, 20, y);
-      y += 6;
-      doc.setFont(styles.font, "normal");
-      doc.setFontSize(styles.fontSize.small);
-      autoTable(doc, {
-        startY: y,
-        body: [[observacaoArea]],
-        styles: {
-          font: styles.font,
-          fontSize: styles.fontSize.small,
-          textColor: styles.colors.black,
-          fillColor: styles.colors.white,
-          lineColor: styles.colors.black,
-          lineWidth: 0.1,
-          cellPadding: 2,
-          valign: "top",
-          overflow: "linebreak",
-        },
-        columnStyles: {
-          0: {
-            cellWidth: availableWidth,
-          },
-        },
-        margin: {
-          left: 20,
-          right: 20,
-          top: HEADER_AREA_HEIGHT + 10,
-          bottom: FOOTER_AREA_HEIGHT,
-        },
-        didParseCell: (data) => {
-          data.cell.styles.fillColor = styles.colors.white;
-        },
-        didDrawPage: (data) => {
-          addHeaderAndFooter(doc);
-        },
-      });
-      y = doc.lastAutoTable.finalY + 5;
-    }
-  }
-  return y + 10;
 }
 
 function addAvaliacaoInteressesSection(doc, avaliacaoInteressesData, y) {

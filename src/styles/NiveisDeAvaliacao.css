@@ -3,11 +3,11 @@
 /* Novo container para o título da área e o botão "Marcar área como NA" */
 .area-header-with-button {
   display: flex;
-  justify-content: space-between; /* Espaça o título e o botão */
-  align-items: center; /* Alinha verticalmente */
-  margin-bottom: 20px; /* Espaço abaixo do cabeçalho da área */
-  flex-wrap: wrap; /* Permite quebrar em telas menores */
-  gap: 15px; /* Espaço entre o título e o botão se quebrar a linha */
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 15px;
 }
 
 /* Estilos para o wrapper da área (pai dos acordeões) */
@@ -18,30 +18,28 @@
 .area-titulo {
   font-size: 20px;
   color: #1d3557;
-  /* margin-bottom: 20px; -> removido para ser controlado pelo parent .area-header-with-button */
-  text-align: left; /* Alinhado à esquerda agora, com o botão à direita */
+  text-align: left;
   font-weight: 600;
-  flex-shrink: 0; /* Impede que o título encolha para dar espaço ao botão */
+  flex-shrink: 0;
 }
 
 /* NOVO: Estilo para o botão "Marcar área como NA" */
 .marcar-na-area-btn {
-  background-color: #adb5bd; /* Um cinza para "Não Aplicável" */
+  background-color: #adb5bd;
   color: white;
-  padding: 6px 10px; /* Reduzindo o padding para deixá-lo menor */
+  padding: 6px 10px;
   border: none;
-  border-radius: 5px; /* Cantos um pouco menos arredondados para um visual mais compacto */
-  font-size: 11px; /* Reduzindo o tamanho da fonte */
+  border-radius: 5px;
+  font-size: 11px;
   font-weight: bold;
   cursor: pointer;
-
-  white-space: nowrap; /* Garante que o texto do botão não quebre */
-  flex-shrink: 0; /* Impede que o botão encolha */
+  white-space: nowrap;
+  flex-shrink: 0;
   transition: background-color 0.3s ease;
 }
 
 .marcar-na-area-btn:hover:not(:disabled) {
-  background-color: #959ea6; /* Escurece no hover */
+  background-color: #959ea6;
 }
 
 .marcar-na-area-btn:disabled {
@@ -54,7 +52,8 @@
   border: 1px solid #e0e0e0;
   border-radius: 10px;
   margin-bottom: 12px;
-  overflow: hidden;
+  /* CORREÇÃO PRINCIPAL: Permite que o tooltip saia das bordas */
+  overflow: visible;
   background-color: #ffffff;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
   transition: box-shadow 0.2s ease;
@@ -77,7 +76,9 @@
   font-size: 17px;
   font-weight: bold;
   color: #333;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
   font-family: inherit;
   text-align: left;
 }
@@ -104,7 +105,9 @@
   font-size: 20px;
   color: #a0a0a0;
   margin-left: 15px;
-  transition: transform 0.3s ease, color 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    color 0.3s ease;
   flex-shrink: 0;
 }
 
@@ -118,12 +121,15 @@
   background-color: #ffffff;
   padding: 0 25px;
   max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.5s ease-in-out, padding 0.5s ease-in-out;
+  /* CORREÇÃO: Também garante que o conteúdo visível não seja cortado */
+  overflow: visible;
+  transition:
+    max-height 0.5s ease-in-out,
+    padding 0.5s ease-in-out;
 }
 
 .accordion-content.open {
-  max-height: 1000px; /* Ajuste se o conteúdo for muito longo */
+  max-height: 1000px;
   padding-top: 15px;
   padding-bottom: 15px;
 }
@@ -144,13 +150,13 @@
 
 /* Estilos para o texto da habilidade */
 .texto-habilidade {
-  flex: 1 1 65%; /* Ajuste a base para dar mais ou menos espaço ao texto */
+  flex: 1 1 65%;
   font-size: 15px;
   color: #444;
   padding-right: 20px;
   white-space: normal;
   box-sizing: border-box;
-  min-width: 280px; /* Garante que o texto tenha espaço suficiente e não seja cortado */
+  min-width: 280px;
   line-height: 1.4;
 }
 
@@ -177,9 +183,14 @@
   justify-content: center;
   opacity: 0.6;
   cursor: pointer;
-  transition: opacity 0.2s, outline 0.2s, transform 0.2s;
+  transition:
+    opacity 0.2s,
+    outline 0.2s,
+    transform 0.2s;
   user-select: none;
   border: 1px solid rgba(0, 0, 0, 0.1);
+  /* CORREÇÃO: Torna o círculo o ponto de referência para o tooltip */
+  position: relative;
 }
 
 /* Estilo para o círculo de nível ATIVO (selecionado) */
@@ -275,4 +286,39 @@
   opacity: 1;
   border: none;
   flex-shrink: 0;
+}
+
+/* Estilos do Tooltip */
+.tooltip-texto {
+  width: 200px;
+  max-width: 250px;
+  background-color: #333;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 8px 10px;
+
+  position: absolute;
+  z-index: 10; /* CORREÇÃO: Aumenta o z-index para garantir que fique na frente */
+  bottom: 150%;
+  left: 50%;
+  transform: translateX(-50%);
+
+  opacity: 1;
+  transition: opacity 0.3s;
+  font-size: 14px;
+  white-space: normal;
+  word-wrap: break-word;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.tooltip-texto::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: #333 transparent transparent transparent;
 }
