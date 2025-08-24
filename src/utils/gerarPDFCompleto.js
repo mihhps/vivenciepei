@@ -11,9 +11,6 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase";
 
-// A função fetchAvaliacaoInteresses de firebaseUtils não é mais necessária aqui.
-// import { fetchAvaliacaoInteresses } from "./firebaseUtils";
-
 import estruturaPEI from "../data/estruturaPEI2";
 import objetivosCurtoPrazoData from "../data/objetivosCurtoPrazo";
 import objetivosMedioPrazoData from "../data/objetivosMedioPrazo";
@@ -27,127 +24,6 @@ Object.values(avaliacaoInicial).forEach((areaArray) => {
   });
 });
 
-// SUBSTITUA SUA FUNÇÃO INTEIRA POR ESTA VERSÃO DE TESTE
-function addInitialAssessment(doc, avaliacao, y) {
-  // LINHA DE TESTE: Verifique se esta mensagem aparece no console do navegador
-  console.log(
-    "--- EXECUTANDO A VERSÃO CORRETA DA FUNÇÃO (com mapa específico) ---"
-  );
-
-  const dadosAvaliacao = avaliacao?.respostas || avaliacao?.habilidades;
-
-  const habilidadesFiltradas = {};
-  if (dadosAvaliacao) {
-    for (const area in dadosAvaliacao) {
-      const habilidadesNaArea = dadosAvaliacao[area];
-
-      const habilidadesValidasNaArea = Object.entries(habilidadesNaArea || {})
-        .filter(([habilidade, nivel]) => nivel !== "NA" && nivel !== "I")
-        .map(([habilidade, nivel]) => {
-          const descricaoEspecifica =
-            (habilidadeDescricaoMap[habilidade] &&
-              habilidadeDescricaoMap[habilidade][nivel]) ||
-            "Descrição específica não encontrada.";
-
-          return [habilidade, nivel, descricaoEspecifica];
-        });
-
-      if (habilidadesValidasNaArea.length > 0) {
-        habilidadesFiltradas[area] = habilidadesValidasNaArea;
-      }
-    }
-  }
-
-  if (Object.keys(habilidadesFiltradas).length === 0) {
-    return y;
-  }
-
-  y = ensurePageSpace(doc, y, 30);
-  doc.setFont(styles.font, "bold");
-  doc.setFontSize(styles.fontSize.large);
-  doc.text("Avaliação Inicial (Habilidades a Desenvolver)", 20, y);
-  y += 8;
-
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const availableWidth = pageWidth - 40;
-
-  for (const area in habilidadesFiltradas) {
-    const linhasDaArea = habilidadesFiltradas[area];
-
-    y = ensurePageSpace(doc, y, 15);
-    doc.setFont(styles.font, "bold");
-    doc.setFontSize(styles.fontSize.medium);
-    doc.text(area, 20, y);
-    y += 6;
-
-    autoTable(doc, {
-      startY: y,
-      head: [["Habilidade", "Nível", "Descrição do Nível Atual"]],
-      body: linhasDaArea,
-      styles: {
-        font: styles.font,
-        fontSize: styles.fontSize.small,
-        cellPadding: 1.5,
-        valign: "middle",
-        textColor: styles.colors.black,
-        fillColor: styles.colors.white,
-        lineColor: styles.colors.black,
-        lineWidth: 0.1,
-      },
-      headStyles: {
-        fillColor: styles.colors.white,
-        textColor: styles.colors.black,
-        fontStyle: "bold",
-        halign: "center",
-      },
-      columnStyles: {
-        0: { cellWidth: availableWidth * 0.55 },
-        1: { cellWidth: availableWidth * 0.1, halign: "center" },
-        2: { cellWidth: availableWidth * 0.35 },
-      },
-      margin: {
-        left: 20,
-        right: 20,
-        top: HEADER_AREA_HEIGHT + 10,
-        bottom: FOOTER_AREA_HEIGHT,
-      },
-      didParseCell: (data) => {
-        if (data.column.index === 1) {
-          const nivel = data.cell.text[0];
-          if (coresPorNivel[nivel]) {
-            data.cell.styles.fillColor = coresPorNivel[nivel];
-            data.cell.styles.textColor = styles.colors.white;
-          }
-        } else {
-          data.cell.styles.fillColor = styles.colors.white;
-          data.cell.styles.textColor = styles.colors.black;
-        }
-      },
-      didDrawPage: (data) => {
-        addHeaderAndFooter(doc);
-      },
-    });
-    y = doc.lastAutoTable.finalY + 5;
-
-    const observacaoArea = avaliacao.observacoes?.[area];
-    if (observacaoArea && observacaoArea.trim().length > 0) {
-      y = ensurePageSpace(doc, y, 15);
-      doc.setFont(styles.font, "bold");
-      doc.setFontSize(styles.fontSize.medium);
-      doc.text(`Observações (${area}):`, 20, y);
-      y += 6;
-      doc.setFont(styles.font, "normal");
-      doc.setFontSize(styles.fontSize.small);
-      autoTable(doc, {
-        startY: y,
-        body: [[observacaoArea]],
-        // ... (restante da função de observação)
-      });
-      y = doc.lastAutoTable.finalY + 5;
-    }
-  }
-  return y + 10;
-}
 // --- Constantes e Estilos ---
 const styles = {
   font: "times",
@@ -185,8 +61,9 @@ const coresPorNivel = {
   AV: styles.colors.grayLight,
   AVi: styles.colors.green,
   I: styles.colors.magenta,
-  Sim: [76, 175, 80],
-  Não: [230, 57, 70],
+  Concluído: [76, 175, 80],
+  "Em Andamento": styles.colors.yellow,
+  "Não Iniciado": [230, 57, 70],
   NA: [173, 181, 189],
 };
 
@@ -343,6 +220,18 @@ function formatarData(data) {
     console.error("Erro ao formatar data:", e);
     return "-";
   }
+}
+
+function formatarDataHora(timestamp) {
+  if (!timestamp) return "";
+  const dateObj = timestamp.toDate();
+  return dateObj.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function formatarMesPorExtenso(data) {
@@ -506,6 +395,133 @@ async function fetchObservacoes(alunoNome) {
   }
 }
 
+function addInitialAssessment(doc, avaliacao, y) {
+  console.log(
+    "--- EXECUTANDO A VERSÃO CORRETA DA FUNÇÃO (com mapa específico) ---"
+  );
+
+  const dadosAvaliacao = avaliacao?.respostas || avaliacao?.habilidades;
+
+  const habilidadesFiltradas = {};
+  if (dadosAvaliacao) {
+    for (const area in dadosAvaliacao) {
+      const habilidadesNaArea = dadosAvaliacao[area];
+
+      const habilidadesValidasNaArea = Object.entries(habilidadesNaArea || {})
+        .filter(([habilidade, nivel]) => nivel !== "NA" && nivel !== "I")
+        .map(([habilidade, nivel]) => {
+          const descricaoEspecifica =
+            (habilidadeDescricaoMap[habilidade] &&
+              habilidadeDescricaoMap[habilidade][nivel]) ||
+            "Descrição específica não encontrada.";
+
+          return [habilidade, nivel, descricaoEspecifica];
+        });
+
+      if (habilidadesValidasNaArea.length > 0) {
+        habilidadesFiltradas[area] = habilidadesValidasNaArea;
+      }
+    }
+  }
+
+  if (Object.keys(habilidadesFiltradas).length === 0) {
+    return y;
+  }
+
+  y = ensurePageSpace(doc, y, 30);
+  doc.setFont(styles.font, "bold");
+  doc.setFontSize(styles.fontSize.large);
+  doc.text("Avaliação Inicial (Habilidades a Desenvolver)", 20, y);
+  y += 8;
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const availableWidth = pageWidth - 40;
+
+  for (const area in habilidadesFiltradas) {
+    const linhasDaArea = habilidadesFiltradas[area];
+
+    y = ensurePageSpace(doc, y, 15);
+    doc.setFont(styles.font, "bold");
+    doc.setFontSize(styles.fontSize.medium);
+    doc.text(area, 20, y);
+    y += 6;
+
+    autoTable(doc, {
+      startY: y,
+      head: [["Habilidade", "Nível", "Descrição do Nível Atual"]],
+      body: linhasDaArea,
+      styles: {
+        font: styles.font,
+        fontSize: styles.fontSize.small,
+        cellPadding: 1.5,
+        valign: "middle",
+        textColor: styles.colors.black,
+        fillColor: styles.colors.white,
+        lineColor: styles.colors.black,
+        lineWidth: 0.1,
+      },
+      headStyles: {
+        fillColor: styles.colors.white,
+        textColor: styles.colors.black,
+        fontStyle: "bold",
+        halign: "center",
+      },
+      columnStyles: {
+        0: {
+          cellWidth: availableWidth * 0.55,
+        },
+        1: {
+          cellWidth: availableWidth * 0.1,
+          halign: "center",
+        },
+        2: {
+          cellWidth: availableWidth * 0.35,
+        },
+      },
+      margin: {
+        left: 20,
+        right: 20,
+        top: HEADER_AREA_HEIGHT + 10,
+        bottom: FOOTER_AREA_HEIGHT,
+      },
+      didParseCell: (data) => {
+        if (data.column.index === 1) {
+          const nivel = data.cell.text[0];
+          if (coresPorNivel[nivel]) {
+            data.cell.styles.fillColor = coresPorNivel[nivel];
+            data.cell.styles.textColor = styles.colors.white;
+          }
+        } else {
+          data.cell.styles.fillColor = styles.colors.white;
+          data.cell.styles.textColor = styles.colors.black;
+        }
+      },
+      didDrawPage: (data) => {
+        addHeaderAndFooter(doc);
+      },
+    });
+    y = doc.lastAutoTable.finalY + 5;
+
+    const observacaoArea = avaliacao.observacoes?.[area];
+    if (observacaoArea && observacaoArea.trim().length > 0) {
+      y = ensurePageSpace(doc, y, 15);
+      doc.setFont(styles.font, "bold");
+      doc.setFontSize(styles.fontSize.medium);
+      doc.text(`Observações (${area}):`, 20, y);
+      y += 6;
+      doc.setFont(styles.font, "normal");
+      doc.setFontSize(styles.fontSize.small);
+      autoTable(doc, {
+        startY: y,
+        body: [[observacaoArea]],
+        // ... (restante da função de observação)
+      });
+      y = doc.lastAutoTable.finalY + 5;
+    }
+  }
+  return y + 10;
+}
+
 async function addStudentAndHeaderInfo(
   doc,
   aluno,
@@ -636,7 +652,6 @@ async function addStudentAndHeaderInfo(
       professoresSnap.docs.forEach((doc) => {
         const userData = doc.data();
 
-        // Verifica a turma normalizada
         if (userData.turmas) {
           const turmasProfessorNormalizadas = Object.keys(userData.turmas).map(
             (t) => t.trim().toLowerCase()
@@ -649,7 +664,6 @@ async function addStudentAndHeaderInfo(
           }
         }
 
-        // Lógica para perfis de AEE, que podem não ter a turma no mapa
         if (
           Array.isArray(userData.turmas) &&
           userData.turmas.includes(aluno.turma)
@@ -661,7 +675,6 @@ async function addStudentAndHeaderInfo(
         }
       });
 
-      // Lógica para buscar professores por ID (se houver)
       if (Array.isArray(aluno.professores) && aluno.professores.length > 0) {
         const profDetailsPromises = aluno.professores.map(async (profRefId) => {
           const profDoc = await getDoc(firestoreDoc(db, "usuarios", profRefId));
@@ -678,13 +691,9 @@ async function addStudentAndHeaderInfo(
         resolvedProfs.forEach((p) => profsEncontrados.add(p));
       }
 
-      // ...código anterior para buscar os professores...
-
       if (profsEncontrados.size > 0) {
-        // Converte o Set para um array para poder ordená-lo
         const profsArray = Array.from(profsEncontrados);
 
-        // Define a ordem de prioridade
         const ordemCargos = [
           "Professor Regente",
           "Professor de Apoio",
@@ -692,7 +701,6 @@ async function addStudentAndHeaderInfo(
           "Não informado",
         ];
 
-        // Classifica os professores
         profsArray.sort((a, b) => {
           const cargoA = a.cargo || "Não informado";
           const cargoB = b.cargo || "Não informado";
@@ -700,15 +708,12 @@ async function addStudentAndHeaderInfo(
           const indexA = ordemCargos.indexOf(cargoA);
           const indexB = ordemCargos.indexOf(cargoB);
 
-          // Se ambos os cargos estão na lista de prioridade, ordena por ela.
           if (indexA !== -1 && indexB !== -1) {
             return indexA - indexB;
           }
-          // Se apenas um está, ele vem primeiro.
           if (indexA !== -1) return -1;
           if (indexB !== -1) return 1;
 
-          // Se nenhum está, ordena por nome
           return a.nome.localeCompare(b.nome);
         });
 
@@ -939,11 +944,6 @@ function addAvaliacaoInteressesSection(doc, avaliacaoInteressesData, y) {
     doc.text(`${questionTitle}:`, contentMargin, y);
     y += 6;
 
-    filledItems.forEach((item) => {
-      const response = responses[item];
-      radioTableBody.push([item, response]);
-    });
-
     autoTable(doc, {
       startY: y,
       head: [["Item", "Resposta"]],
@@ -1058,7 +1058,7 @@ function addAvaliacaoInteressesSection(doc, avaliacaoInteressesData, y) {
       {
         question:
           "Descreva uma situação recente em que a criança se desregulou. O que aconteceu antes, durante e depois?",
-        dataKey: "situacaoRecenteDesregulacao", // CORREÇÃO DE TYPO
+        dataKey: "situacaoRecenteDesregulacao",
       },
     ],
     estrategiasEApoio: [
@@ -1202,7 +1202,9 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
     })`;
 
     resumo.forEach((item) => {
-      const key = `${item.area || "-"}|${item.habilidade || "-"}|${item.nivel || "-"}|${item.nivelAlmejado || "-"}`;
+      const key = `${item.area || "-"}|${item.habilidade || "-"}|${
+        item.nivel || "-"
+      }|${item.nivelAlmejado || "-"}`;
       let skillEntry = consolidatedSkills.get(key);
 
       if (!skillEntry) {
@@ -1520,23 +1522,23 @@ function addConsolidatedPeiSection(doc, peisParaExibir, y) {
 
 /**
  * Retorna os estilos de cor para o status da meta.
- * @param {string} status - O status da meta ('Sim', 'Parcial', 'Não').
+ * @param {string} status - O status da meta ('Concluído', 'Em Andamento', 'Não Iniciado').
  * @returns {Object} Um objeto com os estilos de cor de preenchimento e texto.
  */
 function getStatusColorStyles(status) {
-  if (status === "Sim") {
+  if (status === "Concluído") {
     return {
-      fillColor: coresPorNivel.Sim,
+      fillColor: coresPorNivel.Concluído,
       textColor: styles.colors.white,
     };
-  } else if (status === "Parcial") {
+  } else if (status === "Em Andamento") {
     return {
-      fillColor: coresPorNivel.yellow,
+      fillColor: coresPorNivel["Em Andamento"],
       textColor: styles.colors.black,
     };
-  } else if (status === "Não") {
+  } else if (status === "Não Iniciado") {
     return {
-      fillColor: coresPorNivel.Não,
+      fillColor: coresPorNivel["Não Iniciado"],
       textColor: styles.colors.white,
     };
   }
@@ -1547,50 +1549,94 @@ function getStatusColorStyles(status) {
 }
 
 /**
- * Adiciona a seção de Alcance de Metas ao PDF.
+ * Adiciona a seção de Alcance de Metas ao PDF, buscando dados da subcoleção.
  * @param {jsPDF} doc - Instância do jsPDF.
  * @param {Array<Object>} peis - Array de objetos PEI.
  * @param {number} y - Posição Y atual no documento.
- * @returns {number} Nova posição Y após adicionar a seção.
+ * @returns {Promise<number>} Nova posição Y após adicionar a seção.
  */
-function addMetasSection(doc, peis, y) {
+// ... (código anterior)
+
+async function addMetasSection(doc, peis, y) {
   if (!peis || peis.length === 0) {
-    console.log(
-      "[PDF_DEBUG] Alcance de Metas: Nenhum PEI encontrado. Pulando seção."
-    );
     return y;
   }
 
-  const metasTableBody = [];
-  const processedMetas = new Set();
+  const metasConsolidadas = new Map();
 
-  peis.forEach((pei) => {
+  for (const pei of peis) {
     const acompanhamento = pei.acompanhamento || {};
     const resumo = pei.resumoPEI || [];
+    const peiId = pei.id;
+
+    let observacoesDoPei = [];
+    try {
+      const obsQuery = query(
+        collection(db, "peis", peiId, "observacoes"),
+        orderBy("data", "desc")
+      );
+      const obsSnap = await getDocs(obsQuery);
+      observacoesDoPei = obsSnap.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+        data: "",
+        autor: "",
+      }));
+    } catch (error) {
+      console.error(
+        `[PDF_WARN] Erro ao buscar observações para o PEI ${peiId}:`,
+        error
+      );
+    }
 
     resumo.forEach((item) => {
-      const key = `${item.habilidade}-${pei.nomeCriador || "Desconhecido"}`;
+      const habilidade = item.habilidade;
+      const statusMeta = acompanhamento[habilidade]?.status || "N/A";
+      const nivelAlmejado = item.nivelAlmejado || "-";
+      const professor = pei.nomeCriador || "-";
+      const observacoesConsolidadas = [];
 
-      if (acompanhamento[item.habilidade] && !processedMetas.has(key)) {
-        const metaAcompanhada = acompanhamento[item.habilidade];
+      observacoesDoPei
+        .filter((obs) => obs.habilidade === habilidade)
+        .forEach((obs) => {
+          observacoesConsolidadas.push(`• ${obs.texto || ""}`);
+        });
 
-        metasTableBody.push([
-          item.habilidade || "-",
-          metaAcompanhada.status || "-",
-          metaAcompanhada.observacoes || "-",
-          pei.nomeCriador || "-",
-        ]);
-
-        processedMetas.add(key);
+      const key = `${habilidade}-${professor}`;
+      if (!metasConsolidadas.has(key)) {
+        metasConsolidadas.set(key, {
+          habilidade,
+          status: statusMeta,
+          nivelAlmejado,
+          professor,
+          observacoes: observacoesConsolidadas.join("\n\n"),
+        });
+      } else {
+        const metaExistente = metasConsolidadas.get(key);
+        metaExistente.observacoes =
+          metaExistente.observacoes +
+          (metaExistente.observacoes.length > 0 ? "\n\n" : "") +
+          observacoesConsolidadas.join("\n\n");
       }
     });
-  });
+  }
 
+  const metasTableBody = Array.from(metasConsolidadas.values())
+    .filter((meta) => meta.status !== "N/A")
+    .map((meta) => [
+      meta.habilidade,
+      meta.status,
+      meta.nivelAlmejado,
+      meta.observacoes,
+      meta.professor,
+    ]);
+
+  // Adicione a verificação aqui para sair da função se não houver dados.
   if (metasTableBody.length === 0) {
     console.log(
-      "[PDF_DEBUG] Alcance de Metas: Nenhuma meta encontrada para exibição. Pulando seção."
+      "[PDF_DEBUG] Alcance de Metas: Nenhuma meta com acompanhamento. Pulando seção."
     );
-    return y;
+    return y; // Retorna y, impedindo que o título e a tabela sejam desenhados.
   }
 
   y = ensurePageSpace(doc, y, 30);
@@ -1604,9 +1650,9 @@ function addMetasSection(doc, peis, y) {
   const pageWidth = doc.internal.pageSize.getWidth();
   const availableWidth = pageWidth - 40;
 
-  autoTable(doc, {
+  doc.autoTable({
     startY: y,
-    head: [["Habilidade", "Status", "Observações", "Professor(a)"]],
+    head: [["Habilidade", "Status", "N.AL", "Observações", "Professor(a)"]],
     body: metasTableBody,
     styles: {
       font: styles.font,
@@ -1626,10 +1672,26 @@ function addMetasSection(doc, peis, y) {
       halign: "center",
     },
     columnStyles: {
-      0: { cellWidth: availableWidth * 0.35, overflow: "linebreak" },
-      1: { cellWidth: availableWidth * 0.1, halign: "center" },
-      2: { cellWidth: availableWidth * 0.4, overflow: "linebreak" },
-      3: { cellWidth: availableWidth * 0.15, halign: "center" },
+      0: {
+        cellWidth: availableWidth * 0.35,
+        overflow: "linebreak",
+      },
+      1: {
+        cellWidth: availableWidth * 0.08,
+        halign: "center",
+      },
+      2: {
+        cellWidth: availableWidth * 0.08,
+        halign: "center",
+      },
+      3: {
+        cellWidth: availableWidth * 0.39,
+        overflow: "linebreak",
+      },
+      4: {
+        cellWidth: availableWidth * 0.1,
+        halign: "center",
+      },
     },
     margin: {
       left: 20,
@@ -1639,8 +1701,7 @@ function addMetasSection(doc, peis, y) {
     },
     didParseCell: (data) => {
       if (data.column.index === 1) {
-        // Coluna de Status
-        const status = data.cell.text;
+        const status = data.cell.text[0];
         const statusStyles = getStatusColorStyles(status);
         Object.assign(data.cell.styles, statusStyles);
       } else {
@@ -1652,9 +1713,10 @@ function addMetasSection(doc, peis, y) {
       addHeaderAndFooter(doc);
     },
   });
-  return doc.lastAutoTable.finalY + 10;
-}
 
+  y = doc.lastAutoTable.finalY + 10;
+  return y;
+}
 function addObservacoesSection(doc, observacoes, y) {
   console.log(
     "DEBUG: Observações recebidas em addObservacoesSection:",
@@ -1882,7 +1944,7 @@ async function addProfessionalSignaturesTable(doc, aluno, usuarioLogado, y) {
         desenvolvedor: 8,
       };
       const perfilA = a.perfil?.toLowerCase().replace(/_/g, " ") || "";
-      const perfilB = b.perfil?.toLowerCase().replace(/_/g, " ") || "";
+      const perfilB = b.perfil?.toLowerCase().replace(/_/g, " ");
       const ordemA = ordemPerfis[perfilA] || 99;
       const ordemB = ordemPerfis[perfilB] || 99;
 
@@ -1994,7 +2056,7 @@ async function addSignaturePage(doc, aluno, usuarioLogado) {
   y += 10;
 }
 
-// --- FUNÇÃO PRINCIPAL COM A CHAMADA ALTERADA ---
+// --- FUNÇÃO PRINCIPAL ---
 export async function gerarPDFCompleto(
   aluno,
   avaliacaoInicial,
@@ -2005,14 +2067,6 @@ export async function gerarPDFCompleto(
   let y;
 
   console.log("[PDF_DEBUG] Início da geração do PDF.");
-  console.log("[PDF_DEBUG] Aluno recebido:", aluno);
-  console.log("[PDF_DEBUG] Aluno ID:", aluno.id, "Nome:", aluno.nome);
-  console.log(
-    "[PDF_DEBUG] Usuário Logado ID:",
-    usuarioLogado.id,
-    "Perfil:",
-    usuarioLogado.perfil
-  );
 
   if (!aluno || !aluno.nome || !aluno.id) {
     console.error("gerarPDFCompleto: Dados do aluno são incompletos.");
@@ -2024,8 +2078,6 @@ export async function gerarPDFCompleto(
     return;
   }
 
-  // **** ALTERAÇÃO INICIADA ****
-  // Busca a avaliação de interesses diretamente do caminho público.
   let avaliacaoInteressesData = null;
   try {
     const appId = typeof __app_id !== "undefined" ? __app_id : "default-app-id";
@@ -2034,33 +2086,20 @@ export async function gerarPDFCompleto(
     const avaliacaoDocSnap = await getDoc(avaliacaoDocRef);
 
     if (avaliacaoDocSnap.exists()) {
-      // Os dados do formulário estão dentro do campo 'data'
       avaliacaoInteressesData = avaliacaoDocSnap.data().data;
-      console.log(
-        "[PDF_DEBUG] Avaliação de interesses encontrada no caminho público."
-      );
     } else {
-      console.log(
-        "[PDF_DEBUG] Nenhuma avaliação de interesses encontrada no caminho público."
-      );
       avaliacaoInteressesData = {};
     }
   } catch (error) {
     console.error("Erro ao buscar avaliação de interesses para o PDF:", error);
     avaliacaoInteressesData = {};
   }
-  // **** ALTERAÇÃO FINALIZADA ****
-
-  console.log(
-    "[PDF_DEBUG] avaliacaoInteressesData processada:",
-    avaliacaoInteressesData
-  );
 
   let peisParaProcessar =
     Array.isArray(peisParaGeral) && peisParaGeral.length > 0
       ? peisParaGeral
       : await fetchPeis(aluno.id, aluno.nome);
-  console.log("[DEBUG] PEIs processados:", peisParaProcessar);
+
   const peisOrdenados = peisParaProcessar.sort((a, b) => {
     const dataA = a.dataCriacao?.toDate
       ? a.dataCriacao.toDate()
@@ -2074,7 +2113,6 @@ export async function gerarPDFCompleto(
   const peisParaExibir = peisOrdenados;
 
   const observacoesAluno = await fetchObservacoes(aluno.nome);
-  console.log("DEBUG: Observações do Aluno buscadas:", observacoesAluno);
 
   const hasAnyMainContent =
     peisParaExibir.length > 0 ||
@@ -2095,7 +2133,9 @@ export async function gerarPDFCompleto(
     );
     await addSignaturePage(doc, aluno, usuarioLogado);
     doc.save(
-      `PEI_${aluno.nome?.replace(/\s+/g, "_") || "Desconhecido"}_Sem_Dados_Preenchidos.pdf`
+      `PEI_${
+        aluno.nome?.replace(/\s+/g, "_") || "Desconhecido"
+      }_Sem_Dados_Preenchidos.pdf`
     );
     return;
   }
@@ -2107,17 +2147,10 @@ export async function gerarPDFCompleto(
       const escolaSnap = await getDoc(escolaRef);
       if (escolaSnap.exists()) {
         nomeEscola = escolaSnap.data().nome || "-";
-        console.log("[PDF_DEBUG] Nome da escola encontrado:", nomeEscola);
-      } else {
-        console.warn(
-          `[PDF_DEBUG] Escola não encontrada para o ID: ${aluno.escolaId}`
-        );
       }
     } catch (err) {
       console.error("[PDF_DEBUG] Erro ao buscar nome da escola:", err);
     }
-  } else {
-    console.log("[PDF_DEBUG] aluno.escolaId não fornecido.");
   }
 
   y = HEADER_AREA_HEIGHT + 10;
@@ -2132,7 +2165,7 @@ export async function gerarPDFCompleto(
   y = addInitialAssessment(doc, avaliacaoInicial, y);
   y = addAvaliacaoInteressesSection(doc, avaliacaoInteressesData, y);
   y = addConsolidatedPeiSection(doc, peisParaExibir, y);
-  y = addMetasSection(doc, peisParaExibir, y); // <-- CHAMADA ADICIONADA AQUI
+  y = await addMetasSection(doc, peisParaExibir, y);
   y = addObservacoesSection(doc, observacoesAluno, y);
   y = addLegendSection(doc, y);
 
@@ -2141,4 +2174,3 @@ export async function gerarPDFCompleto(
   doc.save(`PEI_${aluno.nome?.replace(/\s+/g, "_")}_Completo.pdf`);
   console.log("[PDF_DEBUG] Geração do PDF concluída.");
 }
-// --- FIM DA FUNÇÃO PRINCIPAL COM A CHAMADA ADICIONADA ---
