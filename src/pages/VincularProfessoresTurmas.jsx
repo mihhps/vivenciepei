@@ -20,6 +20,47 @@ import { useNavigate } from "react-router-dom";
 
 import "./VincularProfessoresTurmas.css";
 
+// FUNÇÃO DE PADRONIZAÇÃO FINAL E CORRIGIDA
+// Garante que a string seja padronizada para o formato desejado (Ex: "Pré II A")
+const normalizarTurma = (turma) => {
+  if (typeof turma !== "string" || turma.trim() === "") {
+    return null;
+  }
+
+  // Lista de exceções e padronizações
+  const palavrasPadrao = {
+    pré: "Pré",
+    pe: "Pré",
+    i: "I",
+    ii: "II",
+    a: "A",
+    b: "B",
+    ano: "Ano",
+    // Adicione outras palavras-chave que você quer padronizar aqui, se necessário.
+  };
+
+  const partes = turma.trim().toLowerCase().split(" ");
+
+  const partesCorrigidas = partes.map((palavra) => {
+    // Se a palavra está na nossa lista de padronizações
+    if (palavrasPadrao[palavra]) {
+      return palavrasPadrao[palavra];
+    }
+    // Caso contrário, capitaliza a primeira letra, a menos que seja uma preposição
+    if (
+      palavra.length > 0 &&
+      palavra !== "de" &&
+      palavra !== "do" &&
+      palavra !== "da"
+    ) {
+      return palavra[0].toUpperCase() + palavra.substr(1);
+    }
+    return palavra; // Retorna a palavra como está (ex: "de", "do", "da")
+  });
+
+  return partesCorrigidas.join(" ");
+};
+
 export default function VincularProfessoresTurmas() {
   const [professores, setProfessores] = useState([]);
   const [turmas, setTurmas] = useState([]);
@@ -138,17 +179,19 @@ export default function VincularProfessoresTurmas() {
         );
         const snap = await getDocs(alunosQuery);
 
-        const turmasMap = new Map();
+        const turmasSet = new Set();
         snap.docs.forEach((doc) => {
           const aluno = doc.data();
           if (aluno.turma) {
-            const nomeTurmaOriginal = aluno.turma.trim();
-            if (nomeTurmaOriginal) {
-              turmasMap.set(nomeTurmaOriginal.toLowerCase(), nomeTurmaOriginal);
+            // PADRONIZA O NOME DA TURMA ANTES DE ADICIONAR AO SET
+            const nomeTurmaPadronizado = normalizarTurma(aluno.turma);
+            if (nomeTurmaPadronizado) {
+              turmasSet.add(nomeTurmaPadronizado);
             }
           }
         });
-        const turmasArray = Array.from(turmasMap.values()).sort((a, b) =>
+        // CONVERTE O SET PARA ARRAY E ORDENA
+        const turmasArray = Array.from(turmasSet).sort((a, b) =>
           a.localeCompare(b)
         );
 
@@ -174,7 +217,8 @@ export default function VincularProfessoresTurmas() {
       const turmasObj = prof.turmas || {};
       const turmasMarcadas = Object.keys(turmasObj)
         .filter((t) => turmasObj[t])
-        .map((t) => t.toLowerCase());
+        // Usa a nova função de normalização para carregar as turmas selecionadas
+        .map((t) => normalizarTurma(t));
       setTurmasSelecionadas(turmasMarcadas);
     },
     [carregarTurmas]
@@ -182,7 +226,8 @@ export default function VincularProfessoresTurmas() {
 
   const handleToggleTurma = useCallback((turma) => {
     setTurmasSelecionadas((prev) => {
-      const turmaNormalizada = turma.trim().toLowerCase();
+      // Usa a nova função de normalização para a verificação
+      const turmaNormalizada = normalizarTurma(turma);
       if (prev.includes(turmaNormalizada)) {
         return prev.filter((t) => t !== turmaNormalizada);
       }
@@ -297,12 +342,13 @@ export default function VincularProfessoresTurmas() {
                             >
                               <input
                                 type="checkbox"
-                                checked={turmasSelecionadas.includes(
-                                  turma.toLowerCase()
-                                )}
+                                // A verificação agora usa a string padronizada
+                                checked={turmasSelecionadas.includes(turma)}
+                                // O valor da turma passado para o handler é o nome padronizado
                                 onChange={() => handleToggleTurma(turma)}
                               />
                               <span className="checkmark"></span>
+                              {/* O nome já está padronizado para exibição */}
                               <span className="checkbox-text">{turma}</span>
                             </label>
                           ))

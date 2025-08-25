@@ -14,6 +14,39 @@ import {
 } from "firebase/auth";
 import { app } from "../firebase";
 
+// === FUNÇÃO DE NORMALIZAÇÃO ===
+const normalizarTurma = (turma) => {
+  if (typeof turma !== "string" || turma.trim() === "") {
+    return null;
+  }
+  const palavrasPadrao = {
+    pré: "Pré",
+    pe: "Pré",
+    i: "I",
+    ii: "II",
+    a: "A",
+    b: "B",
+    ano: "Ano",
+  };
+  const partes = turma.trim().toLowerCase().split(" ");
+  const partesCorrigidas = partes.map((palavra) => {
+    if (palavrasPadrao[palavra]) {
+      return palavrasPadrao[palavra];
+    }
+    if (
+      palavra.length > 0 &&
+      palavra !== "de" &&
+      palavra !== "do" &&
+      palavra !== "da"
+    ) {
+      return palavra[0].toUpperCase() + palavra.substr(1);
+    }
+    return palavra;
+  });
+  return partesCorrigidas.join(" ");
+};
+// === FIM DA FUNÇÃO DE NORMALIZAÇÃO ===
+
 const getUsuarioLogado = () => {
   try {
     const user = JSON.parse(localStorage.getItem("usuarioLogado")) || {};
@@ -25,10 +58,12 @@ const getUsuarioLogado = () => {
       user?.escolas && typeof user.escolas === "object"
         ? Object.keys(user.escolas)
         : [];
+    const turmasPadronizadas = turmas.map((t) => normalizarTurma(t));
+
     return {
       ...user,
       perfil: user.perfil?.toLowerCase()?.trim(),
-      turmas,
+      turmas: turmasPadronizadas,
       escolasVinculadasIds,
     };
   } catch (e) {
@@ -49,7 +84,6 @@ export function useAlunos() {
 
   const usuarioLogado = useMemo(() => getUsuarioLogado(), []);
 
-  // Primeiro useEffect para autenticação
   useEffect(() => {
     const authInstance = getAuth(app);
     const unsubscribe = onAuthStateChanged(authInstance, async (user) => {
@@ -73,7 +107,6 @@ export function useAlunos() {
 
   const fetchAlunos = useCallback(async () => {
     if (!authReady || !userId || !appId) {
-      // Se a autenticação não estiver pronta, não faz nada
       return;
     }
 
@@ -84,60 +117,26 @@ export function useAlunos() {
     const temAcessoAmplo = perfisComAcessoAmplo.includes(usuarioLogado.perfil);
 
     try {
-      const queryPromises = [];
-      const alunosIds = new Set();
-
       let mainAlunosQuery = collection(firestore, "alunos");
 
-      // CORREÇÃO: Normaliza as turmas do professor para a consulta
-      const turmasDoProfessorNormalizadas = usuarioLogado.turmas.map((t) =>
-        t.trim().toLowerCase()
-      );
+      const turmasDoProfessorPadronizadas = usuarioLogado.turmas;
 
       if (temAcessoAmplo) {
-        // Para perfis com acesso amplo, busca todos os alunos
         // A consulta não precisa de filtro
-      } else if (turmasDoProfessorNormalizadas.length > 0) {
-        // Para perfis de professor, usa o filtro de turmas
+      } else if (turmasDoProfessorPadronizadas.length > 0) {
         mainAlunosQuery = query(
           mainAlunosQuery,
-          where("turma", "in", turmasDoProfessorNormalizadas)
+          where("turma", "in", turmasDoProfessorPadronizadas)
         );
       } else {
-        // Se não tem acesso amplo e não tem turmas, não há alunos
         setAlunos([]);
         setCarregando(false);
         return;
       }
 
-      queryPromises.push(getDocs(mainAlunosQuery));
-
-      // Busca da coleção user-specific
-      const userAlunosCollectionRef = collection(
-        firestore,
-        `artifacts/${appId}/users/${userId}/alunos`
-      );
-      queryPromises.push(getDocs(userAlunosCollectionRef));
-
-      const [mainAlunosSnapshot, userAlunosSnapshot] =
-        await Promise.all(queryPromises);
-
-      // Processa alunos da coleção principal
-      mainAlunosSnapshot.forEach((doc) => {
-        const aluno = { id: doc.id, ...doc.data() };
-        if (!alunosIds.has(aluno.id)) {
-          fetchedAlunos.push(aluno);
-          alunosIds.add(aluno.id);
-        }
-      });
-
-      // Processa alunos da coleção user-specific
-      userAlunosSnapshot.forEach((doc) => {
-        const aluno = { id: doc.id, ...doc.data() };
-        if (!alunosIds.has(aluno.id)) {
-          fetchedAlunos.push(aluno);
-          alunosIds.add(aluno.id);
-        }
+      const querySnapshot = await getDocs(mainAlunosQuery);
+      querySnapshot.forEach((doc) => {
+        fetchedAlunos.push({ id: doc.id, ...doc.data() });
       });
 
       setAlunos(fetchedAlunos);

@@ -1,44 +1,21 @@
 import React, { useState } from "react";
 import { db } from "../firebase";
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-  writeBatch,
-  doc,
-} from "firebase/firestore";
+import { collection, getDocs, writeBatch, doc } from "firebase/firestore";
 
 function CorrigirTurmas() {
   const [mensagem, setMensagem] = useState("");
   const [carregando, setCarregando] = useState(false);
 
-  // === ATENÇÃO: AJUSTE ESTES NOMES ANTES DE EXECUTAR ===
-  // Substitua 'Nome da Turma Errada' pelo nome exato da turma duplicada
-  const turmaDuplicada = "turma 3 ano";
-  // Substitua 'Nome da Turma Correta' pelo nome exato da turma que deve ser mantida
-  const turmaCorreta = "3º ano";
-  // ======================================================
-
-  const corrigirTurmas = async () => {
+  const corrigirTodasAsTurmas = async () => {
     setCarregando(true);
-    setMensagem("Iniciando a correção...");
-
-    if (!turmaDuplicada || !turmaCorreta || turmaDuplicada === turmaCorreta) {
-      setMensagem(
-        "Nomes de turma inválidos. Verifique as variáveis no código."
-      );
-      setCarregando(false);
-      return;
-    }
+    setMensagem("Iniciando a correção de todas as turmas...");
 
     try {
       const alunosRef = collection(db, "alunos");
-      const q = query(alunosRef, where("turma", "==", turmaDuplicada));
-      const querySnapshot = await getDocs(q);
+      const querySnapshot = await getDocs(alunosRef);
 
       if (querySnapshot.empty) {
-        setMensagem(`Nenhum aluno encontrado na turma '${turmaDuplicada}'.`);
+        setMensagem("Nenhum aluno encontrado.");
         setCarregando(false);
         return;
       }
@@ -47,21 +24,35 @@ function CorrigirTurmas() {
       let count = 0;
 
       querySnapshot.forEach((documento) => {
-        const alunoRef = doc(db, "alunos", documento.id);
-        batch.update(alunoRef, { turma: turmaCorreta });
-        count++;
+        const aluno = documento.data();
+        if (aluno.turma) {
+          const turmaOriginal = aluno.turma;
+          // Padroniza a turma para minúsculas
+          const turmaPadronizada = turmaOriginal.trim().toLowerCase();
+
+          // Se a turma original for diferente da padronizada,
+          // significa que ela precisa ser corrigida.
+          if (turmaOriginal !== turmaPadronizada) {
+            const alunoRef = doc(db, "alunos", documento.id);
+            batch.update(alunoRef, { turma: turmaPadronizada });
+            count++;
+          }
+        }
       });
 
-      await batch.commit();
-
-      setMensagem(
-        `Sucesso! ${count} aluno(s) foram atualizados para a turma '${turmaCorreta}'.`
-      );
+      if (count > 0) {
+        await batch.commit();
+        setMensagem(
+          `Sucesso! ${count} turma(s) de alunos foram corrigidas e padronizadas.`
+        );
+      } else {
+        setMensagem(
+          "Todas as turmas já estão padronizadas. Nenhuma correção necessária."
+        );
+      }
     } catch (error) {
       console.error("Erro ao corrigir turmas:", error);
-      setMensagem(
-        `Erro ao corrigir turmas. Verifique o console para mais detalhes.`
-      );
+      setMensagem("Erro ao corrigir turmas. Verifique o console.");
     } finally {
       setCarregando(false);
     }
@@ -75,13 +66,13 @@ function CorrigirTurmas() {
         textAlign: "center",
       }}
     >
-      <h2 style={{ color: "#1d3557" }}>Ferramenta de Correção de Turmas</h2>
+      <h2 style={{ color: "#1d3557" }}>Ferramenta de Padronização de Turmas</h2>
       <p style={{ color: "#457b9d" }}>
-        Esta ferramenta irá atualizar a turma de todos os alunos de " **
-        {turmaDuplicada}**" para " **{turmaCorreta}**".
+        Esta ferramenta irá percorrer todos os alunos e garantir que o nome das
+        turmas estejam sempre em minúsculas.
       </p>
       <button
-        onClick={corrigirTurmas}
+        onClick={corrigirTodasAsTurmas}
         disabled={carregando}
         style={{
           padding: "10px 20px",
@@ -93,7 +84,7 @@ function CorrigirTurmas() {
           cursor: "pointer",
         }}
       >
-        {carregando ? "Corrigindo..." : "Corrigir Turmas Agora"}
+        {carregando ? "Corrigindo..." : "Corrigir Todas as Turmas"}
       </button>
       {mensagem && (
         <p style={{ marginTop: "20px", fontWeight: "bold", color: "#e63946" }}>

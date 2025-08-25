@@ -1,5 +1,3 @@
-// functions/index.js
-
 // Importa as dependências necessárias
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
@@ -31,6 +29,35 @@ const resetTime = (date) => {
   return null; // Retorna null se não for uma data válida
 };
 
+// --- FUNÇÃO AUXILIAR DE NORMALIZAÇÃO ---
+// Pega uma string de turma e retorna uma versão padronizada.
+// Ex: "3º ano b " -> "3º Ano B"
+const normalizarTurma = (turma) => {
+  if (typeof turma !== "string" || turma.trim() === "") {
+    return null;
+  }
+  const partes = turma.trim().toLowerCase().split(" ");
+  for (let i = 0; i < partes.length; i++) {
+    // --- INÍCIO DA CORREÇÃO ---
+    // Adiciona uma verificação específica para os algarismos romanos "i" e "ii"
+    if (partes[i] === "i" || partes[i] === "ii") {
+      partes[i] = partes[i].toUpperCase();
+      continue; // Pula para a próxima palavra
+    }
+    // --- FIM DA CORREÇÃO ---
+
+    if (
+      partes[i].length > 0 &&
+      partes[i] !== "de" &&
+      partes[i] !== "do" &&
+      partes[i] !== "da"
+    ) {
+      partes[i] = partes[i][0].toUpperCase() + partes[i].substr(1);
+    }
+  }
+  return partes.join(" ");
+};
+
 /**
  * Calcula os detalhes do status de PEI para um aluno/PEI específico.
  * @param {object | null} peiData - Dados do documento PEI do aluno (ou null se não houver PEI).
@@ -59,20 +86,8 @@ const getPeiStatusDetails = (peiData, prazos, hoje) => {
     ? resetTime(prazos.dataLimiteRevisao2Sem)
     : null;
 
-  // functions.logger.log(`[getPeiStatusDetails] === DEBUG INICIO ===`);
-  // functions.logger.log(
-  //   `[getPeiStatusDetails] PEI ID: ${peiData ? peiData.id : "NENHUM PEI ENCONTRADO"}`
-  // );
-  // functions.logger.log(`[getPeiStatusDetails] HOJE (zerado): ${hojeZerado ? hojeZerado.toISOString() : "N/A"}`);
-  // functions.logger.log(`[getPeiStatusDetails] PRAZO CRIAÇÃO (zerado): ${dataLimiteCriacaoPEI ? dataLimiteCriacaoPEI.toISOString() : "N/A"}`);
-  // functions.logger.log(`[getPeiStatusDetails] PRAZO REVISÃO 1 (zerado): ${dataLimiteRevisao1Sem ? dataLimiteRevisao1Sem.toISOString() : "N/A"}`);
-  // functions.logger.log(`[getPeiStatusDetails] PRAZO REVISÃO 2 (zerado): ${dataLimiteRevisao2Sem ? dataLimiteRevisao2Sem.toISOString() : "N/A"}`);
-  // functions.logger.log(`[getPeiStatusDetails] peiData (RAW): ${JSON.stringify(peiData || {})}`);
-
-  // --- LÓGICA DE STATUS: DEFINE AS STRINGS DE STATUS GERAL E REVISÕES ---
   if (!peiData) {
     // Caso 1: PEI não existe
-    // functions.logger.log(`[getPeiStatusDetails] -> Caminho: PEI NÃO ENCONTRADO.`);
     if (dataLimiteCriacaoPEI && hojeZerado >= dataLimiteCriacaoPEI) {
       statusPeiGeral = "Atrasado - Sem PEI";
     } else {
@@ -87,8 +102,6 @@ const getPeiStatusDetails = (peiData, prazos, hoje) => {
     }
   } else {
     // Caso 2: PEI existe
-    // functions.logger.log(`[getPeiStatusDetails] -> Caminho: PEI ENCONTRADO.`);
-
     // Converta Timestamps para Date e zere o tempo para comparações
     const dataCriacaoPei = peiData.dataCriacao?.toDate
       ? resetTime(peiData.dataCriacao.toDate())
@@ -98,9 +111,6 @@ const getPeiStatusDetails = (peiData, prazos, hoje) => {
       : null;
 
     dataUltimaAtualizacaoPei = peiDataUltimaRevisao || dataCriacaoPei; // Garante que há uma data de atualização
-
-    // functions.logger.log(`[getPeiStatusDetails]   PEI Data Criacao (zerada): ${dataCriacaoPei ? dataCriacaoPei.toISOString() : "N/A"}`);
-    // functions.logger.log(`[getPeiStatusDetails]   PEI Data Ultima Atualizacao (zerada): ${dataUltimaAtualizacaoPei ? dataUltimaAtualizacaoPei.toISOString() : "N/A"}`);
 
     // Status Geral do PEI (Criação)
     if (dataLimiteCriacaoPEI) {
@@ -204,11 +214,6 @@ const getPeiStatusDetails = (peiData, prazos, hoje) => {
   }
   // FIM DA MUDANÇA
 
-  // functions.logger.log(
-  //   `[getPeiStatusDetails] Status Final: Geral=${statusPeiGeral}, R1=${statusRevisao1}, R2=${statusRevisao2}, isAtrasadoRealmente=${finalIsAtrasadoRealmente}`
-  // );
-  // functions.logger.log(`[getPeiStatusDetails] === DEBUG FIM ===`);
-
   return {
     statusPeiGeral,
     statusRevisao1,
@@ -262,17 +267,12 @@ async function calcularStatusProfessor(professorId) {
   }
   const professorData = professorDoc.data();
 
-  // functions.logger.log(`[calcularStatusProfessor] Dados completos do professor ${professorId}:`, JSON.stringify(professorData));
-
   const turmasDoProfessor = professorData.turmas
     ? Object.keys(professorData.turmas)
     : [];
   const escolasDoProfessor = professorData.escolas
     ? Object.keys(professorData.escolas)
     : [];
-
-  // functions.logger.log(`[calcularStatusProfessor] Professor ${professorId} turmas (após Object.keys):`, turmasDoProfessor);
-  // functions.logger.log(`[calcularStatusProfessor] Professor ${professorId} escolas (após Object.keys):`, escolasDoProfessor);
 
   if (turmasDoProfessor.length === 0 || escolasDoProfessor.length === 0) {
     functions.logger.log(
@@ -300,13 +300,9 @@ async function calcularStatusProfessor(professorId) {
       .where("turma", "in", batchTurmas)
       .where("escolaId", "in", escolasDoProfessor); // Adiciona filtro por escola
 
-    // functions.logger.log(`[calcularStatusProfessor] Query Alunos: turma IN [${batchTurmas.join(', ')}] e escolaId IN [${escolasDoProfessor.join(', ')}]`);
-
     const snap = await qAlunos.get();
     snap.forEach((doc) => allAlunosData.push({ id: doc.id, ...doc.data() }));
   }
-
-  // functions.logger.log(`[calcularStatusProfessor] Alunos encontrados para professor ${professorId} (${allAlunosData.length} total):`, allAlunosData.map(a => ({ id: a.id, nome: a.nome, turma: a.turma, escolaId: a.escolaId })));
 
   if (allAlunosData.length === 0) {
     functions.logger.log(
@@ -337,13 +333,9 @@ async function calcularStatusProfessor(professorId) {
       .where("anoLetivo", "==", anoAtual)
       .orderBy("dataCriacao", "desc");
 
-    // functions.logger.log(`[calcularStatusProfessor] Query PEIs: alunoId IN [${batchAlunoIds.join(', ')}] e anoLetivo == ${anoAtual}`);
-
     const snap = await qPeis.get();
     snap.forEach((doc) => allPeisData.push({ id: doc.id, ...doc.data() }));
   }
-
-  // functions.logger.log(`[calcularStatusProfessor] Todos os PEIs encontrados (allPeisData, ${allPeisData.length} total):`, allPeisData.map(p => ({ docId: p.id, alunoId: p.alunoId, anoLetivo: p.anoLetivo, criadoEm: p.dataCriacao, status: p.statusGeral })));
 
   let statusProfessorGeral = "Em dia"; // Começa como em dia
   let alunosAtrasadosCount = 0;
@@ -353,8 +345,6 @@ async function calcularStatusProfessor(professorId) {
   for (const aluno of allAlunosData) {
     // Encontra o PEI mais recente para este aluno (allPeisData já está ordenado por dataCriacao desc)
     const peiDoAluno = allPeisData.find((p) => p.alunoId === aluno.id);
-
-    // functions.logger.log(`[calcularStatusProfessor] Processando aluno ${aluno.nome} (${aluno.id}). PEI encontrado:`, peiDoAluno ? peiDoAluno.id : "NENHUM");
 
     // Calcula o status detalhado para o aluno (usando a data de hoje para o cálculo)
     const statusDetalhadoAluno = getPeiStatusDetails(
@@ -402,6 +392,88 @@ async function calcularStatusProfessor(professorId) {
     ultimaAtualizacao: admin.firestore.FieldValue.serverTimestamp(),
   };
 }
+
+// =========================================================================
+// GATILHO PARA NORMALIZAÇÃO: As novas funções que corrigem o problema na origem
+// =========================================================================
+
+/**
+ * Gatilho que normaliza o nome da turma quando um aluno é criado ou atualizado.
+ */
+exports.onAlunoWriteNormalizeTurma = onDocumentWritten(
+  "alunos/{alunoId}",
+  async (event) => {
+    const afterData = event.data.after?.data();
+    const beforeData = event.data.before?.data();
+    const alunoId = event.params.alunoId;
+
+    const turmaBefore = beforeData ? beforeData.turma : null;
+    const turmaAfter = afterData ? afterData.turma : null;
+
+    if (turmaAfter && turmaAfter !== turmaBefore) {
+      const turmaNormalizada = normalizarTurma(turmaAfter);
+      if (turmaNormalizada && turmaNormalizada !== turmaAfter) {
+        console.log(
+          `Normalizando turma do aluno ${alunoId}: '${turmaAfter}' -> '${turmaNormalizada}'`
+        );
+        return event.data.after.ref.update({ turma: turmaNormalizada });
+      }
+    }
+    return null;
+  }
+);
+
+/**
+ * Gatilho que normaliza as chaves das turmas quando um professor é criado ou atualizado.
+ */
+exports.onProfessorWriteNormalizeTurmas = onDocumentWritten(
+  "usuarios/{userId}",
+  async (event) => {
+    const afterData = event.data.after?.data();
+    const beforeData = event.data.before?.data();
+
+    if (!afterData || afterData.perfil !== "professor") {
+      return null; // Apenas processa professores
+    }
+
+    const turmasBefore =
+      beforeData && beforeData.turmas ? beforeData.turmas : {};
+    const turmasAfter = afterData && afterData.turmas ? afterData.turmas : {};
+
+    const turmasKeysAfter = new Set(Object.keys(turmasAfter));
+
+    let turmasAtualizadas = {};
+    let mudancaDetectada = false;
+
+    for (const turma of turmasKeysAfter) {
+      const turmaNormalizada = normalizarTurma(turma);
+      if (turmaNormalizada && turmaNormalizada !== turma) {
+        turmasAtualizadas[turmaNormalizada] = turmasAfter[turma];
+        mudancaDetectada = true;
+      } else {
+        turmasAtualizadas[turma] = turmasAfter[turma];
+      }
+    }
+
+    if (
+      Object.keys(turmasAtualizadas).length !== Object.keys(turmasAfter).length
+    ) {
+      mudancaDetectada = true;
+    }
+
+    if (mudancaDetectada) {
+      console.log(
+        `Normalizando turmas do professor:`,
+        turmasAfter,
+        "->",
+        turmasAtualizadas
+      );
+      return event.data.after.ref.update({ turmas: turmasAtualizadas });
+    }
+
+    return null;
+  }
+);
 
 // =========================================================================
 // GATILHO PARA CUSTOM CLAIMS: Adiciona perfil ao token de autenticação do usuário
@@ -814,12 +886,9 @@ exports.recalcularTodosPrazos = onRequest(
           functions.logger.warn(
             `[recalcularTodosPrazos] UID do token (${decodedToken.uid}) não corresponde ao UID do payload (${userIdFromFrontend}).`
           );
-          res
-            .status(403)
-            .json({
-              error:
-                "Permissão negada: UID do token não corresponde ao payload.",
-            });
+          res.status(403).json({
+            error: "Permissão negada: UID do token não corresponde ao payload.",
+          });
           return;
         } else if (!userIdFromFrontend) {
           // Se userIdFromFrontend não foi passado, use o do token
@@ -831,12 +900,10 @@ exports.recalcularTodosPrazos = onRequest(
           customClaims.perfil !== "desenvolvedor" &&
           customClaims.perfil !== "gestao"
         ) {
-          res
-            .status(403)
-            .json({
-              error:
-                "Permissão negada: Requer perfil 'desenvolvedor' ou 'gestao'.",
-            });
+          res.status(403).json({
+            error:
+              "Permissão negada: Requer perfil 'desenvolvedor' ou 'gestao'.",
+          });
           return;
         }
       } catch (error) {
@@ -856,11 +923,9 @@ exports.recalcularTodosPrazos = onRequest(
         "[recalcularTodosPrazos] Nenhuma autenticação Bearer Token fornecida."
       );
       // Se a função deve ser chamada APENAS por admin, não permita sem token.
-      res
-        .status(401)
-        .json({
-          error: "Não autorizado: Token de autenticação Bearer é necessário.",
-        });
+      res.status(401).json({
+        error: "Não autorizado: Token de autenticação Bearer é necessário.",
+      });
       return;
     }
 
