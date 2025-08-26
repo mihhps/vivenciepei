@@ -418,7 +418,6 @@ function AvaliacaoInteressesPage() {
       setCarregando(true);
       setErro(null);
       setSucesso(null);
-      setShowViewButton(false);
 
       try {
         const alunoDocRef = doc(db, "alunos", currentAlunoIdToFetch);
@@ -433,13 +432,13 @@ function AvaliacaoInteressesPage() {
           const avaliacaoDocPath = `artifacts/${appId}/public/data/avaliacoesInteresses/${fetchedAluno.id}`;
           const avaliacaoDocRef = doc(db, avaliacaoDocPath);
           const avaliacaoDocSnap = await getDoc(avaliacaoDocRef);
+
           const loadedInteressesData = avaliacaoDocSnap.exists()
             ? avaliacaoDocSnap.data()
             : null;
 
-          const formDataFromDb = loadedInteressesData?.data;
-
-          if (formDataFromDb && Object.keys(formDataFromDb).length > 0) {
+          if (loadedInteressesData) {
+            const formDataFromDb = loadedInteressesData.data;
             const fullFormData = { ...getInitialFormData(), ...formDataFromDb };
             setFormData(fullFormData);
             setOriginalData(fullFormData);
@@ -461,6 +460,10 @@ function AvaliacaoInteressesPage() {
       } catch (error) {
         console.error("Erro ao carregar dados:", error);
         setErro("Erro ao carregar dados. Tente novamente.");
+        const initialData = getInitialFormData();
+        setFormData(initialData);
+        setOriginalData(initialData);
+        setShowViewButton(false);
       } finally {
         setCarregando(false);
       }
