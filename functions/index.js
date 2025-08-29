@@ -225,11 +225,9 @@ const getPeiStatusDetails = (peiData, prazos, hoje) => {
   };
 };
 
-/**
- * Calcula o status de acompanhamento de PEI para um professor específico.
- * @param {string} professorId - O ID do documento do professor na coleção 'usuarios'.
- * @returns {object | null} Um objeto de resumo do professor ou null se não for encontrado/válido.
- */
+// =========================================================================
+// ========= INÍCIO DA FUNÇÃO CORRIGIDA =====================================
+// =========================================================================
 async function calcularStatusProfessor(professorId) {
   const anoAtual = new Date().getFullYear();
   const hoje = new Date();
@@ -274,6 +272,7 @@ async function calcularStatusProfessor(professorId) {
     ? Object.keys(professorData.escolas)
     : [];
 
+  // CORREÇÃO DE BUG #1: Esta área foi corrigida para não dar erro
   if (turmasDoProfessor.length === 0 || escolasDoProfessor.length === 0) {
     functions.logger.log(
       `[calcularStatusProfessor] Professor ${professorId} não tem turmas ou escolas vinculadas.`
@@ -282,11 +281,12 @@ async function calcularStatusProfessor(professorId) {
       professorId: professorId,
       professorNome: professorData.nome,
       escolaId: professorData.escolaId || null,
-      statusGeral: "Em dia", // Por padrão, se não há alunos para monitorar, está em dia.
+      statusGeral: "Em dia", // Valor correto, pois não há alunos
       alunosAtrasadosCount: 0,
       detalhesAtraso: ["Nenhuma turma ou escola vinculada a este professor."],
       alunosDetalhesPrazos: [],
       ultimaAtualizacao: admin.firestore.FieldValue.serverTimestamp(),
+      anoLetivo: anoAtual,
     };
   }
 
@@ -298,7 +298,7 @@ async function calcularStatusProfessor(professorId) {
     const qAlunos = db
       .collection("alunos")
       .where("turma", "in", batchTurmas)
-      .where("escolaId", "in", escolasDoProfessor); // Adiciona filtro por escola
+      .where("escolaId", "in", escolasDoProfessor);
 
     const snap = await qAlunos.get();
     snap.forEach((doc) => allAlunosData.push({ id: doc.id, ...doc.data() }));
@@ -317,6 +317,7 @@ async function calcularStatusProfessor(professorId) {
       detalhesAtraso: ["Nenhum aluno encontrado para este professor."],
       alunosDetalhesPrazos: [],
       ultimaAtualizacao: admin.firestore.FieldValue.serverTimestamp(),
+      anoLetivo: anoAtual, // Adicionado aqui também
     };
   }
 
@@ -337,32 +338,27 @@ async function calcularStatusProfessor(professorId) {
     snap.forEach((doc) => allPeisData.push({ id: doc.id, ...doc.data() }));
   }
 
-  let statusProfessorGeral = "Em dia"; // Começa como em dia
+  let statusProfessorGeral = "Em dia";
   let alunosAtrasadosCount = 0;
-  let detalhesAtrasoPorAluno = []; // Lista de strings para exibição
-  let alunosDetalhesPrazos = []; // Lista de objetos detalhados para exibir no frontend
+  let detalhesAtrasoPorAluno = [];
+  let alunosDetalhesPrazos = [];
 
   for (const aluno of allAlunosData) {
-    // Encontra o PEI mais recente para este aluno (allPeisData já está ordenado por dataCriacao desc)
     const peiDoAluno = allPeisData.find((p) => p.alunoId === aluno.id);
-
-    // Calcula o status detalhado para o aluno (usando a data de hoje para o cálculo)
     const statusDetalhadoAluno = getPeiStatusDetails(
       peiDoAluno,
       prazosConvertidos,
-      hoje // Passa o objeto Date `hoje`
+      hoje
     );
 
-    // Se o aluno possui atraso real, atualiza o status geral do professor e a contagem
     if (statusDetalhadoAluno.isAtrasadoRealmente) {
-      statusProfessorGeral = "Atrasado"; // Se UM aluno está atrasado, o professor está atrasado.
+      statusProfessorGeral = "Atrasado";
       alunosAtrasadosCount++;
       detalhesAtrasoPorAluno.push({
-        // Objeto para detalhes dos atrasos
         alunoId: aluno.id,
         nome: aluno.nome,
         turma: aluno.turma,
-        escolaId: aluno.escolaId, // Inclui escolaId para filtragem no frontend
+        escolaId: aluno.escolaId,
         statusPeiGeral: statusDetalhadoAluno.statusPeiGeral,
         statusRevisao1: statusDetalhadoAluno.statusRevisao1,
         statusRevisao2: statusDetalhadoAluno.statusRevisao2,
@@ -370,7 +366,6 @@ async function calcularStatusProfessor(professorId) {
       });
     }
 
-    // Adiciona todos os alunos à lista detalhada, independentemente do atraso
     alunosDetalhesPrazos.push({
       id: aluno.id,
       nome: aluno.nome,
@@ -380,18 +375,22 @@ async function calcularStatusProfessor(professorId) {
     });
   }
 
-  // Retorna o resumo consolidado para o professor
+  // CORREÇÃO DE BUG #2: O "anoLetivo" foi adicionado aqui, que é o lugar certo!
   return {
     professorId: professorId,
     professorNome: professorData.nome,
-    escolaId: professorData.escolaId || null, // Opcional: pode ser útil ter o ID da escola principal do professor
+    escolaId: professorData.escolaId || null,
     statusGeral: statusProfessorGeral,
     alunosAtrasadosCount: alunosAtrasadosCount,
-    detalhesAtraso: detalhesAtrasoPorAluno, // Lista de alunos REALMENTE atrasados
-    alunosDetalhesPrazos: alunosDetalhesPrazos, // Lista de TODOS os alunos com seus status
+    detalhesAtraso: detalhesAtrasoPorAluno,
+    alunosDetalhesPrazos: alunosDetalhesPrazos,
     ultimaAtualizacao: admin.firestore.FieldValue.serverTimestamp(),
+    anoLetivo: anoAtual, // ESTE É O LUGAR CORRETO
   };
 }
+// =========================================================================
+// ========= FIM DA FUNÇÃO CORRIGIDA =======================================
+// =========================================================================
 
 // =========================================================================
 // GATILHO PARA NORMALIZAÇÃO: As novas funções que corrigem o problema na origem
@@ -837,12 +836,13 @@ exports.recalcularTodosPrazos = onRequest(
   { region: "southamerica-east1" }, // Defina a região da sua função
   async (req, res) => {
     // --- Tratamento de CORS (MANDATÓRIO PARA onRequest) ---
-    res.set("Access-Control-Allow-Origin", "*"); // Permite qualquer origem. Em produção, use um domínio específico.
-    res.set("Access-Control-Allow-Methods", "POST, OPTIONS"); // Métodos permitidos
-    res.set("Access-Control-Allow-Headers", "Content-Type, Authorization"); // Cabeçalhos permitidos
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
+    // Responde a requisição "preflight" do navegador.
     if (req.method === "OPTIONS") {
-      res.status(204).send(""); // Responde a requisições OPTIONS (pré-voo CORS)
+      res.status(204).send("");
       return;
     }
     // --- Fim do Tratamento de CORS ---
@@ -1006,6 +1006,90 @@ exports.recalcularTodosPrazos = onRequest(
         details: error.message,
       });
       return;
+    }
+  }
+);
+exports.getpeiacompanhamentobyschool = onRequest(
+  { region: "southamerica-east1", cors: true }, // Habilita CORS diretamente
+  async (req, res) => {
+    // Tratamento de CORS para compatibilidade extra
+    res.set("Access-Control-Allow-Origin", "*");
+    if (req.method === "OPTIONS") {
+      res.set("Access-Control-Allow-Methods", "POST");
+      res.set("Access-Control-Allow-Headers", "Content-Type");
+      res.set("Access-Control-Max-Age", "3600");
+      res.status(204).send("");
+      return;
+    }
+
+    if (req.method !== "POST" || !req.body.anoLetivo) {
+      return res.status(400).json({
+        error: "Requisição inválida. Use POST e forneça o 'anoLetivo'.",
+      });
+    }
+
+    try {
+      const anoLetivo = req.body.anoLetivo;
+      const resumosSnap = await db
+        .collection("acompanhamentoPrazosPEIResumo")
+        .where("anoLetivo", "==", anoLetivo)
+        .get();
+
+      if (resumosSnap.empty) {
+        return res.status(200).json([]);
+      }
+
+      const escolasMap = new Map();
+      const escolasSnap = await db.collection("escolas").get();
+      escolasSnap.forEach((doc) => escolasMap.set(doc.id, doc.data().nome));
+
+      const escolasResumo = {};
+
+      resumosSnap.docs.forEach((doc) => {
+        const resumo = doc.data();
+        if (!resumo.alunosDetalhesPrazos) return;
+
+        resumo.alunosDetalhesPrazos.forEach((aluno) => {
+          const escolaId = aluno.escolaId;
+          if (!escolaId) return;
+
+          if (!escolasResumo[escolaId]) {
+            escolasResumo[escolaId] = {
+              id: escolaId,
+              nomeEscola: escolasMap.get(escolaId) || "Escola Desconhecida",
+              totalAlunosMonitorados: 0,
+              pendenteCriacao: 0,
+              atrasados: 0,
+              emDia: 0, // Novo status!
+            };
+          }
+
+          const stats = escolasResumo[escolaId];
+          stats.totalAlunosMonitorados++;
+
+          // Lógica de status simplificada
+          if (aluno.statusPeiGeral?.includes("Aguardando Criação")) {
+            stats.pendenteCriacao++;
+          } else if (aluno.isAtrasadoRealmente) {
+            stats.atrasados++;
+          } else {
+            // Se não está pendente e nem atrasado, está em dia.
+            stats.emDia++;
+          }
+        });
+      });
+
+      const dadosAgregados = Object.values(escolasResumo).map((escola) => {
+        const total = escola.totalAlunosMonitorados;
+        escola.percentualEmDiaNum =
+          total > 0 ? (escola.emDia / total) * 100 : 0;
+        return escola;
+      });
+
+      return res.status(200).json(dadosAgregados);
+    } catch (err) {
+      functions.logger.error("Erro em getpeiacompanhamentobyschool:", err);
+      return res.status(500).json({ error: "Erro interno do servidor." });
     }
   }
 );
