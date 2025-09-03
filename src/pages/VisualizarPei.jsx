@@ -337,13 +337,17 @@ export default function VisualizarPei() {
             {/* Usar estilo específico */}
             {Object.entries(subareas).map(([subarea, metas], j) => (
               <div key={j} style={estilos.blocoSubarea}>
-                <h5 style={estilos.tituloSubarea}>{subarea}</h5>
+                {subarea !== "undefined" && (
+                  <h5 style={estilos.tituloSubarea}>{subarea}</h5>
+                )}
                 <table style={estilos.tabela}>
                   <thead>
                     <tr style={{ backgroundColor: "#f1f1f1" }}>
                       <th style={estilos.cell}>Habilidade</th>
-                      <th style={estilos.cell}>Nível Atual</th>
-                      <th style={estilos.cell}>Nível Almejado</th>
+                      <th style={estilos.cellNivel}>Nível Atual</th>{" "}
+                      {/* <-- Corrigido */}
+                      <th style={estilos.cellNivel}>Nível Almejado</th>{" "}
+                      {/* <-- Corrigido */}
                       <th style={estilos.cell}>Objetivos (CP/MP/LP)</th>{" "}
                       {/* Atualizado */}
                       <th style={estilos.cell}>Estratégias</th>
@@ -368,15 +372,15 @@ export default function VisualizarPei() {
                         {/* CORREÇÃO DO ERRO AQUI: Acessar as propriedades do objeto objetivos */}
                         <td style={estilos.cell}>
                           <p>
-                            <strong>C. Prazo:</strong>{" "}
+                            <strong>Curto Prazo:</strong>{" "}
                             {meta.objetivos?.curtoPrazo || "N/D"}
                           </p>
                           <p>
-                            <strong>M. Prazo:</strong>{" "}
+                            <strong>Médio Prazo:</strong>{" "}
                             {meta.objetivos?.medioPrazo || "N/D"}
                           </p>
                           <p>
-                            <strong>L. Prazo:</strong>{" "}
+                            <strong>Longo Prazo:</strong>{" "}
                             {meta.objetivos?.longoPrazo || "N/D"}
                           </p>
                         </td>
@@ -399,7 +403,27 @@ export default function VisualizarPei() {
             ))}
           </div>
         ))}
-
+        {/* 👇👇 SUBSTITUA O BLOCO ANTIGO POR ESTE 👇👇 */}
+        {pei.atividadeAplicada && (
+          <div style={estilos.blocoSubarea}>
+            {" "}
+            {/* Adicionamos o 'bloco' aqui */}
+            <h3 style={estilos.subtitulo}>Atividade Aplicada</h3>
+            <table style={estilos.tabela}>
+              <thead>
+                <tr style={{ backgroundColor: "#f1f1f1" }}>
+                  <th style={estilos.cell}>Descrição da Atividade</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style={estilos.cell}>{pei.atividadeAplicada}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        )}
+        {/* 👆👆 FIM DA SUBSTITUIÇÃO 👆👆 */}
         <div style={{ marginTop: "50px", textAlign: "right" }}>
           <p>
             <strong>Elaborado por:</strong> {pei.nomeCriador || "-"} (

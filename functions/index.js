@@ -57,25 +57,13 @@ const normalizarTurma = (turma) => {
   }
   return partes.join(" ");
 };
-
-/**
- * Calcula os detalhes do status de PEI para um aluno/PEI específico.
- * @param {object | null} peiData - Dados do documento PEI do aluno (ou null se não houver PEI).
- * @param {object} prazos - Objeto com os prazos limite anuais (dataLimiteCriacaoPEI, dataLimiteRevisao1Sem, dataLimiteRevisao2Sem).
- * @param {Date} hoje - Data atual (com a hora zerada).
- * @returns {object} Um objeto contendo os status detalhados e a flag isAtrasadoRealmente.
- */
-const getPeiStatusDetails = (peiData, prazos, hoje) => {
+const getPeiStatusDetails = (peiData, prazos, hoje, alunoNome) => {
   let statusPeiGeral = "Não iniciado";
-  let statusRevisao1 = "N/A";
-  let statusRevisao2 = "N/A";
+  let statusRevisao1 = "Pendente"; // Valor inicial mais preciso
+  let statusRevisao2 = "Pendente"; // Valor inicial mais preciso
+  let finalIsAtrasadoRealmente = false;
 
-  // Inicializa dataUltimaAtualizacaoPei com null ou um valor padrão
-  let dataUltimaAtualizacaoPei = null;
-
-  const hojeZerado = resetTime(new Date(hoje.getTime())); // Garante que 'hoje' também está zerado.
-
-  // Garante que os prazos são objetos Date válidos ou null
+  const hojeZerado = resetTime(new Date(hoje.getTime()));
   const dataLimiteCriacaoPEI = prazos.dataLimiteCriacaoPEI
     ? resetTime(prazos.dataLimiteCriacaoPEI)
     : null;
@@ -86,145 +74,78 @@ const getPeiStatusDetails = (peiData, prazos, hoje) => {
     ? resetTime(prazos.dataLimiteRevisao2Sem)
     : null;
 
-  if (!peiData) {
-    // Caso 1: PEI não existe
-    if (dataLimiteCriacaoPEI && hojeZerado >= dataLimiteCriacaoPEI) {
+  const dataCriacaoPei = peiData?.dataCriacao?.toDate
+    ? resetTime(peiData.dataCriacao.toDate())
+    : null;
+
+  // --- Lógica de Status de Criação ---
+  if (!peiData || !dataCriacaoPei) {
+    // Se não há PEI ou data de criação, verifica se já passou do prazo
+    if (dataLimiteCriacaoPEI && hojeZerado > dataLimiteCriacaoPEI) {
       statusPeiGeral = "Atrasado - Sem PEI";
+      finalIsAtrasadoRealmente = true;
     } else {
       statusPeiGeral = "Aguardando Criação";
     }
-    // Revisões também são atrasadas se o PEI não existe e o prazo passou
-    if (dataLimiteRevisao1Sem && hojeZerado >= dataLimiteRevisao1Sem) {
-      statusRevisao1 = "Atrasado (PEI não criado)";
-    }
-    if (dataLimiteRevisao2Sem && hojeZerado >= dataLimiteRevisao2Sem) {
-      statusRevisao2 = "Atrasado (PEI não criado)";
-    }
   } else {
-    // Caso 2: PEI existe
-    // Converta Timestamps para Date e zere o tempo para comparações
-    const dataCriacaoPei = peiData.dataCriacao?.toDate
-      ? resetTime(peiData.dataCriacao.toDate())
-      : null;
-    const peiDataUltimaRevisao = peiData.dataUltimaRevisao?.toDate
-      ? resetTime(peiData.dataUltimaRevisao.toDate())
-      : null;
-
-    dataUltimaAtualizacaoPei = peiDataUltimaRevisao || dataCriacaoPei; // Garante que há uma data de atualização
-
-    // Status Geral do PEI (Criação)
-    if (dataLimiteCriacaoPEI) {
-      if (hojeZerado >= dataLimiteCriacaoPEI) {
-        if (dataCriacaoPei && dataCriacaoPei <= dataLimiteCriacaoPEI) {
-          statusPeiGeral = "Criado no Prazo";
-        } else if (dataCriacaoPei && dataCriacaoPei > dataLimiteCriacaoPEI) {
-          statusPeiGeral = "Criado (Atrasado)";
-        } else {
-          statusPeiGeral = "Atrasado - Sem PEI (Dados Inconsistentes)"; // PEI existe, mas data de criação não se encaixa
-        }
-      } else {
-        statusPeiGeral = dataCriacaoPei
-          ? "Criado (antes do prazo final)"
-          : "Aguardando Criação";
-      }
+    // PEI existe, verifica se foi criado no prazo
+    if (dataLimiteCriacaoPEI && dataCriacaoPei > dataLimiteCriacaoPEI) {
+      statusPeiGeral = "Criado (Atrasado)";
+      // Atraso de criação não se acumula com atrasos de revisão.
+      // O PEI já existe, o foco agora é nas revisões.
+      // finalIsAtrasadoRealmente = true; // Isso seria um atraso, mas pode ser desconsiderado se as revisões estiverem em dia
     } else {
-      statusPeiGeral = dataCriacaoPei
-        ? "Criado (Prazo não definido)"
-        : "Não iniciado (Prazo não definido)";
-    }
-
-    // Status das Revisões (só avalia se o PEI foi criado)
-    if (dataCriacaoPei) {
-      // Revisão 1
-      if (dataLimiteRevisao1Sem) {
-        if (hojeZerado >= dataLimiteRevisao1Sem) {
-          if (
-            dataUltimaAtualizacaoPei &&
-            dataUltimaAtualizacaoPei >= dataLimiteRevisao1Sem
-          ) {
-            statusRevisao1 = "Em dia (Feita)";
-          } else {
-            statusRevisao1 = "Atrasado";
-          }
-        } else {
-          statusRevisao1 =
-            dataUltimaAtualizacaoPei &&
-            dataUltimaAtualizacaoPei >= dataCriacaoPei
-              ? "Feita (Aguardando prazo)"
-              : "Aguardando";
-        }
-      } else {
-        statusRevisao1 =
-          dataUltimaAtualizacaoPei && dataUltimaAtualizacaoPei >= dataCriacaoPei
-            ? "Feita (Prazo não definido)"
-            : "Aguardando (Prazo não definido)";
-      }
-
-      // Revisão 2
-      if (dataLimiteRevisao2Sem) {
-        if (hojeZerado >= dataLimiteRevisao2Sem) {
-          if (
-            dataUltimaAtualizacaoPei &&
-            dataUltimaAtualizacaoPei >= dataLimiteRevisao2Sem
-          ) {
-            statusRevisao2 = "Em dia (Feita)";
-          } else {
-            statusRevisao2 = "Atrasado";
-          }
-        } else {
-          statusRevisao2 =
-            dataUltimaAtualizacaoPei &&
-            dataUltimaAtualizacaoPei >= dataCriacaoPei &&
-            (!dataLimiteRevisao1Sem ||
-              dataUltimaAtualizacaoPei >= dataLimiteRevisao1Sem)
-              ? "Feita (Aguardando prazo)"
-              : "Aguardando";
-        }
-      } else {
-        statusRevisao2 =
-          dataUltimaAtualizacaoPei && dataUltimaAtualizacaoPei >= dataCriacaoPei
-            ? "Feita (Prazo não definido)"
-            : "Aguardando (Prazo não definido)";
-      }
-    } else {
-      // Se o PEI não tem data de criação válida, mas os prazos de revisão passaram
-      if (dataLimiteRevisao1Sem && hojeZerado >= dataLimiteRevisao1Sem) {
-        statusRevisao1 = "Atrasado (PEI não criado)";
-      } else {
-        statusRevisao1 = "N/A (PEI não criado)";
-      }
-
-      if (dataLimiteRevisao2Sem && hojeZerado >= dataLimiteRevisao2Sem) {
-        statusRevisao2 = "Atrasado (PEI não criado)";
-      } else {
-        statusRevisao2 = "N/A (PEI não criado)";
-      }
+      statusPeiGeral = "Criado no Prazo";
     }
   }
 
-  // --- MUDANÇA CRUCIAL: CALCULA isAtrasadoRealmente NO FINAL, COM BASE NOS STATUS FINAIS ---
-  let finalIsAtrasadoRealmente = false;
+  // --- Lógica de Status de Revisão ---
+  // Apenas avalia se o PEI já foi criado
+  if (dataCriacaoPei) {
+    const revisoes = peiData.revisoes;
 
-  if (
-    statusPeiGeral.includes("Atrasado") || // Cobre "Atrasado - Sem PEI", "Criado (Atrasado)", "Atrasado - Sem PEI (Dados Inconsistentes)"
-    statusRevisao1.includes("Atrasado") ||
-    statusRevisao2.includes("Atrasado")
-  ) {
-    finalIsAtrasadoRealmente = true;
+    // Lógica para Revisão 1
+    const dataRevisao1 = revisoes?.primeiroSemestre?.dataRevisao?.toDate
+      ? resetTime(revisoes.primeiroSemestre.dataRevisao.toDate())
+      : null;
+    if (
+      revisoes?.primeiroSemestre?.status === "Concluído" ||
+      (dataRevisao1 && dataRevisao1 <= hojeZerado)
+    ) {
+      statusRevisao1 = "Concluído";
+    } else if (dataLimiteRevisao1Sem && hojeZerado > dataLimiteRevisao1Sem) {
+      statusRevisao1 = "Atrasado";
+      finalIsAtrasadoRealmente = true;
+    }
+
+    // Lógica para Revisão 2
+    const dataRevisao2 = revisoes?.segundoSemestre?.dataRevisao?.toDate
+      ? resetTime(revisoes.segundoSemestre.dataRevisao.toDate())
+      : null;
+    if (
+      revisoes?.segundoSemestre?.status === "Concluído" ||
+      (dataRevisao2 && dataRevisao2 <= hojeZerado)
+    ) {
+      statusRevisao2 = "Concluído";
+    } else if (dataLimiteRevisao2Sem && hojeZerado > dataLimiteRevisao2Sem) {
+      statusRevisao2 = "Atrasado";
+      finalIsAtrasadoRealmente = true;
+    }
   }
-  // FIM DA MUDANÇA
+
+  // Se o PEI não foi criado e está atrasado, esse é o único atraso.
+  // Se o PEI foi criado, mas tem revisões atrasadas, a flag continua true.
+  // Se o PEI e suas revisões foram feitas, a flag é false.
 
   return {
     statusPeiGeral,
     statusRevisao1,
     statusRevisao2,
     isAtrasadoRealmente: finalIsAtrasadoRealmente,
-    // Retorna o Timestamp original para dataUltimaAtualizacaoPei (se for o caso)
     dataUltimaAtualizacaoPei:
       peiData?.dataUltimaRevisao || peiData?.dataCriacao || null,
   };
 };
-
 // =========================================================================
 // ========= INÍCIO DA FUNÇÃO CORRIGIDA =====================================
 // =========================================================================
@@ -320,23 +241,55 @@ async function calcularStatusProfessor(professorId) {
       anoLetivo: anoAtual, // Adicionado aqui também
     };
   }
-
-  // 4. Busca os PEIs de TODOS os alunos encontrados
-  let allPeisData = [];
+  // 4. Busca os PEIs de TODOS os alunos encontrados (de ambas as coleções)
+  let allPeisDataRaw = [];
   const alunoIdsArray = allAlunosData.map((a) => a.id);
-  const alunoIdsBatchSize = FIRESTORE_QUERY_BATCH_SIZE;
+  const alunoIdsBatchSize = FIRESTORE_QUERY_BATCH_SIZE; // Firestore 'in' query limit
 
   for (let i = 0; i < alunoIdsArray.length; i += alunoIdsBatchSize) {
     const batchAlunoIds = alunoIdsArray.slice(i, i + alunoIdsBatchSize);
-    const qPeis = db
+
+    // Busca na coleção antiga 'peis'
+    const qOld = db
       .collection("peis")
       .where("alunoId", "in", batchAlunoIds)
-      .where("anoLetivo", "==", anoAtual)
-      .orderBy("dataCriacao", "desc");
+      .where("anoLetivo", "==", anoAtual);
+    const snapOld = await qOld.get();
+    snapOld.forEach((doc) =>
+      allPeisDataRaw.push({ id: doc.id, ...doc.data() })
+    );
 
-    const snap = await qPeis.get();
-    snap.forEach((doc) => allPeisData.push({ id: doc.id, ...doc.data() }));
+    // Busca na nova coleção 'pei_contribucoes'
+    const qNew = db
+      .collection("pei_contribucoes")
+      .where("alunoId", "in", batchAlunoIds)
+      .where("anoLetivo", "==", anoAtual);
+    const snapNew = await qNew.get();
+    snapNew.forEach((doc) =>
+      allPeisDataRaw.push({ id: doc.id, ...doc.data() })
+    );
   }
+
+  // Consolida e remove duplicatas, escolhendo o PEI mais recente por aluno
+  const peisPorAluno = new Map();
+  allPeisDataRaw.forEach((pei) => {
+    const existingPei = peisPorAluno.get(pei.alunoId);
+    const peiDate = pei.dataCriacao?.toDate
+      ? pei.dataCriacao.toDate()
+      : new Date(0);
+
+    if (
+      !existingPei ||
+      peiDate >
+        (existingPei.dataCriacao?.toDate
+          ? existingPei.dataCriacao.toDate()
+          : new Date(0))
+    ) {
+      peisPorAluno.set(pei.alunoId, pei);
+    }
+  });
+
+  const allPeisData = Array.from(peisPorAluno.values());
 
   let statusProfessorGeral = "Em dia";
   let alunosAtrasadosCount = 0;
@@ -344,6 +297,7 @@ async function calcularStatusProfessor(professorId) {
   let alunosDetalhesPrazos = [];
 
   for (const aluno of allAlunosData) {
+    if (!aluno || !aluno.nome || !aluno.nome.trim()) continue;
     const peiDoAluno = allPeisData.find((p) => p.alunoId === aluno.id);
     const statusDetalhadoAluno = getPeiStatusDetails(
       peiDoAluno,
@@ -836,7 +790,20 @@ exports.recalcularTodosPrazos = onRequest(
   { region: "southamerica-east1" }, // Defina a região da sua função
   async (req, res) => {
     // --- Tratamento de CORS (MANDATÓRIO PARA onRequest) ---
-    res.set("Access-Control-Allow-Origin", "*");
+    // --- Tratamento de CORS (MANDATÓRIO PARA onRequest) ---
+    // Permite tanto seu site em produção quanto o ambiente local
+    const allowedOrigins = [
+      "http://localhost:5199",
+      "https://seusite-de-producao.firebaseapp.com", // <-- SUBSTITUA PELO ENDEREÇO DO SEU SITE PUBLICADO
+    ];
+    const origin = req.headers.origin;
+    if (allowedOrigins.includes(origin)) {
+      res.set("Access-Control-Allow-Origin", origin);
+    }
+
+    res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
     res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
     res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
@@ -1090,6 +1057,128 @@ exports.getpeiacompanhamentobyschool = onRequest(
     } catch (err) {
       functions.logger.error("Erro em getpeiacompanhamentobyschool:", err);
       return res.status(500).json({ error: "Erro interno do servidor." });
+    }
+  }
+);
+// =========================================================================
+// NOVO GATILHO PARA A COLEÇÃO 'pei_contribucoes'
+// =========================================================================
+exports.onPeiContribuicaoWrite = onDocumentWritten(
+  "pei_contribucoes/{peiId}",
+  async (event) => {
+    const peiData = event.data.after?.data() || event.data.before?.data();
+    if (!peiData || !peiData.alunoId) {
+      functions.logger.log(
+        `[onPeiContribuicaoWrite] Dados insuficientes para processar PEI ${event.params.peiId}.`
+      );
+      return null;
+    }
+
+    const alunoDoc = await db.collection("alunos").doc(peiData.alunoId).get();
+    if (!alunoDoc.exists) {
+      functions.logger.warn(
+        `[onPeiContribuicaoWrite] Aluno ${peiData.alunoId} não encontrado para PEI ${event.params.peiId}.`
+      );
+      return null;
+    }
+    const alunoData = alunoDoc.data();
+    if (!alunoData?.turma) {
+      functions.logger.warn(
+        `[onPeiContribuicaoWrite] Aluno ${peiData.alunoId} sem turma.`
+      );
+      return null;
+    }
+
+    const professoresSnap = await db
+      .collection("usuarios")
+      .where("perfil", "==", "professor")
+      .where(`turmas.${alunoData.turma}`, "==", true)
+      .get();
+
+    if (professoresSnap.empty) {
+      functions.logger.log(
+        `[onPeiContribuicaoWrite] Nenhum professor para aluno ${alunoData.nome} na turma ${alunoData.turma}.`
+      );
+      return null;
+    }
+
+    const batch = db.batch();
+    for (const doc of professoresSnap.docs) {
+      const professorId = doc.id;
+      const resumo = await calcularStatusProfessor(professorId);
+      if (resumo) {
+        batch.set(
+          db.collection("acompanhamentoPrazosPEIResumo").doc(professorId),
+          resumo,
+          { merge: true }
+        );
+      } else {
+        batch.delete(
+          db.collection("acompanhamentoPrazosPEIResumo").doc(professorId)
+        );
+      }
+    }
+    await batch.commit();
+    functions.logger.log(
+      `[onPeiContribuicaoWrite] Resumo atualizado para ${professoresSnap.docs.length} professores.`
+    );
+    return null;
+  }
+);
+// =========================================================================
+// FUNÇÃO CHAMÁVEL PARA MARCAR UMA REVISÃO COMO CONCLUÍDA
+// =========================================================================
+exports.marcarRevisaoComoConcluida = onCall(
+  { region: "southamerica-east1" },
+  async (request) => {
+    // Verifica se o usuário está autenticado
+    if (!request.auth) {
+      throw new functions.https.HttpsError(
+        "unauthenticated",
+        "A função deve ser chamada por um usuário autenticado."
+      );
+    }
+
+    const { peiId, semestre } = request.data;
+    const professorId = request.auth.uid;
+
+    // Validação dos dados de entrada
+    if (
+      !peiId ||
+      !semestre ||
+      (semestre !== "primeiroSemestre" && semestre !== "segundoSemestre")
+    ) {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        "Os dados fornecidos (peiId, semestre) são inválidos."
+      );
+    }
+
+    try {
+      const peiRef = db.collection("pei_contribucoes").doc(peiId);
+
+      // Cria o objeto de atualização dinamicamente
+      const updateData = {};
+      updateData[`revisoes.${semestre}.status`] = "Concluído";
+      updateData[`revisoes.${semestre}.dataRevisao`] =
+        admin.firestore.FieldValue.serverTimestamp();
+      updateData[`revisoes.${semestre}.revisadoPor`] = professorId;
+
+      await peiRef.update(updateData);
+
+      return {
+        success: true,
+        message: `Revisão do ${semestre} marcada como concluída para o PEI ${peiId}.`,
+      };
+    } catch (error) {
+      functions.logger.error(
+        `Erro ao marcar revisão para PEI ${peiId}:`,
+        error
+      );
+      throw new functions.https.HttpsError(
+        "internal",
+        "Ocorreu um erro ao atualizar o PEI."
+      );
     }
   }
 );

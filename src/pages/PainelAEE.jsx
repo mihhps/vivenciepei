@@ -37,13 +37,19 @@ export default function PainelAee() {
     transition: "background-color 0.3s ease",
   };
 
-  // --- DEFINIÇÃO DE estiloBotaoHover AQUI ---
   const estiloBotaoHover = {
-    backgroundColor: "#457b9d", // Uma cor diferente para o hover
+    backgroundColor: "#457b9d",
   };
-  // --- FIM DA DEFINIÇÃO ---
 
-  const ID_DE_ALUNO_PARA_TESTE = "Avaliacaointeresses"; // Use um ID real de aluno
+  const ID_DE_ALUNO_PARA_TESTE = "Avaliacaointeresses";
+
+  const aplicarEfeitoHover = (e) => {
+    e.currentTarget.style.backgroundColor = estiloBotaoHover.backgroundColor;
+  };
+
+  const removerEfeitoHover = (e) => {
+    e.currentTarget.style.backgroundColor = estiloBotao.backgroundColor;
+  };
 
   return (
     <div
@@ -88,87 +94,108 @@ export default function PainelAee() {
           Perfil: <strong>{usuarioLogado?.perfil || "Desconhecido"}</strong>
         </p>
 
-        {/* Botões originais do Painel AEE */}
-        <button
-          style={estiloBotao}
-          onClick={() => navigate("/avaliacao-inicial")}
-        >
-          Avaliação Inicial
-        </button>
-
-        {/* NOVO BOTÃO: Avaliação de Interesses */}
-        <button
-          style={estiloBotao}
-          onClick={() => navigate(`/nova-avaliacao/${ID_DE_ALUNO_PARA_TESTE}`)}
-          onMouseEnter={(e) =>
-            (e.currentTarget.style.backgroundColor =
-              estiloBotaoHover.backgroundColor)
-          }
-          onMouseLeave={(e) =>
-            (e.currentTarget.style.backgroundColor =
-              estiloBotao.backgroundColor)
-          }
-        >
-          Avaliação de Interesses
-        </button>
-        {/* FIM DO NOVO BOTÃO */}
-
-        {/* BOTÃO "VER PEIs" REINTRODUZIDO AQUI */}
-        <button style={estiloBotao} onClick={() => navigate("/ver-peis")}>
-          Ver PEIs
-        </button>
-        {/* FIM DO BOTÃO "VER PEIs" */}
-
-        <button style={estiloBotao} onClick={() => navigate("/criar-pei")}>
-          Criar PEI
-        </button>
-        <button style={estiloBotao} onClick={() => navigate("/ver-alunos")}>
-          Ver Alunos
-        </button>
         <button
           style={estiloBotao}
           onClick={() => navigate("/cadastrar-aluno")}
+          onMouseEnter={aplicarEfeitoHover}
+          onMouseLeave={removerEfeitoHover}
         >
           Cadastrar Alunos
         </button>
         <button
           style={estiloBotao}
-          onClick={() => navigate("/importar-alunos")}
+          onClick={() => navigate("/ver-alunos")}
+          onMouseEnter={aplicarEfeitoHover}
+          onMouseLeave={removerEfeitoHover}
         >
-          Importar Alunos
+          Ver Alunos
         </button>
         <button
           style={estiloBotao}
+          onClick={() => navigate("/importar-alunos")}
+          onMouseEnter={aplicarEfeitoHover}
+          onMouseLeave={removerEfeitoHover}
+        >
+          Importar Alunos
+        </button>
+
+        <hr style={{ margin: "20px 0", border: "1px solid #eee" }} />
+
+        <button
+          style={estiloBotao}
+          onClick={() => navigate("/avaliacao-inicial")}
+          onMouseEnter={aplicarEfeitoHover}
+          onMouseLeave={removerEfeitoHover}
+        >
+          Avaliação Inicial
+        </button>
+
+        <button
+          style={estiloBotao}
+          onClick={() => navigate(`/nova-avaliacao/${ID_DE_ALUNO_PARA_TESTE}`)}
+          onMouseEnter={aplicarEfeitoHover}
+          onMouseLeave={removerEfeitoHover}
+        >
+          Avaliação de Interesses
+        </button>
+        {/* BOTÃO ADICIONADO AQUI */}
+        <button
+          style={estiloBotao}
+          onClick={() => navigate("/anamnese-completa")}
+          onMouseEnter={aplicarEfeitoHover}
+          onMouseLeave={removerEfeitoHover}
+        >
+          Anamnese Completa
+        </button>
+        <hr style={{ margin: "20px 0", border: "1px solid #eee" }} />
+
+        <button
+          style={estiloBotao}
+          onClick={() => navigate("/criar-pei")}
+          onMouseEnter={aplicarEfeitoHover}
+          onMouseLeave={removerEfeitoHover}
+        >
+          Criar PEI
+        </button>
+        <button
+          style={estiloBotao}
+          onClick={() => navigate("/ver-peis")}
+          onMouseEnter={aplicarEfeitoHover}
+          onMouseLeave={removerEfeitoHover}
+        >
+          Ver PEIs
+        </button>
+
+        <hr style={{ margin: "20px 0", border: "1px solid #eee" }} />
+
+        <button
+          style={estiloBotao}
           onClick={() => navigate("/vincular-professores")}
+          onMouseEnter={aplicarEfeitoHover}
+          onMouseLeave={removerEfeitoHover}
         >
           Vincular Professores a Turmas
         </button>
         <button
           style={estiloBotao}
           onClick={() => navigate("/gestao-prazos-pei")}
+          onMouseEnter={aplicarEfeitoHover}
+          onMouseLeave={removerEfeitoHover}
         >
           Gerenciar Prazos PEI
         </button>
 
-        {/* --- NOVO BOTÃO: Acompanhamento de Prazos PEI --- */}
         {usuarioLogado &&
           perfisComAcessoAcompanhamento.includes(perfilUsuarioFormatado) && (
             <button
               style={estiloBotao}
               onClick={() => navigate("/acompanhamento-prazos-pei")}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.backgroundColor =
-                  estiloBotaoHover.backgroundColor)
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.backgroundColor =
-                  estiloBotao.backgroundColor)
-              }
+              onMouseEnter={aplicarEfeitoHover}
+              onMouseLeave={removerEfeitoHover}
             >
               Acompanhamento de Prazos PEI
             </button>
           )}
-        {/* --- FIM DO NOVO BOTÃO --- */}
 
         <BotaoSair />
       </div>

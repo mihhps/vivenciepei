@@ -43,6 +43,9 @@ const formatDate = (date) => {
  * Perfis 'desenvolvedor', 'gestao' e 'aee' têm acesso amplo (não filtrado por escola vinculada ao próprio perfil)
  * se eles mesmos não tiverem escolas específicas vinculadas.
  */
+// src/pages/DetalhesAcompanhamentoPei.jsx
+// ... (imports permanecem os mesmos)
+
 export default function DetalhesAcompanhamentoPei() {
   const { professorId } = useParams();
   const navigate = useNavigate();
@@ -90,22 +93,13 @@ export default function DetalhesAcompanhamentoPei() {
       return;
     }
 
-    const perfisComAcessoAmploSeNaoVinculado = [
-      "desenvolvedor",
-      "gestao",
-      "aee",
-    ];
-    if (
-      !perfisComAcessoAmploSeNaoVinculado.includes(currentUserData.perfil) &&
-      (!currentUserData.escolasVinculadas ||
-        currentUserData.escolasVinculadas.length === 0)
-    ) {
-      setFetchError(
-        "Seu perfil não está vinculado a nenhuma escola. Por favor, entre em contato com o administrador para vincular escolas ao seu perfil."
-      );
-      setLoading(false);
-      return;
-    }
+    const perfisComAcessoAmplo = ["desenvolvedor", "gestao", "aee"];
+    const usuarioTemEscolas =
+      currentUserData.escolasVinculadas &&
+      currentUserData.escolasVinculadas.length > 0;
+    const isRestritoPorEscola =
+      !perfisComAcessoAmplo.includes(currentUserData.perfil) ||
+      usuarioTemEscolas;
 
     const carregarDetalhesAtrasos = async () => {
       setLoading(true);
@@ -113,292 +107,45 @@ export default function DetalhesAcompanhamentoPei() {
       setNoDataMessage(null);
 
       try {
-        const anoAtual = new Date().getFullYear();
-        const hoje = new Date();
-        hoje.setHours(0, 0, 0, 0);
+        // ✅ PASSO 1: Lê diretamente o resumo pré-calculado
+        const resumoRef = doc(db, "acompanhamentoPrazosPEIResumo", professorId);
+        const resumoSnap = await getDoc(resumoRef);
 
-        const escolaIdsParaQuery =
-          perfisComAcessoAmploSeNaoVinculado.includes(currentUserData.perfil) &&
-          (!currentUserData.escolasVinculadas ||
-            currentUserData.escolasVinculadas.length === 0)
-            ? []
-            : currentUserData.escolasVinculadas.slice(0, 10);
-
-        const profDocRef = doc(db, "usuarios", professorId);
-        const profDocSnap = await getDoc(profDocRef);
-
-        if (!profDocSnap.exists()) {
-          setFetchError("Professor não encontrado na base de dados.");
-          return;
-        }
-        const profData = { id: profDocSnap.id, ...profDocSnap.data() };
-        setProfessor(profData);
-
-        let turmasDoProfessor =
-          profData.turmas && typeof profData.turmas === "object"
-            ? Object.keys(profData.turmas)
-            : [];
-
-        if (turmasDoProfessor.length === 0) {
-          setAlunosComPendenciaReal([]);
-          setNoDataMessage(
-            "Nenhuma turma vinculada a este professor. Não é possível verificar o status dos alunos."
-          );
-          return;
-        }
-
-        let turmasParaQuery = [...turmasDoProfessor];
-        if (turmasParaQuery.length > 10) {
-          console.warn(
-            `[DetalhesAcompanhamentoPei] Professor ${profData.nome} tem ${turmasParaQuery.length} turmas. A query 'in' de alunos será limitada às primeiras 10 turmas.`
-          );
-          turmasParaQuery = turmasParaQuery.slice(0, 10);
-        }
-
-        if (
-          turmasParaQuery.length === 0 ||
-          (escolaIdsParaQuery.length === 0 &&
-            !perfisComAcessoAmploSeNaoVinculado.includes(
-              currentUserData.perfil
-            ))
-        ) {
-          setNoDataMessage(
-            "Erro na consulta: Nenhuma turma ou escola válida definida para filtrar alunos. Verifique os dados do professor ou as vinculações de escola do seu perfil."
-          );
-          return;
-        }
-
-        let qAlunos = query(collection(db, "alunos"));
-        qAlunos = query(qAlunos, where("turma", "in", turmasParaQuery));
-        if (escolaIdsParaQuery.length > 0) {
-          qAlunos = query(qAlunos, where("escolaId", "in", escolaIdsParaQuery));
-        }
-
-        const alunosSnap = await getDocs(qAlunos);
-        const alunosList = alunosSnap.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-
-        if (alunosList.length === 0) {
-          setAlunosComPendenciaReal([]);
-          setNoDataMessage(
-            `Nenhum aluno encontrado para as turmas: ${turmasParaQuery.join(
-              ", "
-            )} para sua(s) escola(s) vinculada(s).`
-          );
-          return;
-        }
-
-        const qPrazos = query(
-          collection(db, "prazosPEIAnuais"),
-          where("anoLetivo", "==", anoAtual),
-          limit(1)
-        );
-        const prazosSnap = await getDocs(qPrazos);
-        const prazoAnualDoc = prazosSnap.empty
-          ? null
-          : prazosSnap.docs[0]?.data();
-
-        if (!prazoAnualDoc) {
+        if (!resumoSnap.exists()) {
           setFetchError(
-            `Não foi encontrada uma configuração de prazos anual para o PEI do ano de ${anoAtual}. Por favor, verifique a Gestão de Prazos.`
+            "Resumo de acompanhamento não encontrado para este professor. O sistema de cálculo pode não ter sido executado ainda."
+          );
+          setAlunosComPendenciaReal([]);
+          setNoDataMessage(
+            "Não há dados de acompanhamento para este professor. Verifique se o professor possui turmas e alunos vinculados."
           );
           return;
         }
-        const dataLimiteCriacaoPEI =
-          prazoAnualDoc.dataLimiteCriacaoPEI?.toDate() || null;
-        const dataLimiteRevisao1Sem =
-          prazoAnualDoc.dataLimiteRevisao1Sem?.toDate() || null;
-        const dataLimiteRevisao2Sem =
-          prazoAnualDoc.dataLimiteRevisao2Sem?.toDate() || null;
 
-        let alunosComStatus = [];
-        alunosComStatus = await Promise.all(
-          alunosList.map(async (aluno) => {
-            let statusPeiGeral = "Não iniciado";
-            let statusRevisao1 = "N/A";
-            let statusRevisao2 = "N/A";
-            let dataUltimaAtualizacaoPei = null;
-            let isAtrasadoRealmenteLocal = false;
+        const resumoData = resumoSnap.data();
+        setProfessor({ nome: resumoData.professorNome });
 
-            const resetTimeLocal = (date) => {
-              if (date instanceof Date) {
-                const newDate = new Date(date.getTime());
-                newDate.setHours(0, 0, 0, 0);
-                return newDate;
-              }
-              return null;
-            };
+        // ✅ PASSO 2: Filtra os alunos do resumo
+        let alunosFiltrados = resumoData.alunosDetalhesPrazos || [];
 
-            const hojeZeradoLocal = resetTimeLocal(new Date());
+        // Aplica o filtro por escola se o perfil do usuário for restrito
+        if (isRestritoPorEscola) {
+          const escolasPermitidas = new Set(currentUserData.escolasVinculadas);
+          alunosFiltrados = alunosFiltrados.filter((aluno) =>
+            escolasPermitidas.has(aluno.escolaId)
+          );
+        }
 
-            let qPei = query(collection(db, "peis"));
-            qPei = query(qPei, where("alunoId", "==", aluno.id));
-            qPei = query(qPei, where("anoLetivo", "==", anoAtual));
-            if (escolaIdsParaQuery.length > 0) {
-              qPei = query(qPei, where("escolaId", "in", escolaIdsParaQuery));
-            }
-            qPei = query(qPei, orderBy("criadoEm", "desc"), limit(1));
-            const peiSnap = await getDocs(qPei);
-
-            if (peiSnap.empty) {
-              if (
-                dataLimiteCriacaoPEI &&
-                hojeZeradoLocal >= dataLimiteCriacaoPEI
-              ) {
-                statusPeiGeral = "Atrasado - Sem PEI";
-              } else {
-                statusPeiGeral = "Aguardando Criação";
-              }
-              if (
-                dataLimiteRevisao1Sem &&
-                hojeZeradoLocal >= dataLimiteRevisao1Sem
-              )
-                statusRevisao1 = "Atrasado (PEI não criado)";
-              if (
-                dataLimiteRevisao2Sem &&
-                hojeZeradoLocal >= dataLimiteRevisao2Sem
-              )
-                statusRevisao2 = "Atrasado (PEI não criado)";
-            } else {
-              const peiData = peiSnap.docs[0]?.data();
-
-              // ✅ MUDANÇA AQUI: Tratar criadoEm como string ou Timestamp
-              const dataCriacaoPei =
-                peiData?.criadoEm instanceof Date // Se já é Date (pode vir de Timestamp.toDate())
-                  ? peiData.criadoEm
-                  : peiData?.criadoEm?.toDate instanceof Function // Se é Timestamp
-                    ? peiData.criadoEm.toDate()
-                    : typeof peiData.criadoEm === "string" // Se é string
-                      ? new Date(peiData.criadoEm)
-                      : null;
-
-              // ✅ MUDANÇA AQUI: Tratar dataUltimaRevisao como string ou Timestamp
-              dataUltimaAtualizacaoPei =
-                peiData?.dataUltimaRevisao instanceof Date
-                  ? peiData.dataUltimaRevisao
-                  : peiData?.dataUltimaRevisao?.toDate instanceof Function
-                    ? peiData.dataUltimaRevisao.toDate()
-                    : typeof peiData.dataUltimaRevisao === "string"
-                      ? new Date(peiData.dataUltimaRevisao)
-                      : null;
-
-              // Fallback para dataUltimaAtualizacaoPei se dataUltimaRevisao for nula
-              dataUltimaAtualizacaoPei =
-                dataUltimaAtualizacaoPei || dataCriacaoPei;
-
-              // --- LÓGICA DE STATUS REPLICADA DA CLOUD FUNCTION ---
-              if (dataLimiteCriacaoPEI) {
-                if (hojeZeradoLocal >= dataLimiteCriacaoPEI) {
-                  if (
-                    dataCriacaoPei &&
-                    resetTimeLocal(dataCriacaoPei) <= dataLimiteCriacaoPEI
-                  ) {
-                    statusPeiGeral = "Criado no Prazo";
-                  } else if (
-                    dataCriacaoPei &&
-                    resetTimeLocal(dataCriacaoPei) > dataLimiteCriacaoPEI
-                  ) {
-                    statusPeiGeral = "Criado (Atrasado)";
-                  } else {
-                    statusPeiGeral =
-                      "Atrasado - Sem PEI (Dados Inconsistentes)";
-                  }
-                } else {
-                  statusPeiGeral = dataCriacaoPei
-                    ? "Criado (antes do prazo final)"
-                    : "Aguardando Criação";
-                }
-              } else {
-                statusPeiGeral = dataCriacaoPei
-                  ? "Criado (Prazo não definido)"
-                  : "Não iniciado (Prazo não definido)";
-              }
-
-              if (dataCriacaoPei) {
-                // Só avalia revisões se o PEI foi criado
-                // Revisão 1
-                if (dataLimiteRevisao1Sem) {
-                  if (hojeZeradoLocal >= dataLimiteRevisao1Sem) {
-                    if (
-                      dataUltimaAtualizacaoPei &&
-                      resetTimeLocal(dataUltimaAtualizacaoPei) >=
-                        dataLimiteRevisao1Sem
-                    ) {
-                      statusRevisao1 = "Em dia (Feita)";
-                    } else {
-                      statusRevisao1 = "Atrasado";
-                    }
-                  } else {
-                    statusRevisao1 =
-                      dataUltimaAtualizacaoPei &&
-                      resetTimeLocal(dataUltimaAtualizacaoPei) >=
-                        resetTimeLocal(dataCriacaoPei)
-                        ? "Feita (Aguardando prazo)"
-                        : "Aguardando";
-                  }
-                }
-
-                // Revisão 2
-                if (dataLimiteRevisao2Sem) {
-                  if (hojeZeradoLocal >= dataLimiteRevisao2Sem) {
-                    if (
-                      dataUltimaAtualizacaoPei &&
-                      resetTimeLocal(dataUltimaAtualizacaoPei) >=
-                        dataLimiteRevisao2Sem
-                    ) {
-                      statusRevisao2 = "Em dia (Feita)";
-                    } else {
-                      statusRevisao2 = "Atrasado";
-                    }
-                  } else {
-                    statusRevisao2 =
-                      dataUltimaAtualizacaoPei &&
-                      resetTimeLocal(dataUltimaAtualizacaoPei) >=
-                        resetTimeLocal(dataCriacaoPei) &&
-                      (!dataLimiteRevisao1Sem ||
-                        resetTimeLocal(dataUltimaAtualizacaoPei) >=
-                          dataLimiteRevisao1Sem)
-                        ? "Feita (Aguardando prazo)"
-                        : "Aguardando";
-                  }
-                }
-              }
-            } // Fim do if (peiSnap.empty) / else
-
-            // ✅ LÓGICA FINAL PARA isAtrasadoRealmenteLocal (REPLICADA DA CLOUD FUNCTION)
-            if (
-              statusPeiGeral === "Atrasado - Sem PEI" ||
-              statusPeiGeral === "Atrasado - Sem PEI (Dados Inconsistentes)" ||
-              statusRevisao1 === "Atrasado" ||
-              statusRevisao1 === "Atrasado (PEI não criado)" ||
-              statusRevisao2 === "Atrasado" ||
-              statusRevisao2 === "Atrasado (PEI não criado)"
-            ) {
-              isAtrasadoRealmenteLocal = true;
-            }
-
-            return {
-              ...aluno,
-              statusPeiGeral,
-              statusRevisao1,
-              statusRevisao2,
-              dataUltimaAtualizacaoPei,
-              isAtrasadoRealmente: isAtrasadoRealmenteLocal, // ✅ MUDANÇA: Inclui a flag calculada
-            };
-          })
-        );
-        // ✅ AQUI É A MUDANÇA FINAL: FILTRAR OS ALUNOS DETALHES PELO isAtrasadoRealmente
-        const alunosRealmenteAtrasados = alunosComStatus.filter(
+        // ✅ PASSO 3: Filtra para mostrar APENAS os atrasados
+        const alunosRealmenteAtrasados = alunosFiltrados.filter(
           (aluno) => aluno.isAtrasadoRealmente
         );
-        setAlunosComPendenciaReal(alunosRealmenteAtrasados); // Atualiza o estado com a lista FILTRADA
+
+        setAlunosComPendenciaReal(alunosRealmenteAtrasados);
 
         if (alunosRealmenteAtrasados.length === 0) {
-          // MUDANÇA DE NOME DO ESTADO
           setNoDataMessage(
-            `Todos os PEIs dos alunos deste professor estão em dia ou foram realizados, mesmo que com atraso. Nenhuma pendência de atraso real.`
+            "Todos os PEIs dos alunos deste professor estão em dia ou foram realizados. Nenhuma pendência de atraso real."
           );
         }
       } catch (err) {
@@ -413,20 +160,10 @@ export default function DetalhesAcompanhamentoPei() {
 
     if (initialUserLoadComplete && professorId) {
       carregarDetalhesAtrasos();
-    } else if (initialUserLoadComplete && !professorId) {
-      setLoading(false);
-      setFetchError("ID do professor não fornecido na URL. Verifique o link.");
     }
   }, [professorId, currentUserData, navigate, initialUserLoadComplete]);
 
-  if (!initialUserLoadComplete) {
-    return <Loader />;
-  }
-
-  if (loading) return <Loader />;
-  if (fetchError) return <div style={estilos.errorMessage}>{fetchError}</div>;
-
-  const temAlunosParaExibir = alunosComPendenciaReal.length > 0; // Verifica o comprimento da lista FILTRADA
+  // Restante do código (JSX) permanece o mesmo.
 
   return (
     <div className="detalhes-container" style={estilos.container}>
@@ -449,14 +186,6 @@ export default function DetalhesAcompanhamentoPei() {
           >
             {noDataMessage}
           </div>
-        ) : !temAlunosParaExibir && !loading ? (
-          <div
-            className="detalhes-mensagem-aviso"
-            style={estilos.mensagemAviso}
-          >
-            Todos os PEIs dos alunos deste professor estão em dia ou foram
-            realizados, mesmo que com atraso. Nenhuma pendência de atraso real.
-          </div>
         ) : (
           <table className="detalhes-table" style={estilos.table}>
             <thead>
@@ -469,73 +198,65 @@ export default function DetalhesAcompanhamentoPei() {
               </tr>
             </thead>
             <tbody>
-              {/* Renderiza a lista FILTRADA de alunos com pendência real */}
-              {alunosComPendenciaReal.map((aluno) => (
-                <tr key={aluno.id}>
-                  <td style={estilos.td}>{aluno.nome}</td>
-                  <td style={estilos.td}>
-                    <span
-                      style={{
-                        fontWeight: "bold",
-                        color: aluno.statusPeiGeral.includes("Atrasado")
-                          ? "#dc3545" // Vermelho
-                          : aluno.statusPeiGeral.includes("Em dia") ||
-                              aluno.statusPeiGeral.includes("Criado")
-                            ? "#28a745" // Verde
-                            : "#ffc107", // Amarelo
-                      }}
-                    >
-                      {aluno.statusPeiGeral}
-                    </span>
-                    {/* Botão que aparece apenas se o status for "Atrasado - Sem PEI" */}
-                    {aluno.statusPeiGeral.includes("Atrasado - Sem PEI") && (
-                      <button
-                        onClick={() =>
-                          navigate("/criar-pei", {
-                            state: { alunoParaSelecionar: aluno.nome },
-                          })
-                        }
-                        style={estilos.botaoCriarPEI}
+              {alunosComPendenciaReal.length > 0 ? (
+                alunosComPendenciaReal.map((aluno) => (
+                  <tr key={aluno.id}>
+                    <td style={estilos.td}>{aluno.nome}</td>
+                    <td style={estilos.td}>
+                      <span
+                        style={{
+                          fontWeight: "bold",
+                          color: aluno.statusPeiGeral.includes("Atrasado")
+                            ? "#dc3545" // Vermelho
+                            : aluno.statusPeiGeral.includes("Em dia") ||
+                                aluno.statusPeiGeral.includes("Criado")
+                              ? "#28a745" // Verde
+                              : "#ffc107", // Amarelo
+                        }}
                       >
-                        Criar PEI
-                      </button>
-                    )}
-                  </td>
-                  <td style={estilos.td}>
-                    <span
-                      style={{
-                        fontWeight: "bold",
-                        color: aluno.statusRevisao1.includes("Atrasado")
-                          ? "#dc3545"
-                          : aluno.statusRevisao1.includes("Em dia") ||
-                              aluno.statusRevisao1.includes("Feita")
-                            ? "#28a745"
-                            : "#ffc107",
-                      }}
-                    >
-                      {aluno.statusRevisao1}
-                    </span>
-                  </td>
-                  <td style={estilos.td}>
-                    <span
-                      style={{
-                        fontWeight: "bold",
-                        color: aluno.statusRevisao2.includes("Atrasado")
-                          ? "#dc3545"
-                          : aluno.statusRevisao2.includes("Em dia") ||
-                              aluno.statusRevisao2.includes("Feita")
-                            ? "#28a745"
-                            : "#ffc107",
-                      }}
-                    >
-                      {aluno.statusRevisao2}
-                    </span>
-                  </td>
-                  <td style={estilos.td}>
-                    {formatDate(aluno.dataUltimaAtualizacaoPei)}
+                        {aluno.statusPeiGeral}
+                      </span>
+                    </td>
+                    <td style={estilos.td}>
+                      <span
+                        style={{
+                          fontWeight: "bold",
+                          color: aluno.statusRevisao1.includes("Atrasado")
+                            ? "#dc3545"
+                            : aluno.statusRevisao1.includes("Concluído")
+                              ? "#28a745"
+                              : "#ffc107",
+                        }}
+                      >
+                        {aluno.statusRevisao1}
+                      </span>
+                    </td>
+                    <td style={estilos.td}>
+                      <span
+                        style={{
+                          fontWeight: "bold",
+                          color: aluno.statusRevisao2.includes("Atrasado")
+                            ? "#dc3545"
+                            : aluno.statusRevisao2.includes("Concluído")
+                              ? "#28a745"
+                              : "#ffc107",
+                        }}
+                      >
+                        {aluno.statusRevisao2}
+                      </span>
+                    </td>
+                    <td style={estilos.td}>
+                      {formatDate(aluno.dataUltimaAtualizacaoPei)}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="5" style={estilos.td}>
+                    Nenhum aluno com pendência real para exibir.
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         )}
@@ -552,15 +273,15 @@ const estilos = {
     width: "100vw",
     padding: "25px",
     fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-    display: "flex", // Adicionado para centralizar o card
+    display: "flex",
     justifyContent: "center",
-    alignItems: "flex-start", // Alinha ao topo
+    alignItems: "flex-start",
   },
   card: {
     background: "#fff",
     maxWidth: "900px",
-    width: "100%", // Garante que o card ocupe a largura máxima
-    margin: "20px", // Margem ao redor do card
+    width: "100%",
+    margin: "20px",
     padding: "30px",
     borderRadius: "8px",
     boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
@@ -570,14 +291,7 @@ const estilos = {
     color: "#1d3557",
     marginBottom: "25px",
     fontSize: "24px",
-    fontWeight: "bold", // Use bold para negrito
-  },
-  // Este estilo não está mais sendo usado diretamente por uma <p> com mensagem fixa
-  mensagem: {
-    textAlign: "center",
-    color: "#555",
-    fontStyle: "italic",
-    marginBottom: "20px",
+    fontWeight: "bold",
   },
   errorMessage: {
     color: "#e63946",
@@ -589,60 +303,33 @@ const estilos = {
     margin: "20px auto",
     maxWidth: "800px",
   },
-  detalhesList: {
-    // Estilos para listas de detalhes de atraso, se usadas
-    listStyle: "none",
-    padding: 0,
-    margin: 0,
-  },
-  detalhesListItem: {
-    // Estilos para itens de lista de detalhes de atraso
-    color: "#dc3545",
-    fontSize: "1em",
-    marginBottom: "8px",
-    backgroundColor: "#fff0f0",
-    padding: "10px",
-    borderRadius: "5px",
-    border: "1px solid #ffcccc",
-  },
-  subtitulo: {
-    // Estilo para subtítulos dentro do card
-    color: "#1d3557",
-    fontSize: "1.3em",
-    marginBottom: "15px",
-    fontWeight: "bold",
-  },
-  // ESTILOS DA TABELA
   table: {
     width: "100%",
-    borderCollapse: "collapse", // Colapsa as bordas das células para uma aparência mais limpa
+    borderCollapse: "collapse",
     marginTop: "20px",
-    border: "1px solid #ddd", // Borda externa fina
-    borderRadius: "8px", // Bordas arredondadas
-    overflow: "hidden", // Garante que as bordas arredondadas funcionem com border-collapse
-    boxShadow: "0 1px 3px rgba(0,0,0,0.1)", // Sombra suave para a tabela
+    border: "1px solid #ddd",
+    borderRadius: "8px",
+    overflow: "hidden",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
   },
   th: {
-    // Estilos para os cabeçalhos da tabela
-    backgroundColor: "#eaf2f7", // Cor de fundo do cabeçalho
-    color: "#1d3557", // Cor do texto do cabeçalho
-    padding: "12px 15px", // Espaçamento interno
-    textAlign: "left", // Alinhamento padrão à esquerda
-    borderBottom: "2px solid #ddd", // Borda inferior do cabeçalho
-    borderRight: "1px solid #e0e0e0", // Borda direita para separar colunas
+    backgroundColor: "#eaf2f7",
+    color: "#1d3557",
+    padding: "12px 15px",
+    textAlign: "left",
+    borderBottom: "2px solid #ddd",
+    borderRight: "1px solid #e0e0e0",
     fontSize: "15px",
     fontWeight: "bold",
   },
   td: {
-    // Estilos para as células da tabela
-    padding: "12px 15px", // Espaçamento interno
-    borderBottom: "1px solid #eee", // Borda inferior para separar linhas
+    padding: "12px 15px",
+    borderBottom: "1px solid #eee",
     fontSize: "14px",
-    verticalAlign: "top", // Alinha o conteúdo ao topo
-    borderRight: "1px solid #f0f0f0", // Borda direita para separar colunas
-    textAlign: "left", // Alinhamento padrão à esquerda
+    verticalAlign: "top",
+    borderRight: "1px solid #f0f0f0",
+    textAlign: "left",
   },
-  // Mensagens de aviso/sem dados
   mensagemAviso: {
     color: "#ff9900",
     backgroundColor: "#fff3cd",
@@ -654,18 +341,4 @@ const estilos = {
     maxWidth: "800px",
     fontStyle: "italic",
   },
-  // --- NOVO ESTILO PARA O BOTÃO ---
-  botaoCriarPEI: {
-    backgroundColor: "#28a745",
-    color: "#fff",
-    border: "none",
-    borderRadius: "4px",
-    padding: "4px 8px",
-    fontSize: "0.8em",
-    cursor: "pointer",
-    marginLeft: "10px",
-    transition: "background-color 0.3s ease",
-    whiteSpace: "nowrap", // Impede que o texto quebre para uma nova linha
-  },
-  // --- FIM DO NOVO ESTILO ---
 };
