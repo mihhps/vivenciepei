@@ -57,29 +57,23 @@ const MeuAcompanhamentoProfessor = lazy(
   () => import("./pages/MeuAcompanhamentoProfessor")
 );
 const CadastroTurma = lazy(() => import("./pages/CadastroTurma.jsx"));
-
-// NOVO: Importar a página de avaliação de interesses
 const AvaliacaoInteressesPage = lazy(
   () => import("./pages/AvaliacaoInteressesPage")
 );
-
-// NOVO: Importar o componente de seleção de aluno para interesses
 const SelecionarAlunoParaInteresses = lazy(
   () => import("./pages/SelecionarAlunoParaInteresses")
 );
-
-// NOVO: Importar a página de visualização de interesses
 const VisualizarAvaliacaoInteressesPage = lazy(
   () => import("./pages/VisualizarAvaliacaoInteressesPage")
 );
-
-// NOVO: Importar a página de observações do aluno
 const ObservacoesAluno = lazy(() => import("./pages/ObservacoesAluno"));
-
-// NOVO: Importar o componente de reavaliação
 const Reavaliacao = lazy(() => import("./pages/Reavaliacao"));
 
-// PDF.js Worker para importação de PDFs
+// ✅ AS DUAS PÁGINAS QUE PRECISAMOS, COM OS NOMES CORRETOS
+const VerAnamneses = lazy(() => import("./pages/VerAnamneses.jsx")); // A LISTA
+const VisualizarAnamnese = lazy(() => import("./pages/VisualizarAnamnese")); // A VISUALIZAÇÃO ÚNICA
+
+// PDF.js Worker
 import * as pdfjsLib from "pdfjs-dist/build/pdf";
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
@@ -87,9 +81,7 @@ export default function App() {
   return (
     <AuthProvider>
       <Router>
-        {/* Exibe o nome da escola atual, se o usuário estiver logado */}
         {localStorage.getItem("usuarioLogado") && <EscolaAtual />}
-
         <Suspense fallback={<div className="app-loading">Carregando...</div>}>
           <Routes>
             {/* Rotas Públicas */}
@@ -120,30 +112,36 @@ export default function App() {
                 path="/vincular-professores"
                 element={<VincularProfessoresTurmas />}
               />
-              {/* NOVO: Rota para Cadastro de Turma */}
               <Route path="/cadastro-turmas" element={<CadastroTurma />} />
+              <Route path="/corrigir-turmas" element={<CorrigirTurmas />} />
 
-              {/* Avaliações */}
+              {/* Alunos, Avaliações e Anamnese */}
               <Route path="/ver-alunos" element={<VerAlunos />} />
               <Route path="/avaliacao-inicial" element={<AvaliacaoInicial />} />
-              <Route path="/anamnese-completa" element={<AnamneseCompleta />} />
               <Route path="/ver-avaliacoes" element={<VerAvaliacoes />} />
               <Route path="/avaliacao/:id" element={<VerAvaliacao />} />
               <Route
                 path="/editar-avaliacao/:id"
                 element={<EditarAvaliacao />}
               />
-              {/* Rota para a página de seleção de aluno para avaliação de interesses */}
+              <Route path="/anamnese-completa" element={<AnamneseCompleta />} />
+
+              {/* ✅ ROTAS CORRIGIDAS PARA ANAMNESE */}
+              <Route path="/anamnese" element={<VerAnamneses />} />
+              <Route
+                path="/visualizar-anamnese/:alunoId"
+                element={<VisualizarAnamnese />}
+              />
+
+              {/* Avaliação de Interesses */}
               <Route
                 path="/selecionar-aluno-para-interesses"
                 element={<SelecionarAlunoParaInteresses />}
               />
-              {/* Rota para a página de avaliação de interesses (com alunoId) */}
               <Route
                 path="/nova-avaliacao/:alunoId"
                 element={<AvaliacaoInteressesPage />}
               />
-              {/* NOVO: Rota para a página de visualização de interesses (com ou sem alunoId) */}
               <Route
                 path="/visualizar-interesses"
                 element={<VisualizarAvaliacaoInteressesPage />}
@@ -152,7 +150,7 @@ export default function App() {
                 path="/visualizar-interesses/:alunoId"
                 element={<VisualizarAvaliacaoInteressesPage />}
               />
-              <Route path="/corrigir-turmas" element={<CorrigirTurmas />} />
+
               {/* PEI */}
               <Route path="/criar-pei" element={<CriarPei />} />
               <Route path="/ver-peis" element={<VerPeis />} />
@@ -163,11 +161,11 @@ export default function App() {
                 path="/acompanhar-metas/:id"
                 element={<AcompanharMetas />}
               />
-              {/* NOVO: Rota para Observações do Aluno */}
               <Route
                 path="/observacoes-aluno/:peiId"
                 element={<ObservacoesAluno />}
               />
+              <Route path="/reavaliacao/:alunoId" element={<Reavaliacao />} />
 
               {/* Acompanhamento e Prazos */}
               <Route path="/acompanhamento" element={<AcompanhamentoSEME />} />
@@ -189,7 +187,7 @@ export default function App() {
                 element={<MeuAcompanhamentoProfessor />}
               />
             </Route>
-            <Route path="/reavaliacao/:alunoId" element={<Reavaliacao />} />
+
             {/* Rota Coringa */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

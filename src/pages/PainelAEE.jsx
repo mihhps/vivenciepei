@@ -11,7 +11,6 @@ export default function PainelAee() {
     if (userData) {
       try {
         const user = JSON.parse(userData);
-        console.log("PainelAEE: Perfil do usuário original:", user.perfil);
         setUsuarioLogado(user);
       } catch (e) {
         console.error("Erro ao parsear dados do usuário logado:", e);
@@ -94,14 +93,17 @@ export default function PainelAee() {
           Perfil: <strong>{usuarioLogado?.perfil || "Desconhecido"}</strong>
         </p>
 
+        {/* --- Grupo de Botões: Alunos --- */}
         <button
           style={estiloBotao}
           onClick={() => navigate("/cadastrar-aluno")}
           onMouseEnter={aplicarEfeitoHover}
           onMouseLeave={removerEfeitoHover}
         >
-          Cadastrar Alunos
+          Cadastrar Aluno
         </button>
+
+        {/* NOME DO BOTÃO VOLTOU AO ORIGINAL */}
         <button
           style={estiloBotao}
           onClick={() => navigate("/ver-alunos")}
@@ -110,6 +112,7 @@ export default function PainelAee() {
         >
           Ver Alunos
         </button>
+
         <button
           style={estiloBotao}
           onClick={() => navigate("/importar-alunos")}
@@ -121,6 +124,7 @@ export default function PainelAee() {
 
         <hr style={{ margin: "20px 0", border: "1px solid #eee" }} />
 
+        {/* --- Grupo de Botões: Avaliações --- */}
         <button
           style={estiloBotao}
           onClick={() => navigate("/avaliacao-inicial")}
@@ -132,23 +136,33 @@ export default function PainelAee() {
 
         <button
           style={estiloBotao}
-          onClick={() => navigate(`/nova-avaliacao/${ID_DE_ALUNO_PARA_TESTE}`)}
-          onMouseEnter={aplicarEfeitoHover}
-          onMouseLeave={removerEfeitoHover}
-        >
-          Avaliação de Interesses
-        </button>
-        {/* BOTÃO ADICIONADO AQUI */}
-        <button
-          style={estiloBotao}
           onClick={() => navigate("/anamnese-completa")}
           onMouseEnter={aplicarEfeitoHover}
           onMouseLeave={removerEfeitoHover}
         >
           Anamnese Completa
         </button>
+
+        <button
+          style={estiloBotao}
+          onClick={() => navigate("/ver-anamneses")} // <-- CORRIGIDO para o link da página nova
+          // ...
+        >
+          Ver Anamneses
+        </button>
+
+        <button
+          style={estiloBotao}
+          onClick={() => navigate(`/nova-avaliacao/${ID_DE_ALUNO_PARA_TESTE}`)}
+          onMouseEnter={aplicarEfeitoHover}
+          onMouseLeave={removerEfeitoHover}
+        >
+          Avaliação de Interesses
+        </button>
+
         <hr style={{ margin: "20px 0", border: "1px solid #eee" }} />
 
+        {/* --- Grupo de Botões: PEI --- */}
         <button
           style={estiloBotao}
           onClick={() => navigate("/criar-pei")}
@@ -168,6 +182,7 @@ export default function PainelAee() {
 
         <hr style={{ margin: "20px 0", border: "1px solid #eee" }} />
 
+        {/* --- Grupo de Botões: Gestão --- */}
         <button
           style={estiloBotao}
           onClick={() => navigate("/vincular-professores")}
