@@ -1,5 +1,3 @@
-// src/pages/VisualizarAnamnese.jsx
-
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { db } from "../firebase";
@@ -14,10 +12,10 @@ import {
 } from "firebase/firestore";
 import Loader from "../components/Loader";
 import BotaoVoltar from "../components/BotaoVoltar";
-// ✅ Importa a função de gerar PDF do novo arquivo
+import "../styles/AnamneseCompleta.css";
 import { gerarAnamnesePDF } from "../utils/gerarAnamnesePDF";
-// ✅ Importa as perguntas e seções do arquivo de configuração
 import { labelMap, secoesAnamneses } from "../utils/anamneseConfig";
+import { calcularIdadeEFaixa, formatarDataSegura } from "../utils/dataUtils.js";
 
 const DisplayItem = ({ labelKey, labelText, value }) => {
   if (value === null || value === undefined || value === "") return null;
@@ -32,48 +30,15 @@ const DisplayItem = ({ labelKey, labelText, value }) => {
 
   if (typeof value === "boolean") {
     displayValue = value ? "Sim" : "Não";
-  } else if (
-    labelKey === "dataNascimento" &&
-    typeof value === "string" &&
-    value.includes("-")
-  ) {
-    displayValue = value.split("-").reverse().join("/");
   } else if (labelKey === "sexo") {
     if (String(value).toUpperCase() === "M") displayValue = "Masculino";
     else if (String(value).toUpperCase() === "F") displayValue = "Feminino";
-  } else if (labelKey === "idade") {
-    displayValue = `${value} anos`;
   }
 
   return (
-    <div
-      style={{
-        marginBottom: "16px",
-        borderBottom: "1px solid #eee",
-        paddingBottom: "12px",
-        wordBreak: "break-word",
-      }}
-    >
-      <strong
-        style={{
-          color: "#1d3557",
-          fontSize: "16px",
-          display: "block",
-          marginBottom: "4px",
-        }}
-      >
-        {finalLabel}
-      </strong>
-      <p
-        style={{
-          margin: "0",
-          color: "#495057",
-          fontSize: "15px",
-          whiteSpace: "pre-wrap",
-        }}
-      >
-        {String(displayValue)}
-      </p>
+    <div className="display-item-container">
+      <strong className="display-item-label">{finalLabel}</strong>
+      <p className="display-item-value">{String(displayValue)}</p>
     </div>
   );
 };
@@ -131,6 +96,19 @@ export default function VisualizarAnamnese() {
 
   if (loading) return <Loader />;
 
+  // ✅ Lista de campos a serem excluídos da exibição principal
+  const camposExcluidosDoCorpo = new Set([
+    "nome",
+    "idade",
+    "dataNascimento",
+    "turma",
+    "turno",
+    "sexo",
+    "naturalidade",
+    "nacionalidade",
+    "diagnostico",
+  ]);
+
   const camposRenderizados = new Set(secoesAnamneses.flatMap((s) => s.campos));
   const camposDeSistema = new Set([
     "criadoEm",
@@ -140,118 +118,85 @@ export default function VisualizarAnamnese() {
   ]);
   const camposRestantes = anamnese
     ? Object.entries(anamnese).filter(
-        ([key]) => !camposRenderizados.has(key) && !camposDeSistema.has(key)
+        ([key]) =>
+          !camposRenderizados.has(key) &&
+          !camposDeSistema.has(key) &&
+          !camposExcluidosDoCorpo.has(key)
       )
     : [];
 
+  const [idadeCalculada] = aluno
+    ? calcularIdadeEFaixa(aluno.nascimento)
+    : ["-"];
+
   return (
-    <div
-      style={{
-        backgroundColor: "#f0f8ff",
-        padding: "20px",
-        minHeight: "100vh",
-        fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: "900px",
-          margin: "0 auto",
-          backgroundColor: "white",
-          padding: "40px",
-          borderRadius: "8px",
-          position: "relative",
-          boxShadow: "0 4px 15px rgba(0,0,0,0.1)",
-        }}
-      >
+    <div className="page-container">
+      <div className="form-container">
         <BotaoVoltar />
-        <h1
-          style={{
-            textAlign: "center",
-            color: "#1d3557",
-            marginBottom: "10px",
-          }}
-        >
-          Anamnese Completa
-        </h1>
+        <h1 className="form-title">Anamnese Completa</h1>
+        {error && <p className="error-message">{error}</p>}
         {aluno && (
-          <h2
-            style={{
-              textAlign: "center",
-              color: "#457b9d",
-              marginTop: 0,
-              fontWeight: "normal",
-              marginBottom: "30px",
-            }}
-          >
-            {aluno.nome}
-          </h2>
+          <div className="aluno-header-info">
+            <h4>Informações do Aluno</h4>
+            <p>
+              <strong>Nome:</strong> {aluno.nome || "N/A"}
+            </p>
+            <p>
+              <strong>Data de Nascimento:</strong>{" "}
+              {formatarDataSegura(aluno.nascimento)}
+            </p>
+            <p>
+              <strong>Idade:</strong>{" "}
+              {idadeCalculada ? `${idadeCalculada} anos` : "N/A"}
+            </p>
+            <p>
+              <strong>Diagnóstico:</strong> {aluno.diagnostico || "N/A"}
+            </p>
+            <p>
+              <strong>Turma:</strong> {aluno.turma || "N/A"}
+            </p>
+            <p>
+              <strong>Turno:</strong> {aluno.turno || "N/A"}
+            </p>
+          </div>
         )}
-        {error && <p style={{ color: "red", textAlign: "center" }}>{error}</p>}
         {anamnese && (
           <>
-            <button
-              onClick={handleDownloadPdf}
-              style={{
-                display: "block",
-                margin: "0 auto 30px auto",
-                padding: "12px 25px",
-                backgroundColor: "#2a9d8f",
-                color: "white",
-                border: "none",
-                borderRadius: "8px",
-                cursor: "pointer",
-                fontSize: "16px",
-                fontWeight: "bold",
-              }}
-            >
-              📄 Baixar em PDF
-            </button>
             <div id="pdf-content">
               {secoesAnamneses.map((secao) => (
-                <div key={secao.titulo} style={{ marginBottom: "2.5rem" }}>
-                  <h3
-                    style={{
-                      color: "#1d3557",
-                      borderBottom: "2px solid #457b9d",
-                      paddingBottom: "8px",
-                      marginBottom: "20px",
-                      fontSize: "1.2rem",
-                    }}
-                  >
+                <div key={secao.titulo} className="section-container">
+                  <h3 className="section-title" style={{ cursor: "default" }}>
                     {secao.titulo}
                   </h3>
-                  {secao.campos.map((campo) => (
-                    <DisplayItem
-                      key={campo}
-                      labelKey={campo}
-                      labelText={labelMap[campo]}
-                      value={anamnese[campo]}
-                    />
-                  ))}
+                  <div className="section-content">
+                    {secao.campos
+                      .filter((campo) => !camposExcluidosDoCorpo.has(campo))
+                      .map((campo) => (
+                        <DisplayItem
+                          key={campo}
+                          labelKey={campo}
+                          labelText={labelMap[campo]}
+                          value={anamnese[campo]}
+                        />
+                      ))}
+                  </div>
                 </div>
               ))}
               {camposRestantes.length > 0 && (
-                <div style={{ marginTop: "30px" }}>
-                  <h3
-                    style={{
-                      color: "#1d3557",
-                      borderBottom: "2px solid #457b9d",
-                      paddingBottom: "8px",
-                      marginBottom: "20px",
-                      fontSize: "1.2rem",
-                    }}
-                  >
+                <div className="section-container">
+                  <h3 className="section-title" style={{ cursor: "default" }}>
                     Outras Informações
                   </h3>
-                  {camposRestantes.map(([key, value]) => (
-                    <DisplayItem
-                      key={key}
-                      labelKey={key}
-                      labelText={labelMap[key]}
-                      value={value}
-                    />
-                  ))}
+                  <div className="section-content">
+                    {camposRestantes.map(([key, value]) => (
+                      <DisplayItem
+                        key={key}
+                        labelKey={key}
+                        labelText={labelMap[key]}
+                        value={value}
+                      />
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

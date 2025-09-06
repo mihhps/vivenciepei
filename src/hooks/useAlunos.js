@@ -13,6 +13,7 @@ import {
   signInWithCustomToken,
 } from "firebase/auth";
 import { app } from "../firebase";
+import { useUserSchool } from "./useUserSchool"; // Importa o hook corrigido
 
 // === FUNÇÃO DE NORMALIZAÇÃO ===
 const normalizarTurma = (turma) => {
@@ -84,6 +85,9 @@ export function useAlunos() {
 
   const usuarioLogado = useMemo(() => getUsuarioLogado(), []);
 
+  // ✅ NOVO: Usamos o hook que já corrigimos para obter o ID da escola e o estado de carregamento
+  const { userSchoolId, isLoadingUserSchool } = useUserSchool();
+
   useEffect(() => {
     const authInstance = getAuth(app);
     const unsubscribe = onAuthStateChanged(authInstance, async (user) => {
@@ -105,52 +109,42 @@ export function useAlunos() {
     return () => unsubscribe();
   }, []);
 
-  const fetchAlunos = useCallback(async () => {
-    if (!authReady || !userId || !appId) {
-      return;
-    }
+  // ✅ CORREÇÃO: A lógica de busca de alunos foi movida para um useEffect separado
+  // que depende dos dados do useUserSchool.
+  useEffect(() => {
+    const fetchAlunos = async () => {
+      setCarregando(true);
+      setErro(null);
 
-    setCarregando(true);
-    setErro(null);
-    let fetchedAlunos = [];
-    const firestore = getFirestore(app);
-    const temAcessoAmplo = perfisComAcessoAmplo.includes(usuarioLogado.perfil);
-
-    try {
-      let mainAlunosQuery = collection(firestore, "alunos");
-
-      const turmasDoProfessorPadronizadas = usuarioLogado.turmas;
-
-      if (temAcessoAmplo) {
-        // A consulta não precisa de filtro
-      } else if (turmasDoProfessorPadronizadas.length > 0) {
-        mainAlunosQuery = query(
-          mainAlunosQuery,
-          where("turma", "in", turmasDoProfessorPadronizadas)
-        );
-      } else {
+      // Só tenta buscar os alunos se a escola já foi identificada e não está carregando
+      if (userSchoolId && !isLoadingUserSchool) {
+        try {
+          // ✅ LÓGICA CORRIGIDA: Usa o ID da escola para buscar todos os alunos
+          const firestore = getFirestore(app);
+          const q = query(
+            collection(firestore, "alunos"),
+            where("escolaId", "==", userSchoolId)
+          );
+          const querySnapshot = await getDocs(q);
+          const alunosData = querySnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+          setAlunos(alunosData);
+          setCarregando(false);
+        } catch (error) {
+          console.error("Erro ao buscar alunos:", error);
+          setErro("Não foi possível carregar a lista de alunos.");
+          setCarregando(false);
+        }
+      } else if (!userSchoolId && !isLoadingUserSchool) {
         setAlunos([]);
         setCarregando(false);
-        return;
       }
+    };
 
-      const querySnapshot = await getDocs(mainAlunosQuery);
-      querySnapshot.forEach((doc) => {
-        fetchedAlunos.push({ id: doc.id, ...doc.data() });
-      });
-
-      setAlunos(fetchedAlunos);
-    } catch (err) {
-      console.error("Erro ao carregar alunos do Firebase:", err);
-      setErro("Não foi possível carregar a lista de alunos.");
-    } finally {
-      setCarregando(false);
-    }
-  }, [authReady, userId, appId, usuarioLogado.perfil, usuarioLogado.turmas]);
-
-  useEffect(() => {
     fetchAlunos();
-  }, [fetchAlunos]);
+  }, [userSchoolId, isLoadingUserSchool]); // Re-executa a busca quando o ID da escola muda.
 
   return { alunos, carregando, erro };
 }

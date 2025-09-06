@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react"; // Adicionado useMemo
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
@@ -289,10 +289,12 @@ export default function VisualizarPei() {
 
   const metasAgrupadas = {};
   pei.resumoPEI?.forEach((meta) => {
-    if (!metasAgrupadas[meta.area]) metasAgrupadas[meta.area] = {};
-    if (!metasAgrupadas[meta.area][meta.subarea])
-      metasAgrupadas[meta.area][meta.subarea] = [];
-    metasAgrupadas[meta.area][meta.subarea].push(meta);
+    const areaName = meta.area || "Sem Área";
+    if (!metasAgrupadas[areaName]) metasAgrupadas[areaName] = {};
+    const subareaName = meta.subarea || "Sem Subárea";
+    if (!metasAgrupadas[areaName][subareaName])
+      metasAgrupadas[areaName][subareaName] = [];
+    metasAgrupadas[areaName][subareaName].push(meta);
   });
 
   return (
@@ -337,7 +339,7 @@ export default function VisualizarPei() {
             {/* Usar estilo específico */}
             {Object.entries(subareas).map(([subarea, metas], j) => (
               <div key={j} style={estilos.blocoSubarea}>
-                {subarea !== "undefined" && (
+                {subarea !== "Sem Subárea" && (
                   <h5 style={estilos.tituloSubarea}>{subarea}</h5>
                 )}
                 <table style={estilos.tabela}>
@@ -369,7 +371,6 @@ export default function VisualizarPei() {
                           {meta.nivelAlmejado}
                         </td>{" "}
                         {/* Centralizar nível */}
-                        {/* CORREÇÃO DO ERRO AQUI: Acessar as propriedades do objeto objetivos */}
                         <td style={estilos.cell}>
                           <p>
                             <strong>Curto Prazo:</strong>{" "}

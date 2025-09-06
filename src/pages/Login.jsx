@@ -1,13 +1,13 @@
 // src/pages/Login.jsx
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react"; // ✅ Adicione useEffect
 import { useNavigate, Link } from "react-router-dom";
 import { auth, db } from "../firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
+import { useAuth } from "../context/AuthContext"; // ✅ Adicione o useAuth
 
-import { PERFIS } from "../config/constants"; // Importa os PERFIS
-
+import { PERFIS } from "../config/constants";
 export default function Login() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
@@ -26,9 +26,11 @@ export default function Login() {
     setLoading(true);
 
     try {
+      // Tenta autenticar o usuário com o e-mail e senha fornecidos
       const cred = await signInWithEmailAndPassword(auth, email.trim(), senha);
       const user = cred.user;
 
+      // Busca os dados do perfil do usuário no Firestore
       const usuarioRef = doc(db, "usuarios", user.uid);
       const usuarioSnap = await getDoc(usuarioRef);
 
@@ -50,13 +52,20 @@ export default function Login() {
         escolas: usuarioDataDoFirestore.escolas || {},
       };
 
+      // Salva os dados do usuário no Local Storage
       localStorage.setItem(
         "usuarioLogado",
         JSON.stringify(usuarioCompletoParaSalvar)
       );
 
+      // Redireciona o usuário com base no perfil encontrado
       switch (usuarioCompletoParaSalvar.perfil) {
+        // Redireciona perfis de gestão para o mesmo painel
         case PERFIS.GESTAO:
+        case PERFIS.DIRETOR:
+        case PERFIS.DIRETOR_ADJUNTO:
+        case PERFIS.ORIENTADOR_PEDAGOGICO:
+        case PERFIS.SEME:
           navigate("/painel-gestao", {
             state: { usuario: usuarioCompletoParaSalvar },
           });
@@ -74,10 +83,7 @@ export default function Login() {
             setErro("Este professor não está vinculado a nenhuma escola.");
             setLoading(false);
           } else if (escolaIds.length === 1) {
-            // --- INÍCIO DA ALTERAÇÃO ---
-            // CORREÇÃO: Usar JSON.stringify para garantir que o ID é salvo como uma string JSON válida
             localStorage.setItem("escolaAtiva", JSON.stringify(escolaIds[0]));
-            // --- FIM DA ALTERAÇÃO ---
             navigate("/painel-professor", {
               state: { usuario: usuarioCompletoParaSalvar },
             });
@@ -92,12 +98,7 @@ export default function Login() {
           }
           break;
         }
-        case PERFIS.SEME:
-          navigate("/acompanhamento", {
-            state: { usuario: usuarioCompletoParaSalvar },
-          });
-          break;
-        case "desenvolvedor":
+        case PERFIS.DESENVOLVEDOR:
           navigate("/painel-dev", {
             state: { usuario: usuarioCompletoParaSalvar },
           });
@@ -125,7 +126,6 @@ export default function Login() {
     }
   };
 
-  // ... (o restante do componente Login permanece inalterado)
   return (
     <div style={estilos.container}>
       <div style={estilos.card}>

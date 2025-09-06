@@ -1,5 +1,3 @@
-// src/pages/VerPEIs.jsx
-
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import BotaoVoltar from "../components/BotaoVoltar";
@@ -12,10 +10,9 @@ import {
   doc,
   query,
   where,
-  orderBy,
-  limit,
 } from "firebase/firestore";
 import { fetchAvaliacaoInteresses } from "../utils/firebaseUtils";
+import { useUserSchool } from "../hooks/useUserSchool";
 
 // IMPORTS DOS DADOS PARA OBJETIVOS DE PRAZO
 import estruturaPEI from "../data/estruturaPEI2";
@@ -133,7 +130,6 @@ const removerAcentosLocal = (str) => {
     .trim();
 };
 
-// --- FUNÇÃO PARA IDENTIFICAR ALUNOS COM TEA ---
 const verificaTea = (diagnostico) => {
   if (!diagnostico) return false;
   const diagnosticoLowerCase = diagnostico.toLowerCase();
@@ -142,27 +138,24 @@ const verificaTea = (diagnostico) => {
     diagnosticoLowerCase.includes(palavra)
   );
 };
-// --- FIM DA FUNÇÃO DE VERIFICAÇÃO DE TEA ---
 
 export default function VerPEIs() {
   const navigate = useNavigate();
+  const { userSchoolId, userSchoolData, isLoadingUserSchool } = useUserSchool();
+
   const usuarioLogado = useMemo(() => {
     try {
       const user = JSON.parse(localStorage.getItem("usuarioLogado")) || {};
-      const escolasVinculadasIds =
-        user?.escolas && typeof user.escolas === "object"
-          ? Object.keys(user.escolas)
-          : [];
       return {
         ...user,
         perfil: user.perfil?.toLowerCase()?.trim(),
-        escolasVinculadasIds,
       };
     } catch (e) {
       console.error("Erro ao fazer parse do usuário logado:", e);
       return {};
     }
   }, []);
+
   const tipo = usuarioLogado?.perfil;
 
   const [peisPorAluno, setPeisPorAluno] = useState({});
@@ -175,17 +168,15 @@ export default function VerPEIs() {
   const [avaliacoesIniciais, setAvaliacoesIniciais] = useState({});
 
   const perfisComAcessoAmplo = useMemo(
-    () => ["desenvolvedor", "seme", "gestao", "aee"],
-    []
-  );
-
-  const estruturaPEIMap = useMemo(() => getEstruturaPEIMap(estruturaPEI), []);
-  const objetivosCurtoPrazoMap = useMemo(
-    () => getObjetivosPrazoMap(objetivosCurtoPrazoData),
-    []
-  );
-  const objetivosMedioPrazoMap = useMemo(
-    () => getObjetivosPrazoMap(objetivosMedioPrazoData),
+    () => [
+      "desenvolvedor",
+      "seme",
+      "diretor",
+      "diretor_adjunto",
+      "gestao",
+      "aee",
+      "orientador_pedagogico",
+    ],
     []
   );
 
@@ -193,144 +184,173 @@ export default function VerPEIs() {
     setCarregando(true);
     setErro(null);
 
+    if (isLoadingUserSchool) {
+      return;
+    }
+
     try {
+      const tipo = usuarioLogado?.perfil;
+
+      let alunosQuery, peisQuery, usuariosQuery, avaliacoesQuery;
+
+      switch (tipo) {
+        case "desenvolvedor":
+        case "seme":
+        // ##### INÍCIO DA LÓGICA ALTERADA #####
+        // Perfil de Diretor e outros agora usam a mesma lógica do DEV
+        case "diretor":
+        case "diretor_adjunto":
+        case "gestao":
+        case "aee":
+        case "orientador_pedagogico":
+          console.log(
+            `[DEBUG] Perfil '${tipo}' com acesso total. Buscando todas as coleções sem filtro de escola.`
+          );
+          alunosQuery = collection(db, "alunos");
+          peisQuery = collection(db, "peis");
+          usuariosQuery = collection(db, "usuarios");
+          avaliacoesQuery = collection(db, "avaliacoesIniciais");
+          break;
+        // ##### FIM DA LÓGICA ALTERADA #####
+
+        case "professor":
+          console.log(
+            "[DEBUG] Perfil de professor. Buscando por turmas e criador."
+          );
+          const turmasDoProfessor = userSchoolData?.turmas
+            ? Object.keys(userSchoolData.turmas)
+            : [];
+          if (turmasDoProfessor.length === 0) {
+            setCarregando(false);
+            setAlunos([]);
+            setPeisPorAluno({});
+            return;
+          }
+          alunosQuery = query(
+            collection(db, "alunos"),
+            where("turma", "in", turmasDoProfessor)
+          );
+          peisQuery = query(
+            collection(db, "peis"),
+            where("criadorId", "==", usuarioLogado.email)
+          );
+          usuariosQuery = query(
+            collection(db, "usuarios"),
+            where("perfil", "==", "professor")
+          );
+          avaliacoesQuery = query(
+            collection(db, "avaliacoesIniciais"),
+            where("criadorId", "==", usuarioLogado.email)
+          );
+          break;
+
+        default:
+          console.warn(
+            "[AVISO] Perfil de usuário desconhecido ou não definido:",
+            tipo
+          );
+          setCarregando(false);
+          setAlunos([]);
+          setPeisPorAluno({});
+          return;
+      }
+
       const [
         peisSnapshot,
         alunosSnapshot,
         usuariosSnapshot,
         avaliacoesSnapshot,
       ] = await Promise.all([
-        getDocs(collection(db, "peis")),
-        getDocs(collection(db, "alunos")),
-        getDocs(collection(db, "usuarios")),
-        getDocs(collection(db, "avaliacoesIniciais")),
+        getDocs(peisQuery),
+        getDocs(alunosQuery),
+        getDocs(usuariosQuery),
+        getDocs(avaliacoesQuery),
       ]);
 
       const todasAvaliacoes = {};
       avaliacoesSnapshot.docs.forEach((doc) => {
         const data = doc.data();
         let nomeAlunoAvaliacao = "";
-        if (
+        if (typeof data.aluno === "string") {
+          nomeAlunoAvaliacao = data.aluno;
+        } else if (
           typeof data.aluno === "object" &&
           data.aluno !== null &&
           typeof data.aluno.nome === "string"
         ) {
           nomeAlunoAvaliacao = data.aluno.nome;
-        } else if (typeof data.aluno === "string") {
-          nomeAlunoAvaliacao = data.aluno;
         }
         todasAvaliacoes[removerAcentosLocal(nomeAlunoAvaliacao)] = data;
       });
       setAvaliacoesIniciais(todasAvaliacoes);
 
-      // MODIFICADO: Adiciona a propriedade 'isTea' ao objeto de cada aluno
-      const alunosSalvos = alunosSnapshot.docs.map((doc) => {
-        const alunoData = doc.data();
-        return {
-          id: doc.id,
-          ...alunoData,
-          isTea: verificaTea(alunoData.diagnostico),
-        };
-      });
+      const alunosSalvos = alunosSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+        isTea: verificaTea(doc.data().diagnostico),
+      }));
+      setAlunos(alunosSalvos);
 
       const usuariosSalvos = usuariosSnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
-
-      let professoresDaEscola = [];
-      if (perfisComAcessoAmplo.includes(tipo)) {
-        if (usuarioLogado.escolasVinculadasIds.length > 0) {
-          professoresDaEscola = usuariosSalvos.filter(
-            (u) =>
-              u.perfil === "professor" &&
-              u.escolas &&
-              Object.keys(u.escolas).some((escolaId) =>
-                usuarioLogado.escolasVinculadasIds.includes(escolaId)
-              )
-          );
-        } else {
-          professoresDaEscola = usuariosSalvos.filter(
-            (u) => u.perfil === "professor"
-          );
-        }
-      } else if (tipo === "professor") {
-        professoresDaEscola = usuariosSalvos.filter(
-          (u) => u.id === usuarioLogado.id
-        );
-      }
-      setUsuarios(professoresDaEscola);
+      setUsuarios(usuariosSalvos.filter((u) => u.perfil === "professor"));
 
       const todosPeis = peisSnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
 
-      let alunosVisiveis;
-      let peisVisiveis;
-
-      if (tipo === "professor") {
-        const professorCompleto = usuariosSalvos.find(
-          (u) => u.id === usuarioLogado.id
-        );
-        const turmasDoProfessor = professorCompleto?.turmas
-          ? Object.keys(professorCompleto.turmas)
-          : [];
-
-        alunosVisiveis = alunosSalvos.filter((aluno) =>
-          turmasDoProfessor.includes(aluno.turma)
-        );
-
-        peisVisiveis = todosPeis.filter(
-          (pei) => pei.criadorId === usuarioLogado.email
-        );
-      } else if (perfisComAcessoAmplo.includes(tipo)) {
-        alunosVisiveis = alunosSalvos;
-        if (filtroUsuario) {
-          peisVisiveis = todosPeis.filter((p) => p.criadorId === filtroUsuario);
-        } else {
-          peisVisiveis = todosPeis;
-        }
-      } else {
-        alunosVisiveis = [];
-        peisVisiveis = [];
+      let peisVisiveis = todosPeis;
+      if (tipo !== "professor" && filtroUsuario) {
+        peisVisiveis = todosPeis.filter((p) => p.criadorId === filtroUsuario);
       }
 
-      setAlunos(alunosVisiveis);
-
       const agrupados = {};
-      alunosVisiveis.forEach((aluno) => {
+      alunosSalvos.forEach((aluno) => {
         agrupados[aluno.nome] = peisVisiveis
-          .filter((p) => p.aluno === aluno.nome)
+          .filter((p) => {
+            if (!p.alunoId) {
+              console.warn(
+                `[AVISO] PEI com ID ${p.id} foi descartado por não ter o campo 'alunoId'. Verifique os dados no Firestore.`
+              );
+              return false;
+            }
+            return p.alunoId === aluno.id;
+          })
           .sort((a, b) => {
-            const dataA =
-              a.dataCriacao instanceof Date
-                ? a.dataCriacao
-                : a.dataCriacao?.toDate
-                  ? a.dataCriacao.toDate()
-                  : new Date(0);
-            const dataB =
-              b.dataCriacao instanceof Date
-                ? b.dataCriacao
-                : b.dataCriacao?.toDate
-                  ? b.dataCriacao.toDate()
-                  : new Date(0);
+            const dataA = a.dataCriacao?.toDate
+              ? a.dataCriacao.toDate()
+              : new Date(0);
+            const dataB = b.dataCriacao?.toDate
+              ? b.dataCriacao.toDate()
+              : new Date(0);
             return dataB.getTime() - dataA.getTime();
           });
       });
 
       setPeisPorAluno(agrupados);
     } catch (erro) {
-      console.error("Erro ao carregar dados:", erro);
-      setErro("Erro ao carregar dados. Tente recarregar a página.");
+      console.error("Erro detalhado ao carregar dados:", erro);
+      setErro(
+        `Erro ao carregar dados: ${erro.message}. Tente recarregar a página.`
+      );
     } finally {
       setCarregando(false);
     }
-  }, [filtroUsuario, tipo, usuarioLogado, perfisComAcessoAmplo]);
+  }, [
+    filtroUsuario,
+    usuarioLogado,
+    isLoadingUserSchool,
+    userSchoolData, // userSchoolId não é mais usado para estes perfis
+  ]);
 
   useEffect(() => {
-    carregarDados();
-  }, [carregarDados]);
+    if (!isLoadingUserSchool) {
+      carregarDados();
+    }
+  }, [isLoadingUserSchool, carregarDados]);
 
   const excluirPei = async (pei) => {
     if (
@@ -354,13 +374,6 @@ export default function VerPEIs() {
       if (!alunoCompletoParaPDF) {
         alert(
           `Dados completos do aluno (${abaAtiva}) não encontrados. Não é possível gerar o PDF.`
-        );
-        return;
-      }
-
-      if (!alunoCompletoParaPDF.nome || !alunoCompletoParaPDF.id) {
-        alert(
-          `Dados essenciais (nome ou ID) do aluno completo estão faltando para o PEI de ${alunoCompletoParaPDF.nome || "aluno selecionado"}. Não é possível gerar o PDF.`
         );
         return;
       }
@@ -492,7 +505,6 @@ export default function VerPEIs() {
                 ))}
               </select>
             </div>
-            {/* Conteúdo da aba ativa */}
 
             <div style={estilos.conteudoAba}>
               {abaAtiva &&
@@ -534,16 +546,8 @@ export default function VerPEIs() {
                                 <strong>Turma no PEI:</strong> {pei.turma}
                               </p>
                               {(() => {
-                                let nomeAlunoPeiParaAvaliacao = "";
-                                if (
-                                  typeof pei.aluno === "object" &&
-                                  pei.aluno !== null &&
-                                  typeof pei.aluno.nome === "string"
-                                ) {
-                                  nomeAlunoPeiParaAvaliacao = pei.aluno.nome;
-                                } else if (typeof pei.aluno === "string") {
-                                  nomeAlunoPeiParaAvaliacao = pei.aluno;
-                                }
+                                let nomeAlunoPeiParaAvaliacao =
+                                  pei.aluno?.nome || pei.aluno || "";
 
                                 const avaliacao =
                                   avaliacoesIniciais[
@@ -641,7 +645,7 @@ export default function VerPEIs() {
                       )}
                       {alunoDaAba && (
                         <button style={estilos.gerar} onClick={handleGerarPDF}>
-                          Gerar PDF
+                          Gerar PDF Completo
                         </button>
                       )}
                     </>
@@ -666,24 +670,6 @@ const estilos = {
     width: "100vw",
     minHeight: "100vh",
   },
-  listaAlunos: {
-    display: "flex",
-    flexDirection: "column",
-    width: "100%",
-    maxWidth: "400px",
-    marginBottom: "20px",
-    borderRight: "2px solid #ccc",
-    paddingRight: "10px",
-  },
-  itemAluno: {
-    padding: "12px",
-    cursor: "pointer",
-    fontWeight: "500",
-    borderRadius: "6px",
-    marginBottom: "5px",
-    boxShadow: "0 0 4px rgba(0,0,0,0.1)",
-    transition: "background-color 0.2s",
-  },
   card: {
     backgroundColor: "#fff",
     borderRadius: "16px",
@@ -703,6 +689,7 @@ const estilos = {
   },
   filtroContainer: {
     width: "100%",
+    maxWidth: "400px",
     marginBottom: "20px",
     display: "flex",
     flexDirection: "column",
@@ -769,14 +756,6 @@ const estilos = {
     borderRadius: "6px",
     cursor: "pointer",
     marginTop: "20px",
-  },
-  gerarIndividual: {
-    backgroundColor: "#17a2b8",
-    color: "#fff",
-    border: "none",
-    padding: "8px 16px",
-    borderRadius: "6px",
-    cursor: "pointer",
   },
   excluir: {
     backgroundColor: "#e63946",

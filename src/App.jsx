@@ -1,11 +1,11 @@
-import React, { Suspense, lazy } from "react";
+import React, { Suspense, lazy, useContext } from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
 } from "react-router-dom";
-import { AuthProvider } from "./context/AuthContext";
+import { AuthContext, AuthProvider } from "./context/AuthContext";
 
 // Componentes principais
 import Login from "./pages/Login";
@@ -77,122 +77,121 @@ const VisualizarAnamnese = lazy(() => import("./pages/VisualizarAnamnese")); // 
 import * as pdfjsLib from "pdfjs-dist/build/pdf";
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
+function AppContent() {
+  const { user } = useContext(AuthContext);
+
+  return (
+    <Router>
+      {localStorage.getItem("usuarioLogado") && <EscolaAtual />}
+      <Suspense fallback={<div className="app-loading">Carregando...</div>}>
+        <Routes>
+          {/* Rotas Públicas */}
+          <Route path="/" element={<TelaInicial />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/recuperar-senha" element={<RecuperarSenha />} />
+          <Route path="/cadastro-professor" element={<CadastrarProfessor />} />
+
+          {/* Rotas Protegidas */}
+          <Route element={<PrivateRoute />}>
+            {/* Painéis */}
+            <Route path="/painel-gestao" element={<PainelGestao />} />
+            <Route path="/painel-aee" element={<PainelAee />} />
+            <Route path="/painel-professor" element={<PainelProfessor />} />
+            <Route path="/painel-dev" element={<PainelDev />} />
+
+            {/* Cadastros e Gestão */}
+            <Route path="/cadastrar-aluno" element={<CadastroAluno />} />
+            <Route path="/editar-aluno/:id" element={<EditarAluno />} />
+            <Route path="/cadastro-usuario" element={<CadastrarUsuario />} />
+            <Route path="/importar-alunos" element={<ImportarAlunos />} />
+            <Route path="/selecionar-escola" element={<SelecionarEscola />} />
+            <Route path="/vincular-escolas" element={<VincularEscolas />} />
+            <Route
+              path="/vincular-professores"
+              element={<VincularProfessoresTurmas />}
+            />
+            <Route path="/cadastro-turmas" element={<CadastroTurma />} />
+            <Route path="/corrigir-turmas" element={<CorrigirTurmas />} />
+
+            {/* Alunos, Avaliações e Anamnese */}
+            <Route path="/ver-alunos" element={<VerAlunos />} />
+            <Route path="/avaliacao-inicial" element={<AvaliacaoInicial />} />
+            <Route path="/ver-avaliacoes" element={<VerAvaliacoes />} />
+            <Route path="/avaliacao/:id" element={<VerAvaliacao />} />
+            <Route path="/editar-avaliacao/:id" element={<EditarAvaliacao />} />
+            <Route path="/anamnese-completa" element={<AnamneseCompleta />} />
+
+            {/* ✅ ROTAS CORRIGIDAS PARA ANAMNESE */}
+            <Route path="/anamnese" element={<VerAnamneses />} />
+            <Route
+              path="/visualizar-anamnese/:alunoId"
+              element={<VisualizarAnamnese />}
+            />
+
+            {/* Avaliação de Interesses */}
+            <Route
+              path="/selecionar-aluno-para-interesses"
+              element={<SelecionarAlunoParaInteresses />}
+            />
+            <Route
+              path="/nova-avaliacao/:alunoId"
+              element={<AvaliacaoInteressesPage />}
+            />
+            <Route
+              path="/visualizar-interesses"
+              element={<VisualizarAvaliacaoInteressesPage />}
+            />
+            <Route
+              path="/visualizar-interesses/:alunoId"
+              element={<VisualizarAvaliacaoInteressesPage />}
+            />
+
+            {/* PEI */}
+            <Route path="/criar-pei" element={<CriarPei />} />
+            <Route path="/ver-peis" element={<VerPeis />} />
+            <Route path="/editar-pei/:id" element={<EditarPei />} />
+            <Route path="/continuar-pei/:id" element={<ContinuarPei />} />
+            <Route path="/visualizar-pei/:id" element={<VisualizarPei />} />
+            <Route path="/acompanhar-metas/:id" element={<AcompanharMetas />} />
+            <Route
+              path="/observacoes-aluno/:peiId"
+              element={<ObservacoesAluno />}
+            />
+            <Route path="/reavaliacao/:alunoId" element={<Reavaliacao />} />
+
+            {/* Acompanhamento e Prazos */}
+            <Route path="/acompanhamento" element={<AcompanhamentoSEME />} />
+            <Route
+              path="/acompanhamento-pei/:professorId"
+              element={<DetalhesAcompanhamentoPei />}
+            />
+            <Route path="/gestao-prazos-pei" element={<GestaoPrazosPEI />} />
+            <Route
+              path="/prazos-professor"
+              element={<VisualizacaoPrazosPEIProfessor />}
+            />
+            <Route
+              path="/acompanhamento-prazos-pei"
+              element={<AcompanhamentoPrazosPei />}
+            />
+            <Route
+              path="/meu-acompanhamento-pei"
+              element={<MeuAcompanhamentoProfessor />}
+            />
+          </Route>
+
+          {/* Rota Coringa */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
+    </Router>
+  );
+}
+
 export default function App() {
   return (
     <AuthProvider>
-      <Router>
-        {localStorage.getItem("usuarioLogado") && <EscolaAtual />}
-        <Suspense fallback={<div className="app-loading">Carregando...</div>}>
-          <Routes>
-            {/* Rotas Públicas */}
-            <Route path="/" element={<TelaInicial />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/recuperar-senha" element={<RecuperarSenha />} />
-            <Route
-              path="/cadastro-professor"
-              element={<CadastrarProfessor />}
-            />
-
-            {/* Rotas Protegidas */}
-            <Route element={<PrivateRoute />}>
-              {/* Painéis */}
-              <Route path="/painel-gestao" element={<PainelGestao />} />
-              <Route path="/painel-aee" element={<PainelAee />} />
-              <Route path="/painel-professor" element={<PainelProfessor />} />
-              <Route path="/painel-dev" element={<PainelDev />} />
-
-              {/* Cadastros e Gestão */}
-              <Route path="/cadastrar-aluno" element={<CadastroAluno />} />
-              <Route path="/editar-aluno/:id" element={<EditarAluno />} />
-              <Route path="/cadastro-usuario" element={<CadastrarUsuario />} />
-              <Route path="/importar-alunos" element={<ImportarAlunos />} />
-              <Route path="/selecionar-escola" element={<SelecionarEscola />} />
-              <Route path="/vincular-escolas" element={<VincularEscolas />} />
-              <Route
-                path="/vincular-professores"
-                element={<VincularProfessoresTurmas />}
-              />
-              <Route path="/cadastro-turmas" element={<CadastroTurma />} />
-              <Route path="/corrigir-turmas" element={<CorrigirTurmas />} />
-
-              {/* Alunos, Avaliações e Anamnese */}
-              <Route path="/ver-alunos" element={<VerAlunos />} />
-              <Route path="/avaliacao-inicial" element={<AvaliacaoInicial />} />
-              <Route path="/ver-avaliacoes" element={<VerAvaliacoes />} />
-              <Route path="/avaliacao/:id" element={<VerAvaliacao />} />
-              <Route
-                path="/editar-avaliacao/:id"
-                element={<EditarAvaliacao />}
-              />
-              <Route path="/anamnese-completa" element={<AnamneseCompleta />} />
-
-              {/* ✅ ROTAS CORRIGIDAS PARA ANAMNESE */}
-              <Route path="/anamnese" element={<VerAnamneses />} />
-              <Route
-                path="/visualizar-anamnese/:alunoId"
-                element={<VisualizarAnamnese />}
-              />
-
-              {/* Avaliação de Interesses */}
-              <Route
-                path="/selecionar-aluno-para-interesses"
-                element={<SelecionarAlunoParaInteresses />}
-              />
-              <Route
-                path="/nova-avaliacao/:alunoId"
-                element={<AvaliacaoInteressesPage />}
-              />
-              <Route
-                path="/visualizar-interesses"
-                element={<VisualizarAvaliacaoInteressesPage />}
-              />
-              <Route
-                path="/visualizar-interesses/:alunoId"
-                element={<VisualizarAvaliacaoInteressesPage />}
-              />
-
-              {/* PEI */}
-              <Route path="/criar-pei" element={<CriarPei />} />
-              <Route path="/ver-peis" element={<VerPeis />} />
-              <Route path="/editar-pei/:id" element={<EditarPei />} />
-              <Route path="/continuar-pei/:id" element={<ContinuarPei />} />
-              <Route path="/visualizar-pei/:id" element={<VisualizarPei />} />
-              <Route
-                path="/acompanhar-metas/:id"
-                element={<AcompanharMetas />}
-              />
-              <Route
-                path="/observacoes-aluno/:peiId"
-                element={<ObservacoesAluno />}
-              />
-              <Route path="/reavaliacao/:alunoId" element={<Reavaliacao />} />
-
-              {/* Acompanhamento e Prazos */}
-              <Route path="/acompanhamento" element={<AcompanhamentoSEME />} />
-              <Route
-                path="/acompanhamento-pei/:professorId"
-                element={<DetalhesAcompanhamentoPei />}
-              />
-              <Route path="/gestao-prazos-pei" element={<GestaoPrazosPEI />} />
-              <Route
-                path="/prazos-professor"
-                element={<VisualizacaoPrazosPEIProfessor />}
-              />
-              <Route
-                path="/acompanhamento-prazos-pei"
-                element={<AcompanhamentoPrazosPei />}
-              />
-              <Route
-                path="/meu-acompanhamento-pei"
-                element={<MeuAcompanhamentoProfessor />}
-              />
-            </Route>
-
-            {/* Rota Coringa */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Suspense>
-      </Router>
+      <AppContent />
     </AuthProvider>
   );
 }

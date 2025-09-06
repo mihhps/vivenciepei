@@ -1,5 +1,3 @@
-// src/config/routesConfig.js
-
 import { PERFIS } from "./constants";
 
 // ========== E-MAIL DESENVOLVEDORA ==========
@@ -17,15 +15,25 @@ export const perfilRedirectMap = {
   [PERFIS.ORIENTADOR_PEDAGOGICO]: "/painel-gestao",
 };
 
-// ========== GRUPOS DE PERMISSÃO ==========
+// ========== GRUPOS DE PERMISSÃO (ORDEM CORRIGIDA) ==========
 
-const ADMINISTRADORES = [PERFIS.GESTAO, PERFIS.AEE, PERFIS.DESENVOLVEDOR];
+const ADMINISTRADORES = [
+  PERFIS.GESTAO,
+  PERFIS.AEE,
+  PERFIS.DESENVOLVEDOR,
+  PERFIS.DIRETOR,
+  PERFIS.DIRETOR_ADJUNTO,
+  PERFIS.ORIENTADOR_PEDAGOGICO,
+];
 
 const GESTORES_PEDAGOGICOS = [
   PERFIS.GESTAO,
   PERFIS.AEE,
   PERFIS.SEME,
   PERFIS.DESENVOLVEDOR,
+  PERFIS.DIRETOR,
+  PERFIS.DIRETOR_ADJUNTO,
+  PERFIS.ORIENTADOR_PEDAGOGICO,
 ];
 
 const TODOS = [
@@ -40,10 +48,17 @@ const TODOS = [
 ];
 
 // ========== PERMISSÕES POR ROTA ==========
-
+// Este objeto agora pode usar os grupos definidos acima.
 export const AUTORIZACAO_ROTAS = {
   // --- Painéis ---
   "/painel-dev": [PERFIS.DESENVOLVEDOR],
+  // ✅ CORREÇÃO AQUI: Dando acesso ao Painel de Gestão para todos os perfis de gestão escolar
+  "/painel-gestao": [
+    PERFIS.GESTAO,
+    PERFIS.DIRETOR,
+    PERFIS.DIRETOR_ADJUNTO,
+    PERFIS.ORIENTADOR_PEDAGOGICO,
+  ],
   "/painel-aee": [PERFIS.AEE, PERFIS.GESTAO, PERFIS.DESENVOLVEDOR],
 
   // --- Admin: Cadastros e Vinculações ---
@@ -58,7 +73,7 @@ export const AUTORIZACAO_ROTAS = {
   // --- Gestão e Prazos ---
   "/gestao-prazos-pei": GESTORES_PEDAGOGICOS,
   "/acompanhamento-pei/:professorId": GESTORES_PEDAGOGICOS,
-  "/acompanhamento": [PERFIS.SEME, PERFIS.DESENVOLVEDOR],
+  "/acompanhamento": GESTORES_PEDAGOGICOS,
 
   // --- Visualizações gerais ---
   "/ver-alunos": TODOS,
@@ -69,6 +84,8 @@ export const AUTORIZACAO_ROTAS = {
   "/prazos-professor": TODOS,
   "/visualizar-pei/:id": TODOS,
   "/avaliacao/:id": TODOS,
+  "/anamnese": TODOS,
+  "/visualizar-anamnese/:alunoId": TODOS,
 
   // --- Avaliação Inicial & Anamnese ---
   "/avaliacao-inicial": TODOS,
@@ -76,29 +93,17 @@ export const AUTORIZACAO_ROTAS = {
   "/anamnese-completa": TODOS,
 
   // --- PEI: Criação, edição, acompanhamento ---
-  "/criar-pei": [
-    PERFIS.GESTAO,
-    PERFIS.AEE,
-    PERFIS.PROFESSOR,
-    PERFIS.DESENVOLVEDOR,
-  ],
-  "/editar-pei/:id": [
-    PERFIS.GESTAO,
-    PERFIS.AEE,
-    PERFIS.PROFESSOR,
-    PERFIS.DESENVOLVEDOR,
-  ],
-  "/continuar-pei/:id": [
-    PERFIS.GESTAO,
-    PERFIS.AEE,
-    PERFIS.PROFESSOR,
-    PERFIS.DESENVOLVEDOR,
-  ],
-  "/acompanhar-metas/:id": [
-    PERFIS.GESTAO,
-    PERFIS.AEE,
-    PERFIS.PROFESSOR,
-    PERFIS.DESENVOLVEDOR,
-  ],
+  "/criar-pei": TODOS,
+  "/editar-pei/:id": TODOS,
+  "/continuar-pei/:id": TODOS,
+  "/acompanhar-metas/:id": TODOS,
   "/meu-acompanhamento-pei": [PERFIS.PROFESSOR, PERFIS.DESENVOLVEDOR],
+
+  // --- Rotas de Avaliação de Interesses ---
+  "/selecionar-aluno-para-interesses": TODOS,
+  "/nova-avaliacao/:alunoId": TODOS,
+  "/visualizar-interesses": TODOS,
+  "/visualizar-interesses/:alunoId": TODOS,
+  "/observacoes-aluno/:peiId": TODOS,
+  "/reavaliacao/:alunoId": TODOS,
 };

@@ -1,16 +1,23 @@
+// src/hooks/useLocalStorage.js
+
 import { useState, useEffect, useCallback } from "react";
 
 // Função para ler do localStorage com segurança
 function getStorageValue(key, defaultValue) {
   try {
     const saved = localStorage.getItem(key);
-    if (saved !== null && saved !== "undefined") {
-      return JSON.parse(saved);
+    if (saved === null) {
+      return defaultValue;
     }
-    return defaultValue;
+
+    // Tenta fazer o parse do JSON
+    const parsed = JSON.parse(saved);
+    return parsed;
   } catch (error) {
+    // Se o parse falhar (porque não é um JSON), retorna o valor original
     console.error(`Erro ao parsear ${key} do localStorage:`, error);
-    return defaultValue;
+    // Retorna o valor original do localStorage (a string pura)
+    return localStorage.getItem(key) || defaultValue;
   }
 }
 
@@ -19,7 +26,6 @@ export const useLocalStorage = (key, defaultValue) => {
 
   // Efeito para atualizar o localStorage quando o estado 'value' mudar
   useEffect(() => {
-    // Evita salvar um valor 'undefined'
     if (value === undefined) {
       localStorage.removeItem(key);
     } else {
@@ -46,3 +52,5 @@ export const useLocalStorage = (key, defaultValue) => {
 
   return [value, setValue];
 };
+
+export default useLocalStorage;

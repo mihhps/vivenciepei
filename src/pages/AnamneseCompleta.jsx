@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import BotaoVoltar from "../components/BotaoVoltar";
 import Loader from "../components/Loader";
-import { db } from "../firebase";
+import { db, app } from "../firebase";
 import {
   collection,
   doc,
@@ -14,28 +14,15 @@ import {
   orderBy,
   limit,
 } from "firebase/firestore";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useAuth } from "../context/AuthContext";
 import { isAuthorized } from "../utils/authUtils";
 import { useNavigate } from "react-router-dom";
+import "../styles/AnamneseCompleta.css";
+// ✅ Importa as novas funções utilitárias
+import { calcularIdadeEFaixa, formatarDataSegura } from "../utils/dataUtils.js";
 
-// ✅ NOVO: Função para calcular a idade a partir da data de nascimento (timestamp do Firebase)
-const calcularIdade = (timestamp) => {
-  if (!timestamp || typeof timestamp.toDate !== "function") return "";
-  try {
-    const dataNasc = timestamp.toDate();
-    const hoje = new Date();
-    let idade = hoje.getFullYear() - dataNasc.getFullYear();
-    const mes = hoje.getMonth() - dataNasc.getMonth();
-    if (mes < 0 || (mes === 0 && hoje.getDate() < dataNasc.getDate())) {
-      idade--;
-    }
-    return idade.toString();
-  } catch (e) {
-    return "";
-  }
-};
-
-// ✅ NOVO: Função para formatar a data do Firebase para o formato do input (AAAA-MM-DD)
+// Função para formatar a data do Firebase para o formato do input (AAAA-MM-DD)
 const formatarDataParaInput = (timestamp) => {
   if (!timestamp || typeof timestamp.toDate !== "function") return "";
   try {
@@ -65,6 +52,9 @@ const initialFormState = {
   paiProfissao: "",
   irmaos: "",
   queixaPrincipal: "",
+  diagnostico: "",
+  turma: "",
+  turno: "",
   queriaEngravidar: "",
   comoFoiGestacao: "",
   fezPreNatal: "",
@@ -278,27 +268,16 @@ const AnamneseCompleta = () => {
     fetchAlunos();
   }, [user]);
 
-  // ✅ ALTERADO: Função de carregar agora usa os helpers de data e idade
   const loadAnamnese = async (alunoId) => {
     setLoading(true);
     setFetchError(null);
     try {
-      const alunoSelecionado = alunosList.find((a) => a.id === alunoId);
-      let dadosIniciais = { ...initialFormState };
-      if (alunoSelecionado) {
-        dadosIniciais = {
-          ...dadosIniciais,
-          nome: alunoSelecionado.nome || "",
-          // Usa as novas funções para formatar a data e calcular a idade
-          dataNascimento: formatarDataParaInput(
-            alunoSelecionado.dataNascimento
-          ),
-          idade: calcularIdade(alunoSelecionado.dataNascimento),
-          sexo: alunoSelecionado.sexo || "",
-          queixaPrincipal: alunoSelecionado.diagnostico || "",
-        };
+      const alunoDocRef = doc(db, "alunos", alunoId);
+      const alunoDocSnap = await getDoc(alunoDocRef);
+      let alunoData = {};
+      if (alunoDocSnap.exists()) {
+        alunoData = alunoDocSnap.data();
       }
-      setFormData(dadosIniciais);
 
       const qAnamnese = query(
         collection(db, `alunos/${alunoId}/anamneses`),
@@ -306,13 +285,62 @@ const AnamneseCompleta = () => {
         limit(1)
       );
       const anamneseSnap = await getDocs(qAnamnese);
-
+      let anamneseData = {};
       if (!anamneseSnap.empty) {
-        const anamneseData = anamneseSnap.docs[0].data();
-        setFormData((prevData) => ({ ...prevData, ...anamneseData }));
+        anamneseData = anamneseSnap.docs[0].data();
       }
+
+      const dataNascString = alunoData.nascimento || "";
+      const [idadeCalculada] = calcularIdadeEFaixa(dataNascString);
+
+      setFormData({
+        ...initialFormState,
+        nome: alunoData.nome || "",
+        sexo: alunoData.sexo || "",
+        idade: idadeCalculada || "",
+        dataNascimento: dataNascString,
+        naturalidade: alunoData.naturalidade || "",
+        nacionalidade: alunoData.nacionalidade || "",
+        diagnostico: alunoData.diagnostico || "",
+        turma: alunoData.turma || "",
+        turno: alunoData.turno || "",
+        ...anamneseData,
+        anexos: anamneseData.anexos || [],
+      });
     } catch (err) {
       setFetchError("Erro ao carregar os dados do aluno ou da anamnese.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFileChange = async (e) => {
+    const files = e.target.files;
+    if (!files.length) return;
+
+    setLoading(true);
+    const storage = getStorage(app);
+    const uploadedUrls = [];
+
+    try {
+      for (const file of files) {
+        const storageRef = ref(
+          storage,
+          `anamneses/${selectedAlunoId}/${file.name}`
+        );
+        const snapshot = await uploadBytes(storageRef, file);
+        const downloadUrl = await getDownloadURL(snapshot.ref);
+        uploadedUrls.push(downloadUrl);
+      }
+
+      setFormData((prevData) => ({
+        ...prevData,
+        anexos: [...prevData.anexos, ...uploadedUrls],
+      }));
+      alert("Arquivos enviados com sucesso!");
+    } catch (error) {
+      console.error("Erro ao fazer upload dos arquivos:", error);
+      setFetchError("Erro ao fazer upload dos arquivos. Tente novamente.");
     } finally {
       setLoading(false);
     }
@@ -358,26 +386,21 @@ const AnamneseCompleta = () => {
     }
   };
 
-  // --- FUNÇÕES DE RENDERIZAÇÃO ---
-  // (O restante do código permanece o mesmo)
-
   const renderRadioGroup = (name, options, label) => (
-    <div style={questionContainerStyle}>
-      <label style={labelStyle}>{label}</label>
-      <div style={radioGroupStyle}>
+    <div className="question-container">
+      <label className="form-label">{label}</label>
+      <div className="radio-group">
         {options.map((option) => (
-          <label key={option} style={radioLabelStyle}>
+          <label key={option} className="radio-label">
             <input
               type="radio"
               name={name}
               value={option}
               checked={formData[name] === option}
               onChange={handleChange}
-              style={radioInputStyle}
+              className="radio-input"
             />
-            <span style={radioCustomStyle(formData[name] === option)}>
-              {option}
-            </span>
+            <span className="radio-custom">{option}</span>
           </label>
         ))}
       </div>
@@ -385,74 +408,61 @@ const AnamneseCompleta = () => {
   );
 
   const renderInput = (name, placeholder, type = "text") => (
-    <div style={questionContainerStyle}>
-      <label style={labelStyle}>{placeholder}</label>
+    <div className="question-container">
+      <label className="form-label">{placeholder}</label>
       <input
         type={type}
         name={name}
         placeholder={placeholder}
         value={formData[name] || ""}
         onChange={handleChange}
-        style={inputStyle}
+        className="form-input"
       />
     </div>
   );
 
   const renderTextArea = (name, placeholder) => (
-    <div style={questionContainerStyle}>
-      <label style={labelStyle}>{placeholder}</label>
+    <div className="question-container">
+      <label className="form-label">{placeholder}</label>
       <textarea
         name={name}
         placeholder={placeholder}
         value={formData[name] || ""}
         onChange={handleChange}
-        style={textAreaStyle}
+        className="form-textarea"
       />
     </div>
   );
 
   const renderSecao = (id, titulo, conteudo) => (
-    <div style={sectionStyle}>
+    <div className="section-container">
       <h3
-        style={sectionTitleStyle}
+        className={`section-title ${secaoAtiva === id ? "active" : ""}`}
         onClick={() => setSecaoAtiva(id === secaoAtiva ? null : id)}
       >
         {titulo}
-        <span
-          style={{
-            transform: secaoAtiva === id ? "rotate(180deg)" : "rotate(0deg)",
-            transition: "transform 0.3s",
-          }}
-        >
-          ▼
-        </span>
+        <span className="arrow">▼</span>
       </h3>
-      {secaoAtiva === id && <div style={sectionContentStyle}>{conteudo}</div>}
+      {secaoAtiva === id && <div className="section-content">{conteudo}</div>}
     </div>
   );
 
   if (!isAuthReady || isLoadingProfile) return <Loader />;
 
   return (
-    <div style={pageContainerStyle}>
-      <div style={formContainerStyle}>
+    <div className="page-container">
+      <div className="form-container">
         <BotaoVoltar />
-        <h2 style={titleStyle}>Anamnese Completa - AEE</h2>
-        {fetchError && (
-          <div
-            style={{ color: "red", textAlign: "center", marginBottom: "15px" }}
-          >
-            {fetchError}
-          </div>
-        )}
+        <h2 className="form-title">Anamnese Completa - AEE</h2>
+        {fetchError && <div className="error-message">{fetchError}</div>}
 
-        <div style={{ marginBottom: "20px" }}>
-          <label style={labelStyle}>Selecione o Aluno:</label>
+        <div className="select-aluno-container">
+          <label className="form-label">Selecione o Aluno:</label>
           <select
             name="aluno"
             value={selectedAlunoId}
             onChange={handleSelectAluno}
-            style={inputStyle}
+            className="form-input"
             required
           >
             <option value="">Selecione um aluno...</option>
@@ -464,6 +474,29 @@ const AnamneseCompleta = () => {
           </select>
         </div>
 
+        {formData.nome && (
+          <div className="aluno-header-info">
+            <h4>Informações do Aluno</h4>
+            <p>
+              <strong>Nome:</strong> {formData.nome}
+            </p>
+            <p>
+              <strong>Data de Nascimento:</strong>{" "}
+              {formatarDataSegura(formData.dataNascimento)}
+            </p>
+            <p>
+              <strong>Idade:</strong>{" "}
+              {formData.idade ? `${formData.idade} anos` : "N/A"}
+            </p>
+            <p>
+              <strong>Turma:</strong> {formData.turma || "N/A"}
+            </p>
+            <p>
+              <strong>Turno:</strong> {formData.turno || "N/A"}
+            </p>
+          </div>
+        )}
+
         {loading ? (
           <Loader />
         ) : (
@@ -472,12 +505,6 @@ const AnamneseCompleta = () => {
               "dadosPessoais",
               "1) Informações de Dados Pessoais",
               <>
-                {renderInput("nome", "Nome completo")}
-                <div style={inlineInputGroup}>
-                  {renderInput("dataNascimento", "Data de Nascimento", "date")}
-                  {renderInput("idade", "Idade", "number")}
-                </div>
-                {renderRadioGroup("sexo", ["F", "M"], "Sexo")}
                 {renderInput("naturalidade", "Naturalidade")}
                 {renderInput("nacionalidade", "Nacionalidade")}
                 {renderInput("maeNome", "Nome da Mãe")}
@@ -490,8 +517,6 @@ const AnamneseCompleta = () => {
               </>
             )}
 
-            {/* AQUI VÃO TODAS AS OUTRAS 16 SEÇÕES, EXATAMENTE COMO NO CÓDIGO ANTERIOR */}
-            {/* ... */}
             {renderSecao(
               "queixaPrincipal",
               "2) Queixa Principal",
@@ -504,8 +529,14 @@ const AnamneseCompleta = () => {
             )}
 
             {renderSecao(
+              "diagnostico",
+              "3) Diagnóstico",
+              <>{renderTextArea("diagnostico", "Descreva o diagnóstico")}</>
+            )}
+
+            {renderSecao(
               "gestacao",
-              "3) Gestação e Concepção",
+              "4) Gestação e Concepção",
               <>
                 {renderRadioGroup(
                   "queriaEngravidar",
@@ -550,7 +581,7 @@ const AnamneseCompleta = () => {
 
             {renderSecao(
               "alimentacao",
-              "4) Amamentação e Alimentação",
+              "5) Amamentação e Alimentação",
               <>
                 {renderRadioGroup(
                   "mamouPeito",
@@ -610,9 +641,9 @@ const AnamneseCompleta = () => {
 
             {renderSecao(
               "psicomotor",
-              "5) Desenvolvimento Psicomotor",
+              "6) Desenvolvimento Psicomotor",
               <>
-                <p style={{ ...labelStyle, marginBottom: "15px" }}>
+                <p className="form-label" style={{ marginBottom: "15px" }}>
                   Com que idade?
                 </p>
                 {renderInput("engatinhou", "Engatinhou?")}
@@ -626,7 +657,7 @@ const AnamneseCompleta = () => {
 
             {renderSecao(
               "esfincteres",
-              "6) Controle de Esfíncteres",
+              "7) Controle de Esfíncteres",
               <>
                 {renderRadioGroup(
                   "possuiControleEsfincteres",
@@ -699,7 +730,7 @@ const AnamneseCompleta = () => {
 
             {renderSecao(
               "comunicacaoVerbal",
-              "7) Comunicação Verbal",
+              "8) Comunicação Verbal",
               <>
                 {renderRadioGroup(
                   "possuiFalaFuncional",
@@ -786,7 +817,7 @@ const AnamneseCompleta = () => {
 
             {renderSecao(
               "comunicacaoNaoVerbal",
-              "8) Comunicação Não-Verbal",
+              "9) Comunicação Não-Verbal",
               <>
                 {renderRadioGroup(
                   "indicaApontando",
@@ -813,7 +844,7 @@ const AnamneseCompleta = () => {
 
             {renderSecao(
               "sono",
-              "9) Sono",
+              "10) Sono",
               <>
                 {renderInput(
                   "dormeSoOuAcompanhado",
@@ -887,7 +918,7 @@ const AnamneseCompleta = () => {
 
             {renderSecao(
               "comportamento",
-              "10) Conduta e Comportamento",
+              "11) Conduta e Comportamento",
               <>
                 {renderRadioGroup("usaChupeta", ["Sim", "Não"], "Usa chupeta?")}
                 {formData.usaChupeta === "Sim" &&
@@ -1049,7 +1080,7 @@ const AnamneseCompleta = () => {
 
             {renderSecao(
               "repertorioSocial",
-              "11) Repertório Social",
+              "12) Repertório Social",
               <>
                 {renderRadioGroup(
                   "apresentaTimidezAdequada",
@@ -1090,7 +1121,7 @@ const AnamneseCompleta = () => {
 
             {renderSecao(
               "relacionamento",
-              "12) Como é o Relacionamento",
+              "13) Como é o Relacionamento",
               <>
                 {renderTextArea("relacionamentoMaeFilho", "Mãe e filho(a)")}
                 {renderTextArea("relacionamentoPaiFilho", "Pai e Filho(a)")}
@@ -1113,7 +1144,7 @@ const AnamneseCompleta = () => {
 
             {renderSecao(
               "sexualidade",
-              "13) Sexualidade",
+              "14) Sexualidade",
               <>
                 {renderRadioGroup(
                   "demonstrouCuriosidadeSexual",
@@ -1148,7 +1179,7 @@ const AnamneseCompleta = () => {
 
             {renderSecao(
               "saude",
-              "14) Saúde",
+              "15) Saúde",
               <>
                 {renderTextArea(
                   "saudeAtualmente",
@@ -1211,7 +1242,7 @@ const AnamneseCompleta = () => {
 
             {renderSecao(
               "antecedentesFamiliares",
-              "15) Antecedentes Familiares",
+              "16) Antecedentes Familiares",
               <>
                 {renderTextArea(
                   "doencasDeficienciasFamiliares",
@@ -1222,7 +1253,7 @@ const AnamneseCompleta = () => {
 
             {renderSecao(
               "escolaridade",
-              "16) Escolaridade",
+              "17) Escolaridade",
               <>
                 {renderInput("qualEscolaFrequenta", "Qual escola frequenta?")}
                 {renderInput("anoEscolar", "Ano/Série")}
@@ -1255,136 +1286,37 @@ const AnamneseCompleta = () => {
 
             {renderSecao(
               "exames",
-              "17) Exames e Avaliações",
+              "18) Exames e Avaliações",
               <>
                 {renderTextArea(
                   "examesAvaliacoes",
                   "Detalhe os exames e avaliações..."
                 )}
+                <div className="question-container">
+                  <label className="form-label">
+                    Anexar documentos (laudos, fotos):
+                  </label>
+                  <input
+                    type="file"
+                    name="anexos"
+                    multiple // Permite selecionar múltiplos arquivos
+                    onChange={handleFileChange}
+                    className="form-input"
+                  />
+                </div>
               </>
             )}
           </form>
         )}
       </div>
 
-      <div
-        style={{
-          ...formContainerStyle,
-          textAlign: "center",
-          marginTop: "20px",
-          padding: "20px",
-        }}
-      >
-        <button type="submit" onClick={handleSubmit} style={buttonStyle}>
+      <div className="submit-button-container">
+        <button type="submit" onClick={handleSubmit} className="submit-button">
           Salvar Anamnese Completa
         </button>
       </div>
     </div>
   );
 };
-
-// --- ESTILOS ---
-const pageContainerStyle = {
-  minHeight: "100vh",
-  backgroundColor: "#f0f8ff",
-  padding: "20px",
-};
-const formContainerStyle = {
-  backgroundColor: "#ffffff",
-  padding: "30px",
-  borderRadius: "8px",
-  boxShadow: "0 4px 15px rgba(0,0,0,0.1)",
-  maxWidth: "900px",
-  margin: "0 auto",
-};
-const titleStyle = {
-  textAlign: "center",
-  marginBottom: "30px",
-  color: "#1d3557",
-  fontSize: "28px",
-};
-const questionContainerStyle = { marginBottom: "22px" };
-const labelStyle = {
-  display: "block",
-  marginBottom: "8px",
-  fontWeight: "600",
-  color: "#333",
-  fontSize: "15px",
-};
-const inputStyle = {
-  width: "100%",
-  padding: "12px",
-  borderRadius: "6px",
-  border: "1px solid #ccc",
-  boxSizing: "border-box",
-  fontSize: "15px",
-};
-const textAreaStyle = {
-  width: "100%",
-  minHeight: "100px",
-  padding: "12px",
-  borderRadius: "6px",
-  border: "1px solid #ccc",
-  boxSizing: "border-box",
-  fontSize: "15px",
-  resize: "vertical",
-};
-const buttonStyle = {
-  width: "100%",
-  padding: "15px",
-  backgroundColor: "#2a9d8f",
-  color: "#fff",
-  border: "none",
-  borderRadius: "6px",
-  fontSize: "18px",
-  cursor: "pointer",
-  fontWeight: "bold",
-};
-const inlineInputGroup = { display: "flex", gap: "15px", alignItems: "center" };
-const sectionStyle = {
-  borderBottom: "1px solid #e0e0e0",
-  marginBottom: "10px",
-};
-const sectionTitleStyle = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  cursor: "pointer",
-  padding: "18px 15px",
-  margin: 0,
-  backgroundColor: "#f8f9fa",
-  color: "#1d3557",
-  fontWeight: "bold",
-  borderRadius: "6px 6px 0 0",
-  fontSize: "18px",
-};
-const sectionContentStyle = {
-  padding: "25px",
-  border: "1px solid #e0e0e0",
-  borderTop: "none",
-  borderRadius: "0 0 6px 6px",
-};
-const radioGroupStyle = {
-  display: "flex",
-  alignItems: "center",
-  flexWrap: "wrap",
-  gap: "10px",
-};
-const radioLabelStyle = {
-  display: "inline-flex",
-  cursor: "pointer",
-  alignItems: "center",
-};
-const radioInputStyle = { display: "none" };
-const radioCustomStyle = (isActive) => ({
-  padding: "10px 20px",
-  border: `2px solid ${isActive ? "#457b9d" : "#ced4da"}`,
-  borderRadius: "25px",
-  backgroundColor: isActive ? "#457b9d" : "#f8f9fa",
-  color: isActive ? "white" : "#495057",
-  transition: "all 0.2s ease-in-out",
-  fontWeight: "500",
-  fontSize: "15px",
-});
 
 export default AnamneseCompleta;

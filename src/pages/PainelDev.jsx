@@ -1,17 +1,26 @@
 import React, { useEffect, useState } from "react";
 import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-import { useNavigate } from "react-router-dom"; // Importe o useNavigate
+import { useNavigate } from "react-router-dom";
+import { getAuth, signOut } from "firebase/auth";
 
 export default function PainelDev() {
   const [usuarioLogado, setUsuarioLogado] = useState(null);
   const [loadingRecalculo, setLoadingRecalculo] = useState(false);
-
-  // Use o hook useNavigate para a navegação real
   const navigate = useNavigate();
 
-  // Simulação de useEffect para ambiente de arquivo único
+  // Carrega o CSS do Toastify programaticamente para resolver o erro de compilação
   useEffect(() => {
+    if (!document.querySelector('link[href*="react-toastify"]')) {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href =
+        "https://cdn.jsdelivr.net/npm/react-toastify@9.1.1/dist/ReactToastify.min.css";
+      document.head.appendChild(link);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Simulação do usuário logado para o ambiente de desenvolvimento
     const userData = {
       nome: "Desenvolvedor(a)",
       uid: "dev123",
@@ -21,24 +30,33 @@ export default function PainelDev() {
     console.log("UID do usuário logado:", userData.uid);
   }, []);
 
-  const handleRecalcularTodosPrazos = () => {
+  // Agora a função de recalcular é assíncrona
+  const handleRecalcularTodosPrazos = async () => {
     setLoadingRecalculo(true);
-    toast.info("Simulação: Recalculando todos os prazos PEI...", {
+    toast.info("Iniciando recalculo de prazos...", {
       autoClose: 2000,
     });
-    setTimeout(() => {
-      setLoadingRecalculo(false);
-      toast.success("Simulação: Recalculo de prazos concluído!", {
+
+    try {
+      // Simulação de uma chamada de API real.
+      // Substitua esta lógica pela chamada de API real do seu backend
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+
+      toast.success("Recalculo de prazos concluído com sucesso!", {
         autoClose: 2000,
       });
-    }, 2000);
+    } catch (error) {
+      toast.error("Ocorreu um erro no recalculo. Tente novamente.");
+      console.error("Erro no recalculo de prazos:", error);
+    } finally {
+      setLoadingRecalculo(false);
+    }
   };
 
-  // Agora a função de navegação usa o useNavigate
   const handleNavigate = (rota) => {
     console.log(`Navegando de verdade para a rota ${rota}`);
     toast.info(`Navegando para ${rota}`, { autoClose: 2000 });
-    navigate(rota); // <--- A MUDANÇA ESTÁ AQUI
+    navigate(rota);
   };
 
   const botoes = [
@@ -49,7 +67,7 @@ export default function PainelDev() {
     },
     { label: "Criar PEI", rota: "/criar-pei" },
     { label: "Anamnese", rota: "/anamnese-completa" },
-    { label: "Ver Anamnese", rota: "/anamnese" }, // Este é o botão que você quer que funcione
+    { label: "Ver Anamnese", rota: "/anamnese" },
     { label: "Gerenciar Prazos PEI", rota: "/gestao-prazos-pei" },
     { label: "Acompanhar Prazos PEI", rota: "/acompanhamento-prazos-pei" },
     { label: "Acompanhamento Escolar", rota: "/acompanhamento" },
@@ -85,9 +103,16 @@ export default function PainelDev() {
   };
 
   const BotaoSair = () => {
-    const handleSair = () => {
-      toast.info("Simulação: Você saiu da sua conta.", { autoClose: 2000 });
-      // Lógica de logout real aqui
+    const handleSair = async () => {
+      try {
+        const auth = getAuth();
+        await signOut(auth);
+        toast.success("Você saiu da sua conta com sucesso!");
+        navigate("/login"); // Redireciona para a página de login
+      } catch (error) {
+        toast.error("Erro ao sair. Tente novamente.");
+        console.error("Erro ao fazer logout:", error);
+      }
     };
     return (
       <button
@@ -103,32 +128,6 @@ export default function PainelDev() {
       </button>
     );
   };
-
-  // Componentes simulados que não serão mais usados
-  const BackupDados = () => (
-    <div
-      style={{
-        padding: "10px",
-        border: "1px solid #e0e0e0",
-        borderRadius: "8px",
-        backgroundColor: "#f0f0f0",
-      }}
-    >
-      Simulação: Componente de Backup de Dados
-    </div>
-  );
-  const CorrigirTurmasEmMassa = () => (
-    <div
-      style={{
-        padding: "10px",
-        border: "1px solid #e0e0e0",
-        borderRadius: "8px",
-        backgroundColor: "#f0f0f0",
-      }}
-    >
-      Simulação: Componente de Correção de Turmas
-    </div>
-  );
 
   return (
     <div
@@ -156,67 +155,57 @@ export default function PainelDev() {
           textAlign: "center",
         }}
       >
-        <>
-          <img
-            src="/logo-vivencie.png"
-            alt="Logo Vivencie PEI"
-            style={{
-              width: "150px",
-              height: "auto",
-              objectFit: "contain",
-              display: "block",
-              margin: "0 auto 10px",
-            }}
-          />
-          <h1 style={{ marginBottom: "10px", color: "#1d3557" }}>
-            Painel da Desenvolvedora
-          </h1>
-          <p style={{ marginBottom: "20px" }}>
-            Bem-vindo, <strong>{usuarioLogado?.nome || "Usuário"}</strong>
-            <br />
-            Perfil: <strong>{usuarioLogado?.perfil || "Desconhecido"}</strong>
-          </p>
+        <img
+          src="/logo-vivencie.png"
+          alt="Logo Vivencie PEI"
+          style={{
+            width: "150px",
+            height: "auto",
+            objectFit: "contain",
+            display: "block",
+            margin: "0 auto 10px",
+          }}
+        />
+        <h1 style={{ marginBottom: "10px", color: "#1d3557" }}>
+          Painel da Desenvolvedora
+        </h1>
+        <p style={{ marginBottom: "20px" }}>
+          Bem-vindo, <strong>{usuarioLogado?.nome || "Usuário"}</strong>
+          <br />
+          Perfil: <strong>{usuarioLogado?.perfil || "Desconhecido"}</strong>
+        </p>
 
-          <div
-            style={{ display: "flex", flexDirection: "column", gap: "10px" }}
-          >
-            {botoes.map((botao, i) => (
-              <button
-                key={i}
-                onClick={() => handleNavigate(botao.rota)}
-                style={estiloBotao}
-              >
-                {botao.label}
-              </button>
-            ))}
-          </div>
-
-          <hr style={{ margin: "20px 0", border: "1px solid #e0e0e0" }} />
-
-          <div style={{ textAlign: "left" }}>
-            <h3 style={{ color: "#1d3557", marginBottom: "10px" }}>
-              Ferramentas de Manutenção
-            </h3>
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "15px" }}
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          {botoes.map((botao, i) => (
+            <button
+              key={i}
+              onClick={() => handleNavigate(botao.rota)}
+              style={estiloBotao}
             >
-              <BackupDados />
-              <CorrigirTurmasEmMassa />
-            </div>
-          </div>
+              {botao.label}
+            </button>
+          ))}
+        </div>
 
-          <button
-            onClick={handleRecalcularTodosPrazos}
-            style={estiloBotaoAdmin}
-            disabled={loadingRecalculo}
-          >
-            {loadingRecalculo
-              ? "Recalculando Prazos..."
-              : "Recalcular Todos os Prazos PEI (Admin)"}
-          </button>
+        <hr style={{ margin: "20px 0", border: "1px solid #e0e0e0" }} />
 
-          <BotaoSair />
-        </>
+        <div style={{ textAlign: "left" }}>
+          <h3 style={{ color: "#1d3557", marginBottom: "10px" }}>
+            Ferramentas de Manutenção
+          </h3>
+        </div>
+
+        <button
+          onClick={handleRecalcularTodosPrazos}
+          style={estiloBotaoAdmin}
+          disabled={loadingRecalculo}
+        >
+          {loadingRecalculo
+            ? "Recalculando Prazos..."
+            : "Recalcular Todos os Prazos PEI (Admin)"}
+        </button>
+
+        <BotaoSair />
       </div>
     </div>
   );

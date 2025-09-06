@@ -145,7 +145,7 @@ export default function PainelAee() {
 
         <button
           style={estiloBotao}
-          onClick={() => navigate("/ver-anamneses")} // <-- CORRIGIDO para o link da página nova
+          onClick={() => navigate("/anamnese")} // <-- CORRIGIDO para o link da página nova
           // ...
         >
           Ver Anamneses

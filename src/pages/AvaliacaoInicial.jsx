@@ -195,7 +195,6 @@ function AvaliacaoInicial() {
                 type="date"
                 value={form.inicio}
                 onChange={(e) => form.setInicio(e.target.value)}
-                // CORREÇÃO AQUI: Usa avaliacaoDocId em vez de avaliacaoExiste
                 disabled={!!form.avaliacaoDocId || carregandoGeral}
               />
             </div>
@@ -206,7 +205,6 @@ function AvaliacaoInicial() {
                 type="date"
                 value={form.proximaAvaliacao}
                 onChange={(e) => form.setProximaAvaliacao(e.target.value)}
-                // CORREÇÃO AQUI: Usa avaliacaoDocId em vez de avaliacaoExiste
                 disabled={!!form.avaliacaoDocId || carregandoGeral}
               />
             </div>
@@ -264,7 +262,9 @@ function AvaliacaoInicial() {
             ) : (
               <button
                 onClick={onSalvarClick}
-                disabled={carregandoGeral}
+                disabled={
+                  carregandoGeral || !form.inicio || !form.proximaAvaliacao
+                }
                 style={estilos.botaoSalvar}
               >
                 {form.estado.salvando ? "Salvando..." : "Salvar Avaliação"}

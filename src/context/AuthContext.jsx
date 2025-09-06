@@ -83,6 +83,29 @@ export function AuthProvider({ children }) {
 
             if (userDocSnap.exists()) {
               const data = userDocSnap.data();
+
+              // ===========================================
+              //  ✅ CÓDIGO CORRIGIDO AQUI PARA SALVAR A ESCOLA
+              //  Agora, a ID da escola é salva como uma string JSON válida.
+              // ===========================================
+              if (data.escolas && Object.keys(data.escolas).length > 0) {
+                const idDaEscolaCorreta = Object.keys(data.escolas)[0];
+                localStorage.setItem(
+                  "escolaAtiva",
+                  JSON.stringify(idDaEscolaCorreta)
+                );
+                console.log(
+                  "[AuthContext] Escola ativa definida:",
+                  idDaEscolaCorreta
+                );
+              } else {
+                localStorage.removeItem("escolaAtiva");
+                console.log("[AuthContext] Nenhum ID de escola encontrado.");
+              }
+              // ===========================================
+              //  ✅ FIM DO CÓDIGO CORRIGIDO
+              // ===========================================
+
               setUserProfileData({
                 uid: user.uid,
                 email: user.email,

@@ -1,0 +1,239 @@
+/* src/styles/AnamneseCompleta.css */
+
+/* Container da página principal, com fundo azul */
+.page-container {
+  min-height: 100vh;
+  background-color: #f0f8ff;
+  padding: 20px;
+}
+
+/* Container do formulário, com fundo branco e largura ajustável */
+.form-container {
+  background-color: #ffffff;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  width: 95%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Título principal do formulário */
+.form-title {
+  text-align: center;
+  margin-bottom: 30px;
+  color: #1d3557;
+  font-size: 28px;
+}
+
+/* Container de cada pergunta ou grupo de input */
+.question-container {
+  margin-bottom: 22px;
+}
+
+/* Estilo para labels */
+.form-label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #333;
+  font-size: 15px;
+}
+
+/* Estilo para inputs de texto, data, etc. */
+.form-input,
+.form-select {
+  width: 100%;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+  font-size: 15px;
+}
+
+/* Estilo para textareas */
+.form-textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+  font-size: 15px;
+  resize: vertical;
+}
+
+/* Botão principal (Salvar, Baixar PDF) */
+.submit-button {
+  width: 100%;
+  padding: 15px;
+  background-color: #2a9d8f;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 18px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s;
+}
+
+.submit-button:hover {
+  background-color: #217d71;
+}
+
+/* Grupo de inputs em linha (como Data e Idade) */
+.inline-input-group {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+/* Seções colapsáveis */
+.section-container {
+  border-bottom: 1px solid #e0e0e0;
+  margin-bottom: 10px;
+}
+
+.section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  padding: 18px 15px;
+  margin: 0;
+  background-color: #f8f9fa;
+  color: #1d3557;
+  font-weight: bold;
+  border-radius: 6px 6px 0 0;
+  font-size: 18px;
+  transition: background-color 0.3s;
+}
+
+.section-title:hover {
+  background-color: #e9ecef;
+}
+
+.section-title .arrow {
+  transition: transform 0.3s;
+}
+
+.section-title.active .arrow {
+  transform: rotate(180deg);
+}
+
+.section-content {
+  padding: 25px;
+  border: 1px solid #e0e0e0;
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+}
+
+/* Grupo de botões de rádio */
+.radio-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.radio-label {
+  display: inline-flex;
+  cursor: pointer;
+  align-items: center;
+}
+
+.radio-input {
+  display: none;
+}
+
+.radio-custom {
+  padding: 10px 20px;
+  border: 2px solid #ced4da;
+  border-radius: 25px;
+  background-color: #f8f9fa;
+  color: #495057;
+  transition: all 0.2s ease-in-out;
+  font-weight: 500;
+  font-size: 15px;
+}
+
+.radio-input:checked + .radio-custom {
+  background-color: #457b9d;
+  border-color: #457b9d;
+  color: white;
+}
+
+/* Estilos da tabela de Anamneses */
+.anamnese-table {
+  width: 100%;
+  margin-top: 30px;
+  border-collapse: collapse;
+}
+
+.anamnese-table th,
+.anamnese-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.anamnese-table th {
+  border-bottom: 2px solid #1d3557;
+  font-weight: bold;
+}
+
+/* Container de botões de ação */
+.acoes-header {
+  text-align: center;
+}
+
+.acoes-botoes-container {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+/* Botão de visualizar */
+.button-visualizar {
+  padding: 8px 12px;
+  background-color: #457b9d;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.button-visualizar:hover {
+  background-color: #315e7a;
+}
+
+/* Botão de exclusão */
+.button-excluir {
+  padding: 8px 12px;
+  background-color: #e63946;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.button-excluir:hover {
+  background-color: #c7303c;
+}
+
+/* Botão de download de PDF */
+.button-download-pdf {
+  padding: 8px 12px;
+  background-color: #2a9d8f; /* Cor verde para destaque */
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.button-download-pdf:hover {
+  background-color: #217d71; /* Tom mais escuro no hover */
+}

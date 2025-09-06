@@ -12,14 +12,11 @@ import {
   getDoc,
   orderBy,
 } from "firebase/firestore";
-// Importação do novo ícone de quebra-cabeça
 import { FaPencilAlt, FaTrashAlt, FaPlus, FaPuzzlePiece } from "react-icons/fa";
 import Loader from "../components/Loader";
 import { useNavigate } from "react-router-dom";
 
-// --- Funções Auxiliares ---
-
-// Função utilitária para obter dados do localStorage de forma segura
+// --- Funções Auxiliares (sem alterações) ---
 const getLocalStorageSafe = (key, defaultValue = null) => {
   try {
     const item = localStorage.getItem(key);
@@ -33,7 +30,6 @@ const getLocalStorageSafe = (key, defaultValue = null) => {
   }
 };
 
-// Função auxiliar para calcular idade com base na data de nascimento
 const calcularIdade = (dataNascimento) => {
   if (!dataNascimento) return "N/A";
   try {
@@ -53,19 +49,16 @@ const calcularIdade = (dataNascimento) => {
   }
 };
 
-// --- FUNÇÃO PARA IDENTIFICAR ALUNOS COM TEA ---
 const verificaTea = (diagnostico) => {
   if (!diagnostico) return false;
   const diagnosticoLowerCase = diagnostico.toLowerCase();
   const palavrasChave = ["tea", "autismo", "espectro autista"];
-
-  // Verifica se o texto do diagnóstico inclui alguma das palavras-chave
   return palavrasChave.some((palavra) =>
     diagnosticoLowerCase.includes(palavra)
   );
 };
 
-// --- Estilos JSX ---
+// --- Estilos JSX (sem alterações) ---
 const styles = {
   container: {
     minHeight: "100vh",
@@ -161,7 +154,6 @@ const styles = {
     transition: "background-color 0.3s ease",
   },
 };
-// --- Fim dos Estilos JSX ---
 
 export default function VerAlunos() {
   const navigate = useNavigate();
@@ -175,25 +167,50 @@ export default function VerAlunos() {
 
   const [escolasPermitidasParaUsuario, setEscolasPermitidasParaUsuario] =
     useState([]);
-  const [turmasPermitidasParaUsuario, setTurmasPermitidasParaUsuario] =
-    useState([]);
 
   const usuario = useMemo(() => getLocalStorageSafe("usuarioLogado", {}), []);
 
+  // ##### ALTERAÇÃO 1: Adicionado "diretor" à lista de perfis que podem editar/excluir #####
   const podeEditar = useMemo(
     () =>
-      ["gestao", "aee", "desenvolvedor"].includes(
+      ["gestao", "aee", "desenvolvedor", "diretor"].includes(
         usuario?.perfil?.toLowerCase()
       ),
     [usuario?.perfil]
   );
 
+  const handleVoltar = useCallback(() => {
+    const perfil = usuario?.perfil?.toLowerCase();
+    switch (perfil) {
+      case "desenvolvedor":
+        navigate("/painel-dev");
+        break;
+      case "gestao":
+      case "diretor":
+      case "diretor adjunto":
+      case "orientador pedagógico":
+      case "seme":
+        navigate("/painel-gestao");
+        break;
+      case "aee":
+        navigate("/painel-aee");
+        break;
+      case "professor":
+        navigate("/painel-professor");
+        break;
+      default:
+        navigate("/");
+    }
+  }, [navigate, usuario]);
+
   const carregarTodosOsDados = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      if (!usuario?.perfil) {
-        setError("Você não está logado ou não tem um perfil válido.");
+      if (!usuario?.uid) {
+        setError(
+          "Você não está logado ou seus dados de login estão incompletos."
+        );
         setLoading(false);
         return;
       }
@@ -207,107 +224,114 @@ export default function VerAlunos() {
 
       let tempEscolasPermitidas = [];
       let tempTurmasPermitidas = [];
+      const perfilUsuario = usuario.perfil?.toLowerCase();
 
-      if (usuario.perfil === "aee" || usuario.perfil === "professor") {
-        const userDocRef = doc(db, "usuarios", usuario.uid);
-        const userDocSnap = await getDoc(userDocRef);
-        const userData = userDocSnap.data();
-
-        if (
-          !userData ||
-          !userData.escolas ||
-          Object.keys(userData.escolas).length === 0
-        ) {
-          throw new Error(
-            `Você (${usuario.perfil?.toUpperCase()}) não está vinculado a nenhuma escola. Por favor, verifique seus vínculos.`
-          );
-        }
-        tempEscolasPermitidas = Object.keys(userData.escolas);
-        if (usuario.perfil === "aee" && userData.turmas) {
-          tempTurmasPermitidas = Object.keys(userData.turmas);
-        }
-
-        if (escolaSelecionada === null && tempEscolasPermitidas.length > 0) {
-          setEscolaSelecionada(tempEscolasPermitidas[0]);
-        }
-      } else if (
+      // Bloco 1: Usuários que veem APENAS escolas vinculadas
+      if (
         [
           "gestao",
-          "desenvolvedor",
           "diretor",
           "diretor adjunto",
           "orientador pedagógico",
-          "seme",
-        ].includes(usuario.perfil)
+          "aee",
+          "professor",
+        ].includes(perfilUsuario)
       ) {
-        tempEscolasPermitidas = escolasListadas.map((e) => e.id);
-        if (escolasListadas.length > 0 && escolaSelecionada === null) {
-          setEscolaSelecionada(escolasListadas[0]?.id || null);
+        const userDocRef = doc(db, "usuarios", usuario.uid);
+        const userDocSnap = await getDoc(userDocRef);
+
+        if (!userDocSnap.exists()) {
+          throw new Error(
+            "Documento do usuário não encontrado no banco de dados."
+          );
         }
-      } else {
+        const userData = userDocSnap.data();
+
+        if (!userData.escolas || Object.keys(userData.escolas).length === 0) {
+          throw new Error(
+            `Você não está vinculado a nenhuma escola. Por favor, verifique seus vínculos.`
+          );
+        }
+        tempEscolasPermitidas = Object.keys(userData.escolas);
+
+        if (
+          (perfilUsuario === "aee" || perfilUsuario === "professor") &&
+          userData.turmas
+        ) {
+          tempTurmasPermitidas = Object.keys(userData.turmas);
+        }
+      }
+      // Bloco 2: Usuários que veem TODAS as escolas
+      else if (["desenvolvedor", "seme"].includes(perfilUsuario)) {
+        tempEscolasPermitidas = escolasListadas.map((e) => e.id);
+      }
+      // Bloco 3: Acesso negado para os demais
+      else {
         setError("Seu perfil não tem permissão para visualizar alunos.");
         setLoading(false);
         return;
       }
 
-      setEscolasPermitidasParaUsuario(tempEscolasPermitidas);
-      setTurmasPermitidasParaUsuario(tempTurmasPermitidas);
-
-      let alunosParaExibir = [];
       let escolaAtualmenteSelecionada = escolaSelecionada;
-
       if (!escolaAtualmenteSelecionada && tempEscolasPermitidas.length > 0) {
         escolaAtualmenteSelecionada = tempEscolasPermitidas[0];
         setEscolaSelecionada(escolaAtualmenteSelecionada);
       }
 
+      setEscolasPermitidasParaUsuario(tempEscolasPermitidas);
+
+      let alunosParaExibir = [];
       if (escolaAtualmenteSelecionada) {
         localStorage.setItem(
           "escolaAtiva",
           JSON.stringify(escolaAtualmenteSelecionada)
         );
-      } else {
-        localStorage.removeItem("escolaAtiva");
-      }
 
-      if (escolaAtualmenteSelecionada) {
-        let qAlunos = query(
-          collection(db, "alunos"),
-          where("escolaId", "==", escolaAtualmenteSelecionada),
-          orderBy("nome")
-        );
-
-        if (usuario.perfil === "aee" && tempTurmasPermitidas.length > 0) {
-          if (tempTurmasPermitidas.length <= 10) {
-            qAlunos = query(
-              qAlunos,
-              where("turma", "in", tempTurmasPermitidas)
-            );
-          } else {
-            console.warn(
-              "Atenção: AEE tem mais de 10 turmas vinculadas. Alunos serão filtrados no cliente."
-            );
+        if (perfilUsuario === "aee" && tempTurmasPermitidas.length > 0) {
+          const turmaChunks = [];
+          for (let i = 0; i < tempTurmasPermitidas.length; i += 10) {
+            turmaChunks.push(tempTurmasPermitidas.slice(i, i + 10));
           }
-        }
 
-        const alunosSnap = await getDocs(qAlunos);
-        let fetchedAlunos = alunosSnap.docs.map((docSnap) => {
-          const dadosAluno = docSnap.data();
-          return {
-            id: docSnap.id,
-            ...dadosAluno,
-            isTea: verificaTea(dadosAluno.diagnostico), // Adiciona a propriedade 'isTea'
-          };
-        });
+          const promises = turmaChunks.map((chunk) => {
+            const qAlunosChunk = query(
+              collection(db, "alunos"),
+              where("escolaId", "==", escolaAtualmenteSelecionada),
+              where("turma", "in", chunk)
+            );
+            return getDocs(qAlunosChunk);
+          });
 
-        if (usuario.perfil === "aee" && tempTurmasPermitidas.length > 10) {
-          fetchedAlunos = fetchedAlunos.filter((aluno) =>
-            tempTurmasPermitidas.includes(aluno.turma)
+          const snapshots = await Promise.all(promises);
+          const fetchedAlunosMap = new Map();
+          snapshots.forEach((snapshot) => {
+            snapshot.docs.forEach((docSnap) => {
+              if (!fetchedAlunosMap.has(docSnap.id)) {
+                fetchedAlunosMap.set(docSnap.id, {
+                  id: docSnap.id,
+                  ...docSnap.data(),
+                  isTea: verificaTea(docSnap.data().diagnostico),
+                });
+              }
+            });
+          });
+
+          alunosParaExibir = Array.from(fetchedAlunosMap.values()).sort(
+            (a, b) => a.nome.localeCompare(b.nome)
           );
+        } else {
+          const qAlunos = query(
+            collection(db, "alunos"),
+            where("escolaId", "==", escolaAtualmenteSelecionada),
+            orderBy("nome")
+          );
+          const alunosSnap = await getDocs(qAlunos);
+          alunosParaExibir = alunosSnap.docs.map((docSnap) => ({
+            id: docSnap.id,
+            ...docSnap.data(),
+            isTea: verificaTea(docSnap.data().diagnostico),
+          }));
         }
-        alunosParaExibir = fetchedAlunos;
-      } else {
-        alunosParaExibir = [];
       }
 
       setAlunos(alunosParaExibir);
@@ -316,10 +340,6 @@ export default function VerAlunos() {
       setError(
         e.message || "Falha ao carregar dados. Por favor, tente novamente."
       );
-      setAlunos([]);
-      setEscolas([]);
-      setEscolasPermitidasParaUsuario([]);
-      setTurmasPermitidasParaUsuario([]);
     } finally {
       setLoading(false);
     }
@@ -339,7 +359,6 @@ export default function VerAlunos() {
       ) {
         return;
       }
-
       setLoadingSalvar(true);
       try {
         await deleteDoc(doc(db, "alunos", idAluno));
@@ -354,40 +373,15 @@ export default function VerAlunos() {
     [loadingSalvar, carregarTodosOsDados]
   );
 
-  const alunosDaEscola = useMemo(() => {
-    return alunos;
-  }, [alunos]);
-
-  if (loading && !error) {
+  if (loading) {
     return <Loader />;
   }
 
-  if (error && !loading) {
+  if (error) {
     return (
       <div style={styles.container}>
         <button
-          onClick={() => {
-            const perfilUsuario = usuario?.perfil?.toLowerCase();
-            if (perfilUsuario === "desenvolvedor") {
-              navigate("/painel-dev");
-            } else if (
-              [
-                "gestao",
-                "diretor",
-                "diretor adjunto",
-                "orientador pedagógico",
-                "seme",
-              ].includes(perfilUsuario)
-            ) {
-              navigate("/painel-gestao");
-            } else if (perfilUsuario === "aee") {
-              navigate("/painel-aee");
-            } else if (perfilUsuario === "professor") {
-              navigate("/painel-professor");
-            } else {
-              navigate("/");
-            }
-          }}
+          onClick={handleVoltar}
           style={{
             background: "none",
             border: "1px solid #ccc",
@@ -418,88 +412,11 @@ export default function VerAlunos() {
     );
   }
 
-  if (!loading && escolas.length === 0 && usuario?.perfil !== "aee") {
-    return (
-      <div style={styles.container}>
-        <button
-          onClick={() => {
-            const perfilUsuario = usuario?.perfil?.toLowerCase();
-            if (perfilUsuario === "desenvolvedor") {
-              navigate("/painel-dev");
-            } else if (
-              [
-                "gestao",
-                "diretor",
-                "diretor adjunto",
-                "orientador pedagógico",
-                "seme",
-              ].includes(perfilUsuario)
-            ) {
-              navigate("/painel-gestao");
-            } else if (perfilUsuario === "aee") {
-              navigate("/painel-aee");
-            } else if (perfilUsuario === "professor") {
-              navigate("/painel-professor");
-            } else {
-              navigate("/");
-            }
-          }}
-          style={{
-            background: "none",
-            border: "1px solid #ccc",
-            padding: "8px 15px",
-            borderRadius: "5px",
-            cursor: "pointer",
-            marginBottom: "20px",
-            alignSelf: "flex-start",
-            color: "#1d3557",
-            fontWeight: "bold",
-          }}
-        >
-          Voltar
-        </button>
-        <p
-          style={{
-            color: "orange",
-            backgroundColor: "white",
-            padding: "20px",
-            borderRadius: "8px",
-            textAlign: "center",
-            marginTop: "50px",
-          }}
-        >
-          Nenhuma escola cadastrada ou disponível para sua visualização.
-        </p>
-      </div>
-    );
-  }
-
   return (
     <div style={styles.container}>
       <div style={styles.content}>
         <button
-          onClick={() => {
-            const perfilUsuario = usuario?.perfil?.toLowerCase();
-            if (perfilUsuario === "desenvolvedor") {
-              navigate("/painel-dev");
-            } else if (
-              [
-                "gestao",
-                "diretor",
-                "diretor adjunto",
-                "orientador pedagógico",
-                "seme",
-              ].includes(perfilUsuario)
-            ) {
-              navigate("/painel-gestao");
-            } else if (perfilUsuario === "aee") {
-              navigate("/painel-aee");
-            } else if (perfilUsuario === "professor") {
-              navigate("/painel-professor");
-            } else {
-              navigate("/");
-            }
-          }}
+          onClick={handleVoltar}
           style={{
             background: "none",
             border: "1px solid #ccc",
@@ -519,52 +436,34 @@ export default function VerAlunos() {
           <h2 style={styles.title}>Alunos Cadastrados</h2>
           {podeEditar && (
             <button
-              onClick={() => {
-                let targetEscolaId = escolaSelecionada;
-
-                if (
-                  !targetEscolaId &&
-                  !["desenvolvedor", "gestao", "seme"].includes(usuario.perfil)
-                ) {
-                  alert(
-                    "Por favor, selecione uma escola primeiro para adicionar um novo aluno."
-                  );
-                  return;
-                }
-
-                navigate("/cadastrar-aluno");
-              }}
+              onClick={() => navigate("/cadastrar-aluno")}
               style={styles.buttonPrimary}
-              disabled={loadingSalvar || loading}
+              disabled={loadingSalvar}
             >
               <FaPlus /> Novo Aluno
             </button>
           )}
         </div>
 
-        {escolas.length > 0 &&
-          escolaSelecionada &&
-          escolasPermitidasParaUsuario.length > 0 && (
-            <div style={styles.schoolFilter}>
-              {escolas.map(
-                (escola) =>
-                  escolasPermitidasParaUsuario.includes(escola.id) && (
-                    <button
-                      key={escola.id}
-                      onClick={() => setEscolaSelecionada(escola.id)}
-                      style={styles.schoolButton(
-                        escolaSelecionada === escola.id
-                      )}
-                      disabled={loading}
-                    >
-                      {escola.nome}
-                    </button>
-                  )
-              )}
-            </div>
-          )}
+        {escolasPermitidasParaUsuario.length > 1 && (
+          <div style={styles.schoolFilter}>
+            {escolas
+              .filter((escola) =>
+                escolasPermitidasParaUsuario.includes(escola.id)
+              )
+              .map((escola) => (
+                <button
+                  key={escola.id}
+                  onClick={() => setEscolaSelecionada(escola.id)}
+                  style={styles.schoolButton(escolaSelecionada === escola.id)}
+                >
+                  {escola.nome}
+                </button>
+              ))}
+          </div>
+        )}
 
-        {escolas.length > 0 && escolaSelecionada && (
+        {escolaSelecionada && (
           <div
             style={{
               marginBottom: "20px",
@@ -579,7 +478,7 @@ export default function VerAlunos() {
           </div>
         )}
 
-        {!loading && !error && alunosDaEscola.length === 0 && (
+        {alunos.length === 0 ? (
           <p
             style={{
               fontStyle: "italic",
@@ -588,17 +487,11 @@ export default function VerAlunos() {
               textAlign: "center",
             }}
           >
-            Nenhum aluno cadastrado
-            {escolaSelecionada
-              ? " para a escola selecionada ou seus vínculos."
-              : " (selecione uma escola ou verifique seus vínculos)"}
-            .
+            Nenhum aluno cadastrado para a escola selecionada ou seus vínculos.
           </p>
-        )}
-
-        {!loading && !error && alunosDaEscola.length > 0 && (
+        ) : (
           <div style={styles.studentGrid}>
-            {alunosDaEscola.map((aluno) => (
+            {alunos.map((aluno) => (
               <div key={aluno.id} style={styles.studentCard}>
                 <h4 style={{ marginBottom: 10, color: "#1d3557" }}>
                   {aluno.nome}
@@ -615,24 +508,21 @@ export default function VerAlunos() {
                 <p>
                   <strong>Diagnóstico:</strong> {aluno.diagnostico || "N/A"}
                 </p>
-                {/* Exibe o ícone de quebra-cabeça se o aluno for TEA */}
                 {aluno.isTea && (
                   <FaPuzzlePiece
                     style={{
                       fontSize: "1.2em",
-                      color: "#29ABE2", // Um tom de azul mais moderno
+                      color: "#29ABE2",
                       marginTop: "5px",
                     }}
                     title="Aluno com TEA"
                   />
                 )}
-
                 {podeEditar && (
                   <div style={styles.actionButtons}>
                     <button
                       onClick={() => navigate(`/editar-aluno/${aluno.id}`)}
                       style={styles.editButton}
-                      aria-label={`Editar ${aluno.nome}`}
                       disabled={loadingSalvar}
                     >
                       <FaPencilAlt />
@@ -640,7 +530,6 @@ export default function VerAlunos() {
                     <button
                       onClick={() => handleExcluir(aluno.id)}
                       style={styles.deleteButton}
-                      aria-label={`Excluir ${aluno.nome}`}
                       disabled={loadingSalvar}
                     >
                       <FaTrashAlt />

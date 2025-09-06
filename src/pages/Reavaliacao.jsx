@@ -20,6 +20,13 @@ import AreaPerguntas from "../components/AreaPerguntas";
 
 import "../styles/AvaliacaoInicial.css";
 
+// Função auxiliar para adicionar meses a uma data
+const addMonths = (date, months) => {
+  const d = new Date(date);
+  d.setMonth(d.getMonth() + months);
+  return d;
+};
+
 const Reavaliacao = () => {
   const { alunoId } = useParams();
   const navigate = useNavigate();
@@ -86,12 +93,16 @@ const Reavaliacao = () => {
 
       const alunoCompleto = alunos.find((a) => a.id === alunoId);
 
+      const dataInicioReavaliacao = new Date().toISOString().split("T")[0];
+      const dataProximaReavaliacao = addMonths(new Date(), 6)
+        .toISOString()
+        .split("T")[0];
+
       setRespostas(ultimaAvaliacao.respostas || {});
       setObservacoes(ultimaAvaliacao.observacoes || {});
       setAlunoSelecionado(alunoCompleto);
-      setInicio(new Date().toISOString().split("T")[0]);
-      setProximaAvaliacao("");
-
+      setInicio(dataInicioReavaliacao);
+      setProximaAvaliacao(dataProximaReavaliacao);
       setAreaSelecionada(areasParaAbas[0] || "");
 
       setEstado({

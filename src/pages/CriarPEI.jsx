@@ -1,5 +1,3 @@
-// src/pages/CriarPEI.jsx
-
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import PropTypes from "prop-types";
 import { db } from "../firebase";
@@ -16,19 +14,17 @@ import {
 } from "firebase/firestore";
 import BotaoVoltar from "../components/BotaoVoltar";
 import BotaoVerPEIs from "../components/BotaoVerPEIs";
-// Importar useLocation para ler o estado da navegação
 import { useNavigate, useLocation } from "react-router-dom";
 import { FaPuzzlePiece } from "react-icons/fa";
 
-// Imports dos seus dados
+import { useUserSchool } from "../hooks/useUserSchool";
+
 import estruturaPEI from "../data/estruturaPEI2";
 import { avaliacaoInicial } from "../data/avaliacaoInicialData";
 import objetivosCurtoPrazoData from "../data/objetivosCurtoPrazo";
 import objetivosMedioPrazoData from "../data/objetivosMedioPrazo";
 
 import "../styles/CriarPEIComponent.css";
-
-// ... (Resto do código sem alteração) ...
 
 const NIVEIS_PROGRESSAO = ["NR", "AF", "AG", "AV", "AVi", "I"];
 const LEGENDA_NIVEIS = {
@@ -259,93 +255,7 @@ const buildNewPeiFromAssessment = (
   return newPeiData;
 };
 
-const loadExistingPeiData = (
-  peiExistingData,
-  estruturaPEIMap,
-  objetivosCurtoPrazoMap,
-  objetivosMedioPrazoMap,
-  userEmail,
-  criadorPEIId
-) => {
-  const mountedPei = {};
-  const mountedManualInput = {};
-  const activityAppliedExisting = peiExistingData.atividadeAplicada || "";
-  const newStructureGoals = peiExistingData.resumoPEI || [];
-  const isCurrentUserThePEICreater = userEmail === criadorPEIId;
-
-  (newStructureGoals || []).forEach((meta) => {
-    if (!mountedPei[meta.area]) mountedPei[meta.area] = [];
-    let finalObjectives = {
-      curtoPrazo: "",
-      medioPrazo: "",
-      longoPrazo: "",
-    };
-
-    if (typeof meta.objetivos === "object" && meta.objetivos !== null) {
-      finalObjectives = {
-        curtoPrazo: meta.objetivos.curtoPrazo || "",
-        medioPrazo: meta.objetivos.medioPrazo || "",
-        longoPrazo: meta.objetivos.longoPrazo || "",
-      };
-    } else {
-      finalObjectives.longoPrazo = meta.objetivo || "";
-      finalObjectives.curtoPrazo =
-        objetivosCurtoPrazoMap[meta.habilidade]?.[meta.nivelAlmejado] || "";
-      finalObjectives.medioPrazo =
-        objetivosMedioPrazoMap[meta.habilidade]?.[meta.nivelAlmejado] || "";
-    }
-
-    const suggestionBlock =
-      estruturaPEIMap[meta.habilidade]?.[meta.nivelAlmejado];
-    let suggestedStrategiesFromMap = [];
-    if (Array.isArray(suggestionBlock?.estrategias)) {
-      suggestedStrategiesFromMap = [...suggestionBlock.estrategias];
-    } else if (typeof suggestionBlock?.estrategias === "string") {
-      suggestedStrategiesFromMap = [suggestionBlock.estrategias];
-    }
-
-    const savedStrategies = Array.isArray(meta.estrategiasSelecionadas)
-      ? meta.estrategiasSelecionadas
-      : [];
-
-    const selectedSuggestedFromSaved = savedStrategies.filter((saved) =>
-      suggestedStrategiesFromMap.includes(saved)
-    );
-
-    const manualSavedStrategies = savedStrategies.filter(
-      (saved) => !suggestedStrategiesFromMap.includes(saved)
-    );
-
-    const availableSuggestedStrategies = isCurrentUserThePEICreater
-      ? suggestedStrategiesFromMap
-      : suggestedStrategiesFromMap.filter(
-          (sug) => !selectedSuggestedFromSaved.includes(sug)
-        );
-
-    const manualKey = `${meta.area}-${meta.habilidade.replace(
-      /[^a-zA-Z0-9-]/g,
-      ""
-    )}`;
-    mountedManualInput[manualKey] = {
-      estrategiasManuais: manualSavedStrategies.join("\n"),
-      estrategias: selectedSuggestedFromSaved,
-    };
-
-    mountedPei[meta.area].push({
-      habilidade: meta.habilidade,
-      nivel: meta.nivel,
-      nivelAlmejado: meta.nivelAlmejado || meta.nivel,
-      objetivos: finalObjectives,
-      estrategias: availableSuggestedStrategies,
-      estrategiasSelecionadas: selectedSuggestedFromSaved,
-    });
-  });
-  return {
-    pei: mountedPei,
-    atividadeAplicada: activityAppliedExisting,
-    entradaManual: mountedManualInput,
-  };
-};
+const loadExistingPeiData = () => {};
 
 // --- COMPONENTE PRINCIPAL ---
 export default function CriarPEI() {
@@ -361,8 +271,11 @@ export default function CriarPEI() {
   const [activeTab, setActiveTab] = useState("longoPrazo");
 
   const navigate = useNavigate();
-  const location = useLocation(); // Hook para ler o estado da navegação
+  const location = useLocation();
   const { erro, mensagemSucesso, exibirMensagem } = useMessageSystem();
+
+  const { userSchoolId, userSchoolData, isLoadingUserSchool, userSchoolError } =
+    useUserSchool();
 
   const estruturaPEIMap = useMemo(() => getEstruturaPEIMap(estruturaPEI), []);
   const objetivosCurtoPrazoMap = useMemo(
@@ -389,21 +302,88 @@ export default function CriarPEI() {
     [usuarioLogado.email, peiCriadorId]
   );
 
+  const perfisComAcessoAmplo = useMemo(
+    () => [
+      "desenvolvedor",
+      "seme",
+      "diretor",
+      "diretor_adjunto",
+      "gestao",
+      "aee",
+      "orientador_pedagogico",
+    ],
+    []
+  );
+
   const carregarDadosIniciais = useCallback(async () => {
     setCarregando(true);
     exibirMensagem("sucesso", "Carregando dados iniciais...");
+
+    if (isLoadingUserSchool) return;
+
     try {
       const currentYear = new Date().getFullYear();
+      const isAcessoAmplo = perfisComAcessoAmplo.includes(usuarioLogado.perfil);
+
+      let alunosQuery;
+      let peisQuery;
+
+      const isDesenvolvedorOuSeme = ["desenvolvedor", "seme"].includes(
+        usuarioLogado.perfil
+      );
+
+      // --- ALTERAÇÃO AQUI: LÓGICA PARA PERFIS "DESENVOLVEDOR" e "SEME" ---
+      if (isDesenvolvedorOuSeme) {
+        alunosQuery = collection(db, "alunos");
+        peisQuery = collection(db, "peis");
+      } else if (isAcessoAmplo) {
+        if (!userSchoolId) {
+          throw new Error(
+            "ID da escola não encontrado para o perfil de gestão."
+          );
+        }
+        alunosQuery = query(
+          collection(db, "alunos"),
+          where("escolaId", "==", userSchoolId)
+        );
+        peisQuery = query(
+          collection(db, "peis"),
+          where("escolaId", "==", userSchoolId)
+        );
+      } else if (usuarioLogado.perfil === "professor") {
+        const turmasDoProfessor = userSchoolData?.turmas
+          ? Object.keys(userSchoolData.turmas)
+          : [];
+        if (turmasDoProfessor.length === 0) {
+          setCarregando(false);
+          setAlunos([]);
+          exibirMensagem(
+            "erro",
+            "Nenhuma turma vinculada ao seu perfil de professor."
+          );
+          return;
+        }
+        alunosQuery = query(
+          collection(db, "alunos"),
+          where("turma", "in", turmasDoProfessor)
+        );
+        peisQuery = query(
+          collection(db, "peis"),
+          where("criadorId", "==", usuarioLogado.email)
+        );
+      } else {
+        setCarregando(false);
+        setAlunos([]);
+        exibirMensagem(
+          "erro",
+          "Seu perfil não tem permissão para visualizar alunos."
+        );
+        return;
+      }
 
       const [alunosSnap, peisSnap] = await Promise.all([
-        getDocs(collection(db, "alunos")),
-        getDocs(
-          query(
-            collection(db, "peis"),
-            where("criadorId", "==", usuarioLogado.email),
-            where("anoLetivo", "==", currentYear)
-          )
-        ),
+        getDocs(alunosQuery),
+        getDocs(peisQuery),
       ]);
 
       const todosAlunos = alunosSnap.docs.map((doc) => {
@@ -415,38 +395,17 @@ export default function CriarPEI() {
         };
       });
 
-      const alunosComPeiDesteUsuarioIds = new Set();
-      peisSnap.docs.forEach((doc) => {
-        const peiData = doc.data();
-        alunosComPeiDesteUsuarioIds.add(peiData.alunoId);
-      });
+      const peisDoUsuario = peisSnap.docs.filter(
+        (doc) =>
+          doc.data().criadorId === usuarioLogado.email &&
+          doc.data().anoLetivo === currentYear
+      );
 
-      const { perfil, turmas } = usuarioLogado;
+      const alunosComPeiDesteUsuarioIds = new Set(
+        peisDoUsuario.map((doc) => doc.data().alunoId)
+      );
 
-      const podeVerTodosAlunosNoSistema =
-        perfil === "gestao" ||
-        perfil === "aee" ||
-        perfil === "seme" ||
-        perfil === "desenvolvedor";
-
-      let alunosFiltradosPorPermissao = todosAlunos;
-
-      // ALTERAÇÃO: A lógica de filtragem agora é feita em uma única etapa
-      if (!podeVerTodosAlunosNoSistema) {
-        const turmasVinculadas = turmas ? Object.keys(turmas) : [];
-        const turmasVinculadasNormalizadas = turmasVinculadas.map((t) =>
-          t.trim().toLowerCase()
-        );
-
-        alunosFiltradosPorPermissao = todosAlunos.filter((aluno) => {
-          const turmaAlunoNormalizada = aluno.turma
-            ? aluno.turma.trim().toLowerCase()
-            : "";
-          return turmasVinculadasNormalizadas.includes(turmaAlunoNormalizada);
-        });
-      }
-
-      const alunosParaSelecaoFinal = alunosFiltradosPorPermissao.filter(
+      const alunosParaSelecaoFinal = todosAlunos.filter(
         (aluno) => !alunosComPeiDesteUsuarioIds.has(aluno.id)
       );
 
@@ -456,16 +415,25 @@ export default function CriarPEI() {
       console.error("Erro ao carregar dados do Firebase:", err);
       exibirMensagem(
         "erro",
-        "Falha ao carregar dados. Tente recarregar a página."
+        `Falha ao carregar dados: ${err.message}. Tente recarregar a página.`
       );
     } finally {
       setCarregando(false);
     }
-  }, [exibirMensagem, usuarioLogado]);
+  }, [
+    exibirMensagem,
+    usuarioLogado,
+    isLoadingUserSchool,
+    userSchoolId,
+    userSchoolData,
+    perfisComAcessoAmplo,
+  ]);
 
   useEffect(() => {
-    carregarDadosIniciais();
-  }, [carregarDadosIniciais]);
+    if (!isLoadingUserSchool) {
+      carregarDadosIniciais();
+    }
+  }, [isLoadingUserSchool, carregarDadosIniciais]);
 
   const handleSelectStudent = useCallback(
     async (alunoOuNome) => {
@@ -491,16 +459,16 @@ export default function CriarPEI() {
       try {
         const currentYear = new Date().getFullYear();
 
-        // 1. Tenta encontrar a avaliação pelo campo 'alunoId' (formato mais novo)
-        const qUltimaAvaliacaoNovo = query(
+        // Consulta unificada para a avaliação usando o campo consistente 'alunoId'
+        let qUltimaAvaliacao = query(
           collection(db, "avaliacoesIniciais"),
           where("alunoId", "==", aluno.id),
           orderBy("dataCriacao", "desc"),
           limit(1)
         );
-        let avaliacoesSnap = await getDocs(qUltimaAvaliacaoNovo);
+        let avaliacoesSnap = await getDocs(qUltimaAvaliacao);
 
-        // 2. Se a primeira busca não encontrou nada, tenta o formato antigo 'aluno.id'
+        // Se a primeira busca não encontrou nada, tenta o formato antigo 'aluno.id'
         if (avaliacoesSnap.empty) {
           const qUltimaAvaliacaoAntigo = query(
             collection(db, "avaliacoesIniciais"),
@@ -523,28 +491,14 @@ export default function CriarPEI() {
 
         const assessment = avaliacoesSnap.docs[0].data();
 
-        const qPrimeiroPeiDoAluno = query(
-          collection(db, "peis"),
-          where("alunoId", "==", aluno.id),
-          where("anoLetivo", "==", currentYear),
-          orderBy("dataCriacao", "asc"),
-          limit(1)
-        );
-        const primeiroPeiSnap = await getDocs(qPrimeiroPeiDoAluno);
-        const alunoJaTemQualquerPei = !primeiroPeiSnap.empty;
-        const primeiroPeiDoAluno = alunoJaTemQualquerPei
-          ? {
-              id: primeiroPeiSnap.docs[0].id,
-              ...primeiroPeiSnap.docs[0].data(),
-            }
-          : null;
-
-        const qTodosPeisDoAluno = query(
+        const qTodosPeisDoAlunoNoAno = query(
           collection(db, "peis"),
           where("alunoId", "==", aluno.id),
           where("anoLetivo", "==", currentYear)
         );
-        const todosPeisDoAlunoSnap = await getDocs(qTodosPeisDoAluno);
+        const todosPeisDoAlunoSnap = await getDocs(qTodosPeisDoAlunoNoAno);
+        const alunoJaTemQualquerPei = !todosPeisDoAlunoSnap.empty;
+
         const estrategiasJaEmUsoGlobalmente = new Set();
         todosPeisDoAlunoSnap.docs.forEach((doc) => {
           const peiData = doc.data();
@@ -558,21 +512,6 @@ export default function CriarPEI() {
             });
           }
         });
-
-        const objetivosDoPrimeiroPEISet = new Set();
-        if (primeiroPeiDoAluno && Array.isArray(primeiroPeiDoAluno.resumoPEI)) {
-          primeiroPeiDoAluno.resumoPEI.forEach((meta) => {
-            if (
-              typeof meta.objetivos === "object" &&
-              meta.objetivos !== null &&
-              meta.objetivos.longoPrazo
-            ) {
-              objetivosDoPrimeiroPEISet.add(meta.objetivos.longoPrazo);
-            } else if (typeof meta.objetivo === "string") {
-              objetivosDoPrimeiroPEISet.add(meta.objetivo);
-            }
-          });
-        }
 
         const podeIniciarPrimeiroPEI = verificarPermissaoIniciarPrimeiroPEI(
           usuarioLogado.perfil,
@@ -594,7 +533,7 @@ export default function CriarPEI() {
           estruturaPEIMap,
           objetivosCurtoPrazoMap,
           objetivosMedioPrazoMap,
-          objetivosDoPrimeiroPEISet,
+          new Set(),
           estrategiasJaEmUsoGlobalmente
         );
 
@@ -606,7 +545,7 @@ export default function CriarPEI() {
           let errorMessageDetail = "";
           if (alunoJaTemQualquerPei) {
             errorMessageDetail =
-              "Os objetivos sugeridos para este aluno já foram abordados no PEI inicial ou não se aplicam ao seu nível, e/ou todas as estratégias disponíveis já estão em uso.";
+              "Os objetivos sugeridos para este aluno já foram abordados no PEI inicial e/ou todas as estratégias disponíveis já estão em uso.";
           } else {
             errorMessageDetail =
               "Não há objetivos ou estratégias sugeridas para este aluno com base em sua avaliação.";
@@ -653,14 +592,10 @@ export default function CriarPEI() {
       todasAsAreas,
     ]
   );
-
-  // NOVO useEffect para ler o estado da navegação e pré-selecionar o aluno
   useEffect(() => {
     if (location.state?.alunoParaSelecionar && alunos.length > 0) {
       const alunoDoState = location.state.alunoParaSelecionar;
       const alunoEncontrado = alunos.find((a) => a.id === alunoDoState.id);
-
-      // Se o aluno foi encontrado na lista, carrega ele automaticamente
       if (alunoEncontrado) {
         handleSelectStudent(alunoEncontrado);
       }
@@ -757,6 +692,7 @@ export default function CriarPEI() {
         cargoCriador: usuarioLogado.cargo || "Desconhecido",
         criadorId: usuarioLogado.email || "",
         criadorPerfil: usuarioLogado.perfil || "",
+        escolaId: alunoSelecionado.escolaId,
         anoLetivo: currentYear,
       };
 
@@ -824,6 +760,15 @@ export default function CriarPEI() {
           </div>
         )}
 
+        {carregando && !alunoSelecionado && (
+          <div className="loading">Carregando dados...</div>
+        )}
+        {userSchoolError && (
+          <div className="mensagem-erro">
+            Erro ao obter dados da escola: {userSchoolError.message}
+          </div>
+        )}
+
         <div className="seletor-aluno">
           <label htmlFor="selecionar-aluno" className="form-label">
             Selecione um aluno:
@@ -849,10 +794,6 @@ export default function CriarPEI() {
             ))}
           </select>
         </div>
-
-        {carregando && !alunoSelecionado && (
-          <div className="loading">Carregando dados...</div>
-        )}
 
         {alunoSelecionado && (
           <>

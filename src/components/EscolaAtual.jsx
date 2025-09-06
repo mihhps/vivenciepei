@@ -26,14 +26,10 @@ const getEscolaIdParaExibir = (usuario, escolaAtivaStorage) => {
 
   // 1. Tenta encontrar um ID de escola diretamente vinculado ao perfil do usuário.
   if (perfisComVinculoDireto.includes(usuario.perfil.toLowerCase())) {
-    if (usuario.escolaId) {
-      idEncontrado = usuario.escolaId;
-    } else if (
-      usuario.escolasVinculadas &&
-      Object.keys(usuario.escolasVinculadas).length > 0
-    ) {
+    // ✅ CORRIGIDO: O nome da propriedade é 'escolas', não 'escolasVinculadas' ou 'escolaId'.
+    if (usuario.escolas && Object.keys(usuario.escolas).length > 0) {
       // Pega a primeira escola da lista como padrão.
-      idEncontrado = Object.keys(usuario.escolasVinculadas)[0];
+      idEncontrado = Object.keys(usuario.escolas)[0];
     }
   }
 

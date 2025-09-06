@@ -1,8 +1,8 @@
-// src/utils/gerarAnamnesePDF.js
-
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { labelMap, secoesAnamneses } from "./anamneseConfig";
+// ✅ Importa as funções utilitárias que já usamos na UI
+import { calcularIdadeEFaixa, formatarDataSegura } from "./dataUtils.js";
 
 // --- Constantes e Estilos (CÓPIAS DO GERAR PEI) ---
 const styles = {
@@ -111,20 +111,44 @@ export const gerarAnamnesePDF = async (anamnese, aluno) => {
     });
     y += 15;
 
-    // Nome do Aluno
-    y = ensurePageSpace(doc, y, 15);
+    // ✅ NOVO: Informações do Aluno no cabeçalho do PDF
+    y = ensurePageSpace(doc, y, 50);
     doc.setFont(styles.font, "normal");
     doc.setFontSize(styles.fontSize.large);
+    const [idade] = calcularIdadeEFaixa(aluno.nascimento);
+    const dataNascimentoFormatada = formatarDataSegura(aluno.nascimento);
     doc.text(`Aluno(a): ${aluno.nome || "-"}`, 20, y);
-    y += 10;
+    doc.text(`Data de Nascimento: ${dataNascimentoFormatada}`, 20, y + 8);
+    doc.text(`Idade: ${idade ? `${idade} anos` : "-"}`, 100, y + 8);
+    doc.text(`Diagnóstico: ${aluno.diagnostico || "-"}`, 20, y + 16);
+    doc.text(`Turma: ${aluno.turma || "-"}`, 20, y + 24);
+    doc.text(`Turno: ${aluno.turno || "-"}`, 100, y + 24);
+    y += 35;
 
     const contentMargin = 20;
     const availableWidth = doc.internal.pageSize.getWidth() - 2 * contentMargin;
+
+    // ✅ Lista de campos a serem excluídos do corpo principal do PDF
+    const camposExcluidosDoCorpo = new Set([
+      "nome",
+      "idade",
+      "dataNascimento",
+      "turma",
+      "turno",
+      "diagnostico",
+      "sexo", // Sexo também pode ser exibido no cabeçalho se desejar
+      // Adicione outros campos básicos que você decidir colocar no cabeçalho
+    ]);
 
     // Itera sobre cada seção e cria uma única tabela para cada uma
     for (const secao of secoesAnamneses) {
       const tableBody = [];
       secao.campos.forEach((campo) => {
+        // ✅ FILTRA campos já exibidos no cabeçalho
+        if (camposExcluidosDoCorpo.has(campo)) {
+          return;
+        }
+
         const valor = anamnese[campo];
         if (valor !== null && valor !== undefined && valor !== "") {
           const pergunta = labelMap[campo] || campo;
@@ -132,18 +156,8 @@ export const gerarAnamnesePDF = async (anamnese, aluno) => {
 
           if (typeof valor === "boolean") {
             resposta = valor ? "Sim" : "Não";
-          } else if (
-            campo === "dataNascimento" &&
-            typeof valor === "string" &&
-            valor.includes("-")
-          ) {
-            resposta = valor.split("-").reverse().join("/");
-          } else if (campo === "sexo") {
-            if (String(valor).toUpperCase() === "M") resposta = "Masculino";
-            else if (String(valor).toUpperCase() === "F") resposta = "Feminino";
-          } else if (campo === "idade") {
-            resposta = `${valor} anos`;
           }
+          // Nota: a lógica de formatação de data, sexo, etc. agora é feita nas funções utilitárias ou diretamente no cabeçalho.
 
           tableBody.push([pergunta, resposta]);
         }
