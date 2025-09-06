@@ -13,7 +13,7 @@ import {
   signInWithCustomToken,
 } from "firebase/auth";
 import { app } from "../firebase";
-import { useUserSchool } from "./useUserSchool"; // Importa o hook corrigido
+import { useUserSchool } from "./useUserSchool"; // O hook que já corrigimos
 
 // === FUNÇÃO DE NORMALIZAÇÃO ===
 const normalizarTurma = (turma) => {
@@ -85,66 +85,87 @@ export function useAlunos() {
 
   const usuarioLogado = useMemo(() => getUsuarioLogado(), []);
 
-  // ✅ NOVO: Usamos o hook que já corrigimos para obter o ID da escola e o estado de carregamento
-  const { userSchoolId, isLoadingUserSchool } = useUserSchool();
+  // ✅ CORREÇÃO: Pega o estado completo do hook useUserSchool, incluindo o canViewAllSchools
+  const { userSchoolId, isLoadingUserSchool, canViewAllSchools } =
+    useUserSchool();
 
   useEffect(() => {
     const authInstance = getAuth(app);
-    const unsubscribe = onAuthStateChanged(authInstance, async (user) => {
-      if (user) {
-        setUserId(user.uid);
-      } else {
-        if (typeof __initial_auth_token !== "undefined") {
-          await signInWithCustomToken(authInstance, __initial_auth_token);
+    let unsubscribe = null; // A variável agora está fora da função para ser acessível no retorno
+
+    const setupAuth = async () => {
+      unsubscribe = onAuthStateChanged(authInstance, async (user) => {
+        if (user) {
+          setUserId(user.uid);
         } else {
-          await signInAnonymously(authInstance);
+          if (typeof __initial_auth_token !== "undefined") {
+            await signInWithCustomToken(authInstance, __initial_auth_token);
+          } else {
+            await signInAnonymously(authInstance);
+          }
+          setUserId(authInstance.currentUser?.uid || crypto.randomUUID());
         }
-        setUserId(authInstance.currentUser?.uid || crypto.randomUUID());
-      }
-      setAuthReady(true);
-    });
+        setAuthReady(true);
+      });
+    };
+    setupAuth();
 
     setAppId(typeof __app_id !== "undefined" ? __app_id : "default-app-id");
 
-    return () => unsubscribe();
-  }, []);
+    return () => {
+      // ✅ CORREÇÃO: Verifica se a variável unsubscribe não é nula antes de chamá-la
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, []); // Dependência vazia, roda apenas uma vez
 
-  // ✅ CORREÇÃO: A lógica de busca de alunos foi movida para um useEffect separado
-  // que depende dos dados do useUserSchool.
+  // ✅ CORREÇÃO: Lógica de busca de alunos
   useEffect(() => {
     const fetchAlunos = async () => {
       setCarregando(true);
       setErro(null);
 
-      // Só tenta buscar os alunos se a escola já foi identificada e não está carregando
-      if (userSchoolId && !isLoadingUserSchool) {
-        try {
-          // ✅ LÓGICA CORRIGIDA: Usa o ID da escola para buscar todos os alunos
-          const firestore = getFirestore(app);
-          const q = query(
+      // Aguarda a autenticação e o carregamento dos dados da escola
+      if (!authReady || isLoadingUserSchool) {
+        return;
+      }
+
+      try {
+        const firestore = getFirestore(app);
+        let q;
+
+        // ✅ LÓGICA DE BUSCA: Lida com perfis que veem todas as escolas ou uma única
+        if (canViewAllSchools) {
+          q = collection(firestore, "alunos");
+        } else if (userSchoolId) {
+          q = query(
             collection(firestore, "alunos"),
             where("escolaId", "==", userSchoolId)
           );
-          const querySnapshot = await getDocs(q);
-          const alunosData = querySnapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }));
-          setAlunos(alunosData);
+        } else {
+          // Se o perfil não tem acesso a todas e não tem ID de escola, retorna uma lista vazia
+          setAlunos([]);
           setCarregando(false);
-        } catch (error) {
-          console.error("Erro ao buscar alunos:", error);
-          setErro("Não foi possível carregar a lista de alunos.");
-          setCarregando(false);
+          return;
         }
-      } else if (!userSchoolId && !isLoadingUserSchool) {
-        setAlunos([]);
+
+        const querySnapshot = await getDocs(q);
+        const alunosData = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setAlunos(alunosData);
+      } catch (error) {
+        console.error("Erro ao buscar alunos:", error);
+        setErro("Não foi possível carregar a lista de alunos.");
+      } finally {
         setCarregando(false);
       }
     };
 
     fetchAlunos();
-  }, [userSchoolId, isLoadingUserSchool]); // Re-executa a busca quando o ID da escola muda.
+  }, [authReady, isLoadingUserSchool, userSchoolId, canViewAllSchools]); // Re-executa a busca quando as dependências mudam
 
   return { alunos, carregando, erro };
 }

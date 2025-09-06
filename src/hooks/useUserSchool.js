@@ -24,6 +24,7 @@ export const useUserSchool = () => {
   const [userSchoolId, setUserSchoolId] = useState(null);
   const [isLoadingUserSchool, setIsLoadingUserSchool] = useState(true);
   const [userSchoolError, setUserSchoolError] = useState(null);
+  const [canViewAllSchools, setCanViewAllSchools] = useState(false); // Novo state
 
   const navigate = useNavigate();
 
@@ -63,8 +64,8 @@ export const useUserSchool = () => {
     const fetchData = async () => {
       try {
         const userData = authUserProfileData;
-
         let determinedSchoolId = null;
+        let canViewAll = false;
 
         const perfilUsuario = userData.perfil?.toLowerCase();
 
@@ -80,8 +81,10 @@ export const useUserSchool = () => {
           PERFIS.PROFESSOR,
         ].map((p) => p.toLowerCase());
 
+        // Lógica de correção: Perfis "sem escola" na verdade têm acesso a todas
         if (perfisSemEscola.includes(perfilUsuario)) {
-          determinedSchoolId = null;
+          canViewAll = true;
+          // O determinedSchoolId continua nulo, pois não se refere a uma única escola.
         } else if (perfisComMultiplasEscolas.includes(perfilUsuario)) {
           if (
             userData.escolas &&
@@ -102,6 +105,7 @@ export const useUserSchool = () => {
         const turmas = userData.turmas || {};
 
         setUserSchoolId(determinedSchoolId);
+        setCanViewAllSchools(canViewAll); // Define o novo state
         setUserSchoolData({
           ...userData,
           escolaId: determinedSchoolId,
@@ -122,6 +126,7 @@ export const useUserSchool = () => {
             turmas: userSchoolData?.turmas,
             uid: authUserProfileData?.uid,
             email: authUserProfileData?.email,
+            canViewAllSchools: canViewAllSchools,
           }
         );
         setIsLoadingUserSchool(false);
@@ -137,10 +142,31 @@ export const useUserSchool = () => {
     handleFetchError,
   ]);
 
+  // NOVO useEffect para confirmar a atualização do estado
+  useEffect(() => {
+    if (!isLoadingUserSchool) {
+      console.log(`[useUserSchool] Estado final ATUALIZADO:`, {
+        perfil: authUserProfileData?.perfil,
+        escolaId: userSchoolId,
+        turmas: userSchoolData?.turmas,
+        uid: authUserProfileData?.uid,
+        email: authUserProfileData?.email,
+        canViewAllSchools: canViewAllSchools,
+      });
+    }
+  }, [
+    userSchoolId,
+    userSchoolData,
+    canViewAllSchools,
+    isLoadingUserSchool,
+    authUserProfileData,
+  ]);
+
   return {
     userSchoolData,
     userSchoolId,
     isLoadingUserSchool,
     userSchoolError,
+    canViewAllSchools, // Retorna o novo state
   };
 };
