@@ -170,15 +170,16 @@ export default function VerAlunos() {
 
   const usuario = useMemo(() => getLocalStorageSafe("usuarioLogado", {}), []);
 
-  // ##### ALTERAÇÃO 1: Adicionado "diretor" à lista de perfis que podem editar/excluir #####
+  // ##### ALTERAÇÃO 1: Adicionado "seme" à lista de perfis que podem editar/excluir #####
   const podeEditar = useMemo(
     () =>
-      ["gestao", "aee", "desenvolvedor", "diretor"].includes(
+      ["gestao", "aee", "desenvolvedor", "diretor", "seme"].includes(
         usuario?.perfil?.toLowerCase()
       ),
     [usuario?.perfil]
   );
 
+  // ##### ALTERAÇÃO 2: Corrigido o destino do botão "Voltar" para o perfil SEME #####
   const handleVoltar = useCallback(() => {
     const perfil = usuario?.perfil?.toLowerCase();
     switch (perfil) {
@@ -189,8 +190,10 @@ export default function VerAlunos() {
       case "diretor":
       case "diretor adjunto":
       case "orientador pedagógico":
-      case "seme":
         navigate("/painel-gestao");
+        break;
+      case "seme": // Caso do SEME foi separado
+        navigate("/painel-seme");
         break;
       case "aee":
         navigate("/painel-aee");
@@ -336,7 +339,7 @@ export default function VerAlunos() {
 
       setAlunos(alunosParaExibir);
     } catch (e) {
-      console.error("Erro fatal ao carregar todos os dados:", e);
+      console.error("Fatal error loading all data:", e);
       setError(
         e.message || "Falha ao carregar dados. Por favor, tente novamente."
       );

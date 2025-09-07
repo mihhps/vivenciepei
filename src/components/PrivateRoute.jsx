@@ -42,6 +42,14 @@ function PrivateRoute() {
   const usuarioPerfil = user?.perfil?.trim().toLowerCase() || "";
   const usuarioEmail = user?.email?.trim().toLowerCase();
 
+  // --- Linha de depuração adicionada aqui ---
+  console.log(
+    "Perfil:",
+    usuarioPerfil,
+    " | Rota de redirecionamento esperada:",
+    perfilRedirectMap[usuarioPerfil]
+  );
+
   // --- 3. Superusuário (Desenvolvedor) ---
   const isSuperUser =
     usuarioEmail === desenvolvedoraEmail.toLowerCase() ||

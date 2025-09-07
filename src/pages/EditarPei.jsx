@@ -330,20 +330,17 @@ function EditarPei() {
           const entrada = entradaManual[manualKey] || {};
           const objetivosSelecionadosParaMeta =
             objetivosSelecionados[manualKey] || {};
-
           const estrategiasSelecionadas = entrada.estrategias || [];
           const estrategiasManuaisNovas = (entrada.estrategiasManuais || "")
             .split("\n")
             .map((e) => e.trim())
             .filter(Boolean);
-
           const todasEstrategias = [
             ...new Set([
               ...estrategiasSelecionadas,
               ...estrategiasManuaisNovas,
             ]),
           ].filter((e) => typeof e === "string" && e.trim() !== "");
-
           return {
             ...meta,
             objetivos: {
@@ -356,11 +353,27 @@ function EditarPei() {
         })
       );
 
+      // --- LÓGICA DA REVISÃO ADICIONADA AQUI ---
+      const mesAtual = new Date().getMonth(); // 0 = Janeiro, 11 = Dezembro
+      const semestreAtual =
+        mesAtual < 6 ? "primeiroSemestre" : "segundoSemestre";
+
+      const dadosDaRevisao = {
+        status: "Concluído",
+        dataRevisao: serverTimestamp(),
+        revisadoPor: usuarioLogado.uid,
+      };
+      // --- FIM DA LÓGICA DA REVISÃO ---
+
+      // Atualiza o documento no Firestore com os dados da revisão
       await updateDoc(doc(db, "peis", id), {
         resumoPEI: resumoAtualizado,
         atividadeAplicada: atividadeAplicada,
         dataUltimaRevisao: serverTimestamp(),
+        // A "mágica" acontece aqui, salvando os dados da revisão
+        [`revisoes.${semestreAtual}`]: dadosDaRevisao,
       });
+
       alert("PEI atualizado com sucesso! 🎉");
       navigate("/ver-peis");
     } catch (error) {
@@ -370,7 +383,6 @@ function EditarPei() {
       setCarregando(false);
     }
   };
-
   const handleRemoverMeta = (habilidadeMetaRemover) => {
     if (
       window.confirm(

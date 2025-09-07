@@ -8,7 +8,6 @@ export default function PainelDev() {
   const [loadingRecalculo, setLoadingRecalculo] = useState(false);
   const navigate = useNavigate();
 
-  // Carrega o CSS do Toastify programaticamente para resolver o erro de compilação
   useEffect(() => {
     if (!document.querySelector('link[href*="react-toastify"]')) {
       const link = document.createElement("link");
@@ -19,43 +18,59 @@ export default function PainelDev() {
     }
   }, []);
 
+  // ##### CORREÇÃO 1: Carregando o usuário real do localStorage #####
   useEffect(() => {
-    // Simulação do usuário logado para o ambiente de desenvolvimento
-    const userData = {
-      nome: "Desenvolvedor(a)",
-      uid: "dev123",
-      perfil: "Desenvolvedora",
-    };
-    setUsuarioLogado(userData);
-    console.log("UID do usuário logado:", userData.uid);
-  }, []);
+    const usuarioSalvo = localStorage.getItem("usuarioLogado");
+    if (usuarioSalvo) {
+      setUsuarioLogado(JSON.parse(usuarioSalvo));
+    } else {
+      toast.error("Sessão não encontrada. Por favor, faça login novamente.");
+      navigate("/login");
+    }
+  }, [navigate]);
 
-  // Agora a função de recalcular é assíncrona
+  // ##### CORREÇÃO 2: Implementada a chamada REAL para a Cloud Function #####
   const handleRecalcularTodosPrazos = async () => {
     setLoadingRecalculo(true);
-    toast.info("Iniciando recalculo de prazos...", {
-      autoClose: 2000,
-    });
+    toast.info("Iniciando recálculo de prazos...", { autoClose: 3000 });
 
     try {
-      // Simulação de uma chamada de API real.
-      // Substitua esta lógica pela chamada de API real do seu backend
-      await new Promise((resolve) => setTimeout(resolve, 3000));
+      const auth = getAuth();
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error("Usuário não autenticado. Faça login novamente.");
+      }
 
-      toast.success("Recalculo de prazos concluído com sucesso!", {
-        autoClose: 2000,
+      const token = await user.getIdToken(true);
+
+      // 👇 IMPORTANTE: Cole a URL da sua função aqui dentro das aspas 👇
+      const url = "https://recalculartodosprazos-hc7r4cnuvq-rj.a.run.app";
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ data: { userId: user.uid } }),
       });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "A função retornou um erro.");
+      }
+
+      toast.success(result.message || "Recálculo concluído com sucesso!");
     } catch (error) {
-      toast.error("Ocorreu um erro no recalculo. Tente novamente.");
-      console.error("Erro no recalculo de prazos:", error);
+      toast.error(`Erro no recálculo: ${error.message}`);
+      console.error("Erro no recálculo de prazos:", error);
     } finally {
       setLoadingRecalculo(false);
     }
   };
 
   const handleNavigate = (rota) => {
-    console.log(`Navegando de verdade para a rota ${rota}`);
-    toast.info(`Navegando para ${rota}`, { autoClose: 2000 });
     navigate(rota);
   };
 
@@ -107,8 +122,9 @@ export default function PainelDev() {
       try {
         const auth = getAuth();
         await signOut(auth);
+        localStorage.removeItem("usuarioLogado");
         toast.success("Você saiu da sua conta com sucesso!");
-        navigate("/login"); // Redireciona para a página de login
+        navigate("/login");
       } catch (error) {
         toast.error("Erro ao sair. Tente novamente.");
         console.error("Erro ao fazer logout:", error);
@@ -129,6 +145,10 @@ export default function PainelDev() {
     );
   };
 
+  if (!usuarioLogado) {
+    return <div className="app-loading">Carregando...</div>;
+  }
+
   return (
     <div
       style={{
@@ -143,7 +163,7 @@ export default function PainelDev() {
         fontFamily: "'Segoe UI', sans-serif",
       }}
     >
-      <ToastContainer />
+      <ToastContainer position="top-right" />
       <div
         style={{
           backgroundColor: "white",
@@ -167,14 +187,13 @@ export default function PainelDev() {
           }}
         />
         <h1 style={{ marginBottom: "10px", color: "#1d3557" }}>
-          Painel da Desenvolvedora
+          Painel do Desenvolvedor
         </h1>
         <p style={{ marginBottom: "20px" }}>
           Bem-vindo, <strong>{usuarioLogado?.nome || "Usuário"}</strong>
           <br />
           Perfil: <strong>{usuarioLogado?.perfil || "Desconhecido"}</strong>
         </p>
-
         <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
           {botoes.map((botao, i) => (
             <button
@@ -186,15 +205,12 @@ export default function PainelDev() {
             </button>
           ))}
         </div>
-
         <hr style={{ margin: "20px 0", border: "1px solid #e0e0e0" }} />
-
         <div style={{ textAlign: "left" }}>
           <h3 style={{ color: "#1d3557", marginBottom: "10px" }}>
             Ferramentas de Manutenção
           </h3>
         </div>
-
         <button
           onClick={handleRecalcularTodosPrazos}
           style={estiloBotaoAdmin}
@@ -204,7 +220,6 @@ export default function PainelDev() {
             ? "Recalculando Prazos..."
             : "Recalcular Todos os Prazos PEI (Admin)"}
         </button>
-
         <BotaoSair />
       </div>
     </div>

@@ -65,11 +65,18 @@ export default function Login() {
         case PERFIS.DIRETOR:
         case PERFIS.DIRETOR_ADJUNTO:
         case PERFIS.ORIENTADOR_PEDAGOGICO:
-        case PERFIS.SEME:
           navigate("/painel-gestao", {
             state: { usuario: usuarioCompletoParaSalvar },
           });
           break;
+
+        case PERFIS.SEME:
+          navigate("/painel-seme", {
+            // <-- AJUSTE A ROTA PARA O PAINEL CORRETO
+            state: { usuario: usuarioCompletoParaSalvar },
+          });
+          break;
+
         case PERFIS.AEE:
           navigate("/painel-aee", {
             state: { usuario: usuarioCompletoParaSalvar },

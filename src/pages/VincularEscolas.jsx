@@ -83,17 +83,6 @@ export default function VincularEscolas() {
   const [expandedProfId, setExpandedProfId] = useState(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const usuario = JSON.parse(localStorage.getItem("usuarioLogado"));
-    if (
-      !usuario ||
-      !(usuario.perfil === "gestao" || usuario.perfil === "desenvolvedor")
-    ) {
-      toast.error("Apenas perfis autorizados podem acessar esta página.");
-      navigate("/");
-    }
-  }, [navigate]);
-
   const carregarDados = useCallback(async () => {
     setIsLoading(true);
     setError(null);

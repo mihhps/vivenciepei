@@ -17,6 +17,7 @@ import PrivateRoute from "./components/PrivateRoute";
 import CorrigirTurmas from "./pages/CorrigirTurmas";
 
 // Lazy-loaded Pages
+const PainelSeme = lazy(() => import("./pages/PainelSEME")); // ✅ ROTA ADICIONADA
 const PainelGestao = lazy(() => import("./pages/PainelGestao"));
 const PainelAee = lazy(() => import("./pages/PainelAEE"));
 const PainelProfessor = lazy(() => import("./pages/PainelProfessor"));
@@ -69,9 +70,8 @@ const VisualizarAvaliacaoInteressesPage = lazy(
 const ObservacoesAluno = lazy(() => import("./pages/ObservacoesAluno"));
 const Reavaliacao = lazy(() => import("./pages/Reavaliacao"));
 
-// ✅ AS DUAS PÁGINAS QUE PRECISAMOS, COM OS NOMES CORRETOS
-const VerAnamneses = lazy(() => import("./pages/VerAnamneses.jsx")); // A LISTA
-const VisualizarAnamnese = lazy(() => import("./pages/VisualizarAnamnese")); // A VISUALIZAÇÃO ÚNICA
+const VerAnamneses = lazy(() => import("./pages/VerAnamneses.jsx"));
+const VisualizarAnamnese = lazy(() => import("./pages/VisualizarAnamnese"));
 
 // PDF.js Worker
 import * as pdfjsLib from "pdfjs-dist/build/pdf";
@@ -95,6 +95,7 @@ function AppContent() {
           <Route element={<PrivateRoute />}>
             {/* Painéis */}
             <Route path="/painel-gestao" element={<PainelGestao />} />
+            <Route path="/painel-seme" element={<PainelSeme />} />
             <Route path="/painel-aee" element={<PainelAee />} />
             <Route path="/painel-professor" element={<PainelProfessor />} />
             <Route path="/painel-dev" element={<PainelDev />} />
@@ -121,7 +122,6 @@ function AppContent() {
             <Route path="/editar-avaliacao/:id" element={<EditarAvaliacao />} />
             <Route path="/anamnese-completa" element={<AnamneseCompleta />} />
 
-            {/* ✅ ROTAS CORRIGIDAS PARA ANAMNESE */}
             <Route path="/anamnese" element={<VerAnamneses />} />
             <Route
               path="/visualizar-anamnese/:alunoId"

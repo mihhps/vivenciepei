@@ -11,6 +11,7 @@ import {
   orderBy,
   limit,
   serverTimestamp,
+  doc,
 } from "firebase/firestore";
 import BotaoVoltar from "../components/BotaoVoltar";
 import BotaoVerPEIs from "../components/BotaoVerPEIs";
@@ -620,27 +621,23 @@ export default function CriarPEI() {
               ""
             )}`;
             const manualData = entradaManual[manualKey] || {};
-
             const manualStrategiesTyped = manualData.estrategiasManuais
               ? manualData.estrategiasManuais
                   .split("\n")
                   .map((s) => s.trim())
                   .filter((e) => e.length > 0)
               : [];
-
             const suggestedStrategiesSelected = Array.isArray(
               manualData.estrategias
             )
               ? manualData.estrategias
               : [];
-
             const allStrategies = [
               ...new Set([
                 ...suggestedStrategiesSelected,
                 ...manualStrategiesTyped,
               ]),
             ].filter((e) => typeof e === "string" && e.trim() !== "");
-
             if (
               allStrategies.length === 0 ||
               !meta.objetivos ||
@@ -650,7 +647,6 @@ export default function CriarPEI() {
             ) {
               return null;
             }
-
             return {
               area,
               habilidade: meta.habilidade,
@@ -676,6 +672,8 @@ export default function CriarPEI() {
       }
 
       const currentYear = new Date().getFullYear();
+      // NOTA: A busca está na coleção 'peis'. Se os novos PEIs devem ir para 'pei_contribucoes',
+      // esta lógica precisará ser ajustada para buscar e salvar na coleção correta.
       const qExisting = query(
         collection(db, "peis"),
         where("alunoId", "==", alunoSelecionado.id),
@@ -697,19 +695,38 @@ export default function CriarPEI() {
       };
 
       if (!snapExisting.empty) {
+        // --- LÓGICA DE ATUALIZAÇÃO (REVISÃO) ---
         const peiDocRef = snapExisting.docs[0].ref;
+
+        const mesAtual = new Date().getMonth(); // 0 = Janeiro, 11 = Dezembro
+        const semestreAtual =
+          mesAtual < 6 ? "primeiroSemestre" : "segundoSemestre";
+
+        const dadosDaRevisao = {
+          status: "Concluído",
+          dataRevisao: serverTimestamp(),
+          revisadoPor: usuarioLogado.uid,
+        };
+
         await updateDoc(peiDocRef, {
           ...commonFields,
           dataUltimaRevisao: serverTimestamp(),
+          // A "mágica" acontece aqui, salvando os dados da revisão
+          [`revisoes.${semestreAtual}`]: dadosDaRevisao,
         });
-        exibirMensagem("sucesso", "PEI atualizado com sucesso!");
+        exibirMensagem(
+          "sucesso",
+          "PEI atualizado (revisão salva) com sucesso!"
+        );
       } else {
+        // --- LÓGICA DE CRIAÇÃO (NOVO PEI) ---
         await addDoc(collection(db, "peis"), {
           alunoId: alunoSelecionado.id,
           aluno: alunoSelecionado.nome,
           turma: alunoSelecionado.turma,
           ...commonFields,
           dataCriacao: serverTimestamp(),
+          revisoes: {}, // Inicializa o campo de revisões como um mapa vazio
         });
         exibirMensagem("sucesso", "Novo PEI salvo com sucesso!");
       }

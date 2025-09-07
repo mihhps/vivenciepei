@@ -9,7 +9,7 @@ export const perfilRedirectMap = {
   [PERFIS.GESTAO]: "/painel-gestao",
   [PERFIS.AEE]: "/painel-aee",
   [PERFIS.PROFESSOR]: "/painel-professor",
-  [PERFIS.SEME]: "/acompanhamento",
+  [PERFIS.SEME]: "/painel-seme", // <-- MUDANÇA FEITA AQUI
   [PERFIS.DIRETOR]: "/painel-gestao",
   [PERFIS.DIRETOR_ADJUNTO]: "/painel-gestao",
   [PERFIS.ORIENTADOR_PEDAGOGICO]: "/painel-gestao",
@@ -24,6 +24,7 @@ const ADMINISTRADORES = [
   PERFIS.DIRETOR,
   PERFIS.DIRETOR_ADJUNTO,
   PERFIS.ORIENTADOR_PEDAGOGICO,
+  PERFIS.SEME,
 ];
 
 const GESTORES_PEDAGOGICOS = [
@@ -48,18 +49,18 @@ const TODOS = [
 ];
 
 // ========== PERMISSÕES POR ROTA ==========
-// Este objeto agora pode usar os grupos definidos acima.
 export const AUTORIZACAO_ROTAS = {
   // --- Painéis ---
   "/painel-dev": [PERFIS.DESENVOLVEDOR],
-  // ✅ CORREÇÃO AQUI: Dando acesso ao Painel de Gestão para todos os perfis de gestão escolar
   "/painel-gestao": [
     PERFIS.GESTAO,
     PERFIS.DIRETOR,
     PERFIS.DIRETOR_ADJUNTO,
     PERFIS.ORIENTADOR_PEDAGOGICO,
+    PERFIS.SEME,
   ],
   "/painel-aee": [PERFIS.AEE, PERFIS.GESTAO, PERFIS.DESENVOLVEDOR],
+  "/painel-seme": GESTORES_PEDAGOGICOS, // <-- Você pode adicionar uma permissão específica aqui, se desejar.
 
   // --- Admin: Cadastros e Vinculações ---
   "/cadastrar-aluno": ADMINISTRADORES,
@@ -71,9 +72,9 @@ export const AUTORIZACAO_ROTAS = {
   "/importar-alunos": ADMINISTRADORES,
 
   // --- Gestão e Prazos ---
-  "/gestao-prazos-pei": GESTORES_PEDAGOGICOS,
-  "/acompanhamento-pei/:professorId": GESTORES_PEDAGOGICOS,
-  "/acompanhamento": GESTORES_PEDAGOGICOS,
+  "/gestao-prazos-pei": ADMINISTRADORES,
+  "/acompanhamento-pei/:professorId": ADMINISTRADORES,
+  "/acompanhamento": ADMINISTRADORES,
 
   // --- Visualizações gerais ---
   "/ver-alunos": TODOS,

@@ -18,7 +18,7 @@ function BotaoVoltar({ destino, texto = "Voltar" }) {
     desenvolvedora: "/painel-dev",
     gestao: "/painel-gestao",
     aee: "/painel-aee",
-    seme: "/acompanhamento",
+    seme: "/painel-seme",
     professor: "/painel-professor",
     diretor: "/painel-gestao",
     diretor_adjunto: "/painel-gestao",

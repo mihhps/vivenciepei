@@ -57,10 +57,23 @@ const normalizarTurma = (turma) => {
   }
   return partes.join(" ");
 };
-const getPeiStatusDetails = (peiData, prazos, hoje, alunoNome) => {
+const getPeiStatusDetails = (peiData, prazos, hoje) => {
+  console.log("--- EXECUTANDO COM A LÓGICA CORRIGIDA v2 ---");
+  // Verificação de PEI Concluído (permanece igual, é a prioridade máxima)
+  if (peiData?.status?.toLowerCase() === "concluído") {
+    return {
+      statusPeiGeral: "Concluído",
+      statusRevisao1: "Concluído",
+      statusRevisao2: "Concluído",
+      isAtrasadoRealmente: false,
+      dataUltimaAtualizacaoPei:
+        peiData?.dataUltimaRevisao || peiData?.dataCriacao || null,
+    };
+  }
+
   let statusPeiGeral = "Não iniciado";
-  let statusRevisao1 = "Pendente"; // Valor inicial mais preciso
-  let statusRevisao2 = "Pendente"; // Valor inicial mais preciso
+  let statusRevisao1 = "Pendente";
+  let statusRevisao2 = "Pendente";
   let finalIsAtrasadoRealmente = false;
 
   const hojeZerado = resetTime(new Date(hoje.getTime()));
@@ -78,9 +91,8 @@ const getPeiStatusDetails = (peiData, prazos, hoje, alunoNome) => {
     ? resetTime(peiData.dataCriacao.toDate())
     : null;
 
-  // --- Lógica de Status de Criação ---
+  // Lógica de Status de Criação (permanece igual)
   if (!peiData || !dataCriacaoPei) {
-    // Se não há PEI ou data de criação, verifica se já passou do prazo
     if (dataLimiteCriacaoPEI && hojeZerado > dataLimiteCriacaoPEI) {
       statusPeiGeral = "Atrasado - Sem PEI";
       finalIsAtrasadoRealmente = true;
@@ -88,54 +100,51 @@ const getPeiStatusDetails = (peiData, prazos, hoje, alunoNome) => {
       statusPeiGeral = "Aguardando Criação";
     }
   } else {
-    // PEI existe, verifica se foi criado no prazo
     if (dataLimiteCriacaoPEI && dataCriacaoPei > dataLimiteCriacaoPEI) {
       statusPeiGeral = "Criado (Atrasado)";
-      // Atraso de criação não se acumula com atrasos de revisão.
-      // O PEI já existe, o foco agora é nas revisões.
-      // finalIsAtrasadoRealmente = true; // Isso seria um atraso, mas pode ser desconsiderado se as revisões estiverem em dia
     } else {
       statusPeiGeral = "Criado no Prazo";
     }
   }
 
-  // --- Lógica de Status de Revisão ---
-  // Apenas avalia se o PEI já foi criado
+  // --- Lógica de Status de Revisão (COM A NOVA REGRA) ---
   if (dataCriacaoPei) {
     const revisoes = peiData.revisoes;
 
-    // Lógica para Revisão 1
-    const dataRevisao1 = revisoes?.primeiroSemestre?.dataRevisao?.toDate
-      ? resetTime(revisoes.primeiroSemestre.dataRevisao.toDate())
-      : null;
-    if (
+    // ##### LÓGICA CORRIGIDA PARA A 1ª REVISÃO #####
+    const revisao1Concluida =
       revisoes?.primeiroSemestre?.status === "Concluído" ||
-      (dataRevisao1 && dataRevisao1 <= hojeZerado)
-    ) {
+      revisoes?.primeiroSemestre?.dataRevisao;
+
+    if (revisao1Concluida) {
       statusRevisao1 = "Concluído";
-    } else if (dataLimiteRevisao1Sem && hojeZerado > dataLimiteRevisao1Sem) {
-      statusRevisao1 = "Atrasado";
-      finalIsAtrasadoRealmente = true;
+    } else {
+      // Se NÃO foi concluída, aí sim verificamos se está atrasada ou pendente.
+      if (dataLimiteRevisao1Sem && hojeZerado > dataLimiteRevisao1Sem) {
+        statusRevisao1 = "Atrasado";
+        finalIsAtrasadoRealmente = true;
+      } else {
+        statusRevisao1 = "Pendente";
+      }
     }
 
-    // Lógica para Revisão 2
-    const dataRevisao2 = revisoes?.segundoSemestre?.dataRevisao?.toDate
-      ? resetTime(revisoes.segundoSemestre.dataRevisao.toDate())
-      : null;
-    if (
+    // ##### LÓGICA CORRIGIDA PARA A 2ª REVISÃO #####
+    const revisao2Concluida =
       revisoes?.segundoSemestre?.status === "Concluído" ||
-      (dataRevisao2 && dataRevisao2 <= hojeZerado)
-    ) {
+      revisoes?.segundoSemestre?.dataRevisao;
+
+    if (revisao2Concluida) {
       statusRevisao2 = "Concluído";
-    } else if (dataLimiteRevisao2Sem && hojeZerado > dataLimiteRevisao2Sem) {
-      statusRevisao2 = "Atrasado";
-      finalIsAtrasadoRealmente = true;
+    } else {
+      // Se NÃO foi concluída, aí sim verificamos se está atrasada ou pendente.
+      if (dataLimiteRevisao2Sem && hojeZerado > dataLimiteRevisao2Sem) {
+        statusRevisao2 = "Atrasado";
+        finalIsAtrasadoRealmente = true;
+      } else {
+        statusRevisao2 = "Pendente";
+      }
     }
   }
-
-  // Se o PEI não foi criado e está atrasado, esse é o único atraso.
-  // Se o PEI foi criado, mas tem revisões atrasadas, a flag continua true.
-  // Se o PEI e suas revisões foram feitas, a flag é false.
 
   return {
     statusPeiGeral,

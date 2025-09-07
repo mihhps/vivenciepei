@@ -68,18 +68,50 @@ function DetalhesEscolaPEIs({ escolaId, nomeEscola, anoLetivo, onVoltar }) {
         console.log(
           `[DetalhesEscolaPEIs] ${listaAlunos.length} alunos encontrados para a escola.`
         );
+        // Substitua a busca de PEIs por este bloco:
 
-        const peisEscolaQuery = query(
-          collection(db, "peis"), // <<< CORRIGIDO PARA MINÚSCULAS,
+        // Busca na coleção ANTIGA 'peis'
+        const peisAntigosQuery = query(
+          collection(db, "peis"),
           where("escolaId", "==", escolaId),
           where("anoLetivo", "==", anoLetivo)
         );
+
+        // Busca na coleção NOVA 'pei_contribucoes'
+        const peisNovosQuery = query(
+          collection(db, "pei_contribucoes"),
+          where("escolaId", "==", escolaId),
+          where("anoLetivo", "==", anoLetivo)
+        );
+
+        // Executa as duas buscas em paralelo
+        const [peisAntigosSnapshot, peisNovosSnapshot] = await Promise.all([
+          getDocs(peisAntigosQuery),
+          getDocs(peisNovosQuery),
+        ]);
+
+        console.log(
+          `[DetalhesEscolaPEIs] ${peisAntigosSnapshot.size} PEIs encontrados em 'peis' e ${peisNovosSnapshot.size} em 'pei_contribucoes'.`
+        );
+
+        const peisMap = new Map();
+
+        // Adiciona os PEIs antigos ao mapa
+        peisAntigosSnapshot.forEach((doc) => {
+          const peiData = doc.data();
+          peisMap.set(peiData.alunoId, { id: doc.id, ...peiData });
+        });
+
+        // Adiciona os PEIs novos ao mapa (sobrescrevendo os antigos se houver duplicata)
+        peisNovosSnapshot.forEach((doc) => {
+          const peiData = doc.data();
+          peisMap.set(peiData.alunoId, { id: doc.id, ...peiData });
+        });
         const peisEscolaSnapshot = await getDocs(peisEscolaQuery);
         console.log(
           `[DetalhesEscolaPEIs] ${peisEscolaSnapshot.size} PEIs encontrados para a escola no ano ${anoLetivo}.`
         );
 
-        const peisMap = new Map();
         peisEscolaSnapshot.forEach((doc) => {
           const peiData = doc.data();
           console.log(

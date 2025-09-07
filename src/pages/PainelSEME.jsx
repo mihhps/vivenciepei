@@ -1,51 +1,165 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { toast, ToastContainer } from "react-toastify";
 import { useNavigate } from "react-router-dom";
-import BotaoSair from "../components/BotaoSair"; // Presumindo que este componente existe
-import BotaoVoltar from "../components/BotaoVoltar"; // Presumindo que este componente existe
+import { getAuth, signOut } from "firebase/auth";
 
 export default function PainelSEME() {
+  const [usuarioLogado, setUsuarioLogado] = useState(null);
   const navigate = useNavigate();
 
-  // Configuração para os botões de navegação
-  const botoesNavegacao = [
-    { label: "Ver Alunos", path: "/ver-alunos" },
-    { label: "Ver Avaliações Iniciais", path: "/ver-avaliacoes" },
-    { label: "Vincular Escolas a Professores", path: "/vincular-escolas" },
-    { label: "Gerar PDF Consolidado", path: "/gerar-relatorios" },
-    { label: "Acompanhamento Escolar", path: "/acompanhamento" },
-    // --- NOVO BOTÃO AQUI ---
+  // Carrega o CSS do Toastify programaticamente
+  useEffect(() => {
+    if (!document.querySelector('link[href*="react-toastify"]')) {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href =
+        "https://cdn.jsdelivr.net/npm/react-toastify@9.1.1/dist/ReactToastify.min.css";
+      document.head.appendChild(link);
+    }
+  }, []);
+
+  // --- CORREÇÃO APLICADA AQUI ---
+  // Carrega os dados do usuário que foram salvos no login via localStorage
+  useEffect(() => {
+    const usuarioSalvo = localStorage.getItem("usuarioLogado");
+
+    if (usuarioSalvo) {
+      // Se encontrou o usuário salvo, atualiza o estado do componente
+      setUsuarioLogado(JSON.parse(usuarioSalvo));
+    } else {
+      // Se não encontrou um usuário logado, redireciona de volta para o login por segurança
+      toast.error("Sessão não encontrada. Por favor, faça login novamente.");
+      navigate("/login");
+    }
+  }, [navigate]); // Adicionamos 'navigate' como dependência do useEffect
+
+  const handleNavigate = (rota) => {
+    // A notificação de navegação pode ser removida se não for desejada
+    // toast.info(`Navegando para ${rota}`, { autoClose: 1000 });
+    navigate(rota);
+  };
+
+  const botoes = [
+    { label: "Avaliação Inicial", rota: "/avaliacao-inicial" },
     {
-      label: "Acompanhamento de Prazos PEI",
-      path: "/acompanhamento-prazos-pei",
+      label: "Avaliação de Interesses",
+      rota: "/nova-avaliacao/Avaliacaointeresses",
     },
-    // --- FIM DO NOVO BOTÃO ---
+    { label: "Criar PEI", rota: "/criar-pei" },
+    { label: "Anamnese", rota: "/anamnese-completa" },
+    { label: "Ver Anamnese", rota: "/anamnese" },
+    { label: "Gerenciar Prazos PEI", rota: "/gestao-prazos-pei" },
+    { label: "Acompanhar Prazos PEI", rota: "/acompanhamento-prazos-pei" },
+    { label: "Acompanhamento Escolar", rota: "/acompanhamento" },
+    { label: "Ver Alunos", rota: "/ver-alunos" },
+    { label: "Importar Alunos", rota: "/importar-alunos" },
+    { label: "Cadastrar Usuário", rota: "/cadastro-usuario" },
+    { label: "Vincular Turmas a Professores", rota: "/vincular-professores" },
+    { label: "Vincular Escolas a Professores", rota: "/vincular-escolas" },
+    { label: "Cadastrar Turma", rota: "/cadastro-turmas" },
   ];
 
-  return (
-    <div style={estilos.fundo}>
-      <div style={estilos.card}>
-        <BotaoVoltar />
-        <img
-          src="/logo-vivencie.png" // Certifique-se que este caminho está correto na sua pasta public
-          alt="Logo Vivencie PEI"
-          style={estilos.logo}
-        />
-        <h2 style={estilos.titulo}>Painel da SEME</h2>
+  const estiloBotao = {
+    padding: "12px 24px",
+    margin: "6px 0",
+    backgroundColor: "#1d3557",
+    color: "white",
+    border: "none",
+    borderRadius: "8px",
+    fontSize: "16px",
+    fontWeight: "bold",
+    width: "100%",
+    cursor: "pointer",
+    transition: "background-color 0.3s ease",
+  };
 
-        <div style={estilos.botoesContainer}>
-          {botoesNavegacao.map((itemBotao) => (
+  const BotaoSair = () => {
+    const handleSair = async () => {
+      try {
+        const auth = getAuth();
+        await signOut(auth);
+        localStorage.removeItem("usuarioLogado"); // Limpa o localStorage ao sair
+        toast.success("Você saiu da sua conta com sucesso!");
+        navigate("/login"); // Redireciona para a página de login
+      } catch (error) {
+        toast.error("Erro ao sair. Tente novamente.");
+        console.error("Erro ao fazer logout:", error);
+      }
+    };
+    return (
+      <button
+        onClick={handleSair}
+        style={{
+          ...estiloBotao,
+          backgroundColor: "#a8dadc",
+          color: "#1d3557",
+          marginTop: "20px",
+        }}
+      >
+        Sair
+      </button>
+    );
+  };
+
+  // Se o usuário ainda não foi carregado, pode-se exibir um loader
+  if (!usuarioLogado) {
+    return <div>Carregando...</div>;
+  }
+
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        width: "100vw",
+        backgroundColor: "#1d3557",
+        display: "flex",
+        justifyContent: "center",
+        paddingTop: "60px",
+        paddingBottom: "60px",
+        overflowY: "auto",
+        fontFamily: "'Segoe UI', sans-serif",
+      }}
+    >
+      <ToastContainer position="top-right" autoClose={3000} />
+      <div
+        style={{
+          backgroundColor: "white",
+          padding: "40px",
+          borderRadius: "20px",
+          boxShadow: "0 0 30px rgba(0,0,0,0.2)",
+          width: "100%",
+          maxWidth: "420px",
+          textAlign: "center",
+        }}
+      >
+        <img
+          src="/logo-vivencie.png"
+          alt="Logo Vivencie PEI"
+          style={{
+            width: "150px",
+            height: "auto",
+            objectFit: "contain",
+            display: "block",
+            margin: "0 auto 10px",
+          }}
+        />
+        <h1 style={{ marginBottom: "10px", color: "#1d3557" }}>
+          Painel da SEME
+        </h1>
+        <p style={{ marginBottom: "20px" }}>
+          Bem-vindo, <strong>{usuarioLogado?.nome || "Usuário"}</strong>
+          <br />
+          Perfil: <strong>{usuarioLogado?.perfil}</strong>
+        </p>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          {botoes.map((botao, i) => (
             <button
-              key={itemBotao.path} // key é importante para listas em React
-              style={estilos.botao}
-              onClick={() => navigate(itemBotao.path)}
-              // Opcional: Adicionar um efeito hover mais visível (como feito em outros painéis)
-              // Você precisaria de um estilo de hover separado no objeto estilos,
-              // ou gerenciar com onMouseEnter/onMouseLeave se quiser inline.
-              // Exemplo de como usar com onMouseEnter/onMouseLeave (se quiser):
-              // onMouseEnter={e => e.currentTarget.style.backgroundColor = '#2a9d8f'}
-              // onMouseLeave={e => e.currentTarget.style.backgroundColor = '#1d3557'}
+              key={i}
+              onClick={() => handleNavigate(botao.rota)}
+              style={estiloBotao}
             >
-              {itemBotao.label}
+              {botao.label}
             </button>
           ))}
         </div>
@@ -55,57 +169,3 @@ export default function PainelSEME() {
     </div>
   );
 }
-
-const estilos = {
-  fundo: {
-    minHeight: "100vh",
-    width: "100%",
-    background: "linear-gradient(to bottom, #00264d, #005b96)",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    fontFamily: "'Segoe UI', sans-serif",
-    padding: "40px 20px",
-    boxSizing: "border-box",
-  },
-  card: {
-    backgroundColor: "#fff",
-    borderRadius: "20px",
-    padding: "30px 40px",
-    boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
-    textAlign: "center",
-    width: "100%",
-    maxWidth: "500px",
-  },
-  logo: {
-    width: "120px",
-    marginBottom: "20px",
-  },
-  titulo: {
-    color: "#1d3557",
-    marginBottom: "30px",
-    fontSize: "24px",
-  },
-  botoesContainer: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "15px",
-    marginBottom: "30px",
-  },
-  botao: {
-    backgroundColor: "#1d3557",
-    color: "#fff",
-    padding: "12px 20px",
-    border: "none",
-    borderRadius: "8px",
-    fontSize: "16px",
-    fontWeight: "bold",
-    cursor: "pointer",
-    transition: "background-color 0.2s ease-in-out, transform 0.1s ease-in-out",
-    width: "100%",
-    boxSizing: "border-box",
-  },
-  // Opcional: Para um hover consistente com os outros painéis,
-  // você pode adicionar um efeito com onMouseEnter/onMouseLeave no botão (como comentado acima).
-  // Se quiser um estilo de hover mais elaborado, seria melhor usar um arquivo CSS externo.
-};

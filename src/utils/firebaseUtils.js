@@ -141,48 +141,76 @@ export const fetchAlunoById = async (alunoId, userId) => {
   }
 };
 
+// ##### FUNÇÃO ATUALIZADA #####
 export const fetchPeisByAluno = async (alunoId, alunoNome) => {
+  if (!alunoId) {
+    console.warn(
+      "[FirebaseUtils] Aluno ID não fornecido para fetchPeisByAluno."
+    );
+    return [];
+  }
+
   try {
-    let peis = [];
     const newCollectionRef = collection(db, "pei_contribucoes");
     const oldCollectionRef = collection(db, "peis");
 
-    let qNew = query(
+    // Cria as duas buscas
+    const qNew = query(
       newCollectionRef,
       where("alunoId", "==", alunoId),
       orderBy("dataCriacao", "desc")
     );
-    let snapNew = await getDocs(qNew);
+    const qOld = query(
+      oldCollectionRef,
+      where("alunoId", "==", alunoId),
+      orderBy("dataCriacao", "desc")
+    );
 
-    if (!snapNew.empty) {
-      peis = snapNew.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-    } else {
-      let qOldById = query(
+    // Executa as duas buscas em paralelo para mais performance
+    const [snapNew, snapOld] = await Promise.all([
+      getDocs(qNew),
+      getDocs(qOld),
+    ]);
+
+    const peisMap = new Map(); // Usamos um Map para evitar duplicatas
+
+    // Adiciona os PEIs da coleção antiga primeiro
+    snapOld.docs.forEach((doc) => {
+      peisMap.set(doc.id, { id: doc.id, ...doc.data() });
+    });
+
+    // Adiciona os PEIs da coleção nova (sobrescrevendo os antigos se tiverem mesmo ID)
+    snapNew.docs.forEach((doc) => {
+      peisMap.set(doc.id, { id: doc.id, ...doc.data() });
+    });
+
+    // Converte o Map de volta para um array
+    let peis = Array.from(peisMap.values());
+
+    // Ordena o resultado final pela data de criação
+    peis.sort(
+      (a, b) => (b.dataCriacao?.toDate() || 0) - (a.dataCriacao?.toDate() || 0)
+    );
+
+    // Fallback para busca por nome (se absolutamente nada for encontrado por ID)
+    if (peis.length === 0 && alunoNome) {
+      console.log(
+        `[FirebaseUtils] Nenhum PEI por ID. Tentando fallback por nome: ${alunoNome}`
+      );
+      let qOldByName = query(
         oldCollectionRef,
-        where("alunoId", "==", alunoId),
+        where("aluno", "==", alunoNome),
         orderBy("dataCriacao", "desc")
       );
-      let snapOldById = await getDocs(qOldById);
-
-      if (!snapOldById.empty) {
-        peis = snapOldById.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-      } else {
-        if (alunoNome) {
-          let qOldByName = query(
-            oldCollectionRef,
-            where("aluno", "==", alunoNome),
-            orderBy("dataCriacao", "desc")
-          );
-          let snapOldByName = await getDocs(qOldByName);
-          if (!snapOldByName.empty) {
-            peis = snapOldByName.docs.map((doc) => ({
-              id: doc.id,
-              ...doc.data(),
-            }));
-          }
-        }
+      let snapOldByName = await getDocs(qOldByName);
+      if (!snapOldByName.empty) {
+        peis = snapOldByName.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
       }
     }
+
     return peis;
   } catch (err) {
     console.error("[FirebaseUtils] Erro ao buscar PEIs por aluno:", err);
