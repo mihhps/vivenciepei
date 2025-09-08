@@ -375,6 +375,7 @@ function AvaliacaoInteressesPage() {
   const [erro, setErro] = useState(null);
   const [sucesso, setSucesso] = useState(null);
   const [showViewButton, setShowViewButton] = useState(false);
+  const [showForm, setShowForm] = useState(false); // <--- Nova variável de estado
 
   const {
     alunos: alunosListFromHook,
@@ -396,6 +397,7 @@ function AvaliacaoInteressesPage() {
       );
       if (foundAluno) {
         setAlunoSelecionadoDropdown(foundAluno);
+        setShowForm(true); // <--- Define como true ao carregar pela URL
       }
     }
   }, [alunoIdFromParams, alunosListFromHook, alunoSelecionadoDropdown]);
@@ -405,8 +407,11 @@ function AvaliacaoInteressesPage() {
       const currentAlunoIdToFetch =
         alunoSelecionadoDropdown?.id || alunoIdFromParams;
 
+      // <--- Modificação na verificação inicial
       if (!currentAlunoIdToFetch) {
         setCarregando(false);
+        setErro(null);
+        setSucesso(null);
         return;
       }
 
@@ -500,6 +505,11 @@ function AvaliacaoInteressesPage() {
       if (foundAluno) {
         navigate(`/nova-avaliacao/${foundAluno.id}`);
         setAlunoSelecionadoDropdown(foundAluno);
+        setShowForm(true); // <--- Define como true quando um aluno é selecionado
+      } else {
+        // Se o usuário deselecionar (voltar para "-- Escolher --")
+        setAlunoSelecionadoDropdown(null);
+        setShowForm(false);
       }
     },
     [formData, originalData, alunosListFromHook, navigate]
@@ -625,12 +635,10 @@ function AvaliacaoInteressesPage() {
       {erroAlunosFromHook && (
         <div className="mensagem-erro">{erroAlunosFromHook}</div>
       )}
-      {/* Exibir a mensagem de erro APENAS se houver um erro real */}
-      {erro && <div className="mensagem-erro">{erro}</div>}
-      {sucesso && (
-        <div className="mensagem-sucesso success-message">{sucesso}</div>
+      {/* Exibir a mensagem de erro APENAS se houver um erro REAL e um aluno tiver sido selecionado */}
+      {erro && alunoSelecionadoDropdown && (
+        <div className="mensagem-erro">{erro}</div>
       )}
-
       {carregandoAlunosFromHook ? (
         <div className="loading-message">Carregando lista de alunos...</div>
       ) : (
@@ -643,407 +651,410 @@ function AvaliacaoInteressesPage() {
       )}
 
       {/* Condição de renderização principal */}
-      {carregando && alunoSelecionadoDropdown ? (
-        <div className="loading-message">Carregando avaliação do aluno...</div>
-      ) : (
-        alunoSelecionadoDropdown && (
-          <form onSubmit={handleSubmit} className="avaliacao-form">
-            <h2 className="aluno-nome-header">
-              Aluno: {alunoSelecionadoDropdown.nome || "Nome Indisponível"}
-            </h2>
+      {showForm &&
+        (carregando && alunoSelecionadoDropdown ? (
+          <div className="loading-message">
+            Carregando avaliação do aluno...
+          </div>
+        ) : (
+          alunoSelecionadoDropdown && (
+            <form onSubmit={handleSubmit} className="avaliacao-form">
+              <h2 className="aluno-nome-header">
+                Aluno: {alunoSelecionadoDropdown.nome || "Nome Indisponível"}
+              </h2>
 
-            {/* Seção 1: Interesses e Pontos Fortes */}
-            <section className="form-section">
-              <h2>Seção 1: Interesses e Pontos Fortes</h2>
-              <p className="section-description">
-                Esta seção visa descobrir o que a criança gosta de fazer e no
-                que ela se destaca.
-              </p>
-              <div className="form-group">
-                <label className="input-label">
-                  Quais são as atividades favoritas da criança?
-                </label>
-                {ATIVIDADES_FAVORITAS_LIST.map((activity) => (
-                  <div key={activity} className="habilidade-item-radio">
-                    <span className="texto-habilidade">{activity}</span>
-                    <div className="niveis-habilidade">
-                      {NIVEIS_AVALIACAO.map((nivel) => (
-                        <label
-                          key={nivel}
-                          className={`circulo-nivel ${nivel.replace(/\s/g, "")} ${formData.atividadesFavoritas[activity] === nivel ? "ativo" : ""}`}
-                        >
-                          <input
-                            type="radio"
-                            name={`atividadesFavoritas-${activity}`}
-                            data-item-key={activity}
-                            data-list-name="atividadesFavoritas"
-                            value={nivel}
-                            checked={
-                              formData.atividadesFavoritas[activity] === nivel
-                            }
-                            onChange={handleRadioChange}
-                            disabled={salvando}
-                            className="hidden-radio-input"
-                          />
-                          {nivel}
-                        </label>
-                      ))}
+              {/* Seção 1: Interesses e Pontos Fortes */}
+              <section className="form-section">
+                <h2>Seção 1: Interesses e Pontos Fortes</h2>
+                <p className="section-description">
+                  Esta seção visa descobrir o que a criança gosta de fazer e no
+                  que ela se destaca.
+                </p>
+                <div className="form-group">
+                  <label className="input-label">
+                    Quais são as atividades favoritas da criança?
+                  </label>
+                  {ATIVIDADES_FAVORITAS_LIST.map((activity) => (
+                    <div key={activity} className="habilidade-item-radio">
+                      <span className="texto-habilidade">{activity}</span>
+                      <div className="niveis-habilidade">
+                        {NIVEIS_AVALIACAO.map((nivel) => (
+                          <label
+                            key={nivel}
+                            className={`circulo-nivel ${nivel.replace(/\s/g, "")} ${formData.atividadesFavoritas[activity] === nivel ? "ativo" : ""}`}
+                          >
+                            <input
+                              type="radio"
+                              name={`atividadesFavoritas-${activity}`}
+                              data-item-key={activity}
+                              data-list-name="atividadesFavoritas"
+                              value={nivel}
+                              checked={
+                                formData.atividadesFavoritas[activity] === nivel
+                              }
+                              onChange={handleRadioChange}
+                              disabled={salvando}
+                              className="hidden-radio-input"
+                            />
+                            {nivel}
+                          </label>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
-                <label className="text-input-label">
-                  Outras atividades (texto livre):
-                </label>
-                <input
-                  type="text"
-                  name="outrasAtividades"
-                  value={formData.outrasAtividades}
-                  onChange={handleChange}
-                  disabled={salvando}
-                  className="text-input"
-                />
-              </div>
-              <div className="form-group">
-                <label className="input-label">
-                  Quais brinquedos ou objetos a criança prefere mais?
-                </label>
-                <textarea
-                  name="brinquedosPreferidos"
-                  value={formData.brinquedosPreferidos}
-                  onChange={handleChange}
-                  rows="2"
-                  disabled={salvando}
-                  className="text-input"
-                ></textarea>
-              </div>
-              <div className="form-group">
-                <label className="input-label">
-                  Quais são os personagens, temas ou assuntos que mais chamam a
-                  atenção da criança?
-                </label>
-                <textarea
-                  name="personagensTemasAssuntos"
-                  value={formData.personagensTemasAssuntos}
-                  onChange={handleChange}
-                  rows="2"
-                  disabled={salvando}
-                  className="text-input"
-                ></textarea>
-              </div>
-              <div className="form-group">
-                <label className="input-label">
-                  Em que a criança demonstra ter habilidades ou facilidade?
-                </label>
-                <textarea
-                  name="habilidadesFacilidades"
-                  value={formData.habilidadesFacilidades}
-                  onChange={handleChange}
-                  rows="2"
-                  disabled={salvando}
-                  className="text-input"
-                ></textarea>
-              </div>
-              <div className="form-group">
-                <label className="input-label">
-                  A criança demonstra interesse em interagir com outras pessoas?
-                  Se sim, de que forma?
-                </label>
-                <textarea
-                  name="interacaoComPessoas"
-                  value={formData.interacaoComPessoas}
-                  onChange={handleChange}
-                  rows="2"
-                  disabled={salvando}
-                  className="text-input"
-                ></textarea>
-              </div>
-              <div className="form-group">
-                <label className="input-label">
-                  Há alguma rotina ou ritual específico que a criança gosta ou
-                  busca?
-                </label>
-                <textarea
-                  name="rotinaRitualEspecifico"
-                  value={formData.rotinaRitualEspecifico}
-                  onChange={handleChange}
-                  rows="2"
-                  disabled={salvando}
-                  className="text-input"
-                ></textarea>
-              </div>
-            </section>
+                  ))}
+                  <label className="text-input-label">
+                    Outras atividades (texto livre):
+                  </label>
+                  <input
+                    type="text"
+                    name="outrasAtividades"
+                    value={formData.outrasAtividades}
+                    onChange={handleChange}
+                    disabled={salvando}
+                    className="text-input"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="input-label">
+                    Quais brinquedos ou objetos a criança prefere mais?
+                  </label>
+                  <textarea
+                    name="brinquedosPreferidos"
+                    value={formData.brinquedosPreferidos}
+                    onChange={handleChange}
+                    rows="2"
+                    disabled={salvando}
+                    className="text-input"
+                  ></textarea>
+                </div>
+                <div className="form-group">
+                  <label className="input-label">
+                    Quais são os personagens, temas ou assuntos que mais chamam
+                    a atenção da criança?
+                  </label>
+                  <textarea
+                    name="personagensTemasAssuntos"
+                    value={formData.personagensTemasAssuntos}
+                    onChange={handleChange}
+                    rows="2"
+                    disabled={salvando}
+                    className="text-input"
+                  ></textarea>
+                </div>
+                <div className="form-group">
+                  <label className="input-label">
+                    Em que a criança demonstra ter habilidades ou facilidade?
+                  </label>
+                  <textarea
+                    name="habilidadesFacilidades"
+                    value={formData.habilidadesFacilidades}
+                    onChange={handleChange}
+                    rows="2"
+                    disabled={salvando}
+                    className="text-input"
+                  ></textarea>
+                </div>
+                <div className="form-group">
+                  <label className="input-label">
+                    A criança demonstra interesse em interagir com outras
+                    pessoas? Se sim, de que forma?
+                  </label>
+                  <textarea
+                    name="interacaoComPessoas"
+                    value={formData.interacaoComPessoas}
+                    onChange={handleChange}
+                    rows="2"
+                    disabled={salvando}
+                    className="text-input"
+                  ></textarea>
+                </div>
+                <div className="form-group">
+                  <label className="input-label">
+                    Há alguma rotina ou ritual específico que a criança gosta ou
+                    busca?
+                  </label>
+                  <textarea
+                    name="rotinaRitualEspecifico"
+                    value={formData.rotinaRitualEspecifico}
+                    onChange={handleChange}
+                    rows="2"
+                    disabled={salvando}
+                    className="text-input"
+                  ></textarea>
+                </div>
+              </section>
 
-            {/* Seção 2: Gatilhos de Desregulação e Desconforto */}
-            <section className="form-section">
-              <h2>Seção 2: Gatilhos de Desregulação e Desconforto</h2>
-              <p className="section-description">
-                Esta seção busca identificar o que pode levar a criança a se
-                sentir sobrecarregada, irritada ou a ter comportamentos de
-                desregulação.
-              </p>
-              <div className="form-group">
-                <label className="input-label">
-                  Quais são os sinais de que a criança está começando a ficar
-                  desregulada ou desconfortável?
-                </label>
-                {SINAIS_DESREGULACAO_LIST.map((sign) => (
-                  <div key={sign} className="habilidade-item-radio">
-                    <span className="texto-habilidade">{sign}</span>
-                    <div className="niveis-habilidade">
-                      {NIVEIS_AVALIACAO.map((nivel) => (
-                        <label
-                          key={nivel}
-                          className={`circulo-nivel ${nivel.replace(/\s/g, "")} ${formData.sinaisDesregulacao[sign] === nivel ? "ativo" : ""}`}
-                        >
-                          <input
-                            type="radio"
-                            name={`sinaisDesregulacao-${sign}`}
-                            data-item-key={sign}
-                            data-list-name="sinaisDesregulacao"
-                            value={nivel}
-                            checked={
-                              formData.sinaisDesregulacao[sign] === nivel
-                            }
-                            onChange={handleRadioChange}
-                            disabled={salvando}
-                            className="hidden-radio-input"
-                          />
-                          {nivel}
-                        </label>
-                      ))}
+              {/* Seção 2: Gatilhos de Desregulação e Desconforto */}
+              <section className="form-section">
+                <h2>Seção 2: Gatilhos de Desregulação e Desconforto</h2>
+                <p className="section-description">
+                  Esta seção busca identificar o que pode levar a criança a se
+                  sentir sobrecarregada, irritada ou a ter comportamentos de
+                  desregulação.
+                </p>
+                <div className="form-group">
+                  <label className="input-label">
+                    Quais são os sinais de que a criança está começando a ficar
+                    desregulada ou desconfortável?
+                  </label>
+                  {SINAIS_DESREGULACAO_LIST.map((sign) => (
+                    <div key={sign} className="habilidade-item-radio">
+                      <span className="texto-habilidade">{sign}</span>
+                      <div className="niveis-habilidade">
+                        {NIVEIS_AVALIACAO.map((nivel) => (
+                          <label
+                            key={nivel}
+                            className={`circulo-nivel ${nivel.replace(/\s/g, "")} ${formData.sinaisDesregulacao[sign] === nivel ? "ativo" : ""}`}
+                          >
+                            <input
+                              type="radio"
+                              name={`sinaisDesregulacao-${sign}`}
+                              data-item-key={sign}
+                              data-list-name="sinaisDesregulacao"
+                              value={nivel}
+                              checked={
+                                formData.sinaisDesregulacao[sign] === nivel
+                              }
+                              onChange={handleRadioChange}
+                              disabled={salvando}
+                              className="hidden-radio-input"
+                            />
+                            {nivel}
+                          </label>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
-                <label className="text-input-label">
-                  Outros sinais (texto livre):
-                </label>
-                <input
-                  type="text"
-                  name="outrosSinais"
-                  value={formData.outrosSinais}
-                  onChange={handleChange}
-                  disabled={salvando}
-                  className="text-input"
-                />
-              </div>
-              <div className="form-group">
-                <label className="input-label">
-                  Quais são as situações que mais frequentemente causam
-                  desregulação na criança?
-                </label>
-                {SITUACOES_DESREGULACAO_LIST.map((situation) => (
-                  <div key={situation} className="habilidade-item-radio">
-                    <span className="texto-habilidade">{situation}</span>
-                    <div className="niveis-habilidade">
-                      {NIVEIS_AVALIACAO.map((nivel) => (
-                        <label
-                          key={nivel}
-                          className={`circulo-nivel ${nivel.replace(/\s/g, "")} ${formData.situacoesDesregulacao[situation] === nivel ? "ativo" : ""}`}
-                        >
-                          <input
-                            type="radio"
-                            name={`situacoesDesregulacao-${situation}`}
-                            data-item-key={situation}
-                            data-list-name="situacoesDesregulacao"
-                            value={nivel}
-                            checked={
-                              formData.situacoesDesregulacao[situation] ===
-                              nivel
-                            }
-                            onChange={handleRadioChange}
-                            disabled={salvando}
-                            className="hidden-radio-input"
-                          />
-                          {nivel}
-                        </label>
-                      ))}
+                  ))}
+                  <label className="text-input-label">
+                    Outros sinais (texto livre):
+                  </label>
+                  <input
+                    type="text"
+                    name="outrosSinais"
+                    value={formData.outrosSinais}
+                    onChange={handleChange}
+                    disabled={salvando}
+                    className="text-input"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="input-label">
+                    Quais são as situações que mais frequentemente causam
+                    desregulação na criança?
+                  </label>
+                  {SITUACOES_DESREGULACAO_LIST.map((situation) => (
+                    <div key={situation} className="habilidade-item-radio">
+                      <span className="texto-habilidade">{situation}</span>
+                      <div className="niveis-habilidade">
+                        {NIVEIS_AVALIACAO.map((nivel) => (
+                          <label
+                            key={nivel}
+                            className={`circulo-nivel ${nivel.replace(/\s/g, "")} ${formData.situacoesDesregulacao[situation] === nivel ? "ativo" : ""}`}
+                          >
+                            <input
+                              type="radio"
+                              name={`situacoesDesregulacao-${situation}`}
+                              data-item-key={situation}
+                              data-list-name="situacoesDesregulacao"
+                              value={nivel}
+                              checked={
+                                formData.situacoesDesregulacao[situation] ===
+                                nivel
+                              }
+                              onChange={handleRadioChange}
+                              disabled={salvando}
+                              className="hidden-radio-input"
+                            />
+                            {nivel}
+                          </label>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
-                <label className="text-input-label">
-                  Outras situações (texto livre):
-                </label>
-                <input
-                  type="text"
-                  name="outrasSituacoes"
-                  value={formData.outrasSituacoes}
-                  onChange={handleChange}
-                  disabled={salvando}
-                  className="text-input"
-                />
-              </div>
-              <div className="form-group">
-                <label className="input-label">
-                  Existe alguma comida, bebida ou material específico que a
-                  criança rejeita fortemente?
-                </label>
-                <textarea
-                  name="comidaBebidaMaterialRejeitado"
-                  value={formData.comidaBebidaMaterialRejeitado}
-                  onChange={handleChange}
-                  rows="2"
-                  disabled={salvando}
-                  className="text-input"
-                ></textarea>
-              </div>
-              <div className="form-group">
-                <label className="input-label">
-                  O que costuma acalmar a criança quando ela está desregulada ou
-                  chateada?
-                </label>
-                <textarea
-                  name="oQueAcalma"
-                  value={formData.oQueAcalma}
-                  onChange={handleChange}
-                  rows="2"
-                  disabled={salvando}
-                  className="text-input"
-                ></textarea>
-              </div>
-              <div className="form-group">
-                <label className="input-label">
-                  Como a criança reage a mudanças na rotina ou a imprevistos?
-                </label>
-                <textarea
-                  name="reacaoMudancasRotina"
-                  value={formData.reacaoMudancasRotina}
-                  onChange={handleChange}
-                  rows="2"
-                  disabled={salvando}
-                  className="text-input"
-                ></textarea>
-              </div>
-              <div className="form-group">
-                <label className="input-label">
-                  Há algum som, imagem ou sensação que a criança evita ou tem
-                  aversão?
-                </label>
-                <textarea
-                  name="somImagemSensacaoAversao"
-                  value={formData.somImagemSensacaoAversao}
-                  onChange={handleChange}
-                  rows="2"
-                  disabled={salvando}
-                  className="text-input"
-                ></textarea>
-              </div>
-              <div className="form-group">
-                <label className="input-label">
-                  Descreva uma situação recente em que a criança se desregulou.
-                  O que aconteceu antes, durante e depois?
-                </label>
-                <textarea
-                  name="situacaoRecenteDesregulacao"
-                  value={formData.situacaoRecenteDesregulacao}
-                  onChange={handleChange}
-                  rows="3"
-                  disabled={salvando}
-                  className="text-input"
-                ></textarea>
-              </div>
-            </section>
+                  ))}
+                  <label className="text-input-label">
+                    Outras situações (texto livre):
+                  </label>
+                  <input
+                    type="text"
+                    name="outrasSituacoes"
+                    value={formData.outrasSituacoes}
+                    onChange={handleChange}
+                    disabled={salvando}
+                    className="text-input"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="input-label">
+                    Existe alguma comida, bebida ou material específico que a
+                    criança rejeita fortemente?
+                  </label>
+                  <textarea
+                    name="comidaBebidaMaterialRejeitado"
+                    value={formData.comidaBebidaMaterialRejeitado}
+                    onChange={handleChange}
+                    rows="2"
+                    disabled={salvando}
+                    className="text-input"
+                  ></textarea>
+                </div>
+                <div className="form-group">
+                  <label className="input-label">
+                    O que costuma acalmar a criança quando ela está desregulada
+                    ou chateada?
+                  </label>
+                  <textarea
+                    name="oQueAcalma"
+                    value={formData.oQueAcalma}
+                    onChange={handleChange}
+                    rows="2"
+                    disabled={salvando}
+                    className="text-input"
+                  ></textarea>
+                </div>
+                <div className="form-group">
+                  <label className="input-label">
+                    Como a criança reage a mudanças na rotina ou a imprevistos?
+                  </label>
+                  <textarea
+                    name="reacaoMudancasRotina"
+                    value={formData.reacaoMudancasRotina}
+                    onChange={handleChange}
+                    rows="2"
+                    disabled={salvando}
+                    className="text-input"
+                  ></textarea>
+                </div>
+                <div className="form-group">
+                  <label className="input-label">
+                    Há algum som, imagem ou sensação que a criança evita ou tem
+                    aversão?
+                  </label>
+                  <textarea
+                    name="somImagemSensacaoAversao"
+                    value={formData.somImagemSensacaoAversao}
+                    onChange={handleChange}
+                    rows="2"
+                    disabled={salvando}
+                    className="text-input"
+                  ></textarea>
+                </div>
+                <div className="form-group">
+                  <label className="input-label">
+                    Descreva uma situação recente em que a criança se
+                    desregulou. O que aconteceu antes, durante e depois?
+                  </label>
+                  <textarea
+                    name="situacaoRecenteDesregulacao"
+                    value={formData.situacaoRecenteDesregulacao}
+                    onChange={handleChange}
+                    rows="3"
+                    disabled={salvando}
+                    className="text-input"
+                  ></textarea>
+                </div>
+              </section>
 
-            {/* Seção 3: Estratégias e Apoio */}
-            <section className="form-section">
-              <h2>Seção 3: Estratégias e Apoio</h2>
-              <p className="section-description">
-                Esta seção busca entender quais estratégias funcionam melhor
-                para a criança.
-              </p>
-              <div className="form-group">
-                <label className="input-label">
-                  Quais são as melhores formas de se comunicar com a criança?
-                </label>
-                <textarea
-                  name="melhoresFormasComunicacao"
-                  value={formData.melhoresFormasComunicacao}
-                  onChange={handleChange}
-                  rows="2"
-                  disabled={salvando}
-                  className="text-input"
-                ></textarea>
-              </div>
-              <div className="form-group">
-                <label className="input-label">
-                  O que ajuda a criança a se preparar para uma transição ou
-                  mudança na rotina?
-                </label>
-                <textarea
-                  name="ajudaPrepararTransicao"
-                  value={formData.ajudaPrepararTransicao}
-                  onChange={handleChange}
-                  rows="2"
-                  disabled={salvando}
-                  className="text-input"
-                ></textarea>
-              </div>
-              <div className="form-group">
-                <label className="input-label">
-                  Existe algum objeto, brinquedo ou atividade que funciona como
-                  "porto seguro" para a criança?
-                </label>
-                <textarea
-                  name="objetoBrinquedoPortoSeguro"
-                  value={formData.objetoBrinquedoPortoSeguro}
-                  onChange={handleChange}
-                  rows="2"
-                  disabled={salvando}
-                  className="text-input"
-                ></textarea>
-              </div>
-              <div className="form-group">
-                <label className="input-label">
-                  Quais estratégias você utiliza para ajudar a criança a se
-                  regular?
-                </label>
-                <textarea
-                  name="estrategiasRegulacao"
-                  value={formData.estrategiasRegulacao}
-                  onChange={handleChange}
-                  rows="2"
-                  disabled={salvando}
-                  className="text-input"
-                ></textarea>
-              </div>
-              <div className="form-group">
-                <label className="input-label">
-                  A criança tem alguma preferência em relação a toque ou espaço
-                  pessoal?
-                </label>
-                <textarea
-                  name="preferenciaToqueEspaco"
-                  value={formData.preferenciaToqueEspaco}
-                  onChange={handleChange}
-                  rows="2"
-                  disabled={salvando}
-                  className="text-input"
-                ></textarea>
-              </div>
-              <div className="form-group">
-                <label className="input-label">
-                  Há algo mais que você gostaria de adicionar?
-                </label>
-                <textarea
-                  name="algoMaisParaAdicionar"
-                  value={formData.algoMaisParaAdicionar}
-                  onChange={handleChange}
-                  rows="3"
-                  disabled={salvando}
-                  className="text-input"
-                ></textarea>
-              </div>
-            </section>
+              {/* Seção 3: Estratégias e Apoio */}
+              <section className="form-section">
+                <h2>Seção 3: Estratégias e Apoio</h2>
+                <p className="section-description">
+                  Esta seção busca entender quais estratégias funcionam melhor
+                  para a criança.
+                </p>
+                <div className="form-group">
+                  <label className="input-label">
+                    Quais são as melhores formas de se comunicar com a criança?
+                  </label>
+                  <textarea
+                    name="melhoresFormasComunicacao"
+                    value={formData.melhoresFormasComunicacao}
+                    onChange={handleChange}
+                    rows="2"
+                    disabled={salvando}
+                    className="text-input"
+                  ></textarea>
+                </div>
+                <div className="form-group">
+                  <label className="input-label">
+                    O que ajuda a criança a se preparar para uma transição ou
+                    mudança na rotina?
+                  </label>
+                  <textarea
+                    name="ajudaPrepararTransicao"
+                    value={formData.ajudaPrepararTransicao}
+                    onChange={handleChange}
+                    rows="2"
+                    disabled={salvando}
+                    className="text-input"
+                  ></textarea>
+                </div>
+                <div className="form-group">
+                  <label className="input-label">
+                    Existe algum objeto, brinquedo ou atividade que funciona
+                    como "porto seguro" para a criança?
+                  </label>
+                  <textarea
+                    name="objetoBrinquedoPortoSeguro"
+                    value={formData.objetoBrinquedoPortoSeguro}
+                    onChange={handleChange}
+                    rows="2"
+                    disabled={salvando}
+                    className="text-input"
+                  ></textarea>
+                </div>
+                <div className="form-group">
+                  <label className="input-label">
+                    Quais estratégias você utiliza para ajudar a criança a se
+                    regular?
+                  </label>
+                  <textarea
+                    name="estrategiasRegulacao"
+                    value={formData.estrategiasRegulacao}
+                    onChange={handleChange}
+                    rows="2"
+                    disabled={salvando}
+                    className="text-input"
+                  ></textarea>
+                </div>
+                <div className="form-group">
+                  <label className="input-label">
+                    A criança tem alguma preferência em relação a toque ou
+                    espaço pessoal?
+                  </label>
+                  <textarea
+                    name="preferenciaToqueEspaco"
+                    value={formData.preferenciaToqueEspaco}
+                    onChange={handleChange}
+                    rows="2"
+                    disabled={salvando}
+                    className="text-input"
+                  ></textarea>
+                </div>
+                <div className="form-group">
+                  <label className="input-label">
+                    Há algo mais que você gostaria de adicionar?
+                  </label>
+                  <textarea
+                    name="algoMaisParaAdicionar"
+                    value={formData.algoMaisParaAdicionar}
+                    onChange={handleChange}
+                    rows="3"
+                    disabled={salvando}
+                    className="text-input"
+                  ></textarea>
+                </div>
+              </section>
 
-            <button
-              type="submit"
-              disabled={salvando || !alunoSelecionadoDropdown}
-              className="submit-button"
-            >
-              {salvando ? "Salvando..." : "Salvar Avaliação de Interesses"}
-            </button>
-          </form>
-        )
-      )}
+              <button
+                type="submit"
+                disabled={salvando || !alunoSelecionadoDropdown}
+                className="submit-button"
+              >
+                {salvando ? "Salvando..." : "Salvar Avaliação de Interesses"}
+              </button>
+            </form>
+          )
+        ))}
     </AvaliacaoContainer>
   );
 }

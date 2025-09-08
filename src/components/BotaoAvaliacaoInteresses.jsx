@@ -1,9 +1,11 @@
+// BotaoNavegacao.jsx (Nome mais genérico)
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 
 const StyledButton = styled.button`
-  background-color: #28a745; /* Verde para ação principal */
+  /* Seus estilos permanecem os mesmos */
+  background-color: #28a745;
   color: white;
   padding: 12px 25px;
   border: none;
@@ -15,8 +17,8 @@ const StyledButton = styled.button`
     background-color 0.2s ease,
     transform 0.1s ease;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  margin-top: 20px; /* Espaçamento */
-  margin-bottom: 20px; /* Adicionado para espaçamento inferior */
+  margin-top: 20px;
+  margin-bottom: 20px;
 
   &:hover {
     background-color: #218838;
@@ -31,18 +33,24 @@ const StyledButton = styled.button`
   }
 `;
 
-function BotaoAvaliacaoInteresses() {
+// O componente agora aceita 'to' e 'children' como props
+function BotaoNavegacao({ to, children, disabled }) {
   const navigate = useNavigate();
 
   const handleClick = () => {
-    navigate("/selecionar-aluno-para-interesses");
+    // A navegação agora usa a prop 'to'
+    if (to) {
+      navigate(to);
+    }
   };
 
   return (
-    <StyledButton onClick={handleClick}>
-      Iniciar Avaliação de Interesses
+    // O conteúdo do botão vem da prop 'children'
+    // A prop 'disabled' é passada diretamente para o botão
+    <StyledButton onClick={handleClick} disabled={disabled}>
+      {children}
     </StyledButton>
   );
 }
 
-export default BotaoAvaliacaoInteresses;
+export default BotaoNavegacao;

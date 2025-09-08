@@ -58,8 +58,7 @@ const normalizarTurma = (turma) => {
   return partes.join(" ");
 };
 const getPeiStatusDetails = (peiData, prazos, hoje) => {
-  console.log("--- EXECUTANDO COM A LÓGICA CORRIGIDA v2 ---");
-  // Verificação de PEI Concluído (permanece igual, é a prioridade máxima)
+  // Verificação de PEI Concluído (permanece igual)
   if (peiData?.status?.toLowerCase() === "concluído") {
     return {
       statusPeiGeral: "Concluído",
@@ -86,7 +85,6 @@ const getPeiStatusDetails = (peiData, prazos, hoje) => {
   const dataLimiteRevisao2Sem = prazos.dataLimiteRevisao2Sem
     ? resetTime(prazos.dataLimiteRevisao2Sem)
     : null;
-
   const dataCriacaoPei = peiData?.dataCriacao?.toDate
     ? resetTime(peiData.dataCriacao.toDate())
     : null;
@@ -107,7 +105,6 @@ const getPeiStatusDetails = (peiData, prazos, hoje) => {
     }
   }
 
-  // --- Lógica de Status de Revisão (COM A NOVA REGRA) ---
   if (dataCriacaoPei) {
     const revisoes = peiData.revisoes;
 
@@ -121,7 +118,7 @@ const getPeiStatusDetails = (peiData, prazos, hoje) => {
     } else {
       // Se NÃO foi concluída, aí sim verificamos se está atrasada ou pendente.
       if (dataLimiteRevisao1Sem && hojeZerado > dataLimiteRevisao1Sem) {
-        statusRevisao1 = "Atrasado";
+        statusRevisao1 = "Concluído";
         finalIsAtrasadoRealmente = true;
       } else {
         statusRevisao1 = "Pendente";
