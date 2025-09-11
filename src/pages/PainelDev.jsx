@@ -80,7 +80,10 @@ export default function PainelDev() {
       label: "Avaliação de Interesses",
       rota: "/nova-avaliacao/Avaliacaointeresses",
     },
+    // AVALIAÇÃO DE 0 A 3 ANOS
+    { label: "Avaliação 0-3 Anos", rota: "/nova-avaliacao-0a3" },
     { label: "Criar PEI", rota: "/criar-pei" },
+    { label: "Criar PEI 0-3 Anos", rota: "/criar-pei-0a3" },
     { label: "Anamnese", rota: "/anamnese-completa" },
     { label: "Ver Anamnese", rota: "/anamnese" },
     { label: "Gerenciar Prazos PEI", rota: "/gestao-prazos-pei" },

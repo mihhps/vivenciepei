@@ -17,7 +17,7 @@ import PrivateRoute from "./components/PrivateRoute";
 import CorrigirTurmas from "./pages/CorrigirTurmas";
 
 // Lazy-loaded Pages
-const PainelSeme = lazy(() => import("./pages/PainelSEME")); // ✅ ROTA ADICIONADA
+const PainelSeme = lazy(() => import("./pages/PainelSEME"));
 const PainelGestao = lazy(() => import("./pages/PainelGestao"));
 const PainelAee = lazy(() => import("./pages/PainelAEE"));
 const PainelProfessor = lazy(() => import("./pages/PainelProfessor"));
@@ -69,6 +69,10 @@ const VisualizarAvaliacaoInteressesPage = lazy(
 );
 const ObservacoesAluno = lazy(() => import("./pages/ObservacoesAluno"));
 const Reavaliacao = lazy(() => import("./pages/Reavaliacao"));
+const AvaliacaoInicial0a3Page = lazy(
+  () => import("./pages/AvaliacaoInicial0a3Page")
+);
+const CriarPEI0a3 = lazy(() => import("./pages/CriarPEI0A3.jsx"));
 
 const VerAnamneses = lazy(() => import("./pages/VerAnamneses.jsx"));
 const VisualizarAnamnese = lazy(() => import("./pages/VisualizarAnamnese"));
@@ -127,6 +131,20 @@ function AppContent() {
               path="/visualizar-anamnese/:alunoId"
               element={<VisualizarAnamnese />}
             />
+
+            {/* Avaliação 0-3 Anos */}
+            <Route
+              path="/nova-avaliacao-0a3/:alunoId"
+              element={<AvaliacaoInicial0a3Page />}
+            />
+            <Route
+              path="/nova-avaliacao-0a3"
+              element={<AvaliacaoInicial0a3Page />}
+            />
+            {/* ✅ NOVA ROTA: PEI 0-3 Anos */}
+            <Route path="/criar-pei-0a3" element={<CriarPEI0a3 />} />
+            <Route path="/criar-pei-0a3/:alunoId" element={<CriarPEI0a3 />} />
+            {/* ✅ FIM DA NOVA ROTA */}
 
             {/* Avaliação de Interesses */}
             <Route
