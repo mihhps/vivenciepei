@@ -76,7 +76,6 @@ const CriarPEI0a3 = lazy(() => import("./pages/CriarPEI0A3.jsx"));
 
 const VerAnamneses = lazy(() => import("./pages/VerAnamneses.jsx"));
 const VisualizarAnamnese = lazy(() => import("./pages/VisualizarAnamnese"));
-// ✅ NOVA IMPORTAÇÃO: Adicione a importação do seu componente aqui
 const RelatoriosPage = lazy(() => import("./pages/RelatoriosPage.jsx"));
 
 // PDF.js Worker
@@ -88,7 +87,12 @@ function AppContent() {
 
   return (
     <Router>
-      {localStorage.getItem("usuarioLogado") && <EscolaAtual />}
+      {/* CORREÇÃO: 
+        A exibição do componente EscolaAtual agora é controlada pelo 'user' do AuthContext.
+        Ele só será renderizado quando o Firebase confirmar que o usuário está autenticado,
+        e não mais com base no localStorage, que pode estar dessincronizado.
+      */}
+      {user && <EscolaAtual />}
       <Suspense fallback={<div className="app-loading">Carregando...</div>}>
         <Routes>
           {/* Rotas Públicas */}
@@ -119,7 +123,6 @@ function AppContent() {
             />
             <Route path="/cadastro-turmas" element={<CadastroTurma />} />
             <Route path="/corrigir-turmas" element={<CorrigirTurmas />} />
-            {/* ✅ ROTA CORRIGIDA: Altere de "/relatorios" para "/relatorios-aluno" */}
             <Route path="/relatorios-aluno" element={<RelatoriosPage />} />
 
             {/* Alunos, Avaliações e Anamnese */}

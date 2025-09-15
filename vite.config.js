@@ -1,8 +1,13 @@
-// vite.config.js
-import { resolve } from "path";
+import { resolve, dirname } from "path"; // 'dirname' foi adicionado
+import { fileURLToPath } from "url";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
+
+// CORREÇÃO: Esta é uma forma mais explícita de obter o caminho do diretório,
+// o que resolve o erro de linting no editor de código.
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export default defineConfig({
   plugins: [
@@ -21,7 +26,6 @@ export default defineConfig({
         theme_color: "#1d3557",
         background_color: "#ffffff",
         display: "standalone",
-        // A MUDANÇA ESTÁ AQUI:
         start_url: "/app.html",
         icons: [
           {
@@ -60,6 +64,7 @@ export default defineConfig({
     },
     rollupOptions: {
       input: {
+        // Agora, com __dirname definido, esta parte funcionará sem erros.
         main: resolve(__dirname, "index.html"),
         app: resolve(__dirname, "app.html"),
       },
