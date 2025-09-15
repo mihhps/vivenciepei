@@ -1,5 +1,5 @@
 // vite.config.js
-import { resolve } from "path"; // 1. ADICIONE ESTA LINHA
+import { resolve } from "path";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
@@ -21,7 +21,8 @@ export default defineConfig({
         theme_color: "#1d3557",
         background_color: "#ffffff",
         display: "standalone",
-        start_url: ".",
+        // A MUDANÇA ESTÁ AQUI:
+        start_url: "/app.html",
         icons: [
           {
             src: "icon-192x192.png",
@@ -58,7 +59,6 @@ export default defineConfig({
       transformMixedEsModules: true,
     },
     rollupOptions: {
-      // 2. ADICIONE ESTA SEÇÃO 'input' AQUI
       input: {
         main: resolve(__dirname, "index.html"),
         app: resolve(__dirname, "app.html"),
