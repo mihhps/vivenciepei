@@ -2,10 +2,10 @@
   "name": "Vivencie PEI - Plataforma Educacional",
   "short_name": "VivenciePEI",
   "description": "Uma plataforma para a criação e gestão de Planos Educacionais Individualizados.",
-  "start_url": "/",
+  "start_url": "/app.html",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#1d3557",
+  "theme_color": "#00264d",
   "icons": [
     {
       "src": "/icon-192x192.png",

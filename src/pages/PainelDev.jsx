@@ -90,6 +90,7 @@ export default function PainelDev() {
     { label: "Acompanhar Prazos PEI", rota: "/acompanhamento-prazos-pei" },
     { label: "Acompanhamento Escolar", rota: "/acompanhamento" },
     { label: "Ver Alunos", rota: "/ver-alunos" },
+    { label: "Relatórios de Aluno", rota: "/relatorios" },
     { label: "Importar Alunos", rota: "/importar-alunos" },
     { label: "Cadastrar Usuário", rota: "/cadastro-usuario" },
     { label: "Vincular Turmas a Professores", rota: "/vincular-professores" },

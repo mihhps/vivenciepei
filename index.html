@@ -1,20 +1,450 @@
 <!doctype html>
-<html lang="en">
+<html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/logo-vivencie.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vivencie PEI</title>
-
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
-      crossorigin="anonymous"
-      referrerpolicy="no-referrer"
-    />
+    <title>Vivencie PEI: Vivencie o Crescimento, Vivencie o PEI.</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap");
+      body {
+        font-family: "Inter", sans-serif;
+        color: #1a202c;
+        background-color: #f3f4f6;
+      }
+    </style>
   </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+  <body class="bg-white text-slate-900">
+    <main class="min-h-screen">
+      <!-- Seção Principal -->
+      <section
+        class="relative bg-blue-900 text-white py-24 sm:py-32 overflow-hidden"
+      >
+        <!-- Padrão de fundo -->
+        <div class="absolute inset-0 z-0 opacity-10">
+          <svg
+            class="h-full w-full"
+            fill="none"
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+          >
+            <defs>
+              <pattern
+                id="pattern-5c1265f5-f0b5-41f2-851b-f7e52a832e8d"
+                x="0"
+                y="0"
+                width="20"
+                height="20"
+                patternUnits="userSpaceOnUse"
+              >
+                <rect
+                  x="0"
+                  y="0"
+                  width="1"
+                  height="1"
+                  class="text-white fill-current opacity-25"
+                ></rect>
+              </pattern>
+            </defs>
+            <rect
+              width="100%"
+              height="100%"
+              fill="url(#pattern-5c1265f5-f0b5-41f2-851b-f7e52a832e8d)"
+            ></rect>
+          </svg>
+        </div>
+
+        <div
+          class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-8"
+        >
+          <img
+            src="/logo-vivencie.png"
+            alt="Logo da Vivencie PEI"
+            class="mx-auto h-80 w-auto mb-4"
+          />
+
+          <h1
+            class="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-tight"
+          >
+            Vivencie o Crescimento.<br class="hidden sm:inline" />
+            Vivencie o PEI.
+          </h1>
+          <p
+            class="mt-4 max-w-2xl mx-auto text-lg sm:text-xl font-medium text-blue-200"
+          >
+            Uma plataforma completa e intuitiva para gerenciar Planos
+            Educacionais Individualizados, desenvolvida para facilitar o
+            trabalho de quem ensina e o aprendizado de quem aprende.
+          </p>
+          <div class="mt-8 flex justify-center">
+            <a
+              href="app.html"
+              class="inline-block px-10 py-4 font-semibold text-blue-900 bg-white rounded-full shadow-lg transition-transform transform hover:scale-105 hover:bg-gray-100"
+            >
+              Acessar a Plataforma
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- Seção de Recursos -->
+      <section class="bg-white py-16 sm:py-24">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
+          <div class="text-center space-y-4">
+            <h2 class="text-3xl sm:text-4xl font-extrabold text-blue-900">
+              Nossa Metodologia em Ação
+            </h2>
+            <p class="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto">
+              A Vivencie PEI transforma a elaboração de Planos Educacionais
+              Individualizados em um processo estruturado, simples e eficiente.
+            </p>
+          </div>
+
+          <div class="grid md:grid-cols-3 gap-12 sm:gap-16">
+            <!-- Passo 1: Avaliação -->
+            <div class="text-center space-y-4">
+              <div class="flex justify-center mb-4">
+                <img
+                  src="./images/avaliacao.png"
+                  alt="Ícone de Avaliação"
+                  class="w-20 h-20"
+                />
+              </div>
+              <h3 class="font-extrabold text-2xl text-blue-900">
+                1. Avaliação Inicial
+              </h3>
+              <p class="text-sm text-gray-600">
+                Nossas avaliações foram desenvolvidas com base em metodologias
+                reconhecidas (Portage, Denver e WISC), garantindo uma análise
+                completa das habilidades e interesses do aluno, em alinhamento
+                com a BNCC.
+              </p>
+            </div>
+
+            <!-- Passo 2: Criação -->
+            <div class="text-center space-y-4">
+              <div class="flex justify-center mb-4">
+                <img
+                  src="./images/criacao.png"
+                  alt="Ícone de Criação"
+                  class="w-20 h-20"
+                />
+              </div>
+              <h3 class="font-extrabold text-2xl text-blue-900">
+                2. Criação Inteligente do PEI
+              </h3>
+              <p class="text-sm text-gray-600">
+                A plataforma guia a criação do PEI, puxando as habilidades
+                avaliadas e sugerindo objetivos e estratégias que podem ser
+                personalizados pelo professor.
+              </p>
+            </div>
+
+            <!-- Passo 3: Acompanhamento -->
+            <div class="text-center space-y-4">
+              <div class="flex justify-center mb-4">
+                <img
+                  src="./images/acompanhamento.png"
+                  alt="Ícone de Acompanhamento"
+                  class="w-20 h-20"
+                />
+              </div>
+              <h3 class="font-extrabold text-2xl text-blue-900">
+                3. Acompanhamento e Registro
+              </h3>
+              <p class="text-sm text-gray-600">
+                Registre atividades e observações de forma detalhada e
+                centralizada, garantindo um histórico completo do
+                desenvolvimento do aluno.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Seção de Benefícios -->
+      <section class="bg-blue-50 py-16 sm:py-24">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+          <h2
+            class="text-3xl sm:text-4xl font-extrabold text-center text-blue-900"
+          >
+            Por que Vivencie PEI?
+          </h2>
+          <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <!-- Benefício 1 -->
+            <div
+              class="bg-white p-6 rounded-2xl shadow-md space-y-2 border border-blue-100"
+            >
+              <h3 class="font-bold text-lg text-blue-600">
+                Colaboração e Coerência
+              </h3>
+              <p class="text-sm text-gray-700">
+                Promove a cooperação, unifica o processo e assegura que toda a
+                equipe esteja alinhada a um propósito único.
+              </p>
+            </div>
+            <!-- Benefício 2 -->
+            <div
+              class="bg-white p-6 rounded-2xl shadow-md space-y-2 border border-blue-100"
+            >
+              <h3 class="font-bold text-lg text-blue-600">
+                Otimização do Tempo
+              </h3>
+              <p class="text-sm text-gray-700">
+                Minimiza a necessidade de reuniões e simplifica o processo de
+                elaboração, edição e registro dos planos.
+              </p>
+            </div>
+            <!-- Benefício 3 -->
+            <div
+              class="bg-white p-6 rounded-2xl shadow-md space-y-2 border border-blue-100"
+            >
+              <h3 class="font-bold text-lg text-blue-600">
+                Visão 360º do Aluno
+              </h3>
+              <p class="text-sm text-gray-700">
+                Integra a avaliação de habilidades, interesses e gatilhos,
+                oferecendo à equipe uma compreensão ampla e aprofundada do
+                aluno.
+              </p>
+            </div>
+            <!-- Benefício 4 -->
+            <div
+              class="bg-white p-6 rounded-2xl shadow-md space-y-2 border border-blue-100"
+            >
+              <h3 class="font-bold text-lg text-blue-600">
+                Documentação Simplificada
+              </h3>
+              <p class="text-sm text-gray-700">
+                Gera de forma automática um documento PDF completo, ideal para
+                organizar, arquivar e compartilhar.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Nova Seção: Visão Estratégica para a Gestão -->
+      <section class="bg-white py-16 sm:py-24">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
+          <div class="text-center space-y-4">
+            <h2 class="text-3xl sm:text-4xl font-extrabold text-blue-900">
+              Visão Estratégica para a Gestão
+            </h2>
+            <p class="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto">
+              A Vivencie PEI oferece uma gestão completa de acompanhamento,
+              permitindo que gestores identifiquem de forma fácil quem está ou
+              não elaborando os PEIs. Além disso, centraliza toda a documentação
+              do AEE, incluindo anamneses e relatórios, em um único lugar,
+              otimizando o fluxo de trabalho e garantindo que nada se perca.
+            </p>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-12 sm:gap-16">
+            <!-- Funcionalidade 1: Acompanhamento de PEIs -->
+            <div class="text-center space-y-4">
+              <div class="flex justify-center mb-4">
+                <img
+                  src="./images/gestao.png"
+                  alt="Ícone de Gestão"
+                  class="w-20 h-20"
+                />
+              </div>
+              <h3 class="font-extrabold text-2xl text-blue-900">
+                Gestão e Acompanhamento
+              </h3>
+              <p class="text-sm text-gray-600">
+                A plataforma oferece uma visão clara e completa, permitindo que
+                gestores identifiquem de forma rápida e eficiente quem está ou
+                não fazendo os PEIs, otimizando o fluxo de trabalho e garantindo
+                que nenhum aluno seja esquecido.
+              </p>
+            </div>
+
+            <!-- Funcionalidade 2: Centralização de Documentos -->
+            <div class="text-center space-y-4">
+              <div class="flex justify-center mb-4">
+                <img
+                  src="./images/arquivo.png"
+                  alt="Ícone de Documentação"
+                  class="w-20 h-20"
+                />
+              </div>
+              <h3 class="font-extrabold text-2xl text-blue-900">
+                Documentação Centralizada
+              </h3>
+              <p class="text-sm text-gray-600">
+                Facilita a documentação do Atendimento Educacional Especializado
+                (AEE), concentrando anamneses, relatórios, laudos e demais
+                documentos importantes em um único lugar, tornando o acesso e a
+                consulta mais ágeis e organizados.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Seção Quem Somos -->
+      <section class="bg-white py-16 sm:py-24">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
+          <div class="text-center space-y-4">
+            <h2 class="text-3xl sm:text-4xl font-extrabold text-blue-900">
+              Quem Somos
+            </h2>
+            <p class="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto">
+              Idealizada e desenvolvida por uma equipe apaixonada pela educação,
+              a Vivencie PEI tem como missão simplificar o caminho para um
+              ensino verdadeiramente inclusivo e eficaz.
+            </p>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-8">
+            <!-- Membro 1: Michelle Pollheim -->
+            <div
+              class="bg-blue-50 p-6 rounded-2xl shadow-md space-y-4 text-center border border-blue-100"
+            >
+              <div class="flex justify-center mb-4">
+                <img
+                  src="./images/michelle-pollheim.png"
+                  alt="Foto de Michelle Pollheim"
+                  class="h-36 w-36 rounded-full object-cover"
+                />
+              </div>
+              <h3 class="font-extrabold text-xl text-blue-900">
+                Michelle Pollheim
+              </h3>
+              <p class="text-sm text-blue-600 font-bold">
+                Fundadora e Orientadora Pedagógica
+              </p>
+              <p class="text-sm text-gray-700">
+                Com ampla vivência nas necessidades práticas das escolas,
+                Michelle assegura que a plataforma seja desenvolvida com
+                equilíbrio entre sensibilidade e eficácia. É pedagoga e possui
+                pós-graduação em Gestão Escolar.
+              </p>
+            </div>
+            <!-- Membro 2: Shirlei Manske -->
+            <div
+              class="bg-blue-50 p-6 rounded-2xl shadow-md space-y-4 text-center border border-blue-100"
+            >
+              <div class="flex justify-center mb-4">
+                <img
+                  src="./images/shirlei-manske.png"
+                  alt="Foto de Shirlei Manske"
+                  class="h-36 w-36 rounded-full object-cover"
+                />
+              </div>
+              <h3 class="font-extrabold text-xl text-blue-900">
+                Shirlei Manske
+              </h3>
+              <p class="text-sm text-blue-600 font-bold">Especialista em AEE</p>
+              <p class="text-sm text-gray-700">
+                Com sua experiência no Atendimento Educacional Especializado,
+                Shirlei trouxe a visão prática de quem está na linha de frente,
+                assegurando que a plataforma atenda de forma real às demandas na
+                elaboração do PEI.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Seção Agendar Demonstração -->
+      <section class="bg-blue-50 py-16 sm:py-24">
+        <div
+          class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-8"
+        >
+          <img
+            src="./images/calendario.png"
+            alt="Ícone de Calendário"
+            class="w-20 h-20 mx-auto mb-4"
+          />
+          <h2 class="text-3xl sm:text-4xl font-extrabold text-blue-900">
+            Agende uma Demonstração
+          </h2>
+          <p class="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto">
+            Deseja transformar a forma como sua escola gerencia o PEI? Agende
+            uma conversa com nossa equipe e experimente a Vivencie PEI em ação.
+          </p>
+          <div class="mt-8 flex justify-center">
+            <a
+              href="mailto:michellepollheim@icloud.com?subject=Agendar%20Demonstração"
+              class="inline-block px-10 py-4 font-semibold text-white bg-blue-600 rounded-full shadow-lg transition-transform transform hover:scale-105 hover:bg-blue-700"
+            >
+              Agendar Agora
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- Seção de Contacto -->
+      <section class="bg-blue-900 text-white py-16 sm:py-24">
+        <div
+          class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-4"
+        >
+          <h2 class="text-3xl sm:text-4xl font-extrabold text-white">
+            Entre em Contato
+          </h2>
+          <p class="max-w-2xl mx-auto text-lg text-blue-200">
+            Gostaria de mais informações ou tem alguma dúvida sobre a Vivencie
+            PEI? Entre em contato com a nossa equipe.
+          </p>
+          <div
+            class="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-8 mt-8"
+          >
+            <!-- Email -->
+            <div class="flex items-center space-x-2">
+              <img
+                src="./images/email.png"
+                alt="Ícone de Email"
+                class="w-6 h-6"
+              />
+              <a
+                href="mailto:michellepollheim@icloud.com"
+                class="text-lg text-blue-100 hover:underline"
+                >michellepollheim@icloud.com</a
+              >
+            </div>
+
+            <!-- WhatsApp -->
+            <div class="flex items-center space-x-2">
+              <img
+                src="./images/whatsapp.png"
+                alt="Ícone do WhatsApp"
+                class="w-6 h-6"
+              />
+              <a
+                href="https://wa.me/5547992784778?text=Olá,%20gostaria%20de%20saber%20mais%20sobre%20a%20Vivencie%20PEI."
+                class="text-lg text-blue-100 hover:underline"
+              >
+                WhatsApp
+              </a>
+            </div>
+
+            <!-- Telefone -->
+            <div class="flex items-center space-x-2">
+              <img
+                src="./images/telefone.png"
+                alt="Ícone de Telefone"
+                class="w-7 h-7"
+              />
+              <a
+                href="tel:+5547992784778"
+                class="text-lg text-blue-100 hover:underline"
+                >(47) 99278-4778</a
+              >
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="bg-blue-900 text-white py-12">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-4">
+        <p class="text-blue-300">
+          &copy; 2025 Vivencie PEI. Todos os direitos reservados.
+        </p>
+      </div>
+    </footer>
   </body>
 </html>

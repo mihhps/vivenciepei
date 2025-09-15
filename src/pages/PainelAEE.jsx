@@ -103,7 +103,6 @@ export default function PainelAee() {
           Cadastrar Aluno
         </button>
 
-        {/* NOME DO BOTÃO VOLTOU AO ORIGINAL */}
         <button
           style={estiloBotao}
           onClick={() => navigate("/ver-alunos")}
@@ -145,8 +144,9 @@ export default function PainelAee() {
 
         <button
           style={estiloBotao}
-          onClick={() => navigate("/anamnese")} // <-- CORRIGIDO para o link da página nova
-          // ...
+          onClick={() => navigate("/anamnese")}
+          onMouseEnter={aplicarEfeitoHover}
+          onMouseLeave={removerEfeitoHover}
         >
           Ver Anamneses
         </button>
@@ -158,6 +158,16 @@ export default function PainelAee() {
           onMouseLeave={removerEfeitoHover}
         >
           Avaliação de Interesses
+        </button>
+
+        {/* NOVO BOTÃO: RELATÓRIOS DO ALUNO */}
+        <button
+          style={estiloBotao}
+          onClick={() => navigate("/relatorios-aluno")}
+          onMouseEnter={aplicarEfeitoHover}
+          onMouseLeave={removerEfeitoHover}
+        >
+          Relatórios do Aluno
         </button>
 
         <hr style={{ margin: "20px 0", border: "1px solid #eee" }} />

@@ -179,6 +179,16 @@ export default function PainelGestao() {
           Avaliação de Interesses
         </button>
 
+        {/* NOVO BOTÃO ADICIONADO AQUI */}
+        <button
+          style={estiloBotao}
+          onClick={() => navigate("/relatorios-aluno")}
+          onMouseEnter={aplicarEfeitoHover}
+          onMouseLeave={removerEfeitoHover}
+        >
+          Relatórios do Aluno
+        </button>
+
         <hr style={{ margin: "20px 0", border: "1px solid #eee" }} />
 
         {/* --- Grupo de Botões: PEI do AEE --- */}
@@ -210,8 +220,6 @@ export default function PainelGestao() {
         >
           Vincular Turmas a Professores
         </button>
-
-        {/* ##### BOTÃO "ACOMPANHAMENTO ESCOLAR" REMOVIDO DAQUI CONFORME SOLICITADO ##### */}
 
         <button
           style={estiloBotao}

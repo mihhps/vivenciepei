@@ -57,6 +57,8 @@ export default function PainelSEME() {
     { label: "Vincular Turmas a Professores", rota: "/vincular-professores" },
     { label: "Vincular Escolas a Professores", rota: "/vincular-escolas" },
     { label: "Cadastrar Turma", rota: "/cadastro-turmas" },
+    // ✅ NOVO BOTÃO ADICIONADO AQUI
+    { label: "Relatórios do Aluno", rota: "/relatorios-aluno" },
   ];
 
   const estiloBotao = {

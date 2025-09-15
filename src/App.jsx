@@ -76,6 +76,8 @@ const CriarPEI0a3 = lazy(() => import("./pages/CriarPEI0A3.jsx"));
 
 const VerAnamneses = lazy(() => import("./pages/VerAnamneses.jsx"));
 const VisualizarAnamnese = lazy(() => import("./pages/VisualizarAnamnese"));
+// ✅ NOVA IMPORTAÇÃO: Adicione a importação do seu componente aqui
+const RelatoriosPage = lazy(() => import("./pages/RelatoriosPage.jsx"));
 
 // PDF.js Worker
 import * as pdfjsLib from "pdfjs-dist/build/pdf";
@@ -117,6 +119,8 @@ function AppContent() {
             />
             <Route path="/cadastro-turmas" element={<CadastroTurma />} />
             <Route path="/corrigir-turmas" element={<CorrigirTurmas />} />
+            {/* ✅ ROTA CORRIGIDA: Altere de "/relatorios" para "/relatorios-aluno" */}
+            <Route path="/relatorios-aluno" element={<RelatoriosPage />} />
 
             {/* Alunos, Avaliações e Anamnese */}
             <Route path="/ver-alunos" element={<VerAlunos />} />
@@ -141,10 +145,8 @@ function AppContent() {
               path="/nova-avaliacao-0a3"
               element={<AvaliacaoInicial0a3Page />}
             />
-            {/* ✅ NOVA ROTA: PEI 0-3 Anos */}
             <Route path="/criar-pei-0a3" element={<CriarPEI0a3 />} />
             <Route path="/criar-pei-0a3/:alunoId" element={<CriarPEI0a3 />} />
-            {/* ✅ FIM DA NOVA ROTA */}
 
             {/* Avaliação de Interesses */}
             <Route
