@@ -1,12 +1,12 @@
 // vite.config.js
+import { resolve } from "path"; // 1. ADICIONE ESTA LINHA
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import { VitePWA } from "vite-plugin-pwa"; // 1. ADICIONE ESTA LINHA
+import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
   plugins: [
     react(),
-    // 2. ADICIONE TODA ESTA SEÇÃO DO PWA AQUI
     VitePWA({
       registerType: "autoUpdate",
       injectRegister: "auto",
@@ -37,7 +37,6 @@ export default defineConfig({
       },
     }),
   ],
-  // O resto da sua configuração original permanece intacto
   server: {
     port: 5199,
   },
@@ -59,6 +58,11 @@ export default defineConfig({
       transformMixedEsModules: true,
     },
     rollupOptions: {
+      // 2. ADICIONE ESTA SEÇÃO 'input' AQUI
+      input: {
+        main: resolve(__dirname, "index.html"),
+        app: resolve(__dirname, "app.html"),
+      },
       output: {
         manualChunks(id) {
           if (id.includes("node_modules")) {
