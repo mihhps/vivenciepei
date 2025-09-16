@@ -1,0 +1,87 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- FUNÇÕES DE AJUDA BASEADAS EM CUSTOM CLAIMS ---
+    function isAdmin() {
+      return request.auth.token.admin == true;
+    }
+    function isProfessor() {
+      return request.auth.token.perfil == 'professor';
+    }
+
+    // --- ACESSO DE PROFESSOR E ESCRITA AO PRÓPRIO PERFIL ---
+    match /usuarios/{userId} {
+      // Agora, qualquer professor pode ler a lista de usuários,
+      // mas só pode escrever no próprio documento.
+      allow read: if isProfessor();
+      allow write: if request.auth.uid == userId;
+    }
+
+    // --- COLEÇÕES COM LEITURA PARA PROFESSOR E ESCRITA SOMENTE PELO CRIADOR ---
+    match /PEIs/{docId} {
+      allow read: if isProfessor();
+      allow write: if isProfessor() && request.resource.data.criadorId == request.auth.uid;
+    }
+
+    match /acompanhamentoPrazosPEIResumo/{docId} {
+      allow read: if isProfessor() && request.auth.uid == docId;
+    }
+
+    match /alunos/{docId} {
+      allow read: if isProfessor();
+    }
+
+    match /artifacts/{docId} {
+      allow read: if isProfessor();
+      allow write: if isProfessor() && request.resource.data.criadorId == request.auth.uid;
+    }
+
+    match /avaliacoesIniciais/{docId} {
+      allow read: if isProfessor();
+      allow write: if isProfessor() && request.resource.data.criadorId == request.auth.uid;
+    }
+    
+    // --- COLEÇÕES ADICIONADAS PARA RESOLVER OS ERROS ---
+    match /avaliacoesIniciais0a3/{docId} {
+      allow read: if isProfessor();
+      allow write: if isProfessor() && request.resource.data.criadorId == request.auth.uid;
+    }
+    
+    match /avaliacoes/{docId} {
+      allow read: if isProfessor();
+      allow write: if isProfessor() && request.resource.data.criadorId == request.auth.uid;
+    }
+
+    match /artifacts/{appId}/public/data/avaliacoesInteresses/{docId} {
+  allow read: if isProfessor();
+  allow write: if isProfessor() && request.resource.data.criadorId == request.auth.uid;
+}
+    // --- OUTRAS COLEÇÕES COM LEITURA DE PROFESSOR ---
+    match /escolas/{docId} {
+      allow read: if isProfessor();
+    }
+
+    match /observacoesAluno/{docId} {
+      allow read: if isProfessor();
+    }
+
+    match /peis/{docId} {
+      allow read: if isProfessor();
+      allow write: if isProfessor() && request.resource.data.criadorId == request.auth.uid;
+    }
+
+    match /prazosPEIAnuais/{docId} {
+      allow read: if isProfessor();
+    }
+
+    match /vinculosProfessores/{docId} {
+      allow read: if isProfessor();
+    }
+
+    // --- REGRA GERAL PARA ADMINS ---
+    match /{path=**} {
+      allow read, write: if isAdmin();
+    }
+  }
+}

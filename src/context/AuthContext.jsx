@@ -33,48 +33,29 @@ export function AuthProvider({ children }) {
   );
 
   useEffect(() => {
-    console.log(
-      "[AuthContext] useEffect: Iniciando configuração do Firebase..."
-    );
-
     let app;
     try {
       if (!getApps().length) {
         app = initializeApp(firebaseConfig);
-        console.log("[AuthContext] Firebase app inicializado.");
       } else {
         app = getApp();
-        console.log("[AuthContext] Usando Firebase app existente.");
       }
 
       authRef.current = getAuth(app);
       dbRef.current = getFirestore(app);
-      console.log("[AuthContext] Instâncias de Auth e Firestore obtidas.");
 
       const unsubscribe = onAuthStateChanged(authRef.current, async (user) => {
-        console.log(
-          "[AuthContext] onAuthStateChanged disparado. User:",
-          user ? user.uid : "null"
-        );
-
         if (user) {
-          // Usuário autenticado
           setCurrentUser(user);
           setUserId(user.uid);
           setIsLoadingProfile(true);
-          console.log(
-            "[AuthContext] Usuário autenticado. Carregando perfil..."
-          );
 
           try {
             const userDocRef = doc(dbRef.current, "usuarios", user.uid);
             const userDocSnap = await getDoc(userDocRef);
 
-            await user.getIdToken(true);
-
             if (userDocSnap.exists()) {
               const data = userDocSnap.data();
-
               setUserProfileData({
                 uid: user.uid,
                 email: user.email,
@@ -87,6 +68,31 @@ export function AuthProvider({ children }) {
                 "[AuthContext] Perfil do usuário carregado do Firestore:",
                 user.uid
               );
+
+              // ✅✅✅ BLOCO DE TESTE DEFINITIVO ✅✅✅
+              console.log("--- INICIANDO TESTE DE CUSTOM CLAIMS ---");
+              user
+                .getIdTokenResult(true)
+                .then((idTokenResult) => {
+                  console.log(
+                    "PERMISSÕES NO TOKEN (CLAIMS):",
+                    idTokenResult.claims
+                  );
+                  if (idTokenResult.claims.perfil === "professor") {
+                    console.log(
+                      "✅ SUCESSO! O perfil 'professor' foi encontrado no token."
+                    );
+                  } else {
+                    console.log(
+                      "❌ FALHA! O perfil 'professor' NÃO foi encontrado no token."
+                    );
+                  }
+                  console.log("--- FIM DO TESTE DE CUSTOM CLAIMS ---");
+                })
+                .catch((error) => {
+                  console.error("ERRO AO VERIFICAR TOKEN:", error);
+                });
+              // ✅✅✅ FIM DO BLOCO DE TESTE ✅✅✅
             } else {
               console.warn(
                 "[AuthContext] Documento do usuário não encontrado no Firestore:",
@@ -108,14 +114,9 @@ export function AuthProvider({ children }) {
             setUserProfileData(null);
           } finally {
             setIsLoadingProfile(false);
-            console.log("[AuthContext] isLoadingProfile definido como false.");
           }
           setIsAuthReady(true);
-          console.log("[AuthContext] isAuthReady definido como true.");
         } else {
-          console.log(
-            "[AuthContext] Nenhum usuário logado. Aguardando login via email/senha."
-          );
           setCurrentUser(null);
           setUserId(null);
           setUserProfileData(null);
@@ -123,21 +124,11 @@ export function AuthProvider({ children }) {
           setIsAuthReady(true);
         }
       });
-
-      return () => {
-        unsubscribe();
-        console.log("[AuthContext] onAuthStateChanged listener removido.");
-      };
+      return () => unsubscribe();
     } catch (error) {
-      console.error(
-        "[AuthContext] Erro na inicialização do Firebase ou AuthContext:",
-        error
-      );
+      console.error("[AuthContext] Erro na inicialização:", error);
       setIsAuthReady(true);
       setIsLoadingProfile(false);
-      console.log(
-        "[AuthContext] Erro crítico na inicialização. isAuthReady true, isLoadingProfile false."
-      );
     }
   }, []);
 
@@ -151,31 +142,9 @@ export function AuthProvider({ children }) {
     dbInstance: dbRef.current,
   };
 
-  console.log(
-    "[AuthContext] Renderizando AuthProvider. isAuthReady:",
-    isAuthReady,
-    "isLoadingProfile:",
-    isLoadingProfile
-  );
-
   return (
     <AuthContext.Provider value={value}>
-      {isAuthReady && !isLoadingProfile ? (
-        children
-      ) : (
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            minHeight: "100vh",
-            fontSize: "1.2em",
-            color: "#333",
-          }}
-        >
-          Carregando dados de autenticação e perfil...
-        </div>
-      )}
-    </AuthContext.Provider>
+      {isAuthReady && !isLoadingProfile ? children : <div>Carregando...</div>}
+    </AuthContext.Provider> // ✅ CORRIGIDO AQUI
   );
 }

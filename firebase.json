@@ -14,8 +14,7 @@
     "runtime": "nodejs22"
   },
   "firestore": {
-    "rules": "firestore.rules",
-    "indexes": "firestore.indexes.json"
+    "rules": "firestore.rules"
   },
   "emulators": {
     "auth": {
@@ -36,7 +35,6 @@
     "eventarc": {
       "port": 9299
     },
-
     "ui": {
       "port": 4000
     },
