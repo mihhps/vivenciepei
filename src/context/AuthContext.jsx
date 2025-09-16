@@ -70,14 +70,10 @@ export function AuthProvider({ children }) {
             const userDocRef = doc(dbRef.current, "usuarios", user.uid);
             const userDocSnap = await getDoc(userDocRef);
 
-            // ✅ CORREÇÃO CRÍTICA: Força a atualização do token
             await user.getIdToken(true);
 
             if (userDocSnap.exists()) {
               const data = userDocSnap.data();
-
-              // ❌ REMOVEMOS O CÓDIGO INSEGURO AQUI
-              // As permissões são tratadas pelas regras do Firestore e custom claims.
 
               setUserProfileData({
                 uid: user.uid,

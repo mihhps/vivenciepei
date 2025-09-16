@@ -1188,3 +1188,44 @@ exports.marcarRevisaoComoConcluida = onCall(
     }
   }
 );
+// =========================================================================
+// NOVA FUNÇÃO PARA PROMOVER USUÁRIOS A ADMINISTRADORES
+// =========================================================================
+exports.setAdminRole = onCall(
+  { region: "southamerica-east1" },
+  async (request) => {
+    // 1. Verificação de Segurança: Garante que quem está chamando a função JÁ É um admin.
+    if (!request.auth || !request.auth.token.admin) {
+      throw new functions.https.HttpsError(
+        "permission-denied",
+        "Apenas administradores podem executar esta ação."
+      );
+    }
+
+    const targetUid = request.data.uid;
+    const targetEmail = request.data.email;
+
+    if (!targetUid || !targetEmail) {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        "O UID e o email do usuário alvo são obrigatórios."
+      );
+    }
+
+    try {
+      // 2. Ação Principal: Define o Custom Claim { admin: true } para o usuário alvo.
+      await admin.auth().setCustomUserClaims(targetUid, { admin: true });
+
+      // 3. Retorno de Sucesso: Envia uma mensagem de volta para o seu app React.
+      return {
+        message: `Sucesso! O usuário ${targetEmail} agora é um administrador.`,
+      };
+    } catch (error) {
+      functions.logger.error("Falha ao definir Custom Claim:", error);
+      throw new functions.https.HttpsError(
+        "internal",
+        "Ocorreu um erro no servidor ao tentar promover o usuário."
+      );
+    }
+  }
+);
