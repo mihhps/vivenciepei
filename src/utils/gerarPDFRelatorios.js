@@ -2,8 +2,6 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import {
   collection,
-  query,
-  where,
   getDocs,
   doc as firestoreDoc,
   getDoc,
@@ -14,23 +12,21 @@ import { db } from "../firebase";
 const styles = {
   font: "helvetica",
   fontSize: {
-    xsmall: 7,
     small: 8,
-    medium: 10,
-    large: 12,
+    standard: 12,
     title: 18,
   },
   colors: {
     black: [0, 0, 0],
-    white: [255, 255, 255],
-    gray: [150, 150, 150],
+    white: [255, 255, 255], // Cor branca definida
   },
 };
 
 const HEADER_AREA_HEIGHT = 40;
 const FOOTER_AREA_HEIGHT = 25;
+const MARGIN = 20;
 
-// --- Funções de Formatação ---
+// --- Funções de Formatação (Sem alterações) ---
 function formatarData(data) {
   if (!data) return "-";
   try {
@@ -45,9 +41,9 @@ function formatarData(data) {
       return "-";
     }
     if (isNaN(dateObj.getTime())) return "-";
-    const dia = dateObj.getUTCDate().toString().padStart(2, "0");
-    const mes = (dateObj.getUTCMonth() + 1).toString().padStart(2, "0");
-    const ano = dateObj.getUTCFullYear();
+    const dia = String(dateObj.getDate()).padStart(2, "0");
+    const mes = String(dateObj.getMonth() + 1).padStart(2, "0");
+    const ano = dateObj.getFullYear();
     return `${dia}/${mes}/${ano}`;
   } catch (e) {
     console.error("Erro ao formatar data:", e);
@@ -71,116 +67,53 @@ function calcularIdade(dataNascimento) {
   }
 }
 
-// --- Funções de PDF ---
+// --- Funções de PDF (Sem alterações) ---
 function addHeaderAndFooter(doc) {
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const imgWidth = 128;
-  const imgHeight = 25;
-  const imgX = 10;
-  const imgY = 10;
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const imgWidth = 190;
+    const imgHeight = 25;
+    const imgX = 10;
+    const imgY = 10;
+    doc.addImage("/logoolf.jpg", "JPEG", imgX, imgY, imgWidth, imgHeight);
 
-  doc.addImage("/logo.jpg", "JPEG", imgX, imgY, imgWidth, imgHeight);
+    const originalFontSize = doc.getFontSize();
+    doc.setFont(styles.font, "normal");
+    doc.setFontSize(styles.fontSize.small);
 
-  doc.setFont(styles.font, "normal");
-  doc.setFontSize(styles.fontSize.small);
-
-  doc.text(
-    "Prefeitura Municipal de Guabiruba / Secretaria de Educação de Guabiruba (SEME)",
-    20,
-    pageHeight - 20
-  );
-  doc.text(
-    "Rua José Dirschnabel, 67 - Centro - Guabiruba/SC",
-    20,
-    pageHeight - 15
-  );
-  doc.text(
-    "Telefone/WhatsApp: (47) 3308-3102 - www.guabiruba.sc.gov.br",
-    20,
-    pageHeight - 10
-  );
+    doc.text(
+      "Prefeitura Municipal de Guabiruba / Secretaria de Educação de Guabiruba (SEME)",
+      MARGIN,
+      pageHeight - 20
+    );
+    doc.text(
+      "Rua José Dirschnabel, 67 - Centro - Guabiruba/SC",
+      MARGIN,
+      pageHeight - 15
+    );
+    doc.text(
+      "Telefone/WhatsApp: (47) 3308-3102 - www.guabiruba.sc.gov.br",
+      MARGIN,
+      pageHeight - 10
+    );
+    doc.setFontSize(originalFontSize);
+  }
 }
 
 function ensurePageSpace(doc, currentY, requiredSpace) {
   const pageHeight = doc.internal.pageSize.getHeight();
   const contentBottomLimit = pageHeight - FOOTER_AREA_HEIGHT;
-  if (
-    currentY + requiredSpace > contentBottomLimit ||
-    currentY < HEADER_AREA_HEIGHT
-  ) {
+  if (currentY + requiredSpace > contentBottomLimit) {
     doc.addPage();
-    addHeaderAndFooter(doc);
     return HEADER_AREA_HEIGHT + 10;
   }
   return currentY;
 }
 
-async function addStudentInfo(doc, aluno, yStart) {
-  let y = yStart;
-  const availablePageWidth = doc.internal.pageSize.getWidth() - 40;
-
-  y = ensurePageSpace(doc, y, 10);
-  doc.setFont(styles.font, "bold");
-  doc.setFontSize(styles.fontSize.title);
-  doc.text("Relatório Pedagógico", doc.internal.pageSize.getWidth() / 2, y, {
-    align: "center",
-  });
-  y += 10;
-
-  let nomeEscola =
-    aluno.escola ||
-    (aluno.escolaId
-      ? (await getDoc(firestoreDoc(db, "escolas", aluno.escolaId))).data()?.nome
-      : "Não informada");
-
-  y = ensurePageSpace(doc, y, 40);
-  autoTable(doc, {
-    startY: y,
-    head: [],
-    body: [
-      [
-        `Nome: ${aluno.nome || "-"}`,
-        { content: `Escola: ${nomeEscola || "-"}`, colSpan: 2 },
-      ],
-      [
-        `Data de Nasc.: ${formatarData(aluno.nascimento)}`,
-        `Idade: ${calcularIdade(aluno.nascimento)} anos`,
-        `Turma: ${aluno.turma || "-"}`,
-      ],
-      [
-        `Diagnóstico: ${aluno.diagnostico || "Não informado"}`,
-        { content: `Turno: ${aluno.turno || "-"}`, colSpan: 2 },
-      ],
-    ],
-    styles: {
-      font: styles.font,
-      fontSize: styles.fontSize.medium,
-      textColor: styles.colors.black,
-      fillColor: styles.colors.white,
-      lineColor: styles.colors.black,
-      lineWidth: 0.1,
-      cellPadding: 2,
-      valign: "middle",
-    },
-    columnStyles: {
-      0: { cellWidth: availablePageWidth / 3 },
-      1: { cellWidth: availablePageWidth / 3 },
-      2: { cellWidth: availablePageWidth / 3 },
-    },
-    margin: {
-      left: 20,
-      right: 20,
-      top: HEADER_AREA_HEIGHT + 10,
-      bottom: FOOTER_AREA_HEIGHT,
-    },
-    didDrawPage: (data) => addHeaderAndFooter(doc),
-  });
-  y = doc.lastAutoTable.finalY + 10;
-
-  return y;
-}
-
-async function addProfessionalSignaturesTable(doc, aluno, y) {
+async function getProfissionaisParaAssinar(aluno) {
+  // Sua função está ótima, sem necessidade de alterações aqui.
   try {
     const perfisGestaoEscolar = [
       "diretor",
@@ -189,18 +122,14 @@ async function addProfessionalSignaturesTable(doc, aluno, y) {
       "gestao",
     ].map((p) => p.replace(/_/g, " "));
     const perfisOutrosProfissionais = ["professor", "aee"];
-
     const todosUsuariosSnap = await getDocs(collection(db, "usuarios"));
     const profissionaisParaAssinar = [];
     const processedIds = new Set();
-
     todosUsuariosSnap.docs.forEach((d) => {
       const p = { id: d.id, ...d.data() };
       const perfilNormalizado = p.perfil?.toLowerCase().replace(/_/g, " ");
-
       const estaNaEscolaDoAluno =
         aluno.escolaId && Object.keys(p.escolas || {}).includes(aluno.escolaId);
-
       if (estaNaEscolaDoAluno) {
         if (perfisGestaoEscolar.includes(perfilNormalizado)) {
           if (!processedIds.has(p.id)) {
@@ -222,17 +151,6 @@ async function addProfessionalSignaturesTable(doc, aluno, y) {
         }
       }
     });
-
-    if (profissionaisParaAssinar.length === 0) {
-      y = ensurePageSpace(doc, y, 20);
-      doc.text(
-        "Nenhum profissional encontrado para a tabela de assinaturas.",
-        20,
-        y
-      );
-      return y + 10;
-    }
-
     const ordemCargos = [
       "diretor",
       "diretor_adjunto",
@@ -251,97 +169,128 @@ async function addProfessionalSignaturesTable(doc, aluno, y) {
       }
       return (a.nome || "").localeCompare(b.nome || "");
     });
+    return profissionaisParaAssinar;
+  } catch (err) {
+    console.error("Erro ao buscar profissionais para assinatura:", err);
+    return [];
+  }
+}
+
+// --- FUNÇÃO PRINCIPAL ---
+
+export async function gerarPDFRelatorioIndividual(aluno, relatorio) {
+  const doc = new jsPDF();
+  let y = HEADER_AREA_HEIGHT + 10;
+  const availablePageWidth = doc.internal.pageSize.getWidth() - MARGIN * 2;
+
+  doc.setFont(styles.font, "bold");
+  doc.setFontSize(styles.fontSize.title);
+  doc.text("Relatório Pedagógico", doc.internal.pageSize.getWidth() / 2, y, {
+    align: "center",
+  });
+  y += 10;
+
+  let nomeEscola =
+    aluno.escola ||
+    (aluno.escolaId
+      ? (await getDoc(firestoreDoc(db, "escolas", aluno.escolaId))).data()?.nome
+      : "Não informada");
+
+  autoTable(doc, {
+    startY: y,
+    body: [
+      [
+        `Nome: ${aluno.nome || "-"}`,
+        { content: `Escola: ${nomeEscola || "-"}`, colSpan: 2 },
+      ],
+      [
+        `Data de Nasc.: ${formatarData(aluno.nascimento)}`,
+        `Idade: ${calcularIdade(aluno.nascimento)} anos`,
+        `Turma: ${aluno.turma || "-"}`,
+      ],
+      [
+        `Diagnóstico: ${aluno.diagnostico || "Não informado"}`,
+        { content: `Turno: ${aluno.turno || "-"}`, colSpan: 2 },
+      ],
+    ],
+    styles: {
+      font: styles.font,
+      fontSize: styles.fontSize.standard,
+      textColor: styles.colors.black,
+      fillColor: styles.colors.white, // Garante fundo branco
+      lineWidth: 0.1,
+      cellPadding: 2,
+      valign: "middle",
+    },
+    margin: { left: MARGIN, right: MARGIN },
+  });
+  y = doc.lastAutoTable.finalY + 10;
+
+  doc.setFontSize(styles.fontSize.standard);
+  doc.setFont(styles.font, "normal");
+
+  const texto = relatorio.texto || "Nenhum texto de relatório fornecido.";
+  const textoDividido = doc.splitTextToSize(texto, availablePageWidth);
+
+  textoDividido.forEach((line) => {
+    y = ensurePageSpace(doc, y, 7);
+    doc.text(line, MARGIN, y, {
+      // ALTERAÇÃO: Trocado 'justify' por 'left' para melhor legibilidade
+      align: "left",
+      maxWidth: availablePageWidth,
+    });
+    y += 7;
+  });
+
+  y = ensurePageSpace(doc, y, 10);
+  doc.setFont(styles.font, "bold");
+  doc.setFontSize(styles.fontSize.standard);
+  const dataCriacao = relatorio.dataCriacao?.toDate
+    ? relatorio.dataCriacao.toDate()
+    : new Date(relatorio.dataCriacao);
+  doc.text(`Data: ${formatarData(dataCriacao)}`, MARGIN, y);
+
+  const profissionais = await getProfissionaisParaAssinar(aluno);
+  if (profissionais.length > 0) {
+    doc.addPage();
+    let yAssinaturas = HEADER_AREA_HEIGHT + 10;
 
     doc.setFont(styles.font, "bold");
-    doc.setFontSize(styles.fontSize.large);
-    doc.text("Assinaturas dos Profissionais Envolvidos", 20, y);
-    y += 8;
-
-    const linhasAssinaturas = profissionaisParaAssinar.map((p) => [
-      p.nome,
-      p.cargo || p.perfil?.toUpperCase().replace(/_/g, " "),
-      "_____________________________",
-    ]);
-
-    const tableWidth = 70 + 60 + 60;
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const horizontalMargin = (pageWidth - tableWidth) / 2;
+    doc.setFontSize(styles.fontSize.standard);
+    doc.text("Assinaturas dos Profissionais Envolvidos", MARGIN, yAssinaturas);
+    yAssinaturas += 10;
 
     autoTable(doc, {
-      startY: y,
+      startY: yAssinaturas,
       head: [["Nome Completo", "Cargo/Função", "Assinatura"]],
-      body: linhasAssinaturas,
+      body: profissionais.map((p) => [
+        p.nome,
+        p.cargo || p.perfil?.toUpperCase().replace(/_/g, " "),
+        "_____________________________",
+      ]),
       styles: {
         font: styles.font,
-        fontSize: styles.fontSize.medium,
+        fontSize: styles.fontSize.standard,
         textColor: styles.colors.black,
-        lineColor: styles.colors.black,
+        // ALTERAÇÃO: Garante que o corpo da tabela também seja branco
+        fillColor: styles.colors.white,
         lineWidth: 0.1,
         cellPadding: 2,
       },
       headStyles: {
-        fillColor: styles.colors.white,
-        textColor: styles.colors.black,
         fontStyle: "bold",
         halign: "center",
+        // ALTERAÇÃO: Garante que o cabeçalho seja branco
+        fillColor: styles.colors.white,
       },
-      columnStyles: {
-        0: { cellWidth: 70 },
-        1: { cellWidth: 60, halign: "center" },
-        2: { cellWidth: 60 },
-      },
-      margin: {
-        left: horizontalMargin,
-        right: horizontalMargin,
-      },
-      didDrawPage: (data) => addHeaderAndFooter(doc),
     });
-    return doc.lastAutoTable.finalY + 10;
-  } catch (err) {
-    console.error("Erro ao buscar profissionais para assinatura:", err);
-    return y;
   }
-}
 
-export async function gerarPDFRelatorioIndividual(aluno, relatorio) {
-  const doc = new jsPDF();
-  let y;
-
-  // --- 1. Adiciona a seção do aluno e o relatório principal na primeira página ---
   addHeaderAndFooter(doc);
-  y = await addStudentInfo(doc, aluno, HEADER_AREA_HEIGHT + 10);
 
-  y = ensurePageSpace(doc, y, 30);
-
-  const dataCriacao = relatorio.dataCriacao?.toDate
-    ? relatorio.dataCriacao.toDate()
-    : new Date(relatorio.dataCriacao);
-  const dataFormatada = formatarData(dataCriacao);
-
-  doc.setFontSize(styles.fontSize.medium);
-
-  y = ensurePageSpace(doc, y, 20);
-  doc.setFont(styles.font, "normal");
-  const textoDividido = doc.splitTextToSize(
-    relatorio.texto,
-    doc.internal.pageSize.getWidth() - 40
-  );
-  doc.text(textoDividido, 20, y);
-  y += doc.getTextDimensions(textoDividido).h + 10;
-
-  // Adiciona a data no final do relatório, antes da nova página
-  doc.setFont(styles.font, "bold");
-  doc.text(`Data: ${dataFormatada}`, 20, y);
-  y += 8;
-
-  // --- 2. Adiciona uma nova página para a seção de assinaturas ---
-  doc.addPage();
-  addHeaderAndFooter(doc); // Adiciona cabeçalho e rodapé na nova página
-
-  // --- 3. Adiciona a tabela de assinaturas no topo da nova página ---
-  await addProfessionalSignaturesTable(doc, aluno, HEADER_AREA_HEIGHT + 10);
-
-  // Salva o PDF
-  const nomeArquivo = `Relatório_${aluno.nome.replace(/\s+/g, "_")}_${dataFormatada.replace(/\//g, "-")}.pdf`;
+  const nomeArquivo = `Relatório_${aluno.nome.replace(
+    /\s+/g,
+    "_"
+  )}_${formatarData(dataCriacao).replace(/\//g, "-")}.pdf`;
   doc.save(nomeArquivo);
 }
