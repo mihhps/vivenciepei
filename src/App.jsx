@@ -9,6 +9,7 @@ import {
 import { AuthContext, AuthProvider } from "./context/AuthContext";
 
 // --- COMPONENTES PRINCIPAIS ---
+import MarketingPage from "./pages/MarketingPage";
 import Login from "./pages/Login";
 import TelaInicial from "./pages/TelaInicial";
 import CadastrarProfessor from "./pages/CadastrarProfessor";
@@ -90,45 +91,38 @@ function AppContent() {
   const { user } = useContext(AuthContext);
   const location = useLocation();
 
-  // Lista de rotas onde a barra "EscolaAtual" NÃO deve aparecer
   const paginasPublicas = [
     "/",
+    "/inicio",
     "/login",
     "/recuperar-senha",
     "/cadastro-professor",
   ];
 
-  // Lógica para decidir se a barra deve ser mostrada
   const deveMostrarEscola =
     user && !paginasPublicas.includes(location.pathname);
 
-  // Remova a constante alturaDaBarraFixa; ela não é mais necessária com a nova solução.
-
-  // ✅ CORREÇÃO APLICADA AQUI ✅
-  // A estrutura foi modificada para usar Flexbox, que é mais robusto
-  // e resolve o problema de forma definitiva.
   return (
     <div
       style={{
         display: "flex",
         flexDirection: "column",
-        height: "100vh", // Usa a altura total da tela para o layout
+        height: "100vh",
       }}
     >
-      {/* 1. O componente da barra fixa é renderizado primeiro. */}
       {deveMostrarEscola && <EscolaAtual />}
 
-      {/* 2. Este div agora ocupa todo o espaço restante e é o único que rola. */}
       <div
         style={{
-          flexGrow: 1, // Faz com que o div ocupe todo o espaço vertical disponível
-          overflowY: "auto", // Habilita a rolagem interna
+          flexGrow: 1,
+          overflowY: "auto",
         }}
       >
         <Suspense fallback={<div className="app-loading">Carregando...</div>}>
           <Routes>
             {/* --- ROTAS PÚBLICAS --- */}
-            <Route path="/" element={<TelaInicial />} />
+            <Route path="/" element={<MarketingPage />} />
+            <Route path="/inicio" element={<TelaInicial />} />
             <Route path="/login" element={<Login />} />
             <Route path="/recuperar-senha" element={<RecuperarSenha />} />
             <Route
@@ -243,8 +237,11 @@ function AppContent() {
               />
             </Route>
 
-            {/* Rota Coringa */}
-            <Route path="*" element={<Navigate to="/" replace />} />
+            {/* 🛑 AQUI ESTAVA O PROBLEMA: ESTA LINHA FOI REMOVIDA PARA EVITAR O LOOP */}
+            {/* <Route path="*" element={<Navigate to="/" replace />} /> */}
+
+            {/* ✅ MELHOR PRÁTICA: ADICIONE UMA ROTA PARA PÁGINAS NÃO ENCONTRADAS */}
+            <Route path="*" element={<div>Página não encontrada</div>} />
           </Routes>
         </Suspense>
       </div>

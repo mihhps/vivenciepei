@@ -10,7 +10,7 @@ export default function BotaoSair() {
       .signOut()
       .then(() => {
         localStorage.removeItem("usuarioLogado");
-        navigate("/"); // Redireciona para a tela institucional
+        navigate("/login"); // Redireciona para a tela institucional
       })
       .catch((error) => {
         console.error("Erro ao sair:", error);

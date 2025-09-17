@@ -50,6 +50,9 @@ const estilos = {
   logo: {
     width: "240px",
     marginBottom: "10px",
+    // ESTILOS ADICIONADOS PARA GARANTIR A CENTRALIZAÇÃO
+    marginLeft: "auto",
+    marginRight: "auto",
   },
   titulo: {
     fontSize: "50px",

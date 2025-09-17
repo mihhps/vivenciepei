@@ -1,5 +1,3 @@
-// src/pages/Login.jsx
-
 import React, { useState, useEffect } from "react"; // ✅ Adicione useEffect
 import { useNavigate, Link } from "react-router-dom";
 import { auth, db } from "../firebase";
@@ -233,6 +231,9 @@ const estilos = {
   logo: {
     width: "100px",
     marginBottom: "15px",
+    // ESTILOS ADICIONADOS PARA GARANTIR A CENTRALIZAÇÃO
+    marginLeft: "auto",
+    marginRight: "auto",
   },
   titulo: {
     fontSize: "22px",

@@ -250,8 +250,10 @@ const estilos = {
     maxWidth: "500px",
   },
   logo: {
-    width: "120px",
-    marginBottom: "20px",
+    width: "120px", // Define o tamanho da logo
+    marginBottom: "20px", // Mantém o espaçamento inferior
+    display: "block", // Garante que a imagem se comporte como um bloco
+    margin: "0 auto", // Centraliza o bloco horizontalmente
   },
   titulo: {
     color: "#003366",
