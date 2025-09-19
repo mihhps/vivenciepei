@@ -43,41 +43,43 @@ const SelecionarEscola = lazy(() => import("./components/SelecionarEscola"));
 const VincularEscolas = lazy(() => import("./pages/VincularEscolas"));
 const AcompanharMetas = lazy(() => import("./pages/AcompanharMetas"));
 const AcompanhamentoSEME = lazy(() => import("./pages/AcompanhamentoSEME"));
-const VincularProfessoresTurmas = lazy(
-  () => import("./pages/VincularProfessoresTurmas")
+const VincularProfessoresTurmas = lazy(() =>
+  import("./pages/VincularProfessoresTurmas")
 );
-const AcompanhamentoPrazosPei = lazy(
-  () => import("./pages/AcompanhamentoPrazosPei")
+const AcompanhamentoPrazosPei = lazy(() =>
+  import("./pages/AcompanhamentoPrazosPei")
 );
-const DetalhesAcompanhamentoPei = lazy(
-  () => import("./pages/DetalhesAcompanhamentoPei")
+const DetalhesAcompanhamentoPei = lazy(() =>
+  import("./pages/DetalhesAcompanhamentoPei")
 );
 const GestaoPrazosPEI = lazy(() => import("./pages/GestaoPrazosPEI"));
-const VisualizacaoPrazosPEIProfessor = lazy(
-  () => import("./pages/VisualizacaoPrazosPEIProfessor")
+const VisualizacaoPrazosPEIProfessor = lazy(() =>
+  import("./pages/VisualizacaoPrazosPEIProfessor")
 );
-const MeuAcompanhamentoProfessor = lazy(
-  () => import("./pages/MeuAcompanhamentoProfessor")
+const MeuAcompanhamentoProfessor = lazy(() =>
+  import("./pages/MeuAcompanhamentoProfessor")
 );
 const CadastroTurma = lazy(() => import("./pages/CadastroTurma.jsx"));
-const AvaliacaoInteressesPage = lazy(
-  () => import("./pages/AvaliacaoInteressesPage")
+const AvaliacaoInteressesPage = lazy(() =>
+  import("./pages/AvaliacaoInteressesPage")
 );
-const SelecionarAlunoParaInteresses = lazy(
-  () => import("./pages/SelecionarAlunoParaInteresses")
+const SelecionarAlunoParaInteresses = lazy(() =>
+  import("./pages/SelecionarAlunoParaInteresses")
 );
-const VisualizarAvaliacaoInteressesPage = lazy(
-  () => import("./pages/VisualizarAvaliacaoInteressesPage")
+const VisualizarAvaliacaoInteressesPage = lazy(() =>
+  import("./pages/VisualizarAvaliacaoInteressesPage")
 );
 const ObservacoesAluno = lazy(() => import("./pages/ObservacoesAluno"));
 const Reavaliacao = lazy(() => import("./pages/Reavaliacao"));
-const AvaliacaoInicial0a3Page = lazy(
-  () => import("./pages/AvaliacaoInicial0a3Page")
+const AvaliacaoInicial0a3Page = lazy(() =>
+  import("./pages/AvaliacaoInicial0a3Page")
 );
 const CriarPEI0a3 = lazy(() => import("./pages/CriarPEI0A3.jsx"));
 const VerAnamneses = lazy(() => import("./pages/VerAnamneses.jsx"));
 const VisualizarAnamnese = lazy(() => import("./pages/VisualizarAnamnese"));
 const RelatoriosPage = lazy(() => import("./pages/RelatoriosPage.jsx"));
+const SelecaoAlunoAEE = lazy(() => import("./pages/SelecaoAlunoAEE.jsx"));
+const AcompanhamentoAEE = lazy(() => import("./pages/AcompanhamentoAEE"));
 
 // Configuração do PDF.js Worker
 import * as pdfjsLib from "pdfjs-dist/build/pdf";
@@ -218,6 +220,14 @@ function AppContent() {
 
               {/* Acompanhamento e Prazos */}
               <Route path="/acompanhamento" element={<AcompanhamentoSEME />} />
+              <Route
+                path="/acompanhamento-aee-selecao"
+                element={<SelecaoAlunoAEE />}
+              />
+              <Route
+                path="/acompanhamento-aee/:alunoId"
+                element={<AcompanhamentoAEE />}
+              />
               <Route
                 path="/acompanhamento-pei/:professorId"
                 element={<DetalhesAcompanhamentoPei />}

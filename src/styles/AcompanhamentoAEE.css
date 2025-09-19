@@ -1,0 +1,516 @@
+/* Reset Básico e Padrões da Página */
+.acompanhamento-page {
+  background-color: #f7f9fc;
+  min-height: 100vh;
+  padding: 2rem;
+  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue",
+    sans-serif;
+  padding-top: 80px; /* Garante espaço para a barra superior */
+}
+
+/* Cabeçalho */
+.page-header {
+  max-width: 1200px;
+  margin: 0 auto 1.5rem auto;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 1rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #e0e7ff;
+}
+.back-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: #434c5e;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  background-color: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  width: fit-content;
+}
+.header-central h1 {
+  color: #1f2937;
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0;
+}
+.data-plano-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-self: flex-end;
+}
+.data-plano-input {
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 0.5rem;
+}
+.aluno-info-header {
+  max-width: 1200px;
+  margin: 0 auto 2rem auto;
+  background-color: #fff;
+  color: #374151;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+  border: 1px solid #e5e7eb;
+}
+.info-item strong {
+  font-weight: 600;
+}
+
+.page-content {
+  display: flex;
+  gap: 2rem;
+  max-width: 1200px;
+  margin: auto;
+  align-items: flex-start;
+}
+
+.sidebar-plano {
+  flex: 0 0 380px;
+  width: 380px;
+  position: sticky;
+  top: 100px;
+}
+
+.content-principal {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Cards */
+.card-sidebar,
+.card-principal {
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+}
+.card-sidebar h2,
+.card-principal h2 {
+  color: #111827;
+  margin-top: 0;
+  font-size: 1.25rem;
+  border-bottom: 1px solid #f3f4f6;
+  padding-bottom: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+/* Componentes da Sidebar */
+.horarios-lista p {
+  margin: 0.5rem 0;
+  color: #4b5563;
+}
+.botao-gerenciar-sidebar {
+  width: 100%;
+  padding: 0.6rem;
+  margin-top: 1rem;
+  background-color: #f9fafb;
+  border: 1px solid #d1d5db;
+  color: #374151;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+}
+.accordion-item {
+  border: none;
+  border-radius: 8px;
+  background-color: #f9fafb;
+  margin-bottom: 0.5rem;
+}
+.accordion-header {
+  background-color: transparent;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+.habilidade-item {
+  padding: 0.75rem;
+  border-top: 1px solid #f3f4f6;
+}
+.habilidade-item p {
+  margin: 0;
+  cursor: pointer;
+  color: #374151;
+}
+.habilidade-item p:hover {
+  color: #3b82f6;
+}
+.botao-adicionar-habilidade-sidebar {
+  width: 100%;
+  margin-top: 1rem;
+  padding: 0.6rem;
+  background: none;
+  border: 1px dashed #d1d5db;
+  border-radius: 6px;
+  color: #4b5563;
+  cursor: pointer;
+}
+.habilidade-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+.sugestao-icon-btn {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+.habilidade-status {
+  font-size: 0.8rem;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: bold;
+}
+.status-a-iniciar {
+  background-color: #e5e7eb;
+  color: #4b5563;
+}
+.status-em-desenvolvimento {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+.status-generalizada {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+/* Sugestões de IA */
+.sugestoes-header h4 {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #4b5563;
+}
+.sugestao-card {
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+}
+.sugestoes-container-fade-in {
+  animation: fadeIn 0.3s ease;
+  border-top: 1px solid #e9ecef;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+}
+.sugestoes-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.sugestoes-close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #6b7280;
+}
+.sugestoes-actions {
+  margin-bottom: 0.75rem;
+}
+.botao-gerar-novas {
+  width: 100%;
+  padding: 0.5rem;
+  background-color: #f0f9ff;
+  border: 1px solid #7dd3fc;
+  color: #0369a1;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.sugestoes-feedback {
+  font-style: italic;
+  color: #6b7280;
+}
+.sugestoes-lista {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.sugestao-card h5 {
+  margin: 0 0 0.75rem 0;
+  color: #111827;
+}
+.sugestao-detalhe {
+  margin-bottom: 0.5rem;
+}
+.sugestao-detalhe strong {
+  font-size: 0.8rem;
+  color: #374151;
+}
+.sugestao-detalhe p,
+.sugestao-detalhe ul {
+  margin: 0.25rem 0 0 0;
+  padding-left: 1.2rem;
+  font-size: 0.9rem;
+}
+.sugestao-detalhe p {
+  padding-left: 0;
+}
+.botao-usar-sugestao {
+  width: 100%;
+  margin-top: 0.75rem;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  padding: 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* ##### FORMULÁRIO DE ATIVIDADE - ESTILOS ATUALIZADOS ##### */
+.form-atividade-content {
+  width: 100%;
+}
+.form-section {
+  padding: 1.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  background-color: #fff;
+}
+.form-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+.form-section-header label {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+}
+.botao-sugerir-mini {
+  background-color: #f0f9ff;
+  border: 1px solid #7dd3fc;
+  color: #0369a1;
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+.form-group {
+  margin-bottom: 1.25rem;
+}
+.form-group:last-child {
+  margin-bottom: 0;
+}
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #374151;
+}
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 1rem;
+  background-color: #fff;
+  box-shadow: inset 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+.habilidade-avaliada-card {
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  padding: 1.25rem;
+  position: relative;
+  margin-bottom: 1rem;
+  border-radius: 8px;
+}
+.label-habilidades-avaliadas {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #374151;
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+  display: block;
+}
+.botoes-resultado {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.75rem;
+}
+.botoes-resultado button {
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  background-color: #fff;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  color: #374151;
+}
+.botoes-resultado button.ativo {
+  background-color: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+.botao-remover-card-habilidade {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #9ca3af;
+  cursor: pointer;
+  line-height: 1;
+}
+.botao-adicionar-card-habilidade {
+  width: 100%;
+  padding: 0.75rem;
+  background: none;
+  border: 1px dashed #d1d5db;
+  border-radius: 8px;
+  color: #4b5563;
+  cursor: pointer;
+  margin-top: 1rem;
+}
+.botao-salvar-atividade {
+  width: 100%;
+  padding: 0.8rem;
+  background-color: #10b981;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.botao-salvar-atividade:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* ##### NOVO: Estilos para diferenciar as seções do formulário ##### */
+.form-section.quebra-gelo-section {
+  background-color: #f0fdf4; /* Verde claro */
+  border-left: 4px solid #22c55e;
+}
+.form-section.finalizacao-section {
+  background-color: #fff7ed; /* Laranja claro */
+  border-left: 4px solid #f97316;
+}
+
+/* Histórico */
+.historico-atividades {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.registro-card {
+  background-color: #f9fafb;
+  border-radius: 8px;
+  padding: 1.25rem;
+  border: 1px solid #e5e7eb;
+}
+.registro-data {
+  font-weight: 600;
+  color: #111827;
+  display: block;
+  margin-bottom: 0.75rem;
+}
+.registro-descricao {
+  padding-bottom: 0.75rem;
+  margin-bottom: 0.75rem;
+  color: #374151;
+}
+.registro-principal {
+  border-top: 1px solid #e9ecef;
+  padding-top: 0.75rem;
+  margin-top: 0.75rem;
+}
+.habilidade-detalhe-historico {
+  padding-top: 0.75rem;
+  margin-top: 0.75rem;
+  border-top: 1px solid #f3f4f6;
+}
+.habilidade-detalhe-historico:first-child {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+}
+.habilidade-detalhe-historico p {
+  margin: 0.25rem 0;
+}
+.resultado-badge {
+  font-size: 0.8rem;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+.Deu-Certo {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+.Parcial {
+  background-color: #ffedd5;
+  color: #9a3412;
+}
+.Com-Dificuldade {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+.obs-historico {
+  font-style: italic;
+  color: #4b5563;
+}
+/* ================================== */
+/* ##### ESTILOS DO BOTÃO DE PDF ##### */
+/* ================================== */
+
+/* Container para alinhar o botão entre os cards */
+.pdf-button-container {
+  display: flex;
+  justify-content: center; /* Centraliza o botão */
+  margin: 1rem 0; /* Espaçamento vertical entre os cards */
+}
+
+/* O novo estilo do seu botão bonito */
+.botao-pdf-principal {
+  display: inline-flex; /* Alinha o ícone e o texto */
+  align-items: center;
+  gap: 0.5rem; /* Espaço entre o ícone e o texto */
+
+  background-color: #4a5568; /* Um cinza-azulado escuro e elegante */
+  color: white;
+
+  font-family: "Segoe UI", sans-serif; /* Mesma fonte do resto da página */
+  font-size: 0.95rem;
+  font-weight: 600;
+
+  padding: 0.75rem 1.5rem; /* Espaçamento interno generoso */
+  border: none;
+  border-radius: 8px; /* Mesma borda dos cards */
+
+  cursor: pointer;
+
+  /* Efeitos visuais */
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transition: all 0.2s ease-in-out;
+}
+
+.botao-pdf-principal:hover {
+  background-color: #2d3748; /* Cor mais escura ao passar o mouse */
+  transform: translateY(-2px); /* Efeito de "levantar" */
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.botao-pdf-principal svg {
+  width: 20px;
+  height: 20px;
+}

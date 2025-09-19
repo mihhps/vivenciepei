@@ -1,0 +1,105 @@
+/* --- Layout Geral da Página --- */
+.selecao-aluno-page {
+  font-family: "Segoe UI", sans-serif;
+  background: linear-gradient(to bottom right, #1d3557, #457b9d);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+/* --- Card Principal --- */
+.selecao-aluno-card {
+  background-color: #ffffff;
+  max-width: 500px;
+  width: 100%;
+  padding: 30px 40px;
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  box-sizing: border-box;
+  text-align: center;
+}
+
+/* --- Cabeçalho e Título --- */
+.selecao-header h2 {
+  color: #1d3557;
+  font-size: 1.75rem;
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+}
+
+.selecao-header p {
+  color: #6c757d;
+  margin-bottom: 2rem;
+  font-size: 1rem;
+}
+
+/* --- Formulário de Seleção --- */
+.form-group-selecao {
+  text-align: left;
+  margin-bottom: 1.5rem;
+}
+
+.form-group-selecao label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #343a40;
+}
+
+.form-group-selecao select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ced4da;
+  border-radius: 8px;
+  font-size: 1rem;
+  background-color: #fff;
+}
+
+/* --- Botões de Ação --- */
+.botao-acessar {
+  width: 100%;
+  padding: 0.8rem;
+  background-color: #2a9d8f;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.botao-acessar:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+}
+
+.botao-voltar {
+  width: 100%;
+  padding: 0.8rem;
+  background-color: transparent;
+  color: #6c757d;
+  border: 1px solid #ced4da;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  margin-top: 1rem;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.botao-voltar:hover {
+  background-color: #f8f9fa;
+}
+
+/* --- Mensagens --- */
+.mensagem-erro {
+  color: #721c24;
+  background-color: #f8d7da;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+}

@@ -7,7 +7,6 @@ export default function PainelSEME() {
   const [usuarioLogado, setUsuarioLogado] = useState(null);
   const navigate = useNavigate();
 
-  // Carrega o CSS do Toastify programaticamente
   useEffect(() => {
     if (!document.querySelector('link[href*="react-toastify"]')) {
       const link = document.createElement("link");
@@ -18,24 +17,18 @@ export default function PainelSEME() {
     }
   }, []);
 
-  // --- CORREÇÃO APLICADA AQUI ---
-  // Carrega os dados do usuário que foram salvos no login via localStorage
   useEffect(() => {
     const usuarioSalvo = localStorage.getItem("usuarioLogado");
 
     if (usuarioSalvo) {
-      // Se encontrou o usuário salvo, atualiza o estado do componente
       setUsuarioLogado(JSON.parse(usuarioSalvo));
     } else {
-      // Se não encontrou um usuário logado, redireciona de volta para o login por segurança
       toast.error("Sessão não encontrada. Por favor, faça login novamente.");
       navigate("/login");
     }
   }, [navigate]); // Adicionamos 'navigate' como dependência do useEffect
 
   const handleNavigate = (rota) => {
-    // A notificação de navegação pode ser removida se não for desejada
-    // toast.info(`Navegando para ${rota}`, { autoClose: 1000 });
     navigate(rota);
   };
 
@@ -103,7 +96,6 @@ export default function PainelSEME() {
     );
   };
 
-  // Se o usuário ainda não foi carregado, pode-se exibir um loader
   if (!usuarioLogado) {
     return <div>Carregando...</div>;
   }

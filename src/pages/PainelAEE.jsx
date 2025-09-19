@@ -160,7 +160,6 @@ export default function PainelAee() {
           Avaliação de Interesses
         </button>
 
-        {/* NOVO BOTÃO: RELATÓRIOS DO ALUNO */}
         <button
           style={estiloBotao}
           onClick={() => navigate("/relatorios-aluno")}
@@ -168,6 +167,22 @@ export default function PainelAee() {
           onMouseLeave={removerEfeitoHover}
         >
           Relatórios do Aluno
+        </button>
+
+        <hr style={{ margin: "20px 0", border: "1px solid #eee" }} />
+
+        {/* --- Grupo de Botões: Acompanhamento --- */}
+        <button
+          style={{ ...estiloBotao, backgroundColor: "#1d3557" }} // Cor de destaque
+          onClick={() => navigate("/acompanhamento-aee-selecao")}
+          onMouseEnter={(e) =>
+            (e.currentTarget.style.backgroundColor = "#1d3557")
+          }
+          onMouseLeave={(e) =>
+            (e.currentTarget.style.backgroundColor = "#1d3557")
+          }
+        >
+          Acompanhamento AEE
         </button>
 
         <hr style={{ margin: "20px 0", border: "1px solid #eee" }} />

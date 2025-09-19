@@ -89,6 +89,7 @@ export default function PainelDev() {
     { label: "Gerenciar Prazos PEI", rota: "/gestao-prazos-pei" },
     { label: "Acompanhar Prazos PEI", rota: "/acompanhamento-prazos-pei" },
     { label: "Acompanhamento Escolar", rota: "/acompanhamento" },
+    { label: "Acompanhamento AEE", rota: "/acompanhamento-aee-selecao" },
     { label: "Ver Alunos", rota: "/ver-alunos" },
     { label: "Relatórios de Aluno", rota: "/relatorios-aluno" },
     { label: "Importar Alunos", rota: "/importar-alunos" },
