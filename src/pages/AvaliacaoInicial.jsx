@@ -222,7 +222,9 @@ function AvaliacaoInicial() {
               <button
                 key={area}
                 onClick={() => setAreaSelecionada(area)}
-                className={`area-botao ${areaSelecionada === area ? "ativo" : ""}`}
+                className={`area-botao ${
+                  areaSelecionada === area ? "ativo" : ""
+                }`}
                 disabled={carregandoGeral}
               >
                 {area}

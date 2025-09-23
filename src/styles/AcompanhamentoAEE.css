@@ -163,10 +163,17 @@
   margin-top: 0.5rem;
 }
 .sugestao-icon-btn {
-  background: none;
+  background: linear-gradient(45deg, #6a11cb, #2575fc);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
   border: none;
   font-size: 1.2rem;
   cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.sugestao-icon-btn:hover {
+  transform: scale(1.1);
 }
 .habilidade-status {
   font-size: 0.8rem;
@@ -220,12 +227,24 @@
 }
 .botao-gerar-novas {
   width: 100%;
-  padding: 0.5rem;
-  background-color: #f0f9ff;
-  border: 1px solid #7dd3fc;
-  color: #0369a1;
-  border-radius: 6px;
+  padding: 0.6rem;
+  background: linear-gradient(45deg, #6a11cb, #2575fc);
+  color: white;
+  border: none;
+  border-radius: 20px;
   cursor: pointer;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+.botao-gerar-novas:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
 }
 .sugestoes-feedback {
   font-style: italic;

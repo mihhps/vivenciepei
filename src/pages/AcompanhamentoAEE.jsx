@@ -53,7 +53,7 @@ const Accordion = ({
                 <SugestoesAtividades
                   habilidade={habilidadeAberta}
                   onSelectSugestao={onSelectSugestao}
-                  getSugestoes={(h) => getSugestoes("atividadePrincipal", h)}
+                  getSugestoes={getSugestoes} // CORREÇÃO: Passando a função diretamente
                   onClose={() => onSugestaoClick(null)}
                 />
               )}

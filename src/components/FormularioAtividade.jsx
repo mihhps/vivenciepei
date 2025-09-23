@@ -1,57 +1,13 @@
 import React, { useState, useEffect, useMemo } from "react";
 
-// Função para interpretar o texto da IA. Agora ela vive aqui.
-function parseAndFormatDescription(textData) {
-  if (typeof textData !== "string" || !textData.trim()) {
-    return null;
-  }
-  // Remove qualquer prefixo comum que a IA possa adicionar
-  const cleanText = textData
-    .replace(/```(json)?\s*/, "")
-    .replace(/```\s*$/, "")
-    .trim();
-
-  const titleMatch = cleanText.match(/Título:\s*([\s\S]*?)(?=\nObjetivos:|$)/);
-  const objectivesMatch = cleanText.match(
-    /Objetivos:\s*([\s\S]*?)(?=\nRecursos:|$)/
-  );
-  const resourcesMatch = cleanText.match(
-    /Recursos:\s*([\s\S]*?)(?=\nMetodologia:|$)/
-  );
-  const methodologyMatch = cleanText.match(
-    /Metodologia:\s*([\s\S]*?)(?=\nDuração:|$)/
-  );
-  const durationMatch = cleanText.match(
-    /(Duração|Duração Estimada):\s*([\s\S]*?)$/
-  );
-
-  const titulo = titleMatch ? titleMatch[1].trim() : "";
-  const objetivos = objectivesMatch
-    ? objectivesMatch[1]
-        .trim()
-        .split("\n")
-        .map((o) => o.replace(/^- /, "").trim())
-        .filter(Boolean)
-    : [];
-  const recursos = resourcesMatch ? resourcesMatch[1].trim() : "";
-  const metodologia = methodologyMatch ? methodologyMatch[1].trim() : "";
-  const duracao = durationMatch ? durationMatch[2].trim() : "";
-
-  if (!titulo) return null; // Se não conseguir nem extrair o título, a formatação está errada.
-
-  return `Título: ${titulo}\n\nObjetivos:\n${objetivos
-    .map((o) => `- ${o}`)
-    .join(
-      "\n"
-    )}\n\nRecursos: ${recursos}\n\nMetodologia: ${metodologia}\n\nDuração: ${duracao}`;
-}
-
+// Componente para uma linha de habilidade (não precisa de alterações)
 const LinhaHabilidade = ({
   item,
   onChange,
   onRemove,
   plano,
   showRemoveButton,
+  onAbrirSugestoes,
 }) => {
   const habilidadesAgrupadas = useMemo(() => {
     if (!plano?.habilidades) return {};
@@ -62,6 +18,10 @@ const LinhaHabilidade = ({
       return acc;
     }, {});
   }, [plano]);
+
+  const habilidadeSelecionada = useMemo(() => {
+    return plano.habilidades.find((h) => h.id === item.habilidadeId);
+  }, [item.habilidadeId, plano.habilidades]);
 
   return (
     <div className="habilidade-avaliada-card">
@@ -74,7 +34,7 @@ const LinhaHabilidade = ({
           ×
         </button>
       )}
-      <div className="form-group">
+      <div className="form-group select-habilidade-wrapper">
         <label>Habilidade Trabalhada*</label>
         <select
           value={item.habilidadeId}
@@ -92,6 +52,16 @@ const LinhaHabilidade = ({
             </optgroup>
           ))}
         </select>
+        {item.habilidadeId && (
+          <button
+            type="button"
+            className="sugestao-icon-btn-form"
+            title="Sugerir atividades com IA"
+            onClick={() => onAbrirSugestoes(habilidadeSelecionada)}
+          >
+            💡
+          </button>
+        )}
       </div>
       <div className="form-group">
         <label>Resultado*</label>
@@ -138,6 +108,7 @@ function FormularioAtividade({
   estado,
   dadosIniciais,
   getSugestoes,
+  onAbrirSugestoes,
 }) {
   const [formData, setFormData] = useState({
     quebraGelo: "",
@@ -154,67 +125,129 @@ function FormularioAtividade({
     finalizacao: false,
   });
 
+  // --- LÓGICA MELHORADA PARA SUGESTÕES ---
+  const [sugestoesDisponiveis, setSugestoesDisponiveis] = useState({
+    quebraGelo: [],
+    finalizacao: [],
+  });
+  const [indicesAtuais, setIndicesAtuais] = useState({
+    quebraGelo: 0,
+    finalizacao: 0,
+  });
+
   useEffect(() => {
     if (!dadosIniciais?.tipo) return;
-    const { tipo, dados } = dadosIniciais;
 
-    if (tipo === "sugestao") {
-      const { habilidade, descricao: descricaoBruta } = dados;
-
-      const descCompleta = parseAndFormatDescription(descricaoBruta);
-
-      if (!descCompleta) {
-        console.error(
-          "Falha ao formatar a descrição da sugestão.",
-          descricaoBruta
+    if (dadosIniciais.tipo === "habilidade") {
+      const habilidadeJaExiste =
+        formData.atividadePrincipal.habilidadesAvaliadas.some(
+          (h) => h.habilidadeId === dadosIniciais.dados.id
         );
-        alert("Erro ao carregar a sugestão. O formato do texto é inválido.");
-        return;
+      if (!habilidadeJaExiste) {
+        const primeiraLinhaVazia =
+          formData.atividadePrincipal.habilidadesAvaliadas.findIndex(
+            (h) => !h.habilidadeId
+          );
+        if (primeiraLinhaVazia !== -1) {
+          const novasHabilidades = [
+            ...formData.atividadePrincipal.habilidadesAvaliadas,
+          ];
+          novasHabilidades[primeiraLinhaVazia].habilidadeId =
+            dadosIniciais.dados.id;
+          setFormData((prev) => ({
+            ...prev,
+            atividadePrincipal: {
+              ...prev.atividadePrincipal,
+              habilidadesAvaliadas: novasHabilidades,
+            },
+          }));
+        } else {
+          adicionarLinhaHabilidade(dadosIniciais.dados.id);
+        }
       }
-
+    } else if (dadosIniciais.tipo === "sugestao") {
       setFormData((prev) => ({
         ...prev,
         atividadePrincipal: {
           ...prev.atividadePrincipal,
-          descricao: descCompleta,
-          habilidadesAvaliadas: [
-            {
-              key: Date.now(),
-              habilidadeId: habilidade.id,
-              resultado: "",
-              observacoes: "",
-            },
-          ],
+          descricao: dadosIniciais.dados.descricao,
         },
       }));
-    } else if (tipo === "habilidade") {
-      setFormData((prev) => ({
-        ...prev,
-        atividadePrincipal: {
-          ...prev.atividadePrincipal,
-          habilidadesAvaliadas: [
-            {
-              key: Date.now(),
-              habilidadeId: dados.id,
-              resultado: "",
-              observacoes: "",
+      const habilidadeDaSugestao = dadosIniciais.dados.habilidade;
+      const habilidadeJaExiste =
+        formData.atividadePrincipal.habilidadesAvaliadas.some(
+          (h) => h.habilidadeId === habilidadeDaSugestao.id
+        );
+      if (!habilidadeJaExiste) {
+        const primeiraLinhaVazia =
+          formData.atividadePrincipal.habilidadesAvaliadas.findIndex(
+            (h) => !h.habilidadeId
+          );
+        if (primeiraLinhaVazia !== -1) {
+          const novasHabilidades = [
+            ...formData.atividadePrincipal.habilidadesAvaliadas,
+          ];
+          novasHabilidades[primeiraLinhaVazia].habilidadeId =
+            habilidadeDaSugestao.id;
+          setFormData((prev) => ({
+            ...prev,
+            atividadePrincipal: {
+              ...prev.atividadePrincipal,
+              habilidadesAvaliadas: novasHabilidades,
             },
-          ],
-        },
-      }));
+          }));
+        } else {
+          adicionarLinhaHabilidade(habilidadeDaSugestao.id);
+        }
+      }
     }
   }, [dadosIniciais]);
 
   const handleSugerir = async (tipo) => {
     setSugestaoCarregando((prev) => ({ ...prev, [tipo]: true }));
     try {
-      const sugestao = await getSugestoes(tipo);
-      setFormData((prev) => ({ ...prev, [tipo]: sugestao }));
+      let listaSugestoes = sugestoesDisponiveis[tipo];
+      let indiceAtual = indicesAtuais[tipo];
+
+      // Se não temos uma lista de sugestões, ou se já rodamos todas e queremos novas
+      if (listaSugestoes.length === 0 || indiceAtual === 0) {
+        listaSugestoes = await getSugestoes(tipo, null, true); // Força a busca
+        if (!listaSugestoes || listaSugestoes.length === 0) {
+          throw new Error("Nenhuma sugestão foi retornada.");
+        }
+        setSugestoesDisponiveis((prev) => ({
+          ...prev,
+          [tipo]: listaSugestoes,
+        }));
+      }
+
+      const proximaSugestao = listaSugestoes[indiceAtual];
+      setFormData((prev) => ({ ...prev, [tipo]: proximaSugestao }));
+
+      const proximoIndice = (indiceAtual + 1) % listaSugestoes.length;
+      setIndicesAtuais((prev) => ({ ...prev, [tipo]: proximoIndice }));
     } catch (e) {
-      alert(e.message);
+      alert(e.message || "Não foi possível buscar a sugestão.");
     } finally {
       setSugestaoCarregando((prev) => ({ ...prev, [tipo]: false }));
     }
+  };
+
+  const getButtonText = (tipo) => {
+    if (sugestaoCarregando[tipo]) return "Gerando...";
+    const lista = sugestoesDisponiveis[tipo];
+
+    // Se já temos uma lista carregada
+    if (lista.length > 0) {
+      // Se o índice voltou a 0, significa que o próximo clique buscará novas ideias
+      if (indicesAtuais[tipo] === 0) {
+        return "💡 Buscar Novas Ideias";
+      }
+      // Caso contrário, apenas mostra que buscará a próxima
+      return `💡 Próxima Sugestão`;
+    }
+    // Estado inicial antes da primeira busca
+    return "💡 Sugerir";
   };
 
   const handlePrincipalChange = (field, value) => {
@@ -232,10 +265,10 @@ function FormularioAtividade({
     handlePrincipalChange("habilidadesAvaliadas", novasHabilidades);
   };
 
-  const adicionarLinhaHabilidade = () => {
+  const adicionarLinhaHabilidade = (habilidadeId = "") => {
     const novasHabilidades = [
       ...formData.atividadePrincipal.habilidadesAvaliadas,
-      { key: Date.now(), habilidadeId: "", resultado: "", observacoes: "" },
+      { key: Date.now(), habilidadeId, resultado: "", observacoes: "" },
     ];
     handlePrincipalChange("habilidadesAvaliadas", novasHabilidades);
   };
@@ -259,6 +292,8 @@ function FormularioAtividade({
       },
       finalizacao: "",
     });
+    setSugestoesDisponiveis({ quebraGelo: [], finalizacao: [] });
+    setIndicesAtuais({ quebraGelo: 0, finalizacao: 0 });
   };
 
   const handleSalvarClick = () => {
@@ -311,7 +346,7 @@ function FormularioAtividade({
             onClick={() => handleSugerir("quebraGelo")}
             disabled={sugestaoCarregando.quebraGelo}
           >
-            {sugestaoCarregando.quebraGelo ? "Gerando..." : "💡 Sugerir"}
+            {getButtonText("quebraGelo")}
           </button>
         </div>
         <div className="form-group">
@@ -338,7 +373,7 @@ function FormularioAtividade({
             rows="12"
             value={formData.atividadePrincipal.descricao}
             onChange={(e) => handlePrincipalChange("descricao", e.target.value)}
-            placeholder="Descreva a atividade central do atendimento ou clique em 'Sugerir atividades com IA' (💡) ao lado de uma habilidade."
+            placeholder="Descreva a atividade central do atendimento..."
             required
           />
         </div>
@@ -358,11 +393,12 @@ function FormularioAtividade({
             showRemoveButton={
               formData.atividadePrincipal.habilidadesAvaliadas.length > 1
             }
+            onAbrirSugestoes={onAbrirSugestoes}
           />
         ))}
         <button
           type="button"
-          onClick={adicionarLinhaHabilidade}
+          onClick={() => adicionarLinhaHabilidade()}
           className="botao-adicionar-card-habilidade"
         >
           + Adicionar Habilidade
@@ -378,7 +414,7 @@ function FormularioAtividade({
             onClick={() => handleSugerir("finalizacao")}
             disabled={sugestaoCarregando.finalizacao}
           >
-            {sugestaoCarregando.finalizacao ? "Gerando..." : "💡 Sugerir"}
+            {getButtonText("finalizacao")}
           </button>
         </div>
         <div className="form-group">

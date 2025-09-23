@@ -1,515 +1,473 @@
-/* src/styles/AvaliacaoInicial.css */
+/* src/styles/CriarPEIComponent.css - VERSÃO COMPLETA E CORRIGIDA */
 
-/* --- Layout Geral da Página --- */
-body {
-  margin: 0;
-  padding: 0;
-  font-family: "Segoe UI", sans-serif;
-  background: linear-gradient(to bottom right, #1d3557, #457b9d);
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
+/* ==================================== */
+/* 1. VARIÁVEIS CSS (CUSTOM PROPERTIES) */
+/* ==================================== */
+:root {
+  --color-primary: #1d3557;
+  --color-secondary: #457b9d;
+  --color-tertiary: #2a9d8f;
+  --color-error: #e63946;
+  --color-ia-start: #6a11cb;
+  --color-ia-end: #2575fc;
+  --bg-page: #1d3557;
+  --bg-card: #ffffff;
+  --bg-selector: #f1f1f1;
+  --bg-meta: #f9f9f9;
+  --bg-button-neutral: #f0f0f0;
+  --bg-success-light: #e6fff2;
+  --bg-error-light: #ffe6e6;
+  --bg-info-light: #e7f3fe;
+  --bg-objective: #e8f5e9;
+  --text-primary: #1d3557;
+  --text-light: #fff;
+  --text-neutral: #666;
+  --text-success: #2a9d8f; /* Adicionando variável de texto para sucesso */
+  --text-dark-green: #388e3c;
+  --text-dark-blue: #0d47a1;
+  --border-color-default: #ccc;
+  --border-color-meta: #ddd;
+  --border-color-objective: #4caf50;
+  --border-color-info: #2196f3;
+  --space-xs: 8px;
+  --space-sm: 10px;
+  --space-md: 15px;
+  --space-lg: 20px;
+  --space-xl: 30px;
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-md: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 20px;
+  --font-size-title: 26px;
+  --radius-xs: 3px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-xl: 12px;
+  --radius-card: 16px;
+  --radius-button: 20px;
+  --shadow-card: 0 4px 15px rgba(0, 0, 0, 0.1);
+  --shadow-ia-button: 0 4px 15px rgba(0, 0, 0, 0.2);
+  --shadow-ia-button-hover: 0 6px 20px rgba(0, 0, 0, 0.3);
+  --font-family-base: "Segoe UI", sans-serif;
+  --transition-fast: 0.2s ease-in-out;
+  --transition-normal: 0.3s ease;
 }
 
-/* --- Card Principal --- */
-.avaliacao-card {
+/* ================== */
+/* 2. ESTILOS GERAIS  */
+/* ================== */
+.container {
+  width: 100%;
+  min-height: 100vh;
+  padding: 40px 20px;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  /* MUDANÇA PRINCIPAL: Alinha o card verticalmente no centro da área disponível */
+  align-items: center;
+}
+
+.card {
   background-color: #ffffff;
   max-width: 900px;
   width: 100%;
   padding: 30px;
-  margin: 20px;
   border-radius: 16px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
   box-sizing: border-box;
+  box-shadow: var(--shadow-card); /* Usando variável */
 }
 
-/* --- Barra de Informação da Escola (NOVO) --- */
-.escola-ativa-bar {
-  margin: -30px -30px 25px -30px;
-  padding: 12px 30px;
-  background-color: #f7f9fc;
-  border-bottom: 1px solid #e0e0e0;
-  border-top-left-radius: 16px;
-  border-top-right-radius: 16px;
+.titulo {
   text-align: center;
-  font-size: 1rem;
-  color: #1d3557;
-}
-
-/* --- Cabeçalho e Título --- */
-.avaliacao-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 25px;
-  border-bottom: 1px solid #eee;
-  padding-bottom: 1rem;
-}
-
-.avaliacao-titulo {
-  color: #1d3557;
-  font-size: 1.5rem;
-  text-align: center;
-  margin: 0 1rem;
-}
-
-/* --- Formulários (Seleção, Datas) --- */
-.selecao-aluno-container select {
-  padding: 10px;
-  width: 100%;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  font-size: 16px;
-  margin-bottom: 25px;
-}
-
-.date-inputs-container {
-  display: flex;
-  gap: 30px;
-  margin-bottom: 30px;
-  flex-wrap: wrap;
-}
-
-.date-input-group {
-  display: flex;
-  flex-direction: column;
-}
-
-.date-input-group label {
-  font-weight: bold;
-  margin-bottom: 4px;
-}
-
-.date-input-group input[type="date"] {
-  padding: 8px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-  width: 200px;
-}
-
-/* --- Botões de Navegação (Áreas/Tabs) --- */
-.area-tabs-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 30px;
-}
-
-.area-botao {
-  padding: 10px 18px;
-  border-radius: 20px;
-  border: none;
-  background-color: #f0f0f0;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.area-botao.ativo {
-  background-color: #1d3557;
-  color: #ffffff;
-  font-weight: bold;
-}
-
-/* --- Botões de Ação (Salvar, Ver Avaliações) --- */
-.botao-salvar {
-  background-color: #2a9d8f;
-  color: white;
-  padding: 14px 24px;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: bold;
-  margin: 20px auto;
-  display: block;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.botao-salvar:hover {
-  background-color: #21867a;
-}
-
-.botao-ver-avaliacoes {
-  background-color: #f0f0f0;
-  color: #1d3557;
-  padding: 10px 18px;
-  border: none;
-  border-radius: 20px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.botao-ver-avaliacoes:hover {
-  background-color: #e0e0e0;
-}
-
-/* --- Mensagens e Carregamento --- */
-.mensagem-erro,
-.mensagem-sucesso {
-  margin: 15px 0;
-  text-align: center;
-  font-weight: bold;
-  padding: 10px;
-  border-radius: 8px;
-}
-
-.mensagem-erro {
-  color: #e63946;
-  background-color: #ffe6e6;
-  border: 1px solid #e63946;
-}
-
-.mensagem-sucesso {
-  color: #2a9d8f;
-  background-color: #e6fff2;
-  border: 1px solid #2a9d8f;
-}
-
-.loading {
-  text-align: center;
-  margin: 20px 0;
-  color: #1d3557;
-  font-weight: bold;
-}
-
-.botao-baixar-pdf {
-  padding: 8px 16px;
-  background-color: #457b9d;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.botao-baixar-pdf:hover {
-  background-color: #1d3557;
-}
-
-/* --- SEÇÃO DE AVALIAÇÃO --- */
-
-/* Novo container para o título da área e o botão "Marcar área como NA" */
-.area-header-with-button {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-  gap: 15px;
-}
-
-/* Estilos para o wrapper da área (pai dos acordeões) */
-.area-perguntas-wrapper {
-  margin-bottom: 40px;
-}
-
-.area-titulo {
-  font-size: 20px;
-  color: #1d3557;
-  text-align: left;
+  color: var(--text-primary);
+  margin-bottom: var(--space-lg);
+  font-size: var(--font-size-title);
   font-weight: 600;
-  flex-shrink: 0;
 }
 
-/* NOVO: Estilo para o botão "Marcar área como NA" */
-.marcar-na-area-btn {
-  background-color: #adb5bd;
-  color: white;
-  padding: 6px 10px;
-  border: none;
-  border-radius: 5px;
-  font-size: 11px;
+.form-label {
+  display: block;
+  margin: var(--space-md) 0 var(--space-xs) 0;
   font-weight: bold;
-  cursor: pointer;
-  white-space: nowrap;
-  flex-shrink: 0;
-  transition: background-color 0.3s ease;
+  color: var(--text-primary);
 }
 
-.marcar-na-area-btn:hover:not(:disabled) {
-  background-color: #959ea6;
-}
-
-.marcar-na-area-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* Estilos para o item do acordeão (cada subárea) */
-.accordion-item {
-  border: 1px solid #e0e0e0;
-  border-radius: 10px;
-  margin-bottom: 12px;
-  overflow: visible;
-  background-color: #ffffff;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-  transition: box-shadow 0.2s ease;
-}
-
-.accordion-item:hover {
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.12);
-}
-
-/* Estilos para o cabeçalho do acordeão (botão clicável) */
-.accordion-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.textarea-form {
   width: 100%;
-  padding: 18px 25px;
-  background-color: #f8f8f8;
-  border: none;
-  cursor: pointer;
-  font-size: 17px;
-  font-weight: bold;
-  color: #333;
-  transition:
-    background-color 0.3s ease,
-    color 0.3s ease;
-  font-family: inherit;
-  text-align: left;
+  min-height: 80px;
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color-default);
+  font-size: var(--font-size-sm);
+  resize: vertical;
+  box-sizing: border-box;
+  font-family: var(--font-family-base);
 }
 
-.accordion-header:hover:not(:disabled) {
-  background-color: #f0f0f0;
-  color: #1d3557;
+.info-text {
+  text-align: center;
+  font-style: italic;
+  color: var(--text-dark-blue);
+  background-color: var(--bg-info-light);
+  border-left: 4px solid var(--border-color-info);
+  padding: var(--space-md);
+  margin: var(--space-lg) 0;
+  border-radius: var(--radius-sm);
 }
 
-.accordion-header:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  background-color: #fcfcfc;
-}
-
-.accordion-title {
-  margin: 0;
-  font-size: 17px;
-  flex: 1;
-}
-
-/* Estilo para o ícone de seta */
-.accordion-icon {
-  font-size: 20px;
-  color: #a0a0a0;
-  margin-left: 15px;
-  transition:
-    transform 0.3s ease,
-    color 0.3s ease;
-  flex-shrink: 0;
-}
-
-.accordion-header.expanded .accordion-icon {
-  transform: rotate(180deg);
-  color: #1d3557;
-}
-
-/* Estilos para o conteúdo do acordeão (onde as habilidades estão) */
-.accordion-content {
-  background-color: #ffffff;
-  padding: 0 25px;
-  max-height: 0;
-  overflow: visible; /* ALTERAÇÃO AQUI: de hidden para visible */
-  transition:
-    max-height 0.5s ease-in-out,
-    padding 0.5s ease-in-out;
-}
-
-.accordion-content.open {
-  max-height: 1000px;
-  padding-top: 15px;
-  padding-bottom: 15px;
-}
-
-/* Estilos para a linha de cada habilidade */
-.linha-habilidade {
+/* ================================= */
+/* 3. HEADER E SELETORES DE ALUNO/ÁREA */
+/* ================================= */
+.card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #f0f0f0;
-  padding: 12px 0;
-  margin-bottom: 0;
-  flex-wrap: wrap;
-}
-.linha-habilidade:last-child {
-  border-bottom: none;
+  margin-bottom: var(--space-lg);
 }
 
-/* Estilos para o texto da habilidade */
-.texto-habilidade {
-  flex: 1 1 65%;
-  font-size: 15px;
-  color: #444;
-  padding-right: 20px;
-  white-space: normal;
+.seletor-aluno {
+  margin-bottom: var(--space-xl);
+  background-color: var(--bg-selector);
+  padding: var(--space-lg);
+  border-radius: var(--radius-xl);
+}
+
+.filter-select {
+  width: 100%;
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color-default);
+  background-color: var(--bg-card);
+  font-size: var(--font-size-md);
   box-sizing: border-box;
-  min-width: 280px;
-  line-height: 1.4;
 }
 
-/* Estilos para o contêiner dos botões de nível */
-.niveis-habilidade {
+.area-buttons-container {
   display: flex;
-  gap: 5px;
-  flex-wrap: nowrap; /* <-- AQUI: Mude para 'wrap' se quiser quebra de linha */
-  align-items: center;
-  flex-shrink: 0;
-  flex-basis: auto;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
 }
 
-/* Estilos para cada círculo de nível individual */
-.circulo-nivel {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  font-size: 12px;
-  font-weight: bold;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0.6;
+.area-button {
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-button);
+  border: none;
+  background-color: var(--bg-button-neutral);
   cursor: pointer;
-  transition:
-    opacity 0.2s,
-    outline 0.2s,
-    transform 0.2s;
+  transition: all var(--transition-normal);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  flex-grow: 1;
+}
+
+.area-button-ativa {
+  background-color: var(--color-primary);
+  color: var(--text-light);
+  font-weight: bold;
+}
+
+/* =========================== */
+/* 4. COMPONENTE: METAS / PEI  */
+/* =========================== */
+.section-content {
+  margin-top: var(--space-lg);
+}
+
+.meta-card {
+  background: var(--bg-meta);
+  border: 1px solid var(--border-color-meta);
+  border-radius: var(--radius-xl);
+  padding: var(--space-lg);
+  margin-bottom: var(--space-lg);
+}
+
+.meta-card h3 {
+  color: var(--text-primary);
+  margin: 0 0 var(--space-xs) 0;
+  font-size: var(--font-size-lg);
+  border-bottom: 1px solid #eee;
+  padding-bottom: var(--space-xs);
+}
+
+.meta-card p {
+  margin-bottom: var(--space-xs);
+  font-size: var(--font-size-sm);
+}
+
+.meta-objective {
+  background: var(--bg-objective);
+  border-left: 4px solid var(--border-color-objective);
+  padding: var(--space-sm) var(--space-md);
+  margin: var(--space-sm) 0 var(--space-md) 0;
+  border-radius: var(--radius-sm);
+  font-style: italic;
+  color: var(--text-dark-green);
+}
+
+.meta-fieldset {
+  border: 1px solid var(--border-color-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  margin-top: var(--space-lg);
+}
+
+.meta-fieldset legend {
+  font-weight: bold;
+  color: var(--text-primary);
+  padding: 0 var(--space-xs);
+}
+
+/* ================================== */
+/* 5. CHECKBOX DE ESTRATÉGIAS         */
+/* ================================== */
+.checkbox-container {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: var(--space-xs);
+  cursor: pointer;
+  position: relative;
   user-select: none;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+  gap: var(--space-sm);
+}
+
+.checkbox-container input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  height: 0;
+  width: 0;
+}
+
+.checkmark {
+  display: block;
+  flex-shrink: 0;
+  height: 18px;
+  width: 18px;
+  background-color: var(--bg-button-neutral);
+  border: 1px solid var(--border-color-default);
+  border-radius: var(--radius-xs);
+  transition: all var(--transition-fast);
+  margin-top: 2px;
   position: relative;
 }
 
-/* Estilo para o círculo de nível ATIVO (selecionado) */
-.circulo-nivel.ativo {
-  opacity: 1;
-  outline: 2px solid #1d3557;
-  transform: scale(1.15);
-  box-shadow: 0 0 10px rgba(29, 53, 87, 0.6);
-}
-
-/* Cores específicas para cada nível */
-.circulo-nivel.NR {
-  background-color: #e63946;
-}
-.circulo-nivel.AF {
-  background-color: #f4a261;
-}
-.circulo-nivel.AG {
-  background-color: #e9c46a;
-}
-.circulo-nivel.AV {
-  background-color: #2a9d8f;
-}
-.circulo-nivel.AVi {
-  background-color: #8ecae6;
-}
-.circulo-nivel.I {
-  background-color: #4caf50;
-}
-.circulo-nivel.NA {
-  background-color: #adb5bd;
-}
-
-/* Estilos para o textarea de observações */
-.observacoes-area {
-  margin-top: 30px;
-  padding: 15px;
-  background-color: #f9f9f9;
-  border-radius: 8px;
-  border: 1px solid #eee;
-}
-.observacoes-area label {
-  display: block;
-  font-weight: bold;
-  margin-bottom: 8px;
-  color: #1d3557;
-}
-.observacoes-area textarea {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  font-size: 14px;
-  min-height: 90px;
-  box-sizing: border-box;
-  resize: vertical;
-}
-
-/* Estilos para a legenda dos níveis */
-.legenda-niveis {
-  background: #f9f9f9;
-  padding: 15px;
-  border-radius: 8px;
-  margin-top: 30px;
-  font-size: 13px;
-  border: 1px solid #eee;
-}
-
-.legenda-niveis strong {
-  color: #1d3557;
-}
-
-.legenda-niveis ul {
-  padding-left: 0;
-  margin-top: 10px;
-  list-style: none;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 15px;
-}
-
-.legenda-niveis li {
-  margin-bottom: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-/* Para o pequeno círculo de cor na legenda */
-.legenda-niveis .circulo-nivel {
-  width: 20px;
-  height: 20px;
-  opacity: 1;
-  border: none;
-  flex-shrink: 0;
-}
-
-/* Estilos do Tooltip */
-.tooltip-texto {
-  width: 200px;
-  max-width: 250px;
-  background-color: #333;
-  color: #fff;
-  text-align: center;
-  border-radius: 6px;
-  padding: 8px 10px;
-
-  position: absolute;
-  z-index: 10;
-  bottom: 150%;
-  left: 50%;
-  transform: translateX(-50%);
-
-  opacity: 1;
-  transition: opacity 0.3s;
-  font-size: 14px;
-  white-space: normal;
-  word-wrap: break-word;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
-
-.tooltip-texto::after {
+.checkmark:after {
   content: "";
   position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  border-width: 5px;
-  border-style: solid;
-  border-color: #333 transparent transparent transparent;
+  display: none;
+  left: 6px;
+  top: 3px;
+  width: 5px;
+  height: 10px;
+  border: solid var(--text-light);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.checkbox-container input[type="checkbox"]:checked ~ .checkmark {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.checkbox-container input[type="checkbox"]:checked ~ .checkmark:after {
+  display: block;
+}
+
+/* ======================================== */
+/* 6. BOTÃO DA IA (PARA ESTRATÉGIAS)      */
+/* ======================================== */
+.ia-sugestao-container {
+  margin: var(--space-lg) 0;
+  border-top: 1px dashed var(--border-color-default);
+  padding-top: var(--space-lg);
+  text-align: center;
+}
+
+.botao-ia {
+  background: linear-gradient(
+    45deg,
+    var(--color-ia-start),
+    var(--color-ia-end)
+  );
+  color: var(--text-light);
+  border: none;
+  border-radius: var(--radius-button);
+  padding: var(--space-sm) var(--space-lg);
+  font-size: var(--font-size-sm);
+  font-weight: bold;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  box-shadow: var(--shadow-ia-button);
+  transition: all var(--transition-normal);
+  transform: translateY(0);
+}
+
+.botao-ia:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-ia-button-hover);
+}
+
+.botao-ia:disabled {
+  opacity: 0.7;
+  cursor: wait;
+  background: var(--color-secondary);
+}
+
+/* ============================================== */
+/* 7. ESTILOS PARA BRAINSTORM DE ATIVIDADES       */
+/* ============================================== */
+.titulo-secao-atividade {
+  font-size: var(--font-size-xl);
+  color: var(--text-primary);
+  margin-bottom: var(--space-xs);
+  text-align: center;
+}
+
+.lista-brainstorm {
+  margin-bottom: var(--space-xl);
+  border: 1px solid #eee;
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+}
+
+.item-brainstorm {
+  padding: var(--space-md) 0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.item-brainstorm:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.estrategia-texto {
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  margin-bottom: var(--space-md);
+}
+
+.botao-ia-pequeno {
+  background: linear-gradient(
+    45deg,
+    var(--color-ia-start),
+    var(--color-ia-end)
+  );
+  color: var(--text-light);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: var(--space-xs) var(--space-md);
+  font-size: var(--font-size-xs);
+  font-weight: bold;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+}
+
+.botao-ia-pequeno:hover:not(:disabled) {
+  transform: scale(1.05);
+  box-shadow: var(--shadow-ia-button);
+}
+
+.botao-ia-pequeno:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.sugestao-individual-container {
+  margin-top: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.textarea-sugestao {
+  width: 100%;
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  border: 1px solid #dcdcdc;
+  background-color: #f8f9fa;
+  font-size: var(--font-size-sm);
+  resize: none;
+  box-sizing: border-box;
+  font-family: var(--font-family-base);
+}
+
+.botao-incluir {
+  background-color: var(--color-tertiary);
+  color: var(--text-light);
+  border: none;
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-weight: 500;
+  align-self: flex-end;
+  transition: background-color var(--transition-fast);
+}
+
+.botao-incluir:hover {
+  background-color: #217e75;
+}
+
+/* =========================== */
+/* 8. BOTÕES GERAIS E MENSAGENS*/
+/* =========================== */
+.botao-voltar,
+.botao-ver-peis,
+.botao-salvar {
+  padding: var(--space-sm) var(--space-md);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.botao-voltar {
+  background-color: var(--bg-button-neutral);
+  color: var(--text-primary);
+}
+
+.botao-ver-peis,
+.botao-salvar {
+  background-color: var(--color-tertiary);
+  color: var(--text-light);
+}
+
+.botao-salvar {
+  padding: var(--space-md) var(--space-lg);
+  font-size: var(--font-size-md);
+  display: block;
+  margin: var(--space-xl) auto 0;
+}
+
+.botao-salvar:disabled {
+  background-color: #aaa;
+  cursor: not-allowed;
+}
+
+.mensagem-erro,
+.mensagem-sucesso {
+  margin: var(--space-md) 0;
+  text-align: center;
+  font-weight: bold;
+  padding: var(--space-sm);
+  border-radius: var(--radius-md);
+  border: 1px solid;
+}
+
+.mensagem-erro {
+  color: var(--color-error);
+  background-color: var(--bg-error-light);
+  border-color: var(--color-error);
+}
+
+.mensagem-sucesso {
+  color: var(--text-success);
+  background-color: var(--bg-success-light);
+  border-color: var(--text-success);
 }

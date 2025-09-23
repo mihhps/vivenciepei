@@ -3,23 +3,15 @@ import { useNavigate, Link } from "react-router-dom";
 import { db } from "../firebase";
 import { collection, query, getDocs, orderBy } from "firebase/firestore";
 import Loader from "../components/Loader";
-// Importe o novo arquivo de estilo
-import "../styles/SelecaoAlunoAEE.css";
+import "../styles/SelecaoAlunoGestao.css"; // Novo arquivo de estilo
 
-// Mapeamento dos painéis de destino
 const painelDestinoMapeado = {
-  desenvolvedor: "/painel-dev",
-  desenvolvedora: "/painel-dev",
   gestao: "/painel-gestao",
-  aee: "/painel-aee",
-  seme: "/acompanhamento",
-  professor: "/painel-professor",
-  diretor: "/painel-gestao",
-  diretor_adjunto: "/painel-gestao",
-  orientador_pedagogico: "/painel-gestao",
+  seme: "/painel-seme",
+  desenvolvedor: "/painel-dev",
 };
 
-function SelecaoAlunoAEE() {
+function SelecaoAlunoGestao() {
   const [alunos, setAlunos] = useState([]);
   const [alunoSelecionadoId, setAlunoSelecionadoId] = useState("");
   const [loading, setLoading] = useState(true);
@@ -31,7 +23,8 @@ function SelecaoAlunoAEE() {
     []
   );
   const perfilNormalizado = (usuarioLogado.perfil || "").toLowerCase().trim();
-  const painelDestino = painelDestinoMapeado[perfilNormalizado] || "/";
+  const painelDestino =
+    painelDestinoMapeado[perfilNormalizado] || "/painel-gestao";
 
   useEffect(() => {
     const fetchAlunos = async () => {
@@ -44,7 +37,6 @@ function SelecaoAlunoAEE() {
         }));
         setAlunos(listaAlunos);
       } catch (err) {
-        console.error("Erro ao buscar alunos:", err);
         setError("Não foi possível carregar a lista de alunos.");
       } finally {
         setLoading(false);
@@ -55,39 +47,32 @@ function SelecaoAlunoAEE() {
 
   const handleAcessarPlano = () => {
     if (alunoSelecionadoId) {
-      navigate(`/acompanhamento-aee/${alunoSelecionadoId}`);
-    } else {
-      alert("Por favor, selecione um aluno.");
+      navigate(`/acompanhamento-gestao/${alunoSelecionadoId}`);
     }
   };
 
-  if (loading) {
+  if (loading)
     return (
       <div className="selecao-aluno-page">
         <Loader />
       </div>
     );
-  }
 
   return (
     <div className="selecao-aluno-page">
       <div className="selecao-aluno-card">
-        {/* O cabeçalho agora fica DENTRO do card */}
         <header className="selecao-aluno-header">
           <Link to={painelDestino} className="botao-voltar">
             Voltar
           </Link>
-          <h1 className="selecao-aluno-titulo">Acompanhamento AEE</h1>
+          <h1 className="selecao-aluno-titulo">Acompanhamento Gestão</h1>
         </header>
-
         <div className="selecao-aluno-body">
           <p className="instrucao-texto">
-            Selecione um aluno para iniciar ou continuar o plano de
-            acompanhamento.
+            Selecione um aluno para visualizar o plano de acompanhamento e
+            fornecer feedbacks.
           </p>
-
           {error && <p className="mensagem-erro">{error}</p>}
-
           <div className="form-group-selecao">
             <label htmlFor="aluno-select">Aluno</label>
             <select
@@ -103,13 +88,12 @@ function SelecaoAlunoAEE() {
               ))}
             </select>
           </div>
-
           <button
             className="botao-acessar"
             onClick={handleAcessarPlano}
             disabled={!alunoSelecionadoId}
           >
-            Acessar Plano AEE
+            Acessar Acompanhamento
           </button>
         </div>
       </div>
@@ -117,4 +101,4 @@ function SelecaoAlunoAEE() {
   );
 }
 
-export default SelecaoAlunoAEE;
+export default SelecaoAlunoGestao;

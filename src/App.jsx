@@ -3,7 +3,6 @@ import {
   BrowserRouter as Router,
   Routes,
   Route,
-  Navigate,
   useLocation,
 } from "react-router-dom";
 import { AuthContext, AuthProvider } from "./context/AuthContext";
@@ -18,77 +17,79 @@ import EscolaAtual from "./components/EscolaAtual";
 import PrivateRoute from "./components/PrivateRoute";
 import CorrigirTurmas from "./pages/CorrigirTurmas";
 
-// --- PÁGINAS COM LAZY-LOADING ---
-const PainelSeme = lazy(() => import("./pages/PainelSEME"));
-const PainelGestao = lazy(() => import("./pages/PainelGestao"));
-const PainelAee = lazy(() => import("./pages/PainelAEE"));
-const PainelProfessor = lazy(() => import("./pages/PainelProfessor"));
-const PainelDev = lazy(() => import("./pages/PainelDev"));
-const CadastroAluno = lazy(() => import("./pages/CadastroAluno"));
-const CriarPei = lazy(() => import("./pages/CriarPEI"));
-const VerAlunos = lazy(() => import("./pages/VerAlunos"));
-const VerPeis = lazy(() => import("./pages/VerPEIs"));
-const AvaliacaoInicial = lazy(() => import("./pages/AvaliacaoInicial"));
-const ImportarAlunos = lazy(() => import("./pages/ImportarAlunos"));
-const AnamneseCompleta = lazy(() => import("./pages/AnamneseCompleta"));
-const EditarPei = lazy(() => import("./pages/EditarPei"));
-const EditarAluno = lazy(() => import("./pages/EditarAluno.jsx"));
-const ContinuarPei = lazy(() => import("./pages/ContinuarPei"));
-const CadastrarUsuario = lazy(() => import("./pages/CadastrarUsuario"));
-const VerAvaliacoes = lazy(() => import("./pages/VerAvaliacoes"));
-const VerAvaliacao = lazy(() => import("./pages/VerAvaliacao"));
-const VisualizarPei = lazy(() => import("./pages/VisualizarPei"));
-const EditarAvaliacao = lazy(() => import("./pages/EditarAvaliacao"));
-const SelecionarEscola = lazy(() => import("./components/SelecionarEscola"));
-const VincularEscolas = lazy(() => import("./pages/VincularEscolas"));
-const AcompanharMetas = lazy(() => import("./pages/AcompanharMetas"));
-const AcompanhamentoSEME = lazy(() => import("./pages/AcompanhamentoSEME"));
-const VincularProfessoresTurmas = lazy(() =>
-  import("./pages/VincularProfessoresTurmas")
+// --- PÁGINAS COM LAZY-LOADING (COM EXTENSÕES PADRONIZADAS) ---
+const AcompanhamentoAEE = lazy(() => import("./pages/AcompanhamentoAEE.jsx"));
+const AcompanhamentoGestao = lazy(() =>
+  import("./pages/AcompanhamentoGestao.jsx")
 );
 const AcompanhamentoPrazosPei = lazy(() =>
-  import("./pages/AcompanhamentoPrazosPei")
+  import("./pages/AcompanhamentoPrazosPei.jsx")
 );
-const DetalhesAcompanhamentoPei = lazy(() =>
-  import("./pages/DetalhesAcompanhamentoPei")
-);
-const GestaoPrazosPEI = lazy(() => import("./pages/GestaoPrazosPEI"));
-const VisualizacaoPrazosPEIProfessor = lazy(() =>
-  import("./pages/VisualizacaoPrazosPEIProfessor")
-);
-const MeuAcompanhamentoProfessor = lazy(() =>
-  import("./pages/MeuAcompanhamentoProfessor")
-);
-const CadastroTurma = lazy(() => import("./pages/CadastroTurma.jsx"));
-const AvaliacaoInteressesPage = lazy(() =>
-  import("./pages/AvaliacaoInteressesPage")
-);
-const SelecionarAlunoParaInteresses = lazy(() =>
-  import("./pages/SelecionarAlunoParaInteresses")
-);
-const VisualizarAvaliacaoInteressesPage = lazy(() =>
-  import("./pages/VisualizarAvaliacaoInteressesPage")
-);
-const ObservacoesAluno = lazy(() => import("./pages/ObservacoesAluno"));
-const Reavaliacao = lazy(() => import("./pages/Reavaliacao"));
+const AcompanhamentoSEME = lazy(() => import("./pages/AcompanhamentoSEME.jsx"));
+const AcompanharMetas = lazy(() => import("./pages/AcompanharMetas.jsx"));
+const AnamneseCompleta = lazy(() => import("./pages/AnamneseCompleta.jsx"));
+const AvaliacaoInicial = lazy(() => import("./pages/AvaliacaoInicial.jsx"));
 const AvaliacaoInicial0a3Page = lazy(() =>
-  import("./pages/AvaliacaoInicial0a3Page")
+  import("./pages/AvaliacaoInicial0a3Page.jsx")
 );
+const AvaliacaoInteressesPage = lazy(() =>
+  import("./pages/AvaliacaoInteressesPage.jsx")
+);
+const CadastroAluno = lazy(() => import("./pages/CadastroAluno.jsx"));
+const CadastroTurma = lazy(() => import("./pages/CadastroTurma.jsx"));
+const CadastrarUsuario = lazy(() => import("./pages/CadastrarUsuario.jsx"));
+const ContinuarPei = lazy(() => import("./pages/ContinuarPei.jsx"));
+const CriarPei = lazy(() => import("./pages/CriarPEI.jsx"));
 const CriarPEI0a3 = lazy(() => import("./pages/CriarPEI0A3.jsx"));
-const VerAnamneses = lazy(() => import("./pages/VerAnamneses.jsx"));
-const VisualizarAnamnese = lazy(() => import("./pages/VisualizarAnamnese"));
+const DetalhesAcompanhamentoPei = lazy(() =>
+  import("./pages/DetalhesAcompanhamentoPei.jsx")
+);
+const EditarAluno = lazy(() => import("./pages/EditarAluno.jsx"));
+const EditarAvaliacao = lazy(() => import("./pages/EditarAvaliacao.jsx"));
+const EditarPei = lazy(() => import("./pages/EditarPei.jsx"));
+const GestaoPrazosPEI = lazy(() => import("./pages/GestaoPrazosPEI.jsx"));
+const ImportarAlunos = lazy(() => import("./pages/ImportarAlunos.jsx"));
+const MeuAcompanhamentoProfessor = lazy(() =>
+  import("./pages/MeuAcompanhamentoProfessor.jsx")
+);
+const ObservacoesAluno = lazy(() => import("./pages/ObservacoesAluno.jsx"));
+const PainelAee = lazy(() => import("./pages/PainelAEE.jsx"));
+const PainelDev = lazy(() => import("./pages/PainelDev.jsx"));
+const PainelGestao = lazy(() => import("./pages/PainelGestao.jsx"));
+const PainelProfessor = lazy(() => import("./pages/PainelProfessor.jsx"));
+const PainelSeme = lazy(() => import("./pages/PainelSEME.jsx"));
+const Reavaliacao = lazy(() => import("./pages/Reavaliacao.jsx"));
 const RelatoriosPage = lazy(() => import("./pages/RelatoriosPage.jsx"));
 const SelecaoAlunoAEE = lazy(() => import("./pages/SelecaoAlunoAEE.jsx"));
-const AcompanhamentoAEE = lazy(() => import("./pages/AcompanhamentoAEE"));
+const SelecaoAlunoGestao = lazy(() => import("./pages/SelecaoAlunoGestao.jsx"));
+const SelecionarAlunoParaInteresses = lazy(() =>
+  import("./pages/SelecionarAlunoParaInteresses.jsx")
+);
+const SelecionarEscola = lazy(() =>
+  import("./components/SelecionarEscola.jsx")
+);
+const VerAlunos = lazy(() => import("./pages/VerAlunos.jsx"));
+const VerAnamneses = lazy(() => import("./pages/VerAnamneses.jsx"));
+const VerAvaliacao = lazy(() => import("./pages/VerAvaliacao.jsx"));
+const VerAvaliacoes = lazy(() => import("./pages/VerAvaliacoes.jsx"));
+const VerPeis = lazy(() => import("./pages/VerPEIs.jsx"));
+const VincularEscolas = lazy(() => import("./pages/VincularEscolas.jsx"));
+const VincularProfessoresTurmas = lazy(() =>
+  import("./pages/VincularProfessoresTurmas.jsx")
+);
+const VisualizacaoPrazosPEIProfessor = lazy(() =>
+  import("./pages/VisualizacaoPrazosPEIProfessor.jsx")
+);
+const VisualizarAnamnese = lazy(() => import("./pages/VisualizarAnamnese.jsx"));
+const VisualizarAvaliacaoInteressesPage = lazy(() =>
+  import("./pages/VisualizarAvaliacaoInteressesPage.jsx")
+);
+const VisualizarPei = lazy(() => import("./pages/VisualizarPei.jsx"));
 
 // Configuração do PDF.js Worker
 import * as pdfjsLib from "pdfjs-dist/build/pdf";
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
-/**
- * Componente interno que gerencia a exibição do conteúdo principal e das rotas.
- * Utiliza o hook useLocation para saber a página atual.
- */
 function AppContent() {
   const { user } = useContext(AuthContext);
   const location = useLocation();
@@ -100,26 +101,13 @@ function AppContent() {
     "/recuperar-senha",
     "/cadastro-professor",
   ];
-
   const deveMostrarEscola =
     user && !paginasPublicas.includes(location.pathname);
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100vh",
-      }}
-    >
+    <div style={{ display: "flex", flexDirection: "column", height: "100vh" }}>
       {deveMostrarEscola && <EscolaAtual />}
-
-      <div
-        style={{
-          flexGrow: 1,
-          overflowY: "auto",
-        }}
-      >
+      <div style={{ flexGrow: 1, overflowY: "auto" }}>
         <Suspense fallback={<div className="app-loading">Carregando...</div>}>
           <Routes>
             {/* --- ROTAS PÚBLICAS --- */}
@@ -134,14 +122,11 @@ function AppContent() {
 
             {/* --- ROTAS PROTEGIDAS --- */}
             <Route element={<PrivateRoute />}>
-              {/* Painéis */}
               <Route path="/painel-gestao" element={<PainelGestao />} />
               <Route path="/painel-seme" element={<PainelSeme />} />
               <Route path="/painel-aee" element={<PainelAee />} />
               <Route path="/painel-professor" element={<PainelProfessor />} />
               <Route path="/painel-dev" element={<PainelDev />} />
-
-              {/* Cadastros e Gestão */}
               <Route path="/cadastrar-aluno" element={<CadastroAluno />} />
               <Route path="/editar-aluno/:id" element={<EditarAluno />} />
               <Route path="/cadastro-usuario" element={<CadastrarUsuario />} />
@@ -155,8 +140,6 @@ function AppContent() {
               <Route path="/cadastro-turmas" element={<CadastroTurma />} />
               <Route path="/corrigir-turmas" element={<CorrigirTurmas />} />
               <Route path="/relatorios-aluno" element={<RelatoriosPage />} />
-
-              {/* Alunos, Avaliações e Anamnese */}
               <Route path="/ver-alunos" element={<VerAlunos />} />
               <Route path="/avaliacao-inicial" element={<AvaliacaoInicial />} />
               <Route path="/ver-avaliacoes" element={<VerAvaliacoes />} />
@@ -171,8 +154,6 @@ function AppContent() {
                 path="/visualizar-anamnese/:alunoId"
                 element={<VisualizarAnamnese />}
               />
-
-              {/* Avaliação 0-3 Anos */}
               <Route
                 path="/nova-avaliacao-0a3/:alunoId"
                 element={<AvaliacaoInicial0a3Page />}
@@ -183,8 +164,6 @@ function AppContent() {
               />
               <Route path="/criar-pei-0a3" element={<CriarPEI0a3 />} />
               <Route path="/criar-pei-0a3/:alunoId" element={<CriarPEI0a3 />} />
-
-              {/* Avaliação de Interesses */}
               <Route
                 path="/selecionar-aluno-para-interesses"
                 element={<SelecionarAlunoParaInteresses />}
@@ -201,8 +180,6 @@ function AppContent() {
                 path="/visualizar-interesses/:alunoId"
                 element={<VisualizarAvaliacaoInteressesPage />}
               />
-
-              {/* PEI */}
               <Route path="/criar-pei" element={<CriarPei />} />
               <Route path="/ver-peis" element={<VerPeis />} />
               <Route path="/editar-pei/:id" element={<EditarPei />} />
@@ -217,8 +194,6 @@ function AppContent() {
                 element={<ObservacoesAluno />}
               />
               <Route path="/reavaliacao/:alunoId" element={<Reavaliacao />} />
-
-              {/* Acompanhamento e Prazos */}
               <Route path="/acompanhamento" element={<AcompanhamentoSEME />} />
               <Route
                 path="/acompanhamento-aee-selecao"
@@ -227,6 +202,14 @@ function AppContent() {
               <Route
                 path="/acompanhamento-aee/:alunoId"
                 element={<AcompanhamentoAEE />}
+              />
+              <Route
+                path="/acompanhamento-gestao-selecao"
+                element={<SelecaoAlunoGestao />}
+              />
+              <Route
+                path="/acompanhamento-gestao/:alunoId"
+                element={<AcompanhamentoGestao />}
               />
               <Route
                 path="/acompanhamento-pei/:professorId"
@@ -247,10 +230,6 @@ function AppContent() {
               />
             </Route>
 
-            {/* 🛑 AQUI ESTAVA O PROBLEMA: ESTA LINHA FOI REMOVIDA PARA EVITAR O LOOP */}
-            {/* <Route path="*" element={<Navigate to="/" replace />} /> */}
-
-            {/* ✅ MELHOR PRÁTICA: ADICIONE UMA ROTA PARA PÁGINAS NÃO ENCONTRADAS */}
             <Route path="*" element={<div>Página não encontrada</div>} />
           </Routes>
         </Suspense>
@@ -259,10 +238,6 @@ function AppContent() {
   );
 }
 
-/**
- * Componente principal da aplicação.
- * Envolve tudo com o provedor de autenticação e o roteador.
- */
 export default function App() {
   return (
     <AuthProvider>

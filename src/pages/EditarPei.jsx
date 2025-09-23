@@ -22,6 +22,13 @@ import objetivosCurtoPrazoData from "../data/objetivosCurtoPrazo";
 import objetivosMedioPrazoData from "../data/objetivosMedioPrazo";
 import { avaliacaoInicial } from "../data/avaliacaoInicialData";
 
+// ✅ NOVAS IMPORTAÇÕES DE IA
+import {
+  getSugestaoEstrategiasPEI,
+  getSugestaoAtividadePEI,
+  getSugestaoAtividadeParaEstrategia,
+} from "../services/geminiService";
+
 // --- Funções de Mapeamento de Dados ---
 const getEstruturaPEIMap = (estrutura) => {
   const map = {};
@@ -85,7 +92,6 @@ const getObjetivosPrazoMap = (prazoData) => {
   return map;
 };
 
-// --- Constantes e Funções Auxiliares ---
 const LEGENDA_NIVEIS = {
   NR: "Não realizou",
   AF: "Apoio físico",
@@ -113,8 +119,15 @@ function EditarPei() {
 
   const [areaAtiva, setAreaAtiva] = useState("");
   const [activeTab, setActiveTab] = useState("longoPrazo");
-
   const [objetivosSelecionados, setObjetivosSelecionados] = useState({});
+
+  // ✅ NOVOS ESTADOS PARA A IA
+  const [estrategiasIA, setEstrategiasIA] = useState({});
+  const [carregandoIA, setCarregandoIA] = useState(null);
+  const [sugestoesAtividadesIndividuais, setSugestoesAtividadesIndividuais] =
+    useState({});
+  const [carregandoAtividadeIndividual, setCarregandoAtividadeIndividual] =
+    useState({});
 
   const usuarioLogado = useMemo(() => {
     try {
@@ -136,6 +149,30 @@ function EditarPei() {
   );
 
   const todasAsAreas = useMemo(() => Object.keys(avaliacaoInicial), []);
+
+  // ✅ NOVO useMemo: para coletar as estratégias selecionadas para o brainstorm de atividades.
+  const estrategiasSelecionadas = useMemo(() => {
+    const todasEstrategias = new Set();
+    if (!pei || !entradaManual) return [];
+    Object.entries(pei.resumoPEI || {}).forEach(([area, metas]) => {
+      metas.forEach((meta) => {
+        const manualKey = `${area}-${meta.habilidade.replace(
+          /[^a-zA-Z0-9-]/g,
+          ""
+        )}`;
+        const manualData = entradaManual[manualKey] || {};
+        if (manualData.estrategias) {
+          manualData.estrategias.forEach((est) => todasEstrategias.add(est));
+        }
+        if (manualData.estrategiasManuais) {
+          manualData.estrategiasManuais.split("\n").forEach((est) => {
+            if (est.trim()) todasEstrategias.add(est.trim());
+          });
+        }
+      });
+    });
+    return Array.from(todasEstrategias);
+  }, [pei, entradaManual]);
 
   const carregarPei = useCallback(async () => {
     setCarregando(true);
@@ -183,7 +220,6 @@ function EditarPei() {
         }
       });
 
-      // NOVO: Coleta todas as metas do PEI do professor logado e do PEI base
       const metasDoProfessor = dados.resumoPEI || [];
       const metasDoPeiBase = primeiroPeiDoAluno?.resumoPEI || [];
 
@@ -202,14 +238,11 @@ function EditarPei() {
         const metaDoPeiBase = metasDoPeiBase.find(
           (m) => m.habilidade === habilidade
         );
-
         const metaPrincipal = metaDoProfessor || metaDoPeiBase;
-        if (!metaPrincipal) return; // Se por algum motivo não encontrar, ignora
+        if (!metaPrincipal) return;
 
         const area = metaPrincipal.area;
         const manualKey = `${area}-${habilidade.replace(/[^a-zA-Z0-9-]/g, "")}`;
-
-        // --- Processamento de Estratégias ---
         const estrategiasSalvas = normalizarEstrategias(
           metaDoProfessor?.estrategiasSelecionadas ||
             metaDoProfessor?.estrategias ||
@@ -231,8 +264,6 @@ function EditarPei() {
         const manualSavedStrategies = estrategiasSalvas.filter(
           (saved) => !suggestedStrategiesFromMap.includes(saved)
         );
-
-        // --- Processamento de Objetivos ---
         const objetivosBase = metaDoPeiBase?.objetivos || {
           longoPrazo: metaDoPeiBase?.objetivo || "",
           curtoPrazo:
@@ -244,7 +275,6 @@ function EditarPei() {
               metaDoPeiBase?.nivelAlmejado
             ] || "",
         };
-
         const objetivosDoProfessor = metaDoProfessor?.objetivos || {
           curtoPrazo:
             objetivosCurtoPrazoMap[habilidade]?.[metaPrincipal.nivelAlmejado] ||
@@ -256,7 +286,6 @@ function EditarPei() {
             estruturaPEIMap[habilidade]?.[metaPrincipal.nivelAlmejado]
               ?.objetivo || "",
         };
-
         const todosOsObjetivosDestaMeta = {
           curtoPrazo: Array.from(
             new Set([objetivosDoProfessor.curtoPrazo, objetivosBase.curtoPrazo])
@@ -274,7 +303,6 @@ function EditarPei() {
           medioPrazo: [objetivosDoProfessor.medioPrazo].filter(Boolean),
           longoPrazo: [objetivosDoProfessor.longoPrazo].filter(Boolean),
         };
-
         if (!peiAgrupadoPorArea[area]) {
           peiAgrupadoPorArea[area] = [];
         }
@@ -284,7 +312,6 @@ function EditarPei() {
           estrategias: availableSuggestedStrategies,
           estrategiasSelecionadas: estrategiasSalvas,
         });
-
         entradaInicial[manualKey] = {
           estrategias: selectedSuggestedFromSaved,
           estrategiasManuais: manualSavedStrategies.join("\n"),
@@ -316,6 +343,83 @@ function EditarPei() {
       setCarregando(false);
     }
   }, [id, carregarPei]);
+
+  // ✅ NOVAS FUNÇÕES: Chamadas de API para a IA
+  const handleGerarEstrategiasIA = async (meta, area, manualKey) => {
+    if (!pei.alunoId) return setErro("Aluno do PEI não encontrado.");
+    setCarregandoIA(manualKey);
+    try {
+      const novasEstrategias = await getSugestaoEstrategiasPEI(
+        pei.aluno,
+        meta,
+        area
+      );
+      setEstrategiasIA((prev) => ({
+        ...prev,
+        [manualKey]: [...(prev[manualKey] || []), ...novasEstrategias],
+      }));
+    } catch (error) {
+      setErro(`IA Error: ${error.message}`);
+    } finally {
+      setCarregandoIA(null);
+    }
+  };
+
+  const handleGerarAtividadeIndividual = async (estrategia) => {
+    if (!pei.aluno) return; // Garante que o objeto aluno exista
+
+    // Se já temos uma lista de sugestões, apenas sorteamos uma nova para exibir
+    if (sugestoesAtividadesIndividuais[estrategia]?.lista?.length > 0) {
+      const listaExistente = sugestoesAtividadesIndividuais[estrategia].lista;
+      const novaSugestao =
+        listaExistente[Math.floor(Math.random() * listaExistente.length)];
+      setSugestoesAtividadesIndividuais((prev) => ({
+        ...prev,
+        [estrategia]: { ...prev[estrategia], exibida: novaSugestao },
+      }));
+      return;
+    }
+
+    // Se não temos, buscamos na API
+    setCarregandoAtividadeIndividual((prev) => ({
+      ...prev,
+      [estrategia]: true,
+    }));
+    try {
+      // É importante passar o cargo do usuário logado aqui também
+      const listaDeSugestoes = await getSugestaoAtividadeParaEstrategia(
+        pei.aluno,
+        estrategia,
+        usuarioLogado.cargo
+      );
+
+      // Sorteia a primeira sugestão para exibir
+      const primeiraSugestao =
+        listaDeSugestoes[Math.floor(Math.random() * listaDeSugestoes.length)];
+
+      // Agora salvamos a lista completa e a sugestão a ser exibida
+      setSugestoesAtividadesIndividuais((prev) => ({
+        ...prev,
+        [estrategia]: {
+          lista: listaDeSugestoes,
+          exibida: primeiraSugestao,
+        },
+      }));
+    } catch (error) {
+      setErro(`IA Error: ${error.message}`);
+    } finally {
+      setCarregandoAtividadeIndividual((prev) => ({
+        ...prev,
+        [estrategia]: false,
+      }));
+    }
+  };
+
+  const handleIncluirAtividade = (textoParaIncluir) => {
+    setAtividadeAplicada((prev) =>
+      prev ? `${prev}\n\n- ${textoParaIncluir}` : `- ${textoParaIncluir}`
+    );
+  };
 
   const handleSalvar = async () => {
     if (!pei) return alert("Não há dados do PEI para salvar.");
@@ -352,8 +456,6 @@ function EditarPei() {
           };
         })
       );
-
-      // --- LÓGICA DA REVISÃO ADICIONADA AQUI ---
       const mesAtual = new Date().getMonth(); // 0 = Janeiro, 11 = Dezembro
       const semestreAtual =
         mesAtual < 6 ? "primeiroSemestre" : "segundoSemestre";
@@ -363,14 +465,11 @@ function EditarPei() {
         dataRevisao: serverTimestamp(),
         revisadoPor: usuarioLogado.uid,
       };
-      // --- FIM DA LÓGICA DA REVISÃO ---
 
-      // Atualiza o documento no Firestore com os dados da revisão
       await updateDoc(doc(db, "peis", id), {
         resumoPEI: resumoAtualizado,
         atividadeAplicada: atividadeAplicada,
         dataUltimaRevisao: serverTimestamp(),
-        // A "mágica" acontece aqui, salvando os dados da revisão
         [`revisoes.${semestreAtual}`]: dadosDaRevisao,
       });
 
@@ -412,7 +511,10 @@ function EditarPei() {
             (meta) => meta.habilidade === habilidadeMetaRemover
           )
         );
-        const manualKey = `${metaRemovidaArea}-${habilidadeMetaRemover.replace(/[^a-zA-Z0-9-]/g, "")}`;
+        const manualKey = `${metaRemovidaArea}-${habilidadeMetaRemover.replace(
+          /[^a-zA-Z0-9-]/g,
+          ""
+        )}`;
         delete novaEntradaManual[manualKey];
         delete novaObjetivosSelecionados[manualKey];
         setEntradaManual(novaEntradaManual);
@@ -561,43 +663,108 @@ function EditarPei() {
           </div>
         )}
 
+        {/* ✅ NOVO: Seção de Brainstorm de Atividades */}
         {areaAtiva === "atividadeAplicada" ? (
           <article className="meta-card">
-            <h3 className="meta-card-titulo">Atividade Aplicada</h3>
+            <h3 className="meta-card-titulo">Brainstorm de Atividades</h3>
+            <p className="info-text">
+              Gere ideias para cada estratégia selecionada e depois inclua as
+              melhores na sua atividade final.
+            </p>
+            <div className="lista-brainstorm">
+              {estrategiasSelecionadas.length > 0 ? (
+                estrategiasSelecionadas.map((estrategia, index) => (
+                  <div key={index} className="item-brainstorm">
+                    <p className="estrategia-texto">
+                      <strong>Estratégia:</strong> {estrategia}
+                    </p>
+                    <button
+                      className="botao-ia-pequeno"
+                      onClick={() => handleGerarAtividadeIndividual(estrategia)}
+                      disabled={carregandoAtividadeIndividual[estrategia]}
+                    >
+                      {carregandoAtividadeIndividual[estrategia]
+                        ? "Gerando..."
+                        : "Gerar Sugestão 💡"}
+                    </button>
+                    {sugestoesAtividadesIndividuais[estrategia]?.exibida && ( // <-- Ponto de mudança
+                      <div className="sugestao-individual-container">
+                        <textarea
+                          className="textarea-sugestao"
+                          rows="3"
+                          value={
+                            sugestoesAtividadesIndividuais[estrategia].exibida
+                          } // <-- Ponto de mudança
+                          readOnly
+                        />
+                        <button
+                          className="botao-incluir"
+                          onClick={() =>
+                            handleIncluirAtividade(
+                              sugestoesAtividadesIndividuais[estrategia].exibida // <-- Ponto de mudança
+                            )
+                          }
+                        >
+                          + Incluir na Atividade
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <p>
+                  Nenhuma estratégia foi selecionada ainda. Volte para as áreas
+                  e escolha algumas.
+                </p>
+              )}
+            </div>
             <label
               htmlFor="atividade-aplicada"
               className="label-estrategias-manuais"
             >
-              Descreva a atividade que foi aplicada com o aluno:
+              Descrição da Atividade Aplicada Final:
             </label>
             <textarea
               id="atividade-aplicada"
               value={atividadeAplicada}
               onChange={(e) => setAtividadeAplicada(e.target.value)}
               className="textarea-pei"
-              rows={4}
-              placeholder="Ex: Brincadeira simbólica usando fantoches para desenvolver comunicação e imaginação..."
+              rows={8}
+              placeholder="As sugestões incluídas aparecerão aqui..."
             />
           </article>
         ) : (
           <div className="section-content">
             {metasDaAreaAtiva.length > 0 ? (
               metasDaAreaAtiva.map((meta) => {
-                const manualKey = `${areaAtiva}-${meta.habilidade.replace(/[^a-zA-Z0-9-]/g, "")}`;
+                const manualKey = `${areaAtiva}-${meta.habilidade.replace(
+                  /[^a-zA-Z0-9-]/g,
+                  ""
+                )}`;
                 const entrada = entradaManual[manualKey] || {};
 
+                // ✅ NOVO: Adiciona estratégias geradas pela IA à lista de exibição
+                const strategiesFromManual = entrada.estrategiasManuais
+                  ? entrada.estrategiasManuais
+                      .split("\n")
+                      .map((s) => s.trim())
+                      .filter((s) => s.length > 0)
+                  : [];
+                const strategiesToDisplay = Array.from(
+                  new Set([
+                    ...(meta.estrategias || []),
+                    // CORREÇÃO: Mapeia os objetos da IA para extrair apenas o título (string)
+                    ...(estrategiasIA[manualKey] || []).map(
+                      (est) => est.titulo
+                    ),
+                    ...(entrada.estrategias || []),
+                    ...strategiesFromManual,
+                  ])
+                ).filter(
+                  (s) => s && typeof s === "string" && s.trim().length > 0
+                );
                 const estrategiasAtuaisSelecionadas = normalizarEstrategias(
                   entrada.estrategias || []
-                );
-                const estrategiasDisponiveis = normalizarEstrategias(
-                  meta.estrategias
-                );
-
-                const todasEstrategiasParaExibir = Array.from(
-                  new Set([
-                    ...estrategiasDisponiveis,
-                    ...estrategiasAtuaisSelecionadas,
-                  ])
                 );
 
                 let objetivosDoPrazo = meta.objetivos?.[activeTab] || [];
@@ -624,7 +791,6 @@ function EditarPei() {
                       <strong>Nível almejado:</strong> {meta.nivelAlmejado} —{" "}
                       {LEGENDA_NIVEIS[meta.nivelAlmejado] || meta.nivelAlmejado}
                     </p>
-
                     <fieldset className="meta-fieldset">
                       <legend className="meta-legend">Objetivos:</legend>
                       {objetivosDoPrazo.length > 0 ? (
@@ -663,8 +829,8 @@ function EditarPei() {
 
                     <fieldset className="meta-fieldset">
                       <legend className="meta-legend">Estratégias:</legend>
-                      {todasEstrategiasParaExibir.length > 0 ? (
-                        todasEstrategiasParaExibir.map((estrategia, i) => (
+                      {strategiesToDisplay.length > 0 ? (
+                        strategiesToDisplay.map((estrategia, i) => (
                           <label
                             key={`${estrategia}-${i}`}
                             className="checkbox-container"
@@ -695,6 +861,22 @@ function EditarPei() {
                           nesta meta.
                         </p>
                       )}
+
+                      {/* ✅ NOVO: Botão para gerar estratégias com IA */}
+                      <div className="ia-sugestao-container">
+                        <button
+                          className="botao-ia"
+                          onClick={() =>
+                            handleGerarEstrategiasIA(meta, areaAtiva, manualKey)
+                          }
+                          disabled={carregandoIA === manualKey}
+                        >
+                          {carregandoIA === manualKey
+                            ? "Gerando..."
+                            : "Sugerir Estratégias com IA 💡"}
+                        </button>
+                      </div>
+
                       <label
                         htmlFor={`estrategias-manuais-${meta.habilidade}`}
                         className="label-estrategias-manuais"

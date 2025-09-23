@@ -1,4 +1,4 @@
-/* src/styles/CriarPEIComponent.css */
+/* src/styles/CriarPEIComponent.css - VERSÃO COMPLETA E CORRIGIDA */
 
 /* ==================================== */
 /* 1. VARIÁVEIS CSS (CUSTOM PROPERTIES) */
@@ -9,126 +9,124 @@
   --color-secondary: #457b9d; /* Azul Médio */
   --color-tertiary: #2a9d8f; /* Verde Água (para sucesso/botões) */
   --color-error: #e63946; /* Vermelho */
+  --color-ia-start: #6a11cb; /* Roxo */
+  --color-ia-end: #2575fc; /* Azul Brilhante */
 
   /* Cores de Fundo */
-  --bg-page: var(--color-primary); /* Mesmo da primaria, para o container */
+  --bg-page: #1d3557; /* Fundo azul escuro */
   --bg-card: #ffffff;
   --bg-selector: #f1f1f1;
   --bg-meta: #f9f9f9;
-  --bg-subarea: #fafafa;
-  --bg-box-summary: #f4f4f4;
-  --bg-button-neutral: #f0f0f0; /* Cinza para botões inativos */
-  --bg-success-light: #e6fff2; /* Fundo para mensagem de sucesso */
-  --bg-error-light: #ffe6e6; /* Fundo para mensagem de erro */
-  --bg-info-light: #e7f3fe; /* Fundo para texto de informação */
-  --bg-objective: #e8f5e9; /* Fundo para objetivo da meta */
+  --bg-button-neutral: #f0f0f0;
+  --bg-success-light: #e6fff2;
+  --bg-error-light: #ffe6e6;
+  --bg-info-light: #e7f3fe;
+  --bg-objective: #e8f5e9;
 
   /* Cores de Texto */
   --text-primary: var(--color-primary);
-  --text-secondary: var(--color-secondary);
-  --text-success: var(--color-tertiary);
-  --text-error: var(--color-error);
   --text-light: #fff;
-  --text-neutral: #666; /* Para textos de placeholder/info */
-  --text-dark-green: #388e3c; /* Para texto do objetivo */
-  --text-dark-blue: #0d47a1; /* Para texto de informação */
+  --text-neutral: #666;
+  --text-dark-green: #388e3c;
+  --text-dark-blue: #0d47a1;
 
   /* Bordas */
   --border-color-default: #ccc;
   --border-color-meta: #ddd;
-  --border-color-success: var(--color-tertiary);
-  --border-color-error: var(--color-error);
-  --border-color-objective: #4caf50; /* Borda esquerda do objetivo */
-  --border-color-info: #2196f3; /* Borda esquerda da info */
+  --border-color-objective: #4caf50;
+  --border-color-info: #2196f3;
 
-  /* Espaçamentos (prefixo `space-` é comum) */
-  --space-xxs: 4px;
+  /* Espaçamentos */
   --space-xs: 8px;
   --space-sm: 10px;
   --space-md: 15px;
   --space-lg: 20px;
   --space-xl: 30px;
-  --space-xxl: 40px;
 
-  /* Tamanhos de Fonte (prefixo `font-size-` é comum) */
+  /* Tamanhos de Fonte */
   --font-size-xs: 12px;
   --font-size-sm: 14px;
   --font-size-md: 16px;
   --font-size-lg: 18px;
   --font-size-xl: 20px;
-  --font-size-xxl: 22px;
-  --font-size-title: 26px; /* Renomeado para mais clareza */
+  --font-size-title: 26px;
 
-  /* Border Radius (prefixo `radius-` é comum) */
-  --radius-xs: 3px; /* Para checkboxes */
+  /* Border Radius */
+  --radius-xs: 3px;
   --radius-sm: 6px;
   --radius-md: 8px;
-  --radius-lg: 10px;
   --radius-xl: 12px;
   --radius-card: 16px;
-  --radius-button: 20px; /* Para botões arredondados */
+  --radius-button: 20px;
 
   /* Sombras */
   --shadow-card: 0 4px 15px rgba(0, 0, 0, 0.1);
-  --shadow-card-alt: 0 0 25px rgba(22, 1, 114, 0.2);
+  --shadow-ia-button: 0 4px 15px rgba(0, 0, 0, 0.2);
+  --shadow-ia-button-hover: 0 6px 20px rgba(0, 0, 0, 0.3);
 
-  /* Fontes */
-  --font-family-base: "Segoe UI", sans-serif; /* Renomeado */
-
-  /* Transições */
+  /* Fontes e Transições */
+  --font-family-base: "Segoe UI", sans-serif;
   --transition-fast: 0.2s ease-in-out;
   --transition-normal: 0.3s ease;
+  --color-primary-rgb: 29, 53, 87;
+  --color-objetivo-curto-border: #f59e0b;
+  --bg-objetivo-curto: #fef3c7;
+  --text-objetivo-curto: #b45309;
 
-  /* Para rgba() em box-shadow ou outros lugares onde a cor primária é usada com opacidade */
-  --color-primary-rgb: 29, 53, 87; /* RGB de #1d3557 */
+  /* Médio Prazo (Tons de Azul) */
+  --color-objetivo-medio-border: #3b82f6;
+  --bg-objetivo-medio: #dbeafe;
+  --text-objetivo-medio: #1e40af;
+
+  /* Longo Prazo (Reutilizando os tons de Verde originais) */
+  --color-objetivo-longo-border: var(--border-color-objective);
+  --bg-objetivo-longo: var(--bg-objective);
+  --text-objetivo-longo: var(--text-dark-green);
 }
 
 /* ================== */
 /* 2. ESTILOS GERAIS  */
 /* ================== */
 body {
-  margin: 0; /* Boas práticas: remover margem padrão do body */
-  font-family: var(--font-family-base);
-  background: var(
-    --bg-page
-  ); /* Garante que o fundo da página siga a variável */
+  margin: 0;
+  padding: 30px 0; /* Adicionado padding para espaço no topo e base */
+  font-family: "Segoe UI", sans-serif;
+  background: linear-gradient(to bottom right, #1d3557, #457b9d);
+  box-sizing: border-box;
 }
 
 .container {
+  width: 100%;
   min-height: 100vh;
-  width: 100vw;
-  padding: var(--space-xl);
+  padding: 40px 20px; /* Espaçamento vertical e horizontal */
   box-sizing: border-box;
   display: flex;
   justify-content: center;
-  align-items: flex-start;
-  font-family: var(--font-family-base); /* Consistência */
+  align-items: flex-start; /* Alinha o card no topo do container */
 }
 
 .card {
-  background: var(--bg-card);
-  max-width: 1000px;
+  background-color: #ffffff;
+  max-width: 900px;
   width: 100%;
-  margin: 0 auto;
-  padding: var(--space-xl);
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
-  display: flex;
-  flex-direction: column;
-  position: relative; /* Necessário para posicionar o botão "Ver PEIs" */
+  padding: 30px;
+  margin: 0 auto; /* Centraliza horizontalmente o card no fluxo */
+  border-radius: 16px;
+  box-sizing: border-box;
+  filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.2));
 }
 
 .titulo {
   text-align: center;
   color: var(--text-primary);
   margin-bottom: var(--space-lg);
-  font-size: var(--font-size-title); /* Usando a variável renomeada */
+  font-size: var(--font-size-title);
   font-weight: 600;
 }
 
 .form-label {
   display: block;
-  margin-bottom: var(--space-xs);
+  margin: var(--space-md) 0 var(--space-xs) 0;
   font-weight: bold;
   color: var(--text-primary);
 }
@@ -136,36 +134,36 @@ body {
 .textarea-form {
   width: 100%;
   min-height: 80px;
-  padding: var(--space-xs);
+  padding: var(--space-sm);
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-color-default);
   font-size: var(--font-size-sm);
   resize: vertical;
   box-sizing: border-box;
-  margin-top: var(--space-xs);
-  margin-bottom: var(--space-sm);
   font-family: var(--font-family-base);
-  color: var(--text-primary); /* Garante cor do texto */
-}
-/* Estilo para placeholder */
-.textarea-form::placeholder {
-  color: var(--text-neutral);
 }
 
 .info-text {
   text-align: center;
   font-style: italic;
-  color: var(--text-dark-blue); /* Ajustado para variável mais adequada */
-  background-color: var(--bg-info-light); /* Usando variável */
-  border-left: 4px solid var(--border-color-info); /* Usando variável */
-  padding: var(--space-md); /* Ajustado para variável */
+  color: var(--text-dark-blue);
+  background-color: var(--bg-info-light);
+  border-left: 4px solid var(--border-color-info);
+  padding: var(--space-md);
   margin: var(--space-lg) 0;
-  border-radius: var(--radius-sm); /* Ajustado para variável */
+  border-radius: var(--radius-sm);
 }
 
-/* ======================= */
-/* 3. COMPONENTE: SELETOR  */
-/* ======================= */
+/* ================================= */
+/* 3. HEADER E SELETORES DE ALUNO/ÁREA */
+/* ================================= */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-lg);
+}
+
 .seletor-aluno {
   margin-bottom: var(--space-xl);
   background-color: var(--bg-selector);
@@ -181,12 +179,8 @@ body {
   background-color: var(--bg-card);
   font-size: var(--font-size-md);
   box-sizing: border-box;
-  color: var(--text-primary); /* Garante cor do texto */
 }
 
-/* ============================== */
-/* 4. COMPONENTE: BOTÕES DE ÁREA  */
-/* ============================== */
 .area-buttons-container {
   display: flex;
   flex-wrap: wrap;
@@ -199,15 +193,11 @@ body {
   border-radius: var(--radius-button);
   border: none;
   background-color: var(--bg-button-neutral);
-  color: var(--text-primary);
   cursor: pointer;
-  transition: all var(--transition-normal); /* Usando variável */
-  white-space: nowrap;
+  transition: all var(--transition-normal);
   font-size: var(--font-size-sm);
   font-weight: 500;
-  flex-grow: 1; /* Permite que os botões cresçam e preencham o espaço */
-  flex-basis: auto; /* Define a base de tamanho automática */
-  min-width: 80px; /* Garante um tamanho mínimo para botões pequenos */
+  flex-grow: 1;
 }
 
 .area-button-ativa {
@@ -216,12 +206,8 @@ body {
   font-weight: bold;
 }
 
-.area-button:hover:not(.area-button-ativa) {
-  background-color: #e0e0e0;
-}
-
 /* =========================== */
-/* 5. COMPONENTE: METAS / PEI  */
+/* 4. COMPONENTE: METAS / PEI  */
 /* =========================== */
 .section-content {
   margin-top: var(--space-lg);
@@ -230,98 +216,104 @@ body {
 .meta-card {
   background: var(--bg-meta);
   border: 1px solid var(--border-color-meta);
-  border-radius: var(--radius-xl); /* Mantido radius-xl, ou use radius-card */
-  padding: var(--space-md);
-  margin-bottom: var(--space-md);
+  border-radius: var(--radius-xl);
+  padding: var(--space-lg);
+  margin-bottom: var(--space-lg);
 }
 
 .meta-card h3 {
   color: var(--text-primary);
-  margin-top: 0;
-  margin-bottom: var(--space-xs);
+  margin: 0 0 var(--space-xs) 0;
   font-size: var(--font-size-lg);
-  border-bottom: 1px solid #eee; /* Poderia ser uma variável de borda também */
-  padding-bottom: var(
-    --space-xs
-  ); /* Adicionado padding para separar o título */
+  border-bottom: 1px solid #eee;
+  padding-bottom: var(--space-xs);
 }
 
 .meta-card p {
   margin-bottom: var(--space-xs);
-  color: var(--text-primary);
   font-size: var(--font-size-sm);
 }
 
-.meta-card strong {
-  font-weight: bold;
-}
-
+/* --- ESTILO DINÂMICO DOS OBJETIVOS --- */
 .meta-objective {
-  background: var(--bg-objective); /* Usando variável */
-  border-left: 4px solid var(--border-color-objective); /* Usando variável */
-  padding: var(--space-sm) var(--space-md); /* Ajustei para ser mais consistente, antes era 10px 15px */
-  margin-top: var(--space-sm);
-  margin-bottom: var(--space-md); /* Ajustado para variável */
+  /* Estilos comuns a todos */
+  padding: var(--space-sm) var(--space-md);
+  margin: var(--space-sm) 0 var(--space-md) 0;
   border-radius: var(--radius-sm);
   font-style: italic;
-  color: var(--text-dark-green); /* Usando variável */
-  font-size: var(--font-size-sm); /* Consistência */
+  border-left: 4px solid; /* A cor será definida pelas classes específicas abaixo */
+  transition: all 0.3s ease; /* Transição suave entre as cores */
+}
+
+/* Estilo para Curto Prazo (Amarelo) */
+.meta-objective.curtoPrazo {
+  background-color: var(--bg-objetivo-curto);
+  border-color: var(--color-objetivo-curto-border);
+  color: var(--text-objetivo-curto);
+}
+
+/* Estilo para Médio Prazo (Azul) */
+.meta-objective.medioPrazo {
+  background-color: var(--bg-objetivo-medio);
+  border-color: var(--color-objetivo-medio-border);
+  color: var(--text-objetivo-medio);
+}
+
+/* Estilo para Longo Prazo (Verde) */
+.meta-objective.longoPrazo {
+  background-color: var(--bg-objetivo-longo);
+  border-color: var(--color-objetivo-longo-border);
+  color: var(--text-objetivo-longo);
 }
 
 .meta-fieldset {
   border: 1px solid var(--border-color-default);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   padding: var(--space-md);
-  margin-top: var(--space-sm);
+  margin-top: var(--space-lg);
 }
 
 .meta-fieldset legend {
   font-weight: bold;
   color: var(--text-primary);
-  padding: 0 var(--space-xxs);
+  padding: 0 var(--space-xs);
 }
 
 /* ================================== */
-/* 6. COMPONENTE: ESTRATÉGIAS (CHECKBOX) - REFATORADO */
+/* 5. CHECKBOX DE ESTRATÉGIAS         */
 /* ================================== */
-
-/* O container do checkbox agora é o <label> que envolve o input e o texto */
 .checkbox-container {
   display: flex;
-  align-items: flex-start; /* Alinha o checkbox e a primeira linha do texto no topo */
+  align-items: flex-start;
   margin-bottom: var(--space-xs);
   cursor: pointer;
   position: relative;
   user-select: none;
-  color: var(--text-primary);
   font-size: var(--font-size-sm);
   line-height: 1.4;
-  gap: var(--space-md); /* Espaçamento entre o checkbox e o texto */
+  gap: var(--space-sm);
 }
 
-/* Esconde o checkbox original do navegador */
 .checkbox-container input[type="checkbox"] {
   position: absolute;
   opacity: 0;
   height: 0;
   width: 0;
-  cursor: pointer;
 }
 
-/* O elemento span que será o visual do nosso checkbox */
 .checkmark {
-  display: block; /* Garante que se comporte como um bloco */
-  flex-shrink: 0; /* Impede que o checkbox diminua de tamanho */
-  height: 18px; /* Tamanho do quadrado do checkbox */
+  display: block;
+  flex-shrink: 0;
+  height: 18px;
   width: 18px;
   background-color: var(--bg-button-neutral);
   border: 1px solid var(--border-color-default);
   border-radius: var(--radius-xs);
   transition: all var(--transition-fast);
-  margin-top: 2px; /* Pequeno ajuste para alinhar com a primeira linha do texto */
+  margin-top: 2px;
+  position: relative;
 }
 
-/* Estilo do checkmark (o 'V') */
 .checkmark:after {
   content: "";
   position: absolute;
@@ -335,320 +327,198 @@ body {
   transform: rotate(45deg);
 }
 
-/* Mostra o checkmark (o 'V') quando o input está marcado */
 .checkbox-container input[type="checkbox"]:checked ~ .checkmark:after {
   display: block;
 }
 
-/* Muda a cor de fundo e borda do checkbox customizado quando o input está marcado */
 .checkbox-container input[type="checkbox"]:checked ~ .checkmark {
   background-color: var(--color-primary);
   border-color: var(--color-primary);
 }
 
-/* Estilo de hover para o checkbox customizado */
-.checkbox-container:hover input[type="checkbox"]:not(:disabled) ~ .checkmark {
-  background-color: #d1d1d1;
-  border-color: #a0a0a0;
-}
-
-/* Estilo de hover para o checkbox customizado QUANDO JÁ MARCADO */
-.checkbox-container:hover
-  input[type="checkbox"]:checked:not(:disabled)
-  ~ .checkmark {
-  background-color: var(--color-tertiary);
-  border-color: var(--color-tertiary);
-}
-
-/* Estilos quando o checkbox está desabilitado */
-.checkbox-container input[type="checkbox"]:disabled ~ .checkmark {
-  opacity: 0.5;
-  background-color: #e0e0e0;
-  border-color: #bbb;
-  cursor: not-allowed;
-}
-
-.checkbox-container input[type="checkbox"]:disabled ~ .checkbox-label {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-/* Estilo para o texto do label que acompanha o checkbox customizado */
-.checkbox-label {
-  flex-grow: 1; /* Permite que o texto ocupe o espaço restante */
-  word-wrap: break-word; /* Força quebra de palavras longas */
-  overflow-wrap: break-word; /* Versão mais moderna de word-wrap */
-  white-space: pre-wrap; /* Essencial para permitir a quebra de linha natural */
-}
-
-/* Estilos de foco para acessibilidade */
-.checkbox-container input[type="checkbox"]:focus-visible ~ .checkmark {
-  box-shadow:
-    0 0 0 3px rgba(var(--color-primary-rgb), 0.4),
-    inset 0 0 0 1px var(--color-primary);
-  border-color: var(--color-primary);
-}
-/* Estilo para o texto do label que acompanha o checkbox customizado */
-/* Não precisamos mais de 'flex: 1' ou outros 'flex-basis' aqui diretamente,
-   pois o flexbox do container já lida com o alinhamento e o padding-left/position:absolute
-   se encarregam do espaçamento. */
-/* Estilo para o texto do label que acompanha o checkbox customizado */
-.checkbox-label {
-  flex-grow: 1; /* Permite que o texto ocupe o espaço restante */
-  word-wrap: break-word; /* Força quebra de palavras longas */
-  overflow-wrap: break-word; /* Versão mais moderna de word-wrap */
-  white-space: pre-wrap; /* Essencial para permitir a quebra de linha natural */
-}
-
-/* Estilos de foco para acessibilidade */
-.checkbox-container input[type="checkbox"]:focus-visible ~ .checkmark {
-  box-shadow:
-    0 0 0 3px rgba(var(--color-primary-rgb), 0.4),
-    inset 0 0 0 1px var(--color-primary);
-  border-color: var(--color-primary);
-}
-/* Sugestão: Adicione aqui uma variável para a cor RGB primária se for usar rgba() */
-/* Ex: --color-primary-rgb: 29, 53, 87; */
-
-/* =========================== */
-/* 7. COMPONENTE: BOTÃO SALVAR */
-/* =========================== */
-.botao-salvar {
-  background-color: var(--color-tertiary);
-  color: var(--text-light);
-  padding: var(--space-md) var(--space-lg);
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-md);
-  font-weight: bold;
-  display: block; /* Para centralizar com margin: auto */
-  margin: var(--space-xl) auto 0;
-  cursor: pointer;
-  transition: background-color var(--transition-normal); /* Usando variável */
-}
-
-.botao-salvar:hover {
-  background-color: #217e75; /* Manter cor específica ou criar variável para hover */
-}
-
-.botao-salvar:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-/* =========================== */
-/* 8. MENSAGENS E ESTADOS     */
-/* =========================== */
-.mensagem-erro {
-  color: var(--text-error);
-  margin: var(--space-md) 0;
-  text-align: center;
-  font-weight: bold;
-  background-color: var(--bg-error-light); /* Usando variável */
-  padding: var(--space-sm);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-color-error); /* Usando variável */
-}
-
-.mensagem-sucesso {
-  color: var(--text-success);
-  margin: var(--space-md) 0;
-  text-align: center;
-  font-weight: bold;
-  background-color: var(--bg-success-light); /* Usando variável */
-  padding: var(--space-sm);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-color-success); /* Usando variável */
-}
-
-.loading {
-  text-align: center;
+/* ======================================== */
+/* 6. BOTÃO DA IA (PARA ESTRATÉGIAS)      */
+/* ======================================== */
+.ia-sugestao-container {
   margin: var(--space-lg) 0;
-  color: var(--text-primary);
-  font-size: var(--font-size-md);
+  border-top: 1px dashed var(--border-color-default);
+  padding-top: var(--space-lg);
+  text-align: center;
 }
 
-/* ================================= */
-/* 9. RESPONSIVIDADE BÁSICA        */
-/* ================================= */
-@media (max-width: 768px) {
-  .container {
-    padding: var(--space-lg) var(--space-md);
-  }
-
-  .card {
-    padding: var(--space-lg);
-  }
-
-  .titulo {
-    font-size: var(--font-size-xxl);
-    margin-bottom: var(--space-md);
-  }
-
-  .seletor-aluno {
-    padding: var(--space-md);
-  }
-
-  .meta-card h3 {
-    font-size: var(--font-size-md);
-  }
-
-  .form-label,
-  .meta-card p,
-  .meta-objective,
-  .meta-fieldset legend,
-  .custom-checkbox-label,
-  .textarea-form {
-    font-size: var(--font-size-sm);
-  }
-
-  .botao-salvar {
-    padding: var(--space-sm) var(--space-md);
-    font-size: var(--font-size-sm);
-  }
-
-  /* Ajustes para botões de área em telas menores */
-  .area-button {
-    flex-grow: 1; /* Permite que cresçam para ocupar o espaço */
-    flex-basis: calc(50% - var(--space-xs) / 2); /* 2 colunas */
-    font-size: var(--font-size-xs);
-  }
-  /* Para 3 colunas em telas menores */
-  @media (min-width: 481px) and (max-width: 768px) {
-    .area-button {
-      flex-basis: calc(
-        33.333% - (var(--space-xs) * 2) / 3
-      ); /* Ajuste para 3 colunas */
-    }
-  }
-}
-
-@media (max-width: 480px) {
-  .card {
-    padding: var(--space-md);
-  }
-
-  .titulo {
-    font-size: var(--font-size-xl);
-  }
-
-  .area-button {
-    padding: var(--space-xs) var(--space-sm);
-    font-size: var(--font-size-xs);
-    flex-basis: 100%; /* Cada botão em uma linha */
-  }
-
-  .custom-checkbox-input {
-    width: 16px;
-    height: 16px;
-  }
-
-  .custom-checkbox-input:checked::before {
-    top: 2px;
-    left: 2px;
-    width: 7px;
-    height: 3px;
-    border-width: 0 0 1.5px 1.5px;
-  }
-}
-
-/* =========================== */
-/* 10. COMPONENTE: BOTÃO VOLTAR */
-/* =========================== */
-.botao-voltar {
-  background-color: var(--color-secondary);
+.botao-ia {
+  background: linear-gradient(
+    45deg,
+    var(--color-ia-start),
+    var(--color-ia-end)
+  );
   color: var(--text-light);
-  padding: var(--space-xs) var(--space-md);
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-button);
+  padding: var(--space-sm) var(--space-lg);
   font-size: var(--font-size-sm);
   font-weight: bold;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
-  margin-bottom: var(--space-lg);
-  text-decoration: none;
-  transition: background-color var(--transition-fast); /* Usando variável */
-  width: fit-content;
+  box-shadow: var(--shadow-ia-button);
+  transition: all var(--transition-normal);
+  transform: translateY(0);
 }
 
-.botao-voltar:hover {
-  background-color: #3a688a;
+.botao-ia:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-ia-button-hover);
 }
 
-.botao-voltar-icone {
+.botao-ia:disabled {
+  opacity: 0.7;
+  cursor: wait;
+  background: var(--color-secondary);
+}
+
+/* ============================================== */
+/* 7. ESTILOS PARA BRAINSTORM DE ATIVIDADES       */
+/* ============================================== */
+.titulo-secao-atividade {
+  font-size: var(--font-size-xl);
+  color: var(--text-primary);
+  margin-bottom: var(--space-xs);
+  text-align: center;
+}
+
+.lista-brainstorm {
+  margin-bottom: var(--space-xl);
+  border: 1px solid #eee;
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+}
+
+.item-brainstorm {
+  padding: var(--space-md) 0;
+  border-bottom: 1px solid #e0e0e0;
+}
+.item-brainstorm:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.estrategia-texto {
   font-size: var(--font-size-sm);
+  line-height: 1.5;
+  margin-bottom: var(--space-md);
 }
 
-.card .botao-voltar {
-  align-self: flex-start;
-  /* Posicionamento absoluto se quiser fixar no canto superior esquerdo do card */
-  /* position: absolute; */
-  /* top: var(--space-lg); */
-  /* left: var(--space-xl); */
-}
-
-.botao-ver-peis {
-  width: auto;
-  padding: 8px 16px;
-  margin-left: auto; /* Empurra o botão para a direita */
-  margin-right: 0; /* Remove margem direita (opcional) */
-  display: block; /* Permite que margin-left: auto funcione */
-  /* Ou use display: flex + justify-content: flex-end no container */
-}
-/* src/styles/CriarPEIComponent.css */
-
-/* ... (seus estilos anteriores) ... */
-
-/* Adicione esta seção para o cabeçalho do card */
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center; /* Alinha verticalmente os itens */
-  margin-bottom: var(--space-lg); /* Ou ajuste conforme preferir */
-}
-
-/* Ajuste o botão de ver PEIs (já tinha um nome parecido, mas agora é uma classe) */
-.botao-ver-peis {
-  padding: var(--space-sm) var(--space-md); /* Use variáveis */
-  border-radius: var(--radius-md); /* Use variáveis */
+.botao-ia-pequeno {
+  background: linear-gradient(
+    45deg,
+    var(--color-ia-start),
+    var(--color-ia-end)
+  );
+  color: var(--text-light);
   border: none;
-  background-color: var(--color-tertiary); /* Use variáveis */
-  color: var(--text-light); /* Use variáveis */
+  border-radius: var(--radius-sm);
+  padding: var(--space-xs) var(--space-md);
+  font-size: var(--font-size-xs);
   font-weight: bold;
   cursor: pointer;
-  transition: background-color var(--transition-normal);
+  transition: all var(--transition-normal);
+}
+.botao-ia-pequeno:hover:not(:disabled) {
+  transform: scale(1.05);
+  box-shadow: var(--shadow-ia-button);
+}
+.botao-ia-pequeno:disabled {
+  opacity: 0.7;
+  cursor: wait;
 }
 
-.botao-ver-peis:hover {
-  background-color: #217e75; /* Manter cor específica ou criar variável para hover */
-}
-
-/* Ajuste fino para o checkbox (já tínhamos discutido, mas revisando) */
-.checkbox-container {
+.sugestao-individual-container {
+  margin-top: var(--space-md);
   display: flex;
-  align-items: flex-start;
-  margin-bottom: var(--space-xs);
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.textarea-sugestao {
   width: 100%;
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  border: 1px solid #dcdcdc;
+  background-color: #f8f9fa;
+  font-size: var(--font-size-sm);
+  resize: none;
+  box-sizing: border-box;
+  font-family: var(--font-family-base);
 }
 
-.custom-checkbox-input {
-  /* ... (seus estilos existentes) ... */
-  margin-top: 2px; /* Ajuste este valor se o alinhamento não estiver perfeito.
-                       Comece com 0px e aumente de 1 em 1 até ficar bom. */
+.botao-incluir {
+  background-color: var(--color-tertiary);
+  color: var(--text-light);
+  border: none;
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-weight: 500;
+  align-self: flex-end;
+  transition: background-color var(--transition-fast);
+}
+.botao-incluir:hover {
+  background-color: #217e75;
 }
 
-.custom-checkbox-label {
-  /* ... (seus estilos existentes) ... */
-  flex-grow: 1;
-  flex-shrink: 1;
-  flex-basis: auto;
+/* =========================== */
+/* 8. BOTÕES GERAIS E MENSAGENS*/
+/* =========================== */
+.botao-voltar,
+.botao-ver-peis,
+.botao-salvar {
+  padding: var(--space-sm) var(--space-md);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
 }
 
-/* Remova a propriedade flex-wrap do .checkbox-container se ela estiver lá
-   e a ideia é que o label quebre mas o checkbox não vá para a próxima linha.
-   Se você quiser que o checkbox também quebre (raro), mantenha. */
-/* .checkbox-container {
-  flex-wrap: wrap; // REMOVER OU MANTER DEPENDENDO DO COMPORTAMENTO DESEJADO
-} */
+.botao-voltar {
+  background-color: var(--bg-button-neutral);
+  color: var(--text-primary);
+}
+
+.botao-ver-peis,
+.botao-salvar {
+  background-color: var(--color-tertiary);
+  color: var(--text-light);
+}
+
+.botao-salvar {
+  padding: var(--space-md) var(--space-lg);
+  font-size: var(--font-size-md);
+  display: block;
+  margin: var(--space-xl) auto 0;
+}
+
+.mensagem-erro,
+.mensagem-sucesso {
+  margin: var(--space-md) 0;
+  text-align: center;
+  font-weight: bold;
+  padding: var(--space-sm);
+  border-radius: var(--radius-md);
+  border: 1px solid;
+}
+
+.mensagem-erro {
+  color: var(--color-error);
+  background-color: var(--bg-error-light);
+  border-color: var(--color-error);
+}
+
+.mensagem-sucesso {
+  color: var(--text-success);
+  background-color: var(--bg-success-light);
+  border-color: var(--text-success);
+}

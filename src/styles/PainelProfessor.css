@@ -1,0 +1,194 @@
+/* --- Estilo da Página e Container Principal --- */
+.painel-page-container {
+  min-height: 100vh;
+  width: 100%;
+  background: linear-gradient(to bottom, #00264d, #005b96);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 20px;
+  box-sizing: border-box;
+  font-family: "Segoe UI", sans-serif;
+}
+
+/* --- Card Principal do Painel --- */
+.painel-card {
+  background-color: white;
+  padding: 40px;
+  border-radius: 20px;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  max-width: 500px;
+  text-align: center;
+  position: relative;
+}
+
+/* --- Perfil do Usuário (Canto Esquerdo) --- */
+.user-profile-top-corner {
+  position: absolute;
+  top: 25px;
+  left: 30px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.user-text {
+  text-align: left;
+  color: #666;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+.user-text strong {
+  color: #1d3557;
+  font-size: 1rem;
+  font-weight: 600;
+}
+.avatar-container {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+}
+.avatar-imagem {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #e0e0e0;
+}
+.avatar-botao-editar {
+  position: absolute;
+  bottom: -3px;
+  right: -3px;
+  background-color: #1d3557;
+  color: white;
+  border: 2px solid white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+/* --- Logo e Título --- */
+.painel-logo {
+  width: 120px;
+  height: auto;
+  margin: 40px auto 15px auto;
+}
+.painel-titulo {
+  margin: 0 auto 30px auto;
+  color: #003366;
+  font-size: 1.8rem;
+}
+
+/* --- Seção de Avisos do PEI --- */
+.aviso-card {
+  padding: 15px;
+  border-radius: 12px;
+  margin-bottom: 25px;
+  text-align: left;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid;
+}
+.aviso-card h3 {
+  margin: 0 0 10px 0;
+  font-size: 1.2em;
+}
+.aviso-card p {
+  margin: 0;
+  font-size: 1em;
+}
+.aviso-alerta {
+  background-color: #fff4e5;
+  border-color: #ffd1a8;
+  color: #a0522d;
+}
+.aviso-sucesso {
+  background-color: #e6f2f0;
+  border-color: #b2d8d1;
+  color: #1d7168;
+}
+.aviso-erro {
+  background-color: #ffeaea;
+  border-color: #ffb2b2;
+  color: #b71c1c;
+}
+.aviso-info {
+  background-color: #e8f4fa;
+  border-color: #b8e0f2;
+  color: #004085;
+}
+.botao-detalhes {
+  background-color: #005b96;
+  color: #fff;
+  padding: 8px 15px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9em;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: background-color 0.3s ease;
+}
+.botao-detalhes:hover {
+  background-color: #004a7a;
+}
+
+/* --- Botões de Ação --- */
+.botoes-primarios {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+.painel-botao {
+  background-color: #00264d;
+  color: #fff;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+.painel-botao:hover {
+  background-color: #005b96;
+}
+
+.botoes-secundarios {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 20px;
+}
+.botao-trocar-escola,
+.painel-botao-sair {
+  padding: 10px 15px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  flex: 1;
+  max-width: 180px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+.botao-trocar-escola {
+  background-color: #f1f1f1;
+  color: #333;
+  border: 1px solid #ddd;
+}
+.botao-trocar-escola:hover {
+  background-color: #e0e0e0;
+}
+.painel-botao-sair {
+  background-color: #e63946;
+  color: #fff;
+  border: none;
+}
+.painel-botao-sair:hover {
+  background-color: #d62828;
+}

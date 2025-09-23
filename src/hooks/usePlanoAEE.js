@@ -1,5 +1,3 @@
-// Arquivo: src/hooks/usePlanoAEE.js
-
 import { useState, useEffect, useCallback } from "react";
 import { db } from "../firebase";
 import {
@@ -15,10 +13,13 @@ import {
   addDoc,
   updateDoc,
   Timestamp,
+  serverTimestamp,
 } from "firebase/firestore";
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+const CACHE_VERSION = "v7"; // ATUALIZADO: Versão do Cache para depuração final.
 
+// Função que processa UMA atividade a partir de um texto
 function parseAtividadeFromText(textResponse) {
   if (!textResponse) return null;
 
@@ -81,88 +82,156 @@ function parseAtividadeFromText(textResponse) {
   return null;
 }
 
+// Função que processa MÚLTIPLAS atividades a partir de um texto
+function parseMultiplasAtividadesFromText(textResponse) {
+  if (!textResponse) return [];
+  const sugestoesSeparadas = textResponse.split("---NOVA SUGESTAO---");
+  return sugestoesSeparadas
+    .map((sugestaoText) => parseAtividadeFromText(sugestaoText.trim()))
+    .filter(Boolean);
+}
+
+// Função de chamada da IA com lógica de cache e depuração aprimoradas
 async function buscarSugestoesComIA_REAL(
   tipo,
-  habilidade = "",
-  idadeAluno = null
+  habilidadeObj = {},
+  idadeAluno = null,
+  aluno,
+  forceRefresh = false
 ) {
+  console.log("--- INICIANDO BUSCA DE SUGESTÕES ---");
+  console.log("Tipo:", tipo, "| Forçar Atualização:", forceRefresh);
+  console.log(
+    "Habilidade Recebida:",
+    habilidadeObj ? JSON.parse(JSON.stringify(habilidadeObj)) : habilidadeObj
+  );
+
+  let habilidadeTexto = "";
+  let habilidadeId = "";
+
+  // A verificação de validade agora está na função getSugestoes, que é a porta de entrada.
+  // Aqui, assumimos que os dados já foram validados.
+  if (tipo === "atividadePrincipal") {
+    habilidadeTexto = habilidadeObj.habilidade || "";
+    habilidadeId = habilidadeObj.id;
+  }
+
+  // Chave de cache ultra específica, incluindo a idade do aluno.
+  const idadeCache = idadeAluno || "geral";
+  const baseCacheKey = `${CACHE_VERSION}-${tipo}-${
+    aluno?.diagnostico || "generico"
+  }-${idadeCache}`;
+  const cacheKey = (
+    tipo === "atividadePrincipal"
+      ? `${baseCacheKey}-${habilidadeId}`
+      : baseCacheKey
+  )
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "_");
+
+  console.log("Chave de Cache Gerada:", cacheKey);
+
+  const cacheRef = doc(db, "geminiCache", cacheKey);
+
+  if (!forceRefresh) {
+    try {
+      const cacheSnap = await getDoc(cacheRef);
+      if (cacheSnap.exists()) {
+        console.log(
+          `%cCACHE HIT! para: ${cacheKey}`,
+          "color: green; font-weight: bold;"
+        );
+        const cachedResponse = cacheSnap.data().response;
+        if (cachedResponse && cachedResponse.length > 10) {
+          console.log(
+            `%cCACHE VÁLIDO! Entregando resposta salva.`,
+            "color: green; font-weight: bold;"
+          );
+          if (tipo === "atividadePrincipal")
+            return parseMultiplasAtividadesFromText(cachedResponse);
+          return cachedResponse
+            .split("|||")
+            .map((s) => s.trim())
+            .filter(Boolean);
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao ler cache. Prosseguindo para a API.", error);
+    }
+  }
+
+  console.log(
+    `%cCACHE MISS ou IGNORADO. Chamando API Gemini para: ${cacheKey}`,
+    "color: orange; font-weight: bold;"
+  );
+
   if (!GEMINI_API_KEY) {
     console.warn("API Key do Gemini não foi configurada.");
-    return buscarSugestoesComIA_SIMULACAO(tipo, habilidade);
+    return buscarSugestoesComIA_SIMULACAO(tipo, habilidadeTexto);
   }
 
   const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
-
-  const systemInstruction = `Você é um especialista em Atendimento Educacional Especializado (AEE). Sua tarefa é criar sugestões de atividades pedagógicas concisas e práticas. Responda SEMPRE no formato solicitado e NADA MAIS.`;
+  const systemInstruction = `Você é um especialista em Atendimento Educacional Especializado (AEE). Crie sugestões de atividades pedagógicas concisas e práticas. Responda SEMPRE no formato solicitado e NADA MAIS.`;
   let userPrompt = "";
 
-  // ##### ALTERAÇÃO AQUI: Aumento da temperatura para mais criatividade #####
-  let generationConfig = { temperature: 0.9 };
-
   if (tipo === "quebraGelo") {
-    // ##### ALTERAÇÃO AQUI: Pedido de variedade no prompt #####
-    userPrompt = `Gere UMA sugestão criativa e DIFERENTE de atividade de "quebra-gelo" para o início de um atendimento AEE (duração aproximada: 5 minutos). A resposta deve ser apenas o texto da sugestão, sem títulos ou explicações extras.`;
+    userPrompt = `Gere 5 sugestões criativas e DIFERENTES de atividade de "quebra-gelo" para o início de um atendimento AEE (duração ~5 min) para um aluno de ${
+      idadeAluno || "idade não informada"
+    } anos. Responda APENAS com as sugestões, separando cada uma com "|||". Não use títulos ou marcadores.`;
   } else if (tipo === "finalizacao") {
-    // ##### ALTERAÇÃO AQUI: Pedido de variedade no prompt #####
-    userPrompt = `Gere UMA sugestão criativa e DIFERENTE de atividade de "finalização" para encerrar um atendimento AEE. A atividade deve ser calma e previsível. A resposta deve ser apenas o texto da sugestão, sem títulos ou explicações extras.`;
+    userPrompt = `Gere 5 sugestões criativas e DIFERENTES de atividade de "finalização" calma e previsível para encerrar um atendimento AEE para um aluno de ${
+      idadeAluno || "idade não informada"
+    } anos. Responda APENAS com as sugestões, separando cada uma com "|||". Não use títulos ou marcadores.`;
   } else {
-    // ##### ALTERAÇÃO AQUI: Pedido de variedade no prompt principal #####
-    userPrompt = `Gere uma sugestão NOVA e CRIATIVA de atividade principal para um atendimento AEE focada na habilidade: "${habilidade}". Adapte para a idade: ${
+    userPrompt = `Gere 5 sugestões NOVAS e CRIATIVAS de atividade principal para um atendimento AEE focada na habilidade: "${habilidadeTexto}". Adapte para a idade: ${
       idadeAluno || "não informada"
-    } anos. Evite dar a mesma sugestão se for perguntado novamente sobre a mesma habilidade.
-
-Sua resposta deve ter EXATAMENTE este formato, usando os títulos em português:
-Título: [Título da Atividade]
-Objetivos:
-- [Primeiro objetivo]
-- [Segundo objetivo]
-Recursos: [Materiais necessários]
-Metodologia: [Passo a passo com verbos no infinitivo. Pode ter múltiplos parágrafos ou itens.]
-Duração: [Duração estimada]`;
+    } anos.\n\nFormate CADA SUGESTÃO EXATAMENTE assim:\nTítulo: [Título da Atividade]\nObjetivos:\n- [Primeiro objetivo]\n- [Segundo objetivo]\nRecursos: [Materiais necessários]\nMetodologia: [Passo a passo com verbos no infinitivo.]\nDuração: [Duração estimada]\n\nSepare cada sugestão completa com a linha "---NOVA SUGESTAO---".`;
   }
 
   const payload = {
     contents: [{ parts: [{ text: userPrompt }] }],
     system_instruction: { parts: [{ text: systemInstruction }] },
-    generationConfig, // generationConfig atualizado
+    generationConfig: { temperature: 0.9 },
   };
-
   const response = await fetch(apiUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-
   if (!response.ok) {
     const errorBody = await response.json();
-    console.error("Erro da API Gemini:", errorBody);
     throw new Error(
       `Erro na API: ${errorBody.error?.message || "Resposta inválida"}`
     );
   }
-
   const result = await response.json();
   const textResponse = result.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!textResponse) throw new Error("A IA não retornou uma resposta válida.");
 
-  if (!textResponse) {
-    throw new Error("A IA não retornou uma resposta válida.");
+  try {
+    await setDoc(cacheRef, {
+      response: textResponse,
+      createdAt: serverTimestamp(),
+    });
+    console.log(
+      `%cSALVO NO CACHE: ${cacheKey}`,
+      "color: blue; font-weight: bold;"
+    );
+  } catch (error) {
+    console.error("Falha ao salvar no cache.", error);
   }
 
   if (tipo === "atividadePrincipal") {
-    const atividadeParseada = parseAtividadeFromText(textResponse);
-    if (atividadeParseada) {
-      return [atividadeParseada];
-    } else {
-      console.error("Erro ao analisar a resposta da IA:", textResponse);
-      throw new Error("A IA retornou um formato de texto inesperado.");
-    }
+    return parseMultiplasAtividadesFromText(textResponse);
   }
-
-  return textResponse;
+  return textResponse
+    .split("|||")
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
-// ... (O restante do arquivo continua exatamente igual)
-
+// Sua função de simulação - MANTIDA
 async function buscarSugestoesComIA_SIMULACAO(tipo, habilidade = "") {
   console.warn(
     "Usando dados de simulação. Adicione uma API Key para usar a IA real."
@@ -171,34 +240,31 @@ async function buscarSugestoesComIA_SIMULACAO(tipo, habilidade = "") {
   const quebraGelos = [
     "Iniciar com 'massinha sensorial'.",
     "Começar com a 'Música do Olá'.",
-    "Fazer um desenho livre sobre como se sente hoje.",
-    "Brincar de 'estátua' com música calma.",
+    "Desenho livre sobre sentimentos.",
+    "Brincar de 'estátua' com música.",
+    "Caixa de sensações táteis.",
   ];
   const finalizacoes = [
     "Terminar com a 'Canção do Tchau'.",
     "Fazer a 'Massagem das Costas'.",
-    "Guardar os materiais ouvindo uma música relaxante.",
-    "Contar o que mais gostou de fazer no atendimento.",
+    "Guardar materiais com música.",
+    "Contar o que mais gostou.",
+    "Respiração calma com a mão na barriga.",
   ];
 
-  if (tipo === "quebraGelo")
-    return quebraGelos[Math.floor(Math.random() * quebraGelos.length)];
-  if (tipo === "finalizacao")
-    return finalizacoes[Math.floor(Math.random() * finalizacoes.length)];
+  if (tipo === "quebraGelo") return quebraGelos;
+  if (tipo === "finalizacao") return finalizacoes;
 
-  return [
-    {
-      titulo: `Atividade Simulada para ${
-        habilidade || "habilidade não informada"
-      }`,
-      objetivos: ["Objetivo simulado 1", "Objetivo simulado 2"],
-      recursos: "Recursos de teste",
-      metodologia: "Metodologia de teste para a habilidade.",
-      duracao: "30 minutos",
-    },
-  ];
+  return Array.from({ length: 5 }).map((_, i) => ({
+    titulo: `Atividade Simulada ${i + 1} para ${habilidade || "habilidade"}`,
+    objetivos: ["Objetivo simulado 1", "Objetivo simulado 2"],
+    recursos: "Recursos de teste",
+    metodologia: "Metodologia de teste para a habilidade.",
+    duracao: "30 minutos",
+  }));
 }
 
+// Seu Hook Principal
 export function usePlanoAEE(alunoId) {
   const [aluno, setAluno] = useState(null);
   const [plano, setPlano] = useState(null);
@@ -244,7 +310,31 @@ export function usePlanoAEE(alunoId) {
   }, [carregarDados]);
 
   const getSugestoes = useCallback(
-    async (tipo, habilidade) => {
+    async (tipo, habilidade, forceRefresh = false) => {
+      // --- FERRAMENTA DE DEPURACÃO ADICIONADA ---
+      // Este bloco vai ajudar a encontrar qual componente está chamando a função incorretamente.
+      if (
+        tipo === "atividadePrincipal" &&
+        (typeof habilidade !== "object" ||
+          habilidade === null ||
+          !habilidade.id)
+      ) {
+        console.error("--- CHAMADA INCORRETA DETECTADA ---");
+        console.error(
+          `A função 'getSugestoes' foi chamada para 'atividadePrincipal', mas o segundo argumento ('habilidade') não é um objeto de habilidade válido.`
+        );
+        console.error("Valor recebido para 'habilidade':", habilidade);
+        console.trace(
+          "Rastreamento da chamada (procure o nome do seu componente no topo):"
+        ); // Isso mostrará o culpado!
+        // Retornar um array vazio para não quebrar a interface que espera uma lista
+        return [];
+      }
+      // --- FIM DA FERRAMENTA DE DEPURACÃO ---
+
+      if (!aluno) {
+        throw new Error("Dados do aluno não carregados para gerar sugestão.");
+      }
       try {
         const idade = aluno?.nascimento
           ? new Date().getFullYear() -
@@ -256,8 +346,10 @@ export function usePlanoAEE(alunoId) {
 
         return await buscarSugestoesComIA_REAL(
           tipo,
-          habilidade?.habilidade,
-          idade
+          habilidade,
+          idade,
+          aluno,
+          forceRefresh
         );
       } catch (e) {
         console.error("Erro ao buscar sugestões:", e);

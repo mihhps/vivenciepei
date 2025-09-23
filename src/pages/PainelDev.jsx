@@ -1,13 +1,31 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import { getAuth, signOut } from "firebase/auth";
+import { db, storage } from "../firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { doc, updateDoc } from "firebase/firestore";
+
+// Importe o novo arquivo de estilo
+import "../styles/PainelDev.css";
+
+// Ícone para o botão de editar foto
+const CameraIcon = () => (
+  <svg height="12" width="12" viewBox="0 0 24 24" fill="white">
+    <path d="M4 4h3l2-2h6l2 2h3a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2zm8 14a5 5 0 100-10 5 5 0 000 10z" />
+    <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" />
+  </svg>
+);
 
 export default function PainelDev() {
   const [usuarioLogado, setUsuarioLogado] = useState(null);
   const [loadingRecalculo, setLoadingRecalculo] = useState(false);
+  const [abaAtiva, setAbaAtiva] = useState("avaliacoes"); // Aba inicial
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
   const navigate = useNavigate();
 
+  // Efeito para carregar o CSS do Toastify se necessário
   useEffect(() => {
     if (!document.querySelector('link[href*="react-toastify"]')) {
       const link = document.createElement("link");
@@ -18,34 +36,48 @@ export default function PainelDev() {
     }
   }, []);
 
-  // ##### CORREÇÃO 1: Carregando o usuário real do localStorage #####
   useEffect(() => {
     const usuarioSalvo = localStorage.getItem("usuarioLogado");
     if (usuarioSalvo) {
       setUsuarioLogado(JSON.parse(usuarioSalvo));
     } else {
-      toast.error("Sessão não encontrada. Por favor, faça login novamente.");
       navigate("/login");
     }
   }, [navigate]);
 
-  // ##### CORREÇÃO 2: Implementada a chamada REAL para a Cloud Function #####
+  const handleFileChange = async (event) => {
+    const file = event.target.files[0];
+    if (!file || !usuarioLogado) return;
+    setUploading(true);
+    const storageRef = ref(storage, `fotos-perfil/${usuarioLogado.uid}`);
+    try {
+      await uploadBytes(storageRef, file);
+      const photoURL = await getDownloadURL(storageRef);
+      const userDocRef = doc(db, "usuarios", usuarioLogado.uid);
+      await updateDoc(userDocRef, { photoURL });
+      const usuarioAtualizado = { ...usuarioLogado, photoURL };
+      setUsuarioLogado(usuarioAtualizado);
+      localStorage.setItem("usuarioLogado", JSON.stringify(usuarioAtualizado));
+    } catch (error) {
+      console.error("Erro no upload da foto:", error);
+      toast.error("Falha ao enviar a foto.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleAvatarClick = () => {
+    fileInputRef.current.click();
+  };
+
   const handleRecalcularTodosPrazos = async () => {
     setLoadingRecalculo(true);
-    toast.info("Iniciando recálculo de prazos...", { autoClose: 3000 });
-
+    toast.info("Iniciando recálculo...", { autoClose: 3000 });
     try {
-      const auth = getAuth();
-      const user = auth.currentUser;
-      if (!user) {
-        throw new Error("Usuário não autenticado. Faça login novamente.");
-      }
-
+      const user = getAuth().currentUser;
+      if (!user) throw new Error("Usuário não autenticado.");
       const token = await user.getIdToken(true);
-
-      // 👇 IMPORTANTE: Cole a URL da sua função aqui dentro das aspas 👇
       const url = "https://recalculartodosprazos-hc7r4cnuvq-rj.a.run.app";
-
       const response = await fetch(url, {
         method: "POST",
         headers: {
@@ -54,178 +86,208 @@ export default function PainelDev() {
         },
         body: JSON.stringify({ data: { userId: user.uid } }),
       });
-
       const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "A função retornou um erro.");
-      }
-
-      toast.success(result.message || "Recálculo concluído com sucesso!");
+      if (!response.ok) throw new Error(result.error || "Erro na função.");
+      toast.success(result.message || "Recálculo concluído!");
     } catch (error) {
-      toast.error(`Erro no recálculo: ${error.message}`);
-      console.error("Erro no recálculo de prazos:", error);
+      toast.error(`Erro: ${error.message}`);
     } finally {
       setLoadingRecalculo(false);
     }
   };
 
-  const handleNavigate = (rota) => {
-    navigate(rota);
+  const handleSair = async () => {
+    try {
+      await signOut(getAuth());
+      localStorage.removeItem("usuarioLogado");
+      toast.success("Você saiu com sucesso!");
+      navigate("/login");
+    } catch (error) {
+      toast.error("Erro ao sair.");
+    }
   };
 
-  const botoes = [
-    { label: "Avaliação Inicial", rota: "/avaliacao-inicial" },
-    {
-      label: "Avaliação de Interesses",
-      rota: "/nova-avaliacao/Avaliacaointeresses",
-    },
-    // AVALIAÇÃO DE 0 A 3 ANOS
-    { label: "Avaliação 0-3 Anos", rota: "/nova-avaliacao-0a3" },
-    { label: "Criar PEI", rota: "/criar-pei" },
-    { label: "Criar PEI 0-3 Anos", rota: "/criar-pei-0a3" },
-    { label: "Anamnese", rota: "/anamnese-completa" },
-    { label: "Ver Anamnese", rota: "/anamnese" },
-    { label: "Gerenciar Prazos PEI", rota: "/gestao-prazos-pei" },
-    { label: "Acompanhar Prazos PEI", rota: "/acompanhamento-prazos-pei" },
-    { label: "Acompanhamento Escolar", rota: "/acompanhamento" },
-    { label: "Acompanhamento AEE", rota: "/acompanhamento-aee-selecao" },
-    { label: "Ver Alunos", rota: "/ver-alunos" },
-    { label: "Relatórios de Aluno", rota: "/relatorios-aluno" },
-    { label: "Importar Alunos", rota: "/importar-alunos" },
-    { label: "Cadastrar Usuário", rota: "/cadastro-usuario" },
-    { label: "Vincular Turmas a Professores", rota: "/vincular-professores" },
-    { label: "Vincular Escolas a Professores", rota: "/vincular-escolas" },
-    { label: "Cadastrar Turma", rota: "/cadastro-turmas" },
-  ];
-
-  const estiloBotao = {
-    padding: "12px 24px",
-    margin: "6px 0",
-    backgroundColor: "#1d3557",
-    color: "white",
-    border: "none",
-    borderRadius: "8px",
-    fontSize: "16px",
-    fontWeight: "bold",
-    width: "100%",
-    cursor: "pointer",
-    transition: "background-color 0.3s ease",
-  };
-
-  const estiloBotaoAdmin = {
-    ...estiloBotao,
-    backgroundColor: loadingRecalculo ? "#a8dadc" : "#e63946",
-    color: "white",
-    marginTop: "20px",
-    opacity: loadingRecalculo ? 0.7 : 1,
-    cursor: loadingRecalculo ? "not-allowed" : "pointer",
-  };
-
-  const BotaoSair = () => {
-    const handleSair = async () => {
-      try {
-        const auth = getAuth();
-        await signOut(auth);
-        localStorage.removeItem("usuarioLogado");
-        toast.success("Você saiu da sua conta com sucesso!");
-        navigate("/login");
-      } catch (error) {
-        toast.error("Erro ao sair. Tente novamente.");
-        console.error("Erro ao fazer logout:", error);
-      }
-    };
-    return (
-      <button
-        onClick={handleSair}
-        style={{
-          ...estiloBotao,
-          backgroundColor: "#a8dadc",
-          color: "#1d3557",
-          marginTop: "20px",
-        }}
-      >
-        Sair
-      </button>
-    );
-  };
+  const BotaoPainel = ({ texto, destino, className = "painel-botao" }) => (
+    <button className={className} onClick={() => navigate(destino)}>
+      {texto}
+    </button>
+  );
 
   if (!usuarioLogado) {
     return <div className="app-loading">Carregando...</div>;
   }
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        width: "100vw",
-        backgroundColor: "#1d3557",
-        display: "flex",
-        justifyContent: "center",
-        paddingTop: "60px",
-        paddingBottom: "60px",
-        overflowY: "auto",
-        fontFamily: "'Segoe UI', sans-serif",
-      }}
-    >
-      <ToastContainer position="top-right" />
-      <div
-        style={{
-          backgroundColor: "white",
-          padding: "40px",
-          borderRadius: "20px",
-          boxShadow: "0 0 30px rgba(0,0,0,0.2)",
-          width: "100%",
-          maxWidth: "420px",
-          textAlign: "center",
-        }}
-      >
+    <div className="painel-page-container">
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+      />
+      <div className="painel-card">
+        <div className="user-profile-top-corner">
+          <div className="avatar-container">
+            <img
+              src={usuarioLogado?.photoURL || "/avatar-padrao.png"}
+              alt="Foto do perfil"
+              className="avatar-imagem"
+            />
+            <button
+              className="avatar-botao-editar"
+              onClick={handleAvatarClick}
+              disabled={uploading}
+            >
+              {uploading ? "..." : <CameraIcon />}
+            </button>
+            <input
+              type="file"
+              accept="image/*"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              style={{ display: "none" }}
+            />
+          </div>
+          <div className="user-text">
+            <span>Bem-vindo, </span>
+            <strong>{usuarioLogado?.nome || "Usuário"}</strong>
+          </div>
+        </div>
+
         <img
           src="/logo-vivencie.png"
           alt="Logo Vivencie PEI"
-          style={{
-            width: "150px",
-            height: "auto",
-            objectFit: "contain",
-            display: "block",
-            margin: "0 auto 10px",
-          }}
+          className="painel-logo"
         />
-        <h1 style={{ marginBottom: "10px", color: "#1d3557" }}>
-          Painel do Desenvolvedor
-        </h1>
-        <p style={{ marginBottom: "20px" }}>
-          Bem-vindo, <strong>{usuarioLogado?.nome || "Usuário"}</strong>
-          <br />
-          Perfil: <strong>{usuarioLogado?.perfil || "Desconhecido"}</strong>
-        </p>
-        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-          {botoes.map((botao, i) => (
-            <button
-              key={i}
-              onClick={() => handleNavigate(botao.rota)}
-              style={estiloBotao}
-            >
-              {botao.label}
-            </button>
-          ))}
+        <h1 className="painel-titulo">Painel do Desenvolvedor</h1>
+
+        <div className="painel-tabs-nav">
+          <button
+            className={`tab-button ${
+              abaAtiva === "avaliacoes" ? "active" : ""
+            }`}
+            onClick={() => setAbaAtiva("avaliacoes")}
+          >
+            Avaliações
+          </button>
+          <button
+            className={`tab-button ${abaAtiva === "gestao" ? "active" : ""}`}
+            onClick={() => setAbaAtiva("gestao")}
+          >
+            Gestão
+          </button>
+          <button
+            className={`tab-button ${
+              abaAtiva === "acompanhamento" ? "active" : ""
+            }`}
+            onClick={() => setAbaAtiva("acompanhamento")}
+          >
+            Acompanhamento
+          </button>
+          <button
+            className={`tab-button ${abaAtiva === "admin" ? "active" : ""}`}
+            onClick={() => setAbaAtiva("admin")}
+          >
+            Admin
+          </button>
         </div>
-        <hr style={{ margin: "20px 0", border: "1px solid #e0e0e0" }} />
-        <div style={{ textAlign: "left" }}>
-          <h3 style={{ color: "#1d3557", marginBottom: "10px" }}>
-            Ferramentas de Manutenção
-          </h3>
+
+        <div className="painel-tabs-content">
+          {abaAtiva === "avaliacoes" && (
+            <>
+              <BotaoPainel
+                texto="Avaliação Inicial"
+                destino="/avaliacao-inicial"
+              />
+              <BotaoPainel
+                texto="Avaliação de Interesses"
+                destino="/nova-avaliacao/Avaliacaointeresses"
+              />
+              <BotaoPainel
+                texto="Avaliação 0-3 Anos"
+                destino="/nova-avaliacao-0a3"
+              />
+              <BotaoPainel texto="Criar PEI" destino="/criar-pei" />
+              <BotaoPainel
+                texto="Criar PEI 0-3 Anos"
+                destino="/criar-pei-0a3"
+              />
+              <BotaoPainel
+                texto="Anamnese Completa"
+                destino="/anamnese-completa"
+              />
+            </>
+          )}
+
+          {abaAtiva === "gestao" && (
+            <>
+              <BotaoPainel texto="Ver Alunos" destino="/ver-alunos" />
+              <BotaoPainel texto="Importar Alunos" destino="/importar-alunos" />
+              <BotaoPainel texto="Ver Anamneses" destino="/anamnese" />
+              <BotaoPainel
+                texto="Relatórios de Aluno"
+                destino="/relatorios-aluno"
+              />
+              <BotaoPainel texto="Cadastrar Turma" destino="/cadastro-turmas" />
+              <BotaoPainel
+                texto="Vincular Turmas a Professores"
+                destino="/vincular-professores"
+              />
+              <BotaoPainel
+                texto="Vincular Escolas a Professores"
+                destino="/vincular-escolas"
+              />
+            </>
+          )}
+
+          {abaAtiva === "acompanhamento" && (
+            <>
+              <BotaoPainel
+                texto="Acompanhamento Escolar"
+                destino="/acompanhamento"
+              />
+              <BotaoPainel
+                texto="Acompanhamento AEE"
+                destino="/acompanhamento-aee-selecao"
+              />
+              <BotaoPainel
+                texto="Acompanhamento AEE Gestão"
+                destino="/acompanhamento-gestao-selecao"
+              />
+            </>
+          )}
+
+          {abaAtiva === "admin" && (
+            <>
+              <BotaoPainel
+                texto="Cadastrar Usuário"
+                destino="/cadastro-usuario"
+              />
+              <BotaoPainel
+                texto="Gerenciar Prazos PEI"
+                destino="/gestao-prazos-pei"
+              />
+              <BotaoPainel
+                texto="Acompanhar Prazos PEI"
+                destino="/acompanhamento-prazos-pei"
+              />
+              <hr className="painel-divisor" />
+              <h3 className="subtitulo-admin">Ferramentas de Manutenção</h3>
+              <button
+                onClick={handleRecalcularTodosPrazos}
+                className="painel-botao-admin"
+                disabled={loadingRecalculo}
+              >
+                {loadingRecalculo
+                  ? "Recalculando..."
+                  : "Recalcular Todos os Prazos PEI"}
+              </button>
+            </>
+          )}
         </div>
-        <button
-          onClick={handleRecalcularTodosPrazos}
-          style={estiloBotaoAdmin}
-          disabled={loadingRecalculo}
-        >
-          {loadingRecalculo
-            ? "Recalculando Prazos..."
-            : "Recalcular Todos os Prazos PEI (Admin)"}
+
+        <button onClick={handleSair} className="painel-botao-sair">
+          Sair
         </button>
-        <BotaoSair />
       </div>
     </div>
   );

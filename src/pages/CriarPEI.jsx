@@ -20,6 +20,13 @@ import { FaPuzzlePiece } from "react-icons/fa";
 
 import { useUserSchool } from "../hooks/useUserSchool";
 
+// Importando as 3 funções do nosso serviço de IA
+import {
+  getSugestaoEstrategiasPEI,
+  getSugestaoAtividadePEI,
+  getSugestaoAtividadeParaEstrategia,
+} from "../services/geminiService";
+
 import estruturaPEI from "../data/estruturaPEI2";
 import { avaliacaoInicial } from "../data/avaliacaoInicialData";
 import objetivosCurtoPrazoData from "../data/objetivosCurtoPrazo";
@@ -167,9 +174,6 @@ const buildNewPeiFromAssessment = (
       Object.entries(habilidadesAvaliacao).forEach(
         ([habilidade, nivelAtual]) => {
           if (nivelAtual === "I" || nivelAtual === "NA") {
-            console.log(
-              `Habilidade '${habilidade}' está no nível '${nivelAtual}'. Não será gerada meta de PEI.`
-            );
             return;
           }
 
@@ -182,9 +186,6 @@ const buildNewPeiFromAssessment = (
           ) {
             nivelAlmejado = NIVEIS_PROGRESSAO[currentIndex + 1];
           } else {
-            console.warn(
-              `Nível avaliado '${nivelAtual}' para habilidade '${habilidade}' (Área '${area}') não encontrado na progressão ou é o último (e não 'I'). Não será gerada meta de PEI.`
-            );
             return;
           }
 
@@ -194,7 +195,6 @@ const buildNewPeiFromAssessment = (
             objetivosCurtoPrazoMap[habilidade]?.[nivelAlmejado];
           const suggestedObjetivoMedioPrazo =
             objetivosMedioPrazoMap[habilidade]?.[nivelAlmejado];
-
           const suggestedStrategiesFromBase =
             estruturaPEIMap[habilidade]?.[nivelAlmejado]?.estrategias;
 
@@ -206,9 +206,6 @@ const buildNewPeiFromAssessment = (
             (Array.isArray(suggestedStrategiesFromBase) &&
               suggestedStrategiesFromBase.length === 0)
           ) {
-            console.warn(
-              `Nenhuma sugestão COMPLETA (objetivos CP/MP/LP ou estratégias) encontrada em estruturaPEI/objetivosPrazo para a habilidade: '${habilidade}' no nível almejado: '${nivelAlmejado}'. Meta IGNORADA.`
-            );
             return;
           }
 
@@ -230,9 +227,6 @@ const buildNewPeiFromAssessment = (
               );
 
           if (estrategiasFiltradas.length === 0) {
-            console.log(
-              `Nenhuma estratégia disponível para a meta de habilidade "${habilidade}" no nível "${nivelAlmejado}" após filtragem global.`
-            );
             return;
           }
 
@@ -256,8 +250,6 @@ const buildNewPeiFromAssessment = (
   return newPeiData;
 };
 
-const loadExistingPeiData = () => {};
-
 // --- COMPONENTE PRINCIPAL ---
 export default function CriarPEI() {
   const [alunos, setAlunos] = useState([]);
@@ -268,9 +260,16 @@ export default function CriarPEI() {
   const [carregando, setCarregando] = useState(false);
   const [atividadeAplicada, setAtividadeAplicada] = useState("");
   const [peiCriadorId, setPeiCriadorId] = useState(null);
-
   const [activeTab, setActiveTab] = useState("longoPrazo");
+  const [estrategiasIA, setEstrategiasIA] = useState({});
+  const [carregandoIA, setCarregandoIA] = useState(null);
 
+  // Novos estados para a nova funcionalidade
+  const [sugestoesAtividadesIndividuais, setSugestoesAtividadesIndividuais] =
+    useState({});
+  const [carregandoAtividadeIndividual, setCarregandoAtividadeIndividual] =
+    useState({});
+  const [sugestaoExibida, setSugestaoExibida] = useState({});
   const navigate = useNavigate();
   const location = useLocation();
   const { erro, mensagemSucesso, exibirMensagem } = useMessageSystem();
@@ -287,22 +286,15 @@ export default function CriarPEI() {
     () => getObjetivosPrazoMap(objetivosMedioPrazoData),
     []
   );
-
   const todasAsAreas = useMemo(() => Object.keys(avaliacaoInicial), []);
-  const usuarioLogado = useMemo(() => {
-    try {
-      return JSON.parse(localStorage.getItem("usuarioLogado")) || {};
-    } catch (e) {
-      console.error("Erro ao fazer parse do usuário logado:", e);
-      return {};
-    }
-  }, []);
-
+  const usuarioLogado = useMemo(
+    () => JSON.parse(localStorage.getItem("usuarioLogado")) || {},
+    []
+  );
   const isPEICriador = useMemo(
-    () => usuarioLogado.email === peiCriadorId,
+    () => !peiCriadorId || usuarioLogado.email === peiCriadorId,
     [usuarioLogado.email, peiCriadorId]
   );
-
   const perfisComAcessoAmplo = useMemo(
     () => [
       "desenvolvedor",
@@ -316,33 +308,46 @@ export default function CriarPEI() {
     []
   );
 
+  const estrategiasSelecionadas = useMemo(() => {
+    const todasEstrategias = new Set();
+    if (!pei || !entradaManual) return [];
+    Object.entries(pei).forEach(([area, metas]) => {
+      metas.forEach((meta) => {
+        const manualKey = `${area}-${meta.habilidade.replace(
+          /[^a-zA-Z0-9-]/g,
+          ""
+        )}`;
+        const manualData = entradaManual[manualKey] || {};
+        if (manualData.estrategias) {
+          manualData.estrategias.forEach((est) => todasEstrategias.add(est));
+        }
+        if (manualData.estrategiasManuais) {
+          manualData.estrategiasManuais.split("\n").forEach((est) => {
+            if (est.trim()) todasEstrategias.add(est.trim());
+          });
+        }
+      });
+    });
+    return Array.from(todasEstrategias);
+  }, [pei, entradaManual]);
+
   const carregarDadosIniciais = useCallback(async () => {
     setCarregando(true);
     exibirMensagem("sucesso", "Carregando dados iniciais...");
-
     if (isLoadingUserSchool) return;
-
     try {
       const currentYear = new Date().getFullYear();
       const isAcessoAmplo = perfisComAcessoAmplo.includes(usuarioLogado.perfil);
-
       let alunosQuery;
       let peisQuery;
-
-      const isDesenvolvedorOuSeme = ["desenvolvedor", "seme"].includes(
-        usuarioLogado.perfil
-      );
-
-      // --- ALTERAÇÃO AQUI: LÓGICA PARA PERFIS "DESENVOLVEDOR" e "SEME" ---
-      if (isDesenvolvedorOuSeme) {
+      if (["desenvolvedor", "seme"].includes(usuarioLogado.perfil)) {
         alunosQuery = collection(db, "alunos");
         peisQuery = collection(db, "peis");
       } else if (isAcessoAmplo) {
-        if (!userSchoolId) {
+        if (!userSchoolId)
           throw new Error(
             "ID da escola não encontrado para o perfil de gestão."
           );
-        }
         alunosQuery = query(
           collection(db, "alunos"),
           where("escolaId", "==", userSchoolId)
@@ -356,13 +361,11 @@ export default function CriarPEI() {
           ? Object.keys(userSchoolData.turmas)
           : [];
         if (turmasDoProfessor.length === 0) {
-          setCarregando(false);
           setAlunos([]);
-          exibirMensagem(
+          return exibirMensagem(
             "erro",
             "Nenhuma turma vinculada ao seu perfil de professor."
           );
-          return;
         }
         alunosQuery = query(
           collection(db, "alunos"),
@@ -373,51 +376,35 @@ export default function CriarPEI() {
           where("criadorId", "==", usuarioLogado.email)
         );
       } else {
-        setCarregando(false);
         setAlunos([]);
-        exibirMensagem(
+        return exibirMensagem(
           "erro",
           "Seu perfil não tem permissão para visualizar alunos."
         );
-        return;
       }
-
       const [alunosSnap, peisSnap] = await Promise.all([
         getDocs(alunosQuery),
         getDocs(peisQuery),
       ]);
-
-      const todosAlunos = alunosSnap.docs.map((doc) => {
-        const alunoData = doc.data();
-        return {
-          id: doc.id,
-          ...alunoData,
-          isTea: verificaTea(alunoData.diagnostico),
-        };
-      });
-
+      const todosAlunos = alunosSnap.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+        isTea: verificaTea(doc.data().diagnostico),
+      }));
       const peisDoUsuario = peisSnap.docs.filter(
         (doc) =>
           doc.data().criadorId === usuarioLogado.email &&
           doc.data().anoLetivo === currentYear
       );
-
       const alunosComPeiDesteUsuarioIds = new Set(
         peisDoUsuario.map((doc) => doc.data().alunoId)
       );
-
       const alunosParaSelecaoFinal = todosAlunos.filter(
         (aluno) => !alunosComPeiDesteUsuarioIds.has(aluno.id)
       );
-
       setAlunos(alunosParaSelecaoFinal);
-      exibirMensagem("sucesso", "Dados carregados com sucesso.");
     } catch (err) {
-      console.error("Erro ao carregar dados do Firebase:", err);
-      exibirMensagem(
-        "erro",
-        `Falha ao carregar dados: ${err.message}. Tente recarregar a página.`
-      );
+      exibirMensagem("erro", `Falha ao carregar dados: ${err.message}.`);
     } finally {
       setCarregando(false);
     }
@@ -431,14 +418,11 @@ export default function CriarPEI() {
   ]);
 
   useEffect(() => {
-    if (!isLoadingUserSchool) {
-      carregarDadosIniciais();
-    }
+    if (!isLoadingUserSchool) carregarDadosIniciais();
   }, [isLoadingUserSchool, carregarDadosIniciais]);
 
   const handleSelectStudent = useCallback(
     async (alunoOuNome) => {
-      // Verifica se o input é um objeto (passado pelo state) ou uma string (do select)
       const aluno =
         typeof alunoOuNome === "object"
           ? alunoOuNome
@@ -446,21 +430,11 @@ export default function CriarPEI() {
               (a) =>
                 a.nome.trim().toLowerCase() === alunoOuNome.trim().toLowerCase()
             );
-
-      if (!aluno) {
-        exibirMensagem("erro", "Aluno não encontrado.");
-        return;
-      }
-
+      if (!aluno) return exibirMensagem("erro", "Aluno não encontrado.");
       setAlunoSelecionado(aluno);
-      exibirMensagem("sucesso", "Carregando PEI...");
       setCarregando(true);
-      setActiveTab("longoPrazo");
-
       try {
         const currentYear = new Date().getFullYear();
-
-        // Consulta unificada para a avaliação usando o campo consistente 'alunoId'
         let qUltimaAvaliacao = query(
           collection(db, "avaliacoesIniciais"),
           where("alunoId", "==", aluno.id),
@@ -468,30 +442,23 @@ export default function CriarPEI() {
           limit(1)
         );
         let avaliacoesSnap = await getDocs(qUltimaAvaliacao);
-
-        // Se a primeira busca não encontrou nada, tenta o formato antigo 'aluno.id'
         if (avaliacoesSnap.empty) {
-          const qUltimaAvaliacaoAntigo = query(
+          qUltimaAvaliacao = query(
             collection(db, "avaliacoesIniciais"),
             where("aluno.id", "==", aluno.id),
             orderBy("dataCriacao", "desc"),
             limit(1)
           );
-          avaliacoesSnap = await getDocs(qUltimaAvaliacaoAntigo);
+          avaliacoesSnap = await getDocs(qUltimaAvaliacao);
         }
-
         if (avaliacoesSnap.empty) {
-          exibirMensagem(
+          setAlunoSelecionado(null);
+          return exibirMensagem(
             "erro",
             "Este aluno não possui avaliação inicial ou reavaliação."
           );
-          setAlunoSelecionado(null);
-          setPeiCriadorId(null);
-          return;
         }
-
         const assessment = avaliacoesSnap.docs[0].data();
-
         const qTodosPeisDoAlunoNoAno = query(
           collection(db, "peis"),
           where("alunoId", "==", aluno.id),
@@ -499,26 +466,10 @@ export default function CriarPEI() {
         );
         const todosPeisDoAlunoSnap = await getDocs(qTodosPeisDoAlunoNoAno);
         const alunoJaTemQualquerPei = !todosPeisDoAlunoSnap.empty;
-
-        const estrategiasJaEmUsoGlobalmente = new Set();
-        todosPeisDoAlunoSnap.docs.forEach((doc) => {
-          const peiData = doc.data();
-          if (Array.isArray(peiData.resumoPEI)) {
-            peiData.resumoPEI.forEach((meta) => {
-              if (Array.isArray(meta.estrategiasSelecionadas)) {
-                meta.estrategiasSelecionadas.forEach((estrat) =>
-                  estrategiasJaEmUsoGlobalmente.add(estrat)
-                );
-              }
-            });
-          }
-        });
-
         const podeIniciarPrimeiroPEI = verificarPermissaoIniciarPrimeiroPEI(
           usuarioLogado.perfil,
           usuarioLogado.cargo
         );
-
         if (!alunoJaTemQualquerPei && !podeIniciarPrimeiroPEI) {
           exibirMensagem(
             "erro",
@@ -529,6 +480,16 @@ export default function CriarPEI() {
           return;
         }
 
+        const estrategiasJaEmUsoGlobalmente = new Set();
+        todosPeisDoAlunoSnap.docs.forEach((doc) => {
+          doc
+            .data()
+            .resumoPEI?.forEach((meta) =>
+              meta.estrategiasSelecionadas?.forEach((estrat) =>
+                estrategiasJaEmUsoGlobalmente.add(estrat)
+              )
+            );
+        });
         const newPei = buildNewPeiFromAssessment(
           assessment,
           estruturaPEIMap,
@@ -537,44 +498,23 @@ export default function CriarPEI() {
           new Set(),
           estrategiasJaEmUsoGlobalmente
         );
-
-        const isNewPeiEmpty = Object.keys(newPei).every(
-          (area) => newPei[area].length === 0
-        );
-
-        if (isNewPeiEmpty) {
-          let errorMessageDetail = "";
-          if (alunoJaTemQualquerPei) {
-            errorMessageDetail =
-              "Os objetivos sugeridos para este aluno já foram abordados no PEI inicial e/ou todas as estratégias disponíveis já estão em uso.";
-          } else {
-            errorMessageDetail =
-              "Não há objetivos ou estratégias sugeridas para este aluno com base em sua avaliação.";
-          }
-          exibirMensagem(
-            "erro",
-            `Não foi possível iniciar um novo PEI. ${errorMessageDetail}`
-          );
+        if (Object.keys(newPei).length === 0) {
           setAlunoSelecionado(null);
-          setPeiCriadorId(null);
-          return;
+          return exibirMensagem(
+            "erro",
+            "Não foi possível iniciar um novo PEI. Todos os objetivos já foram abordados."
+          );
         }
-
         setPei(newPei);
-        setAreaAtiva(Object.keys(newPei)[0] || todasAsAreas[0] || "");
+        setAreaAtiva(Object.keys(newPei)[0] || "");
         setAtividadeAplicada("");
         setEntradaManual({});
-        setPeiCriadorId(usuarioLogado.email);
         exibirMensagem(
           "sucesso",
-          `Novo PEI iniciado com base na avaliação mais recente. Você está criando o SEU PEI para este aluno.`
+          "Novo PEI iniciado com base na avaliação mais recente."
         );
       } catch (err) {
-        console.error("Erro ao buscar/criar PEI:", err);
-        exibirMensagem(
-          "erro",
-          `Erro ao carregar ou iniciar PEI: ${err.message}.`
-        );
+        exibirMensagem("erro", `Erro ao carregar PEI: ${err.message}`);
       } finally {
         setCarregando(false);
       }
@@ -582,36 +522,22 @@ export default function CriarPEI() {
     [
       alunos,
       exibirMensagem,
-      verificarPermissaoIniciarPrimeiroPEI,
-      buildNewPeiFromAssessment,
       estruturaPEIMap,
       objetivosCurtoPrazoMap,
       objetivosMedioPrazoMap,
-      usuarioLogado.cargo,
-      usuarioLogado.perfil,
-      usuarioLogado.email,
-      todasAsAreas,
+      usuarioLogado,
     ]
   );
+
   useEffect(() => {
     if (location.state?.alunoParaSelecionar && alunos.length > 0) {
-      const alunoDoState = location.state.alunoParaSelecionar;
-      const alunoEncontrado = alunos.find((a) => a.id === alunoDoState.id);
-      if (alunoEncontrado) {
-        handleSelectStudent(alunoEncontrado);
-      }
+      handleSelectStudent(location.state.alunoParaSelecionar.nome);
     }
   }, [location.state, alunos, handleSelectStudent]);
 
   const handleSavePEI = async () => {
-    if (!alunoSelecionado) {
-      exibirMensagem("erro", "Selecione um aluno antes de salvar.");
-      return;
-    }
-
+    if (!alunoSelecionado) return exibirMensagem("erro", "Selecione um aluno.");
     setCarregando(true);
-    exibirMensagem("sucesso", "Salvando PEI...");
-
     try {
       const finalPeiData = Object.entries(pei).flatMap(([area, metas]) =>
         metas
@@ -670,10 +596,7 @@ export default function CriarPEI() {
         setCarregando(false);
         return;
       }
-
       const currentYear = new Date().getFullYear();
-      // NOTA: A busca está na coleção 'peis'. Se os novos PEIs devem ir para 'pei_contribucoes',
-      // esta lógica precisará ser ajustada para buscar e salvar na coleção correta.
       const qExisting = query(
         collection(db, "peis"),
         where("alunoId", "==", alunoSelecionado.id),
@@ -682,7 +605,6 @@ export default function CriarPEI() {
         limit(1)
       );
       const snapExisting = await getDocs(qExisting);
-
       const commonFields = {
         resumoPEI: finalPeiData,
         atividadeAplicada: atividadeAplicada,
@@ -693,67 +615,126 @@ export default function CriarPEI() {
         escolaId: alunoSelecionado.escolaId,
         anoLetivo: currentYear,
       };
-
       if (!snapExisting.empty) {
-        // --- LÓGICA DE ATUALIZAÇÃO (REVISÃO) ---
         const peiDocRef = snapExisting.docs[0].ref;
-
-        const mesAtual = new Date().getMonth(); // 0 = Janeiro, 11 = Dezembro
+        const mesAtual = new Date().getMonth();
         const semestreAtual =
           mesAtual < 6 ? "primeiroSemestre" : "segundoSemestre";
-
         const dadosDaRevisao = {
           status: "Concluído",
           dataRevisao: serverTimestamp(),
           revisadoPor: usuarioLogado.uid,
         };
-
         await updateDoc(peiDocRef, {
           ...commonFields,
           dataUltimaRevisao: serverTimestamp(),
-          // A "mágica" acontece aqui, salvando os dados da revisão
           [`revisoes.${semestreAtual}`]: dadosDaRevisao,
         });
         exibirMensagem(
           "sucesso",
           "PEI atualizado (revisão salva) com sucesso!"
         );
+        navigate("/ver-peis");
       } else {
-        // --- LÓGICA DE CRIAÇÃO (NOVO PEI) ---
         await addDoc(collection(db, "peis"), {
           alunoId: alunoSelecionado.id,
           aluno: alunoSelecionado.nome,
           turma: alunoSelecionado.turma,
           ...commonFields,
           dataCriacao: serverTimestamp(),
-          revisoes: {}, // Inicializa o campo de revisões como um mapa vazio
+          revisoes: {},
         });
         exibirMensagem("sucesso", "Novo PEI salvo com sucesso!");
+        navigate("/ver-peis");
       }
     } catch (err) {
-      console.error("Erro ao salvar PEI:", err);
       exibirMensagem("erro", `Erro ao salvar PEI: ${err.message}`);
     } finally {
       setCarregando(false);
     }
   };
 
-  const estilos = {
-    areaButton: {
-      padding: "10px 18px",
-      borderRadius: "20px",
-      border: "none",
-      margin: "4px",
-      backgroundColor: "var(--bg-button-neutral)",
-      color: "var(--text-primary)",
-      cursor: "pointer",
-      transition: "all var(--transition-normal)",
-    },
-    areaButtonAtiva: {
-      backgroundColor: "var(--color-primary)",
-      color: "var(--text-light)",
-      fontWeight: "bold",
-    },
+  const handleGerarEstrategiasIA = async (meta, area, manualKey) => {
+    if (!alunoSelecionado) return exibirMensagem("erro", "Selecione um aluno.");
+    setCarregandoIA(manualKey);
+    const disciplinaParaIA =
+      usuarioLogado.cargo === "Professor Regente"
+        ? "Pedagogia Geral"
+        : usuarioLogado.cargo;
+
+    try {
+      const novasEstrategias = await getSugestaoEstrategiasPEI(
+        alunoSelecionado,
+        meta,
+        area,
+        disciplinaParaIA
+      );
+      setEstrategiasIA((prev) => ({
+        ...prev,
+        [manualKey]: [...(prev[manualKey] || []), ...novasEstrategias],
+      }));
+    } catch (error) {
+      exibirMensagem("erro", `IA Error: ${error.message}`);
+    } finally {
+      setCarregandoIA(null);
+    }
+  };
+
+  const handleGerarAtividadeIndividual = async (estrategia) => {
+    if (!alunoSelecionado) return;
+
+    // CORREÇÃO 1: Normaliza a chave para ser sempre um texto
+    const keyTexto =
+      typeof estrategia === "string" ? estrategia : estrategia.titulo;
+
+    if (sugestoesAtividadesIndividuais[keyTexto]) {
+      const listaSugestoes = sugestoesAtividadesIndividuais[keyTexto];
+      const novaSugestao =
+        listaSugestoes[Math.floor(Math.random() * listaSugestoes.length)];
+      setSugestaoExibida((prev) => ({
+        ...prev,
+        [keyTexto]: novaSugestao,
+      }));
+      return;
+    }
+
+    setCarregandoAtividadeIndividual((prev) => ({ ...prev, [keyTexto]: true }));
+    try {
+      const respostaDaApi = await getSugestaoAtividadeParaEstrategia(
+        alunoSelecionado,
+        estrategia
+      );
+
+      // CORREÇÃO 2: Garante que a resposta seja sempre uma lista de textos
+      const listaDeSugestoes = respostaDaApi.map((item) =>
+        typeof item === "string" ? item : item.atividade
+      );
+
+      setSugestoesAtividadesIndividuais((prev) => ({
+        ...prev,
+        [keyTexto]: listaDeSugestoes,
+      }));
+
+      const primeiraSugestao =
+        listaDeSugestoes[Math.floor(Math.random() * listaDeSugestoes.length)];
+      setSugestaoExibida((prev) => ({
+        ...prev,
+        [keyTexto]: primeiraSugestao,
+      }));
+    } catch (error) {
+      exibirMensagem("erro", `IA Error: ${error.message}`);
+    } finally {
+      setCarregandoAtividadeIndividual((prev) => ({
+        ...prev,
+        [keyTexto]: false,
+      }));
+    }
+  };
+
+  const handleIncluirAtividade = (textoParaIncluir) => {
+    setAtividadeAplicada((prev) =>
+      prev ? `${prev}\n\n- ${textoParaIncluir}` : `- ${textoParaIncluir}`
+    );
   };
 
   return (
@@ -763,27 +744,10 @@ export default function CriarPEI() {
           <BotaoVoltar />
           <BotaoVerPEIs />
         </div>
-
         <h1 className="titulo">Criar PEI</h1>
-
-        {erro && (
-          <div className="mensagem-erro" role="alert">
-            {erro}
-          </div>
-        )}
+        {erro && <div className="mensagem-erro">{erro}</div>}
         {mensagemSucesso && (
-          <div className="mensagem-sucesso" role="status">
-            {mensagemSucesso}
-          </div>
-        )}
-
-        {carregando && !alunoSelecionado && (
-          <div className="loading">Carregando dados...</div>
-        )}
-        {userSchoolError && (
-          <div className="mensagem-erro">
-            Erro ao obter dados da escola: {userSchoolError.message}
-          </div>
+          <div className="mensagem-sucesso">{mensagemSucesso}</div>
         )}
 
         <div className="seletor-aluno">
@@ -794,15 +758,11 @@ export default function CriarPEI() {
             id="selecionar-aluno"
             value={alunoSelecionado?.nome || ""}
             onChange={(e) => handleSelectStudent(e.target.value)}
-            disabled={
-              carregando ||
-              (alunoSelecionado && location.state?.alunoParaSelecionar)
-            }
+            disabled={carregando}
             className="filter-select"
-            aria-label="Selecione um aluno para criar o PEI"
           >
             <option value="">
-              {carregando ? "Carregando alunos..." : "Selecione um aluno"}
+              {carregando ? "Carregando..." : "Selecione um aluno"}
             </option>
             {alunos.map((aluno) => (
               <option key={aluno.id} value={aluno.nome}>
@@ -815,58 +775,50 @@ export default function CriarPEI() {
         {alunoSelecionado && (
           <>
             <div className="area-buttons-container">
-              {todasAsAreas.map((area) => (
+              {Object.keys(pei).map((area) => (
                 <button
                   key={area}
                   onClick={() => setAreaAtiva(area)}
-                  style={{
-                    ...estilos.areaButton,
-                    ...(areaAtiva === area && estilos.areaButtonAtiva),
-                  }}
-                  aria-current={areaAtiva === area ? "true" : "false"}
+                  className={`area-button ${
+                    areaAtiva === area ? "area-button-ativa" : ""
+                  }`}
                 >
                   {area}
                 </button>
               ))}
-
               <button
                 onClick={() => setAreaAtiva("atividadeAplicada")}
-                style={{
-                  ...estilos.areaButton,
-                  ...(areaAtiva === "atividadeAplicada" &&
-                    estilos.areaButtonAtiva),
-                }}
+                className={`area-button ${
+                  areaAtiva === "atividadeAplicada" ? "area-button-ativa" : ""
+                }`}
               >
                 Atividade Aplicada
               </button>
             </div>
 
             {areaAtiva && areaAtiva !== "atividadeAplicada" && (
-              <div className="tab-buttons-container">
+              <div className="area-buttons-container">
                 <button
                   onClick={() => setActiveTab("curtoPrazo")}
-                  style={{
-                    ...estilos.areaButton,
-                    ...(activeTab === "curtoPrazo" && estilos.areaButtonAtiva),
-                  }}
+                  className={`area-button ${
+                    activeTab === "curtoPrazo" ? "area-button-ativa" : ""
+                  }`}
                 >
                   Curto Prazo
                 </button>
                 <button
                   onClick={() => setActiveTab("medioPrazo")}
-                  style={{
-                    ...estilos.areaButton,
-                    ...(activeTab === "medioPrazo" && estilos.areaButtonAtiva),
-                  }}
+                  className={`area-button ${
+                    activeTab === "medioPrazo" ? "area-button-ativa" : ""
+                  }`}
                 >
                   Médio Prazo
                 </button>
                 <button
                   onClick={() => setActiveTab("longoPrazo")}
-                  style={{
-                    ...estilos.areaButton,
-                    ...(activeTab === "longoPrazo" && estilos.areaButtonAtiva),
-                  }}
+                  className={`area-button ${
+                    activeTab === "longoPrazo" ? "area-button-ativa" : ""
+                  }`}
                 >
                   Longo Prazo
                 </button>
@@ -875,279 +827,310 @@ export default function CriarPEI() {
 
             {areaAtiva === "atividadeAplicada" && (
               <div className="section-content">
+                <h3 className="titulo-secao-atividade">Atividades Aplicadas</h3>
+                <p className="info-text">
+                  Gere ideias para cada estratégia selecionada e depois inclua
+                  as melhores na sua atividade final.
+                </p>
+                <div className="lista-brainstorm">
+                  {estrategiasSelecionadas.length > 0 ? (
+                    estrategiasSelecionadas.map((estrategia, index) => {
+                      // CORREÇÃO 3: Criamos a chave de texto para ler os estados corretamente
+                      const keyTexto =
+                        typeof estrategia === "string"
+                          ? estrategia
+                          : estrategia.titulo;
+
+                      return (
+                        <div key={index} className="item-brainstorm">
+                          <p className="estrategia-texto">
+                            <strong>Estratégia:</strong> {keyTexto}
+                          </p>
+                          <button
+                            className="botao-ia-pequeno"
+                            onClick={() =>
+                              handleGerarAtividadeIndividual(estrategia)
+                            }
+                            disabled={carregandoAtividadeIndividual[keyTexto]}
+                          >
+                            {carregandoAtividadeIndividual[keyTexto]
+                              ? "Gerando..."
+                              : "Gerar Sugestão 💡"}
+                          </button>
+
+                          {sugestaoExibida[keyTexto] && (
+                            <div className="sugestao-individual-container">
+                              <textarea
+                                className="textarea-sugestao"
+                                rows="3"
+                                value={sugestaoExibida[keyTexto]}
+                                readOnly
+                              />
+                              <button
+                                className="botao-incluir"
+                                onClick={() =>
+                                  handleIncluirAtividade(
+                                    sugestaoExibida[keyTexto]
+                                  )
+                                }
+                              >
+                                + Incluir na Atividade
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p>
+                      Nenhuma estratégia foi selecionada ainda. Volte para as
+                      áreas e escolha algumas.
+                    </p>
+                  )}
+                </div>
                 <label htmlFor="atividade-aplicada" className="form-label">
-                  Descreva a atividade aplicada com o aluno:
+                  Descrição da Atividade Aplicada Final:
                 </label>
                 <textarea
                   id="atividade-aplicada"
                   value={atividadeAplicada}
                   onChange={(e) => setAtividadeAplicada(e.target.value)}
-                  placeholder="Ex: Brincadeira simbólica usando fantoches para desenvolver comunicação e imaginação..."
+                  placeholder="As sugestões incluídas aparecerão aqui..."
                   className="textarea-form"
-                  rows="4"
+                  rows="8"
                 />
               </div>
             )}
 
             {areaAtiva && areaAtiva !== "atividadeAplicada" && (
               <div className="section-content">
-                {pei[areaAtiva]?.length > 0 ? (
-                  pei[areaAtiva].map((meta, idx) => {
-                    if (
-                      !meta ||
-                      typeof meta !== "object" ||
-                      !meta.habilidade ||
-                      !meta.objetivos ||
-                      typeof meta.objetivos !== "object"
-                    )
-                      return null;
+                {pei[areaAtiva]?.map((meta, idx) => {
+                  const manualKey = `${areaAtiva}-${meta.habilidade.replace(
+                    /[^a-zA-Z0-9-]/g,
+                    ""
+                  )}`;
+                  const manualData = entradaManual[manualKey] || {};
+                  const currentlySelectedStrategiesSet = new Set([
+                    ...(manualData.estrategias || []),
+                    ...(manualData.estrategiasManuais
+                      ?.split("\n")
+                      .map((s) => s.trim())
+                      .filter(Boolean) || []),
+                  ]);
+                  // NOVO CÓDIGO CORRIGIDO
+                  const allInitialStrategies = new Set([
+                    ...(meta.estrategias || []),
+                    ...(estrategiasIA[manualKey] || []),
+                  ]);
 
-                    const manualKey = `${areaAtiva}-${meta.habilidade.replace(
-                      /[^a-zA-Z0-9-]/g,
-                      ""
-                    )}`;
-                    const manualData = entradaManual[manualKey] || {};
+                  const manualStrategies =
+                    manualData.estrategiasManuais
+                      ?.split("\n")
+                      .map((s) => s.trim())
+                      .filter(Boolean) || [];
 
-                    const currentlySelectedStrategiesSet = new Set([
-                      ...(manualData.estrategias || []),
-                      ...(manualData.estrategiasManuais
-                        ? manualData.estrategiasManuais
-                            .split("\n")
-                            .map((s) => s.trim())
-                            .filter((s) => s.length > 0)
-                        : []),
-                    ]);
+                  const strategiesToDisplay = Array.from(
+                    new Set([...allInitialStrategies, ...manualStrategies])
+                  );
+                  let objetivoParaExibir = meta.objetivos.longoPrazo;
+                  if (activeTab === "curtoPrazo")
+                    objetivoParaExibir = meta.objetivos.curtoPrazo;
+                  if (activeTab === "medioPrazo")
+                    objetivoParaExibir = meta.objetivos.medioPrazo;
 
-                    const strategiesToDisplay = Array.from(
-                      new Set([
-                        ...(meta.estrategias || []),
-                        ...currentlySelectedStrategiesSet,
-                      ])
-                    ).filter((s) => s && s.trim().length > 0);
-
-                    let objetivoParaExibir = "";
-                    if (activeTab === "curtoPrazo") {
-                      objetivoParaExibir = meta.objetivos.curtoPrazo;
-                    } else if (activeTab === "medioPrazo") {
-                      objetivoParaExibir = meta.objetivos.medioPrazo;
-                    } else if (activeTab === "longoPrazo") {
-                      objetivoParaExibir = meta.objetivos.longoPrazo;
-                    }
-
-                    return (
-                      <article
-                        key={`${meta.habilidade}-${idx}`}
-                        className="meta-card"
-                        aria-labelledby={`meta-${manualKey}-habilidade`}
+                  return (
+                    <article
+                      key={`${meta.habilidade}-${idx}`}
+                      className="meta-card"
+                      style={{
+                        border: "1px solid #ddd",
+                        padding: "1rem",
+                        margin: "1rem 0",
+                      }}
+                    >
+                      <h3 id={`meta-${manualKey}-habilidade`}>
+                        {meta.habilidade}
+                      </h3>
+                      <p>
+                        <strong>Nível avaliado:</strong> {meta.nivel} —{" "}
+                        {LEGENDA_NIVEIS[meta.nivel]}
+                      </p>
+                      <p>
+                        <strong>Nível almejado:</strong> {meta.nivelAlmejado} —{" "}
+                        {LEGENDA_NIVEIS[meta.nivelAlmejado]}
+                      </p>
+                      <div
+                        className={`meta-objective ${activeTab}`}
+                        style={{
+                          background: "#f0f0f0",
+                          padding: "1rem",
+                          borderRadius: "4px",
+                          margin: "1rem 0",
+                        }}
                       >
-                        <h3 id={`meta-${manualKey}-habilidade`}>
-                          {meta.habilidade}
-                        </h3>
-                        <p>
-                          <strong>Nível avaliado:</strong> {meta.nivel} —{" "}
-                          {LEGENDA_NIVEIS[meta.nivel]}
-                        </p>
-                        <p>
-                          <strong>Nível almejado:</strong> {meta.nivelAlmejado}{" "}
-                          — {LEGENDA_NIVEIS[meta.nivelAlmejado]}
-                        </p>
+                        {objetivoParaExibir}
+                      </div>
+                      <fieldset className="meta-fieldset">
+                        <legend>Estratégias:</legend>
+                        {strategiesToDisplay.map((estrategia, i) => {
+                          const estrategiaValue =
+                            typeof estrategia === "string"
+                              ? estrategia
+                              : estrategia?.titulo || "";
+                          if (!estrategiaValue) return null;
+                          const isDisabledCheckbox = false;
 
-                        <div>
-                          <p className="form-label">
-                            Objetivo de{" "}
-                            {activeTab === "curtoPrazo"
-                              ? "Curto"
-                              : activeTab === "medioPrazo"
-                                ? "Médio"
-                                : "Longo"}{" "}
-                            Prazo:
-                          </p>
-                          <textarea
-                            className="textarea-form"
-                            rows="2"
-                            value={objetivoParaExibir}
-                            readOnly
-                            disabled
-                          />
-                        </div>
+                          currentlySelectedStrategiesSet.has(estrategiaValue);
+                          return (
+                            <label
+                              key={`${estrategiaValue}-${i}`}
+                              className="checkbox-container"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={currentlySelectedStrategiesSet.has(
+                                  estrategiaValue
+                                )}
+                                // Verifique se o seu onChange é este:
+                                onChange={(e) => {
+                                  const isChecked = e.target.checked;
+                                  const value = estrategiaValue;
 
-                        <fieldset className="meta-fieldset">
-                          <legend>Estratégias:</legend>
+                                  console.log(
+                                    `Clicado! Estratégia: "${value}", Novo estado do check: ${isChecked}`
+                                  );
 
-                          {strategiesToDisplay.length > 0 ? (
-                            strategiesToDisplay.map((estrategia, i) => {
-                              const isChecked =
-                                currentlySelectedStrategiesSet.has(estrategia);
+                                  setEntradaManual((prev) => {
+                                    const currentData = prev[manualKey] || {
+                                      estrategias: [],
+                                      estrategiasManuais: "",
+                                    };
+                                    let currentList = Array.isArray(
+                                      currentData.estrategias
+                                    )
+                                      ? [...currentData.estrategias]
+                                      : [];
+                                    let currentTextAsArray = (
+                                      currentData.estrategiasManuais || ""
+                                    )
+                                      .split("\n")
+                                      .filter(Boolean);
 
-                              const isDisabledCheckbox =
-                                !isPEICriador && isChecked;
+                                    const allSelectedSet = new Set([
+                                      ...currentList,
+                                      ...currentTextAsArray,
+                                    ]);
 
-                              return (
-                                <label key={i} className="checkbox-container">
-                                  <input
-                                    type="checkbox"
-                                    id={`estrategia-${manualKey}-${i}`}
-                                    checked={isChecked}
-                                    onChange={(e) => {
-                                      if (isDisabledCheckbox) return;
+                                    if (isChecked) {
+                                      allSelectedSet.add(value);
+                                    } else {
+                                      allSelectedSet.delete(value);
+                                    }
 
-                                      const newCheckedState = e.target.checked;
-                                      const updatedManualData = {
-                                        ...(manualData || {}),
-                                      };
+                                    const newSelectedArray =
+                                      Array.from(allSelectedSet);
 
-                                      const suggestedStrategiesOriginal =
-                                        estruturaPEIMap[meta.habilidade]?.[
-                                          meta.nivelAlmejado
-                                        ]?.estrategias || [];
-                                      const isOriginalSuggested = Array.isArray(
-                                        suggestedStrategiesOriginal
-                                      )
-                                        ? suggestedStrategiesOriginal.includes(
-                                            estrategia
-                                          )
-                                        : suggestedStrategiesOriginal ===
-                                          estrategia;
+                                    const allSuggestedStrategies = new Set([
+                                      ...(meta.estrategias || []),
+                                      ...(estrategiasIA[manualKey] || []),
+                                    ]);
 
-                                      if (newCheckedState) {
-                                        if (isOriginalSuggested) {
-                                          let currentSuggestedSelected =
-                                            new Set(
-                                              updatedManualData.estrategias ||
-                                                []
-                                            );
-                                          currentSuggestedSelected.add(
-                                            estrategia
-                                          );
-                                          updatedManualData.estrategias =
-                                            Array.from(
-                                              currentSuggestedSelected
-                                            );
-                                        } else {
-                                          let currentManualTextStrategies =
-                                            updatedManualData.estrategiasManuais
-                                              ? updatedManualData.estrategiasManuais
-                                                  .split("\n")
-                                                  .map((s) => s.trim())
-                                                  .filter((s) => s.length > 0)
-                                              : [];
-                                          if (
-                                            !currentManualTextStrategies.includes(
-                                              estrategia
-                                            )
-                                          ) {
-                                            currentManualTextStrategies.push(
-                                              estrategia
-                                            );
-                                          }
-                                          updatedManualData.estrategiasManuais =
-                                            currentManualTextStrategies.join(
-                                              "\n"
-                                            );
-                                        }
-                                      } else {
-                                        if (isOriginalSuggested) {
-                                          let currentSuggestedSelected =
-                                            new Set(
-                                              updatedManualData.estrategias ||
-                                                []
-                                            );
-                                          currentSuggestedSelected.delete(
-                                            estrategia
-                                          );
-                                          updatedManualData.estrategias =
-                                            Array.from(
-                                              currentSuggestedSelected
-                                            );
-                                        } else {
-                                          let currentManualTextStrategies =
-                                            updatedManualData.estrategiasManuais
-                                              ? updatedManualData.estrategiasManuais
-                                                  .split("\n")
-                                                  .map((s) => s.trim())
-                                                  .filter((s) => s.length > 0)
-                                              : [];
-                                          const index =
-                                            currentManualTextStrategies.indexOf(
-                                              estrategia
-                                            );
-                                          if (index > -1) {
-                                            currentManualTextStrategies.splice(
-                                              index,
-                                              1
-                                            );
-                                          }
-                                          updatedManualData.estrategiasManuais =
-                                            currentManualTextStrategies.join(
-                                              "\n"
-                                            );
-                                        }
+                                    const newList = newSelectedArray.filter(
+                                      (item) => allSuggestedStrategies.has(item)
+                                    );
+                                    const newTextArray =
+                                      newSelectedArray.filter(
+                                        (item) =>
+                                          !allSuggestedStrategies.has(item)
+                                      );
+
+                                    console.log("ESTADO ANTES:", currentData);
+                                    console.log(
+                                      "ESTADO DEPOIS (Listas separadas):",
+                                      {
+                                        estrategias: newList,
+                                        estrategiasManuais:
+                                          newTextArray.join("\n"),
                                       }
+                                    );
 
-                                      setEntradaManual((prev) => ({
-                                        ...prev,
-                                        [manualKey]: updatedManualData,
-                                      }));
-                                    }}
-                                    disabled={isDisabledCheckbox}
-                                  />
-                                  <span className="checkmark"></span>
-                                  <span className="checkbox-label">
-                                    {estrategia}
-                                  </span>
-                                </label>
-                              );
-                            })
-                          ) : (
-                            <p className="info-text">
-                              Nenhuma estratégia sugerida disponível para
-                              seleção nesta meta.
-                            </p>
-                          )}
-
-                          <label
-                            htmlFor={`estrategias-manuais-${manualKey}`}
-                            className="form-label"
-                          >
-                            Adicionar estratégias personalizadas (uma por
-                            linha):
-                          </label>
-                          <textarea
-                            id={`estrategias-manuais-${manualKey}`}
-                            value={manualData.estrategiasManuais || ""}
-                            onChange={(e) =>
-                              setEntradaManual((prev) => ({
-                                ...prev,
-                                [manualKey]: {
-                                  ...prev[manualKey],
-                                  estrategiasManuais: e.target.value,
-                                },
-                              }))
+                                    return {
+                                      ...prev,
+                                      [manualKey]: {
+                                        ...currentData,
+                                        estrategias: newList,
+                                        estrategiasManuais:
+                                          newTextArray.join("\n"),
+                                      },
+                                    };
+                                  });
+                                }}
+                                disabled={isDisabledCheckbox}
+                              />
+                              <span className="checkmark"></span>
+                              <span className="checkbox-label">
+                                {estrategiaValue}
+                              </span>
+                            </label>
+                          );
+                        })}
+                        <div
+                          className="ia-sugestao-container"
+                          style={{ marginTop: "1rem" }}
+                        >
+                          <button
+                            className="botao-ia"
+                            onClick={() =>
+                              handleGerarEstrategiasIA(
+                                meta,
+                                areaAtiva,
+                                manualKey
+                              )
                             }
-                            className="textarea-form"
-                            placeholder="Adicione novas estratégias aqui, uma por linha..."
-                            rows="3"
-                          />
-                        </fieldset>
-                      </article>
-                    );
-                  })
-                ) : (
-                  <p className="info-text">
-                    Nenhuma meta de PEI sugerida para esta área com base na
-                    avaliação inicial. Isso ocorre porque todas as habilidades
-                    foram marcadas como 'Não Aplicável' (NA) ou 'Independente'
-                    (I).
-                  </p>
-                )}
+                            disabled={carregandoIA === manualKey}
+                          >
+                            {carregandoIA === manualKey
+                              ? "Gerando..."
+                              : "Sugerir Estratégias com IA 💡"}
+                          </button>
+                        </div>
+                        <label
+                          htmlFor={`estrategias-manuais-${manualKey}`}
+                          className="form-label"
+                          style={{ display: "block", marginTop: "1rem" }}
+                        >
+                          Adicionar outras estratégias:
+                        </label>
+                        <textarea
+                          id={`estrategias-manuais-${manualKey}`}
+                          value={manualData.estrategiasManuais || ""}
+                          onChange={(e) =>
+                            setEntradaManual((prev) => ({
+                              ...prev,
+                              [manualKey]: {
+                                ...prev[manualKey],
+                                estrategiasManuais: e.target.value,
+                              },
+                            }))
+                          }
+                          className="textarea-form"
+                          rows="3"
+                          style={{
+                            width: "calc(100% - 10px)",
+                            padding: "5px",
+                            marginTop: "0.5rem",
+                          }}
+                        />
+                      </fieldset>
+                    </article>
+                  );
+                })}
               </div>
             )}
-
             <button
               onClick={handleSavePEI}
               className="botao-salvar"
               disabled={carregando}
-              aria-busy={carregando}
             >
               {carregando ? "Salvando..." : "Salvar PEI"}
             </button>
