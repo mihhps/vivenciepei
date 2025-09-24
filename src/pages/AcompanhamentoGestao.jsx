@@ -2,7 +2,12 @@ import React, { useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { usePlanoAEE } from "../hooks/usePlanoAEE";
 import { db } from "../firebase";
-import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import {
+  doc,
+  updateDoc,
+  serverTimestamp,
+  deleteField,
+} from "firebase/firestore";
 import { toast } from "react-toastify";
 import "../styles/AcompanhamentoGestao.css";
 
@@ -17,38 +22,45 @@ const painelDestinoMapeado = {
 function AcompanhamentoGestao() {
   const { alunoId } = useParams();
   const { aluno, plano, atividades, estado } = usePlanoAEE(alunoId);
+
   const [modalData, setModalData] = useState(null);
-  const [feedbacks, setFeedbacks] = useState({});
+  const [feedbackInput, setFeedbackInput] = useState("");
 
   const usuarioLogado = useMemo(
     () => JSON.parse(localStorage.getItem("usuarioLogado")) || {},
     []
   );
 
-  // ===== LÓGICA CORRIGIDA PARA O BOTÃO VOLTAR =====
   const perfilNormalizado = (usuarioLogado.perfil || "").toLowerCase().trim();
-  const painelDestino = painelDestinoMapeado[perfilNormalizado] || "/"; // Volta para a raiz se não encontrar
+  const painelDestino = painelDestinoMapeado[perfilNormalizado] || "/";
 
-  const handleFeedbackChange = (atividadeId, texto) => {
-    setFeedbacks((prev) => ({ ...prev, [atividadeId]: texto }));
+  const handleOpenModal = (reg) => {
+    setModalData(reg);
+    setFeedbackInput(reg.feedbackGestao?.texto || "");
   };
 
-  const handleSalvarFeedback = async (atividadeId) => {
-    const textoFeedback = feedbacks[atividadeId];
-    if (!textoFeedback || !plano?.id) {
-      toast.warn("Por favor, escreva um feedback antes de salvar.");
+  const handleSalvarFeedback = async () => {
+    if (!feedbackInput || !alunoId || !modalData?.id) {
+      toast.warn("Por favor, escreva um feedback.");
+      return;
+    }
+
+    if (!plano?.id) {
+      toast.warn("Aguardando os dados do plano serem carregados.");
       return;
     }
 
     try {
       const atividadeRef = doc(
         db,
-        `planosAEE/${plano.id}/atividades`,
-        atividadeId
+        "alunos",
+        alunoId,
+        "atividadesAEE",
+        modalData.id
       );
 
       const feedbackData = {
-        texto: textoFeedback,
+        texto: feedbackInput,
         autorNome: usuarioLogado.nome,
         autorId: usuarioLogado.uid,
         data: serverTimestamp(),
@@ -57,7 +69,6 @@ function AcompanhamentoGestao() {
       await updateDoc(atividadeRef, { feedbackGestao: feedbackData });
 
       toast.success("Feedback salvo com sucesso!");
-      setFeedbacks((prev) => ({ ...prev, [atividadeId]: "" }));
 
       setModalData((prev) => ({
         ...prev,
@@ -69,6 +80,39 @@ function AcompanhamentoGestao() {
     } catch (error) {
       console.error("Erro ao salvar feedback:", error);
       toast.error("Não foi possível salvar o feedback.");
+    }
+  };
+
+  const handleExcluirFeedback = async () => {
+    if (!alunoId || !modalData?.id) {
+      toast.warn("Não foi possível excluir. Dados ausentes.");
+      return;
+    }
+
+    try {
+      const atividadeRef = doc(
+        db,
+        "alunos",
+        alunoId,
+        "atividadesAEE",
+        modalData.id
+      );
+
+      await updateDoc(atividadeRef, {
+        feedbackGestao: deleteField(),
+      });
+
+      toast.success("Feedback excluído com sucesso!");
+
+      setModalData((prev) => ({
+        ...prev,
+        feedbackGestao: null,
+      }));
+
+      setFeedbackInput("");
+    } catch (error) {
+      console.error("Erro ao excluir feedback:", error);
+      toast.error("Não foi possível excluir o feedback.");
     }
   };
 
@@ -86,7 +130,6 @@ function AcompanhamentoGestao() {
     <div className="acompanhamento-gestao-page">
       <div className="card-principal-gestao">
         <header className="avaliacao-header">
-          {/* ===== LINK DO BOTÃO VOLTAR CORRIGIDO ===== */}
           <Link to={painelDestino} className="botao-voltar">
             <svg
               width="16"
@@ -136,7 +179,7 @@ function AcompanhamentoGestao() {
                   </div>
                   <button
                     className="timeline-details-btn"
-                    onClick={() => setModalData(reg)}
+                    onClick={() => handleOpenModal(reg)}
                   >
                     Ver Detalhes
                   </button>
@@ -212,25 +255,41 @@ function AcompanhamentoGestao() {
               <div className="feedback-section">
                 <h4>Feedback da Gestão</h4>
                 {modalData.feedbackGestao ? (
-                  <div className="feedback-salvo">
-                    <p>"{modalData.feedbackGestao.texto}"</p>
-                    <span>
-                      - {modalData.feedbackGestao.autorNome} em{" "}
-                      {modalData.feedbackGestao.data
-                        ?.toDate()
-                        .toLocaleDateString()}
-                    </span>
+                  // Se houver feedback salvo, exibe-o com o botão de excluir
+                  <div className="feedback-salvo-container">
+                    <div className="feedback-salvo">
+                      <p>"{modalData.feedbackGestao.texto}"</p>
+                      <span>
+                        - {modalData.feedbackGestao.autorNome} em{" "}
+                        {modalData.feedbackGestao.data
+                          ?.toDate()
+                          .toLocaleDateString()}
+                      </span>
+                    </div>
+                    <button
+                      onClick={handleExcluirFeedback}
+                      className="btn-excluir-feedback"
+                    >
+                      Excluir
+                    </button>
                   </div>
                 ) : (
+                  // Se não houver feedback, exibe o formulário para salvar
                   <div className="feedback-form">
                     <textarea
                       placeholder="Deixe seu feedback para a professora..."
-                      value={feedbacks[modalData.id] || ""}
-                      onChange={(e) =>
-                        handleFeedbackChange(modalData.id, e.target.value)
-                      }
+                      value={feedbackInput}
+                      onChange={(e) => setFeedbackInput(e.target.value)}
                     ></textarea>
-                    <button onClick={() => handleSalvarFeedback(modalData.id)}>
+                    <button
+                      onClick={handleSalvarFeedback}
+                      disabled={!plano?.id}
+                      title={
+                        !plano?.id
+                          ? "Aguardando o carregamento dos dados do plano..."
+                          : ""
+                      }
+                    >
                       Salvar Feedback
                     </button>
                   </div>

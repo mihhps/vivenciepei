@@ -17,17 +17,14 @@ import {
 } from "firebase/firestore";
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const CACHE_VERSION = "v7"; // ATUALIZADO: Versão do Cache para depuração final.
 
-// Função que processa UMA atividade a partir de um texto
+// Funções de Parse e Lógica da IA
 function parseAtividadeFromText(textResponse) {
   if (!textResponse) return null;
-
   const atividade = {};
   const lines = textResponse.split("\n");
   let currentKey = null;
   let contentBuffer = [];
-
   const keyMapping = {
     título: "titulo",
     objetivos: "objetivos",
@@ -36,18 +33,15 @@ function parseAtividadeFromText(textResponse) {
     duração: "duracao",
     "duração estimada": "duracao",
   };
-
   lines.forEach((line) => {
     const lowerLine = line.toLowerCase();
     let foundKey = null;
-
     for (const term in keyMapping) {
       if (lowerLine.startsWith(term + ":")) {
         foundKey = keyMapping[term];
         break;
       }
     }
-
     if (foundKey) {
       if (currentKey && contentBuffer.length > 0) {
         if (currentKey === "objetivos") {
@@ -64,7 +58,6 @@ function parseAtividadeFromText(textResponse) {
       contentBuffer.push(line);
     }
   });
-
   if (currentKey && contentBuffer.length > 0) {
     if (currentKey === "objetivos") {
       atividade[currentKey] = contentBuffer
@@ -74,15 +67,12 @@ function parseAtividadeFromText(textResponse) {
       atividade[currentKey] = contentBuffer.join("\n").trim();
     }
   }
-
   if (atividade.titulo && atividade.objetivos && atividade.recursos) {
     return atividade;
   }
-
   return null;
 }
 
-// Função que processa MÚLTIPLAS atividades a partir de um texto
 function parseMultiplasAtividadesFromText(textResponse) {
   if (!textResponse) return [];
   const sugestoesSeparadas = textResponse.split("---NOVA SUGESTAO---");
@@ -91,83 +81,18 @@ function parseMultiplasAtividadesFromText(textResponse) {
     .filter(Boolean);
 }
 
-// Função de chamada da IA com lógica de cache e depuração aprimoradas
 async function buscarSugestoesComIA_REAL(
   tipo,
   habilidadeObj = {},
-  idadeAluno = null,
-  aluno,
-  forceRefresh = false
+  idadeAluno = null
 ) {
-  console.log("--- INICIANDO BUSCA DE SUGESTÕES ---");
-  console.log("Tipo:", tipo, "| Forçar Atualização:", forceRefresh);
-  console.log(
-    "Habilidade Recebida:",
-    habilidadeObj ? JSON.parse(JSON.stringify(habilidadeObj)) : habilidadeObj
-  );
-
   let habilidadeTexto = "";
-  let habilidadeId = "";
-
-  // A verificação de validade agora está na função getSugestoes, que é a porta de entrada.
-  // Aqui, assumimos que os dados já foram validados.
   if (tipo === "atividadePrincipal") {
     habilidadeTexto = habilidadeObj.habilidade || "";
-    habilidadeId = habilidadeObj.id;
   }
-
-  // Chave de cache ultra específica, incluindo a idade do aluno.
-  const idadeCache = idadeAluno || "geral";
-  const baseCacheKey = `${CACHE_VERSION}-${tipo}-${
-    aluno?.diagnostico || "generico"
-  }-${idadeCache}`;
-  const cacheKey = (
-    tipo === "atividadePrincipal"
-      ? `${baseCacheKey}-${habilidadeId}`
-      : baseCacheKey
-  )
-    .toLowerCase()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9-]/g, "_");
-
-  console.log("Chave de Cache Gerada:", cacheKey);
-
-  const cacheRef = doc(db, "geminiCache", cacheKey);
-
-  if (!forceRefresh) {
-    try {
-      const cacheSnap = await getDoc(cacheRef);
-      if (cacheSnap.exists()) {
-        console.log(
-          `%cCACHE HIT! para: ${cacheKey}`,
-          "color: green; font-weight: bold;"
-        );
-        const cachedResponse = cacheSnap.data().response;
-        if (cachedResponse && cachedResponse.length > 10) {
-          console.log(
-            `%cCACHE VÁLIDO! Entregando resposta salva.`,
-            "color: green; font-weight: bold;"
-          );
-          if (tipo === "atividadePrincipal")
-            return parseMultiplasAtividadesFromText(cachedResponse);
-          return cachedResponse
-            .split("|||")
-            .map((s) => s.trim())
-            .filter(Boolean);
-        }
-      }
-    } catch (error) {
-      console.error("Erro ao ler cache. Prosseguindo para a API.", error);
-    }
-  }
-
-  console.log(
-    `%cCACHE MISS ou IGNORADO. Chamando API Gemini para: ${cacheKey}`,
-    "color: orange; font-weight: bold;"
-  );
 
   if (!GEMINI_API_KEY) {
-    console.warn("API Key do Gemini não foi configurada.");
+    console.warn("API Key do Gemini não configurada. Usando simulação.");
     return buscarSugestoesComIA_SIMULACAO(tipo, habilidadeTexto);
   }
 
@@ -209,19 +134,6 @@ async function buscarSugestoesComIA_REAL(
   const textResponse = result.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!textResponse) throw new Error("A IA não retornou uma resposta válida.");
 
-  try {
-    await setDoc(cacheRef, {
-      response: textResponse,
-      createdAt: serverTimestamp(),
-    });
-    console.log(
-      `%cSALVO NO CACHE: ${cacheKey}`,
-      "color: blue; font-weight: bold;"
-    );
-  } catch (error) {
-    console.error("Falha ao salvar no cache.", error);
-  }
-
   if (tipo === "atividadePrincipal") {
     return parseMultiplasAtividadesFromText(textResponse);
   }
@@ -231,30 +143,18 @@ async function buscarSugestoesComIA_REAL(
     .filter(Boolean);
 }
 
-// Sua função de simulação - MANTIDA
 async function buscarSugestoesComIA_SIMULACAO(tipo, habilidade = "") {
-  console.warn(
-    "Usando dados de simulação. Adicione uma API Key para usar a IA real."
-  );
   await new Promise((resolve) => setTimeout(resolve, 500));
   const quebraGelos = [
     "Iniciar com 'massinha sensorial'.",
     "Começar com a 'Música do Olá'.",
-    "Desenho livre sobre sentimentos.",
-    "Brincar de 'estátua' com música.",
-    "Caixa de sensações táteis.",
   ];
   const finalizacoes = [
     "Terminar com a 'Canção do Tchau'.",
     "Fazer a 'Massagem das Costas'.",
-    "Guardar materiais com música.",
-    "Contar o que mais gostou.",
-    "Respiração calma com a mão na barriga.",
   ];
-
   if (tipo === "quebraGelo") return quebraGelos;
   if (tipo === "finalizacao") return finalizacoes;
-
   return Array.from({ length: 5 }).map((_, i) => ({
     titulo: `Atividade Simulada ${i + 1} para ${habilidade || "habilidade"}`,
     objetivos: ["Objetivo simulado 1", "Objetivo simulado 2"],
@@ -264,7 +164,7 @@ async function buscarSugestoesComIA_SIMULACAO(tipo, habilidade = "") {
   }));
 }
 
-// Seu Hook Principal
+// Hook Principal
 export function usePlanoAEE(alunoId) {
   const [aluno, setAluno] = useState(null);
   const [plano, setPlano] = useState(null);
@@ -288,7 +188,19 @@ export function usePlanoAEE(alunoId) {
 
       if (planoSnap.exists()) {
         const planoData = planoSnap.data();
-        setPlano({ ...planoData, habilidades: planoData.habilidades || [] });
+        let dataPlanoFormatada = planoData.dataPlano || "";
+        if (planoData.dataPlano && planoData.dataPlano.toDate) {
+          dataPlanoFormatada = planoData.dataPlano
+            .toDate()
+            .toISOString()
+            .split("T")[0];
+        }
+        setPlano({
+          id: planoSnap.id,
+          ...planoData,
+          habilidades: planoData.habilidades || [],
+          dataPlano: dataPlanoFormatada,
+        });
         setHorariosAtendimento(planoData.horariosAtendimento || []);
       } else {
         setPlano(null);
@@ -311,30 +223,19 @@ export function usePlanoAEE(alunoId) {
 
   const getSugestoes = useCallback(
     async (tipo, habilidade, forceRefresh = false) => {
-      // --- FERRAMENTA DE DEPURACÃO ADICIONADA ---
-      // Este bloco vai ajudar a encontrar qual componente está chamando a função incorretamente.
       if (
         tipo === "atividadePrincipal" &&
-        (typeof habilidade !== "object" ||
-          habilidade === null ||
-          !habilidade.id)
+        (typeof habilidade !== "object" || !habilidade?.id)
       ) {
-        console.error("--- CHAMADA INCORRETA DETECTADA ---");
         console.error(
-          `A função 'getSugestoes' foi chamada para 'atividadePrincipal', mas o segundo argumento ('habilidade') não é um objeto de habilidade válido.`
+          "--- CHAMADA INCORRETA DETECTADA PARA GETSUGESTOES ---",
+          habilidade
         );
-        console.error("Valor recebido para 'habilidade':", habilidade);
-        console.trace(
-          "Rastreamento da chamada (procure o nome do seu componente no topo):"
-        ); // Isso mostrará o culpado!
-        // Retornar um array vazio para não quebrar a interface que espera uma lista
         return [];
       }
-      // --- FIM DA FERRAMENTA DE DEPURACÃO ---
-
-      if (!aluno) {
+      if (!aluno)
         throw new Error("Dados do aluno não carregados para gerar sugestão.");
-      }
+
       try {
         const idade = aluno?.nascimento
           ? new Date().getFullYear() -
@@ -343,7 +244,6 @@ export function usePlanoAEE(alunoId) {
               : new Date(aluno.nascimento)
             ).getFullYear()
           : null;
-
         return await buscarSugestoesComIA_REAL(
           tipo,
           habilidade,
@@ -390,7 +290,6 @@ export function usePlanoAEE(alunoId) {
         limit(1)
       );
       let avaliacaoSnap = await getDocs(q1);
-
       if (avaliacaoSnap.empty) {
         const q2 = query(
           collection(db, "avaliacoesIniciais"),
@@ -401,7 +300,6 @@ export function usePlanoAEE(alunoId) {
         if (avaliacaoSnap.empty)
           throw new Error("Nenhuma avaliação inicial encontrada.");
       }
-
       const avaliacaoData = avaliacaoSnap.docs[0].data();
       const respostas = avaliacaoData.respostas || {};
       const habilidadesParaPlanejar = [];
@@ -417,10 +315,8 @@ export function usePlanoAEE(alunoId) {
           }
         });
       });
-
       if (habilidadesParaPlanejar.length === 0)
         throw new Error("Nenhuma habilidade a ser trabalhada foi encontrada.");
-
       const novoPlano = {
         habilidades: habilidadesParaPlanejar,
         criadoEm: Timestamp.now(),
@@ -441,20 +337,50 @@ export function usePlanoAEE(alunoId) {
     }
   };
 
-  const salvarAtividade = async (dadosAtividade) => {
-    setEstado((s) => ({ ...s, carregando: true }));
+  const salvarPlanejamentoDeAtividade = async (dadosPlanejamento) => {
+    setEstado((s) => ({ ...s, carregando: true, erro: null }));
     try {
       const atividadesRef = collection(db, "alunos", alunoId, "atividadesAEE");
       await addDoc(atividadesRef, {
-        ...dadosAtividade,
+        ...dadosPlanejamento,
         data: Timestamp.now(),
+        status: "Planejada",
       });
+      await carregarDados();
+    } catch (e) {
+      console.error("Erro ao salvar planejamento:", e);
+      setEstado({
+        ...estado,
+        carregando: false,
+        erro: "Não foi possível salvar o planejamento.",
+      });
+    } finally {
+      setEstado((s) => ({ ...s, carregando: false }));
+    }
+  };
 
+  const salvarRegistroDeAtendimento = async (
+    atividadeId,
+    dadosAcompanhamento
+  ) => {
+    setEstado((s) => ({ ...s, carregando: true, erro: null }));
+    try {
+      const atividadeRef = doc(
+        db,
+        "alunos",
+        alunoId,
+        "atividadesAEE",
+        atividadeId
+      );
+      await updateDoc(atividadeRef, {
+        "atividadePrincipal.habilidadesAvaliadas":
+          dadosAcompanhamento.habilidadesAvaliadas,
+        status: "Realizada",
+        dataRealizacao: Timestamp.now(),
+      });
       const idsUnicos = [
         ...new Set(
-          dadosAtividade.atividadePrincipal.habilidadesAvaliadas.map(
-            (h) => h.habilidadeId
-          )
+          dadosAcompanhamento.habilidadesAvaliadas.map((h) => h.habilidadeId)
         ),
       ];
       await Promise.all(
@@ -464,11 +390,12 @@ export function usePlanoAEE(alunoId) {
       );
       await carregarDados();
     } catch (e) {
-      console.error("Erro ao salvar atividade:", e);
-      setEstado((s) => ({
-        ...s,
-        erro: "Não foi possível salvar a atividade.",
-      }));
+      console.error("Erro ao salvar registro do atendimento:", e);
+      setEstado({
+        ...estado,
+        carregando: false,
+        erro: "Não foi possível salvar o registro.",
+      });
     } finally {
       setEstado((s) => ({ ...s, carregando: false }));
     }
@@ -511,7 +438,6 @@ export function usePlanoAEE(alunoId) {
         id: idUnico,
         status: "A iniciar",
       };
-
       const novasHabilidades = [...plano.habilidades, habilidadeComId];
       const planoRef = doc(db, "alunos", alunoId, "planoAEE", "planoAtivo");
       await updateDoc(planoRef, { habilidades: novasHabilidades });
@@ -522,12 +448,14 @@ export function usePlanoAEE(alunoId) {
     }
   };
 
-  const salvarDataPlano = async (novaData) => {
-    if (!plano) return;
+  const salvarDataPlano = async (dataString) => {
+    if (!plano || !dataString) return;
     try {
       const planoRef = doc(db, "alunos", alunoId, "planoAEE", "planoAtivo");
-      await updateDoc(planoRef, { dataPlano: novaData });
-      setPlano((p) => ({ ...p, dataPlano: novaData }));
+      const dataSelecionada = new Date(dataString + "T00:00:00");
+      const dataTimestamp = Timestamp.fromDate(dataSelecionada);
+      await updateDoc(planoRef, { dataPlano: dataTimestamp });
+      setPlano((p) => ({ ...p, dataPlano: dataString }));
     } catch (e) {
       console.error("Erro ao salvar data:", e);
       setEstado((s) => ({ ...s, erro: "Falha ao salvar a data do plano." }));
@@ -542,11 +470,12 @@ export function usePlanoAEE(alunoId) {
     estado,
     criarPlanoEmBranco,
     importarDaAvaliacao,
-    salvarAtividade,
     salvarHorariosAtendimento,
     getSugestoes,
     atualizarStatusHabilidade,
     adicionarHabilidade,
     salvarDataPlano,
+    salvarPlanejamentoDeAtividade,
+    salvarRegistroDeAtendimento,
   };
 }

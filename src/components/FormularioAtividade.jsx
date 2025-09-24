@@ -125,7 +125,6 @@ function FormularioAtividade({
     finalizacao: false,
   });
 
-  // --- LÓGICA MELHORADA PARA SUGESTÕES ---
   const [sugestoesDisponiveis, setSugestoesDisponiveis] = useState({
     quebraGelo: [],
     finalizacao: [],
@@ -203,15 +202,16 @@ function FormularioAtividade({
     }
   }, [dadosIniciais]);
 
+  // Localize a função handleSugerir no seu código FormularioAtividade.jsx
   const handleSugerir = async (tipo) => {
     setSugestaoCarregando((prev) => ({ ...prev, [tipo]: true }));
     try {
       let listaSugestoes = sugestoesDisponiveis[tipo];
       let indiceAtual = indicesAtuais[tipo];
 
-      // Se não temos uma lista de sugestões, ou se já rodamos todas e queremos novas
       if (listaSugestoes.length === 0 || indiceAtual === 0) {
-        listaSugestoes = await getSugestoes(tipo, null, true); // Força a busca
+        // Força a busca de novas sugestões
+        listaSugestoes = await getSugestoes(tipo, null, true);
         if (!listaSugestoes || listaSugestoes.length === 0) {
           throw new Error("Nenhuma sugestão foi retornada.");
         }
@@ -219,13 +219,28 @@ function FormularioAtividade({
           ...prev,
           [tipo]: listaSugestoes,
         }));
+        setIndicesAtuais((prev) => ({ ...prev, [tipo]: 1 }));
+
+        // AQUI ESTÁ A CORREÇÃO para a primeira sugestão
+        const primeiraSugestao = listaSugestoes[0];
+        const texto =
+          typeof primeiraSugestao === "object" && primeiraSugestao.texto
+            ? primeiraSugestao.texto
+            : primeiraSugestao;
+        setFormData((prev) => ({ ...prev, [tipo]: texto }));
+      } else {
+        // Se já temos a lista, pegue a próxima sugestão
+        const proximaSugestao = listaSugestoes[indiceAtual];
+        const proximoIndice = (indiceAtual + 1) % listaSugestoes.length;
+        setIndicesAtuais((prev) => ({ ...prev, [tipo]: proximoIndice }));
+
+        // AQUI ESTÁ A CORREÇÃO para as próximas sugestões
+        const texto =
+          typeof proximaSugestao === "object" && proximaSugestao.texto
+            ? proximaSugestao.texto
+            : proximaSugestao;
+        setFormData((prev) => ({ ...prev, [tipo]: texto }));
       }
-
-      const proximaSugestao = listaSugestoes[indiceAtual];
-      setFormData((prev) => ({ ...prev, [tipo]: proximaSugestao }));
-
-      const proximoIndice = (indiceAtual + 1) % listaSugestoes.length;
-      setIndicesAtuais((prev) => ({ ...prev, [tipo]: proximoIndice }));
     } catch (e) {
       alert(e.message || "Não foi possível buscar a sugestão.");
     } finally {

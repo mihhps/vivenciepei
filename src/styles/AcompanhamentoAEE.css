@@ -533,3 +533,219 @@
   width: 20px;
   height: 20px;
 }
+/* =================================================================== */
+/* ##### NOVOS ESTILOS PARA O HISTÓRICO E BOTÃO DE ACOMPANHAMENTO ##### */
+/* =================================================================== */
+
+/* Estilo para o novo status "Planejada" */
+.status-planejada {
+  background-color: #e0e7ff; /* Um azul bem claro */
+  color: #3730a3; /* Um roxo/azulado escuro */
+}
+
+/* Container para o status e o botão de acompanhar */
+.registro-actions {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #f3f4f6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Estilo do novo botão "Registrar Acompanhamento" */
+.botao-acompanhar {
+  background-color: #3b82f6; /* Mesmo azul dos botões de resultado "ativo" */
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.85rem;
+  transition: background-color 0.2s ease;
+}
+
+.botao-acompanhar:hover {
+  background-color: #2563eb; /* Azul um pouco mais escuro */
+}
+
+/* =================================================================== */
+/* ##### NOVOS ESTILOS PARA O MODAL DE REGISTRO DE ACOMPANHAMENTO ##### */
+/* =================================================================== */
+
+/* Fundo escurecido do modal, que cobre a página inteira */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(17, 24, 39, 0.6); /* Preto com 60% de opacidade */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000; /* Garante que o modal fique na frente de tudo */
+  animation: fadeIn 0.3s ease;
+}
+
+/* A caixa de conteúdo do modal */
+.modal-content {
+  background-color: #ffffff;
+  padding: 2rem;
+  border-radius: 12px; /* Mesma borda dos cards */
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  width: 90%;
+  max-width: 550px; /* Largura máxima do modal */
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-content h2 {
+  margin-top: 0;
+  color: #111827;
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.modal-content p {
+  color: #4b5563;
+  margin-bottom: 1.5rem;
+}
+
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem; /* Espaço entre cada item de registro de habilidade */
+}
+
+.habilidade-registro-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem; /* Espaço entre o label, select e textarea */
+}
+
+.habilidade-registro-item label {
+  font-weight: 600;
+  color: #374151;
+}
+
+.habilidade-registro-item select,
+.habilidade-registro-item textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 1rem;
+  background-color: #f9fafb;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end; /* Alinha os botões à direita */
+  gap: 0.75rem;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.botao-cancelar {
+  background-color: #fff;
+  border: 1px solid #d1d5db;
+  color: #374151;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.botao-salvar {
+  background-color: #10b981; /* Mesmo verde do botão principal de salvar */
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+/* =================================================================== */
+/* ##### NOVOS ESTILOS PARA A SEÇÃO DE FEEDBACK DA GESTÃO ##### */
+/* =================================================================== */
+
+/* O container já pega o estilo de .card-principal, o que é ótimo! */
+.feedback-gestao-container {
+  background-color: #fffbeb; /* Amarelo bem claro para destacar */
+  border-left: 4px solid #f59e0b; /* Borda amarela */
+}
+
+.feedback-item {
+  padding: 1rem 0;
+  border-bottom: 1px solid #fef3c7;
+}
+.feedback-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.feedback-item:first-child {
+  padding-top: 0;
+}
+
+.feedback-texto {
+  font-style: italic;
+  color: #4b5563;
+  margin: 0 0 0.5rem 0;
+}
+
+.feedback-autor {
+  font-size: 0.85rem;
+  color: #9ca3af;
+  font-weight: 500;
+  text-align: right;
+  display: block;
+}
+/* No seu .form-section.quebra-gelo-section, adicione o flexbox */
+.form-section.quebra-gelo-section {
+  background-color: #f0fdf4;
+  border-left: 4px solid #22c55e;
+  display: flex; /* Adicione esta linha */
+  flex-direction: column; /* Adicione esta linha */
+  height: 300px; /* Exemplo: defina uma altura para o contêiner */
+}
+
+/* 1. Modifique o contêiner da seção de finalização */
+.form-section.finalizacao-section {
+  background-color: #fff7ed; /* Laranja claro */
+  border-left: 4px solid #f97316;
+  display: flex; /* Adicione esta linha */
+  flex-direction: column; /* Adicione esta linha */
+}
+
+/* 2. Modifique a área de texto (textarea) para crescer */
+.form-section.quebra-gelo-section textarea,
+.form-section.finalizacao-section textarea {
+  /* Remova a linha 'min-height: 100px;' */
+  flex-grow: 1; /* A área de texto irá crescer para preencher o espaço restante */
+}
+/* Estilo para o container de feedback no histórico */
+.feedback-item-historico {
+  background-color: #f0f8ff; /* Um azul claro */
+  border-left: 4px solid #457b9d; /* Uma linha vertical para destacar */
+  padding: 10px 15px;
+  margin: 15px 0 10px;
+  border-radius: 6px;
+}
+
+.feedback-item-historico .feedback-texto {
+  font-style: italic;
+  color: #333;
+  margin: 0 0 5px 0;
+}
+
+.feedback-item-historico .feedback-autor {
+  font-size: 0.9em;
+  color: #666;
+  display: block;
+  text-align: right;
+}

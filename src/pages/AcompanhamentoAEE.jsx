@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { usePlanoAEE } from "../hooks/usePlanoAEE";
 import FormularioAtividade from "../components/FormularioAtividade.jsx";
@@ -8,6 +8,117 @@ import AdicionarHabilidadeModal from "../components/AdicionarHabilidadeModal.jsx
 import { gerarPDFAEE } from "../utils/gerarPDFAEE";
 import "../styles/AcompanhamentoAEE.css";
 
+// Componente do Modal de Acompanhamento
+const ModalAcompanhamento = ({ atividade, onSalvar, onClose }) => {
+  const [resultados, setResultados] = useState({});
+
+  useEffect(() => {
+    const initialState = {};
+    (atividade?.atividadePrincipal?.habilidadesAvaliadas || []).forEach((h) => {
+      initialState[h.habilidadeId] = { resultado: "", observacoes: "" };
+    });
+    setResultados(initialState);
+  }, [atividade]);
+
+  const handleInputChange = (habilidadeId, campo, valor) => {
+    setResultados((prev) => ({
+      ...prev,
+      [habilidadeId]: {
+        ...prev[habilidadeId],
+        [campo]: valor,
+      },
+    }));
+  };
+
+  const handleSalvarClick = () => {
+    const habilidadesAvaliadas = Object.keys(resultados).map((habilidadeId) => {
+      const habilidadeOriginal =
+        atividade.atividadePrincipal.habilidadesAvaliadas.find(
+          (h) => h.habilidadeId === habilidadeId
+        );
+      return {
+        ...habilidadeOriginal,
+        resultado: resultados[habilidadeId].resultado,
+        observacoes: resultados[habilidadeId].observacoes,
+      };
+    });
+
+    onSalvar(atividade.id, { habilidadesAvaliadas });
+    onClose();
+  };
+
+  if (!atividade) return null;
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content">
+        <h2>Registrar Acompanhamento da Atividade</h2>
+        <p>
+          <strong>Atividade:</strong> {atividade.atividadePrincipal.descricao}
+        </p>
+        <hr />
+        <div className="modal-form">
+          {(atividade?.atividadePrincipal?.habilidadesAvaliadas || []).map(
+            (habilidade) => (
+              <div
+                key={habilidade.habilidadeId}
+                className="habilidade-registro-item"
+              >
+                <label>{habilidade.habilidadeTexto}</label>
+                <select
+                  value={resultados[habilidade.habilidadeId]?.resultado || ""}
+                  onChange={(e) =>
+                    handleInputChange(
+                      habilidade.habilidadeId,
+                      "resultado",
+                      e.target.value
+                    )
+                  }
+                  required
+                >
+                  <option value="" disabled>
+                    Selecione o resultado
+                  </option>
+                  <option value="Realizou com apoio verbal">
+                    Realizou com apoio verbal
+                  </option>
+                  <option value="Realizou com apoio físico">
+                    Realizou com apoio físico
+                  </option>
+                  <option value="Realizou de forma independente">
+                    Realizou de forma independente
+                  </option>
+                  <option value="Não realizou">Não realizou</option>
+                </select>
+                <textarea
+                  placeholder="Observações (opcional)"
+                  value={resultados[habilidade.habilidadeId]?.observacoes || ""}
+                  onChange={(e) =>
+                    handleInputChange(
+                      habilidade.habilidadeId,
+                      "observacoes",
+                      e.target.value
+                    )
+                  }
+                />
+              </div>
+            )
+          )}
+        </div>
+        <div className="modal-actions">
+          <button onClick={onClose} className="botao-cancelar">
+            Cancelar
+          </button>
+          <button onClick={handleSalvarClick} className="botao-salvar">
+            Salvar Registro
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Componente Accordion
 const Accordion = ({
   area,
   habilidades,
@@ -53,7 +164,7 @@ const Accordion = ({
                 <SugestoesAtividades
                   habilidade={habilidadeAberta}
                   onSelectSugestao={onSelectSugestao}
-                  getSugestoes={getSugestoes} // CORREÇÃO: Passando a função diretamente
+                  getSugestoes={getSugestoes}
                   onClose={() => onSugestaoClick(null)}
                 />
               )}
@@ -65,6 +176,7 @@ const Accordion = ({
   );
 };
 
+// Componente da Página
 function AcompanhamentoAEE() {
   const { alunoId } = useParams();
   const {
@@ -75,13 +187,17 @@ function AcompanhamentoAEE() {
     estado,
     criarPlanoEmBranco,
     importarDaAvaliacao,
-    salvarAtividade,
     salvarHorariosAtendimento,
     getSugestoes,
     adicionarHabilidade,
     salvarDataPlano,
+    salvarPlanejamentoDeAtividade,
+    salvarRegistroDeAtendimento,
   } = usePlanoAEE(alunoId);
 
+  const [modalAcompanhamentoAberto, setModalAcompanhamentoAberto] =
+    useState(false);
+  const [atividadeSelecionada, setAtividadeSelecionada] = useState(null);
   const [modalHorariosAberto, setModalHorariosAberto] = useState(false);
   const [modalHabilidadeAberto, setModalHabilidadeAberto] = useState(false);
   const [habilidadeParaSugestao, setHabilidadeParaSugestao] = useState(null);
@@ -113,12 +229,21 @@ function AcompanhamentoAEE() {
     }, {});
   }, [plano]);
 
+  const handleAbrirModalAcompanhamento = (atividade) => {
+    setAtividadeSelecionada(atividade);
+    setModalAcompanhamentoAberto(true);
+  };
+
+  const handleFecharModalAcompanhamento = () => {
+    setAtividadeSelecionada(null);
+    setModalAcompanhamentoAberto(false);
+  };
+
   const focarNoFormulario = () => {
     document
       .getElementById("form-registro-atividade")
       ?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
-
   const handleHabilidadeClick = useCallback((habilidade) => {
     setDadosIniciaisForm({
       key: Date.now(),
@@ -127,7 +252,6 @@ function AcompanhamentoAEE() {
     });
     focarNoFormulario();
   }, []);
-
   const handleSelectSugestao = useCallback((sugestaoData) => {
     setDadosIniciaisForm({
       key: Date.now(),
@@ -137,13 +261,11 @@ function AcompanhamentoAEE() {
     setHabilidadeParaSugestao(null);
     focarNoFormulario();
   }, []);
-
   const handleSugestaoClick = useCallback((habilidade) => {
     setHabilidadeParaSugestao((h) =>
       h?.id === habilidade?.id ? null : habilidade
     );
   }, []);
-
   const handleGerarPDF = () => {
     if (aluno && plano) {
       gerarPDFAEE(aluno, plano, horariosAtendimento, atividades);
@@ -203,6 +325,13 @@ function AcompanhamentoAEE() {
           onClose={() => setModalHabilidadeAberto(false)}
         />
       )}
+      {modalAcompanhamentoAberto && (
+        <ModalAcompanhamento
+          atividade={atividadeSelecionada}
+          onSalvar={salvarRegistroDeAtendimento}
+          onClose={handleFecharModalAcompanhamento}
+        />
+      )}
 
       <div className="acompanhamento-page">
         <header className="page-header">
@@ -227,7 +356,6 @@ function AcompanhamentoAEE() {
             <h1>Plano de Acompanhamento AEE</h1>
           </div>
           <div className="data-plano-container">
-            {/* O BOTÃO FOI REMOVIDO DAQUI */}
             <label>Data do Plano:</label>
             <input
               type="date"
@@ -301,10 +429,10 @@ function AcompanhamentoAEE() {
 
           <section className="content-principal" id="form-registro-atividade">
             <div className="card-principal">
-              <h2>Registrar Atendimento</h2>
+              <h2>Planejar Nova Atividade</h2>
               <FormularioAtividade
                 plano={plano}
-                onSalvar={salvarAtividade}
+                onSalvar={salvarPlanejamentoDeAtividade}
                 estado={estado}
                 dadosIniciais={dadosIniciaisForm}
                 getSugestoes={getSugestoes}
@@ -325,7 +453,7 @@ function AcompanhamentoAEE() {
             </div>
 
             <div className="card-principal">
-              <h2>Histórico Recente</h2>
+              <h2>Histórico de Atividades</h2>
               <div className="historico-atividades">
                 {(atividades || []).map((reg) => (
                   <div key={reg.id} className="registro-card">
@@ -337,44 +465,79 @@ function AcompanhamentoAEE() {
                         <strong>Quebra-Gelo:</strong> {reg.quebraGelo}
                       </p>
                     )}
+
                     <div className="registro-principal">
                       <p className="registro-descricao">
                         <strong>Atividade Principal:</strong>{" "}
                         {reg.atividadePrincipal.descricao}
                       </p>
-                      {(reg.atividadePrincipal.habilidadesAvaliadas || []).map(
-                        (atv, index) => (
-                          <div
-                            key={index}
-                            className="habilidade-detalhe-historico"
-                          >
-                            <p>
-                              <strong>Habilidade:</strong> {atv.habilidadeTexto}
-                            </p>
-                            <p>
-                              <strong>Resultado:</strong>{" "}
-                              <span
-                                className={`resultado-badge ${atv.resultado.replace(
-                                  /\s+/g,
-                                  "-"
-                                )}`}
-                              >
-                                {atv.resultado}
-                              </span>
-                            </p>
-                            {atv.observacoes && (
-                              <p className="obs-historico">
-                                <strong>Obs:</strong> {atv.observacoes}
+
+                      {reg.finalizacao && (
+                        <p className="registro-descricao">
+                          <strong>Finalização:</strong> {reg.finalizacao}
+                        </p>
+                      )}
+                      {reg.status === "Realizada" ? (
+                        (reg.atividadePrincipal.habilidadesAvaliadas || []).map(
+                          (atv, index) => (
+                            <div
+                              key={index}
+                              className="habilidade-detalhe-historico"
+                            >
+                              <p>
+                                <strong>Habilidade:</strong>{" "}
+                                {atv.habilidadeTexto}
                               </p>
-                            )}
-                          </div>
+                              <p>
+                                <strong>Resultado:</strong>{" "}
+                                <span
+                                  className={`resultado-badge ${atv.resultado.replace(
+                                    /\s+/g,
+                                    "-"
+                                  )}`}
+                                >
+                                  {atv.resultado}
+                                </span>
+                              </p>
+                              {atv.observacoes && (
+                                <p className="obs-historico">
+                                  <strong>Obs:</strong> {atv.observacoes}
+                                </p>
+                              )}
+                            </div>
+                          )
                         )
+                      ) : (
+                        <div className="registro-actions">
+                          <span className="habilidade-status status-planejada">
+                            Planejada
+                          </span>
+                          <button
+                            onClick={() => handleAbrirModalAcompanhamento(reg)}
+                            className="botao-acompanhar"
+                          >
+                            Registrar Acompanhamento
+                          </button>
+                        </div>
                       )}
                     </div>
-                    {reg.finalizacao && (
-                      <p className="registro-descricao">
-                        <strong>Finalização:</strong> {reg.finalizacao}
-                      </p>
+
+                    {/* --- Bloco que exibe o feedback da gestão se existir --- */}
+                    {reg.feedbackGestao && (
+                      <div className="feedback-gestao-container card-principal">
+                        <h3>Feedback da Gestão</h3>
+                        <div className="feedback-item">
+                          <p className="feedback-texto">
+                            "{reg.feedbackGestao.texto}"
+                          </p>
+                          <span className="feedback-autor">
+                            - {reg.feedbackGestao.autorNome} em{" "}
+                            {reg.feedbackGestao.data
+                              ?.toDate()
+                              .toLocaleDateString() || "Data não informada"}
+                          </span>
+                        </div>
+                      </div>
                     )}
                   </div>
                 ))}
