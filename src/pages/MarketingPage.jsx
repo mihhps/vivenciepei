@@ -64,9 +64,11 @@ const LandingPage = () => {
               Vivencie o PEI.
             </h1>
             <p className="mt-4 max-w-2xl mx-auto text-lg sm:text-xl font-medium text-blue-200">
-              Uma plataforma completa e intuitiva para gerenciar Planos
-              Educacionais Individualizados, desenvolvida para facilitar o
-              trabalho de quem ensina e o aprendizado de quem aprende.
+              Uma plataforma completa e intuitiva para elaboração e gestão de
+              Planos Educacionais Individualizados (PEIs), com suporte ao
+              Atendimento Educacional Especializado (AEE), desenvolvida para
+              qualificar a prática pedagógica e promover a aprendizagem de forma
+              equitativa e personalizada.
             </p>
             <div className="mt-8 flex justify-center">
               {/* O BOTÃO AGORA USA O COMPONENTE LINK PARA NAVEGAR PARA A NOVA PÁGINA */}
@@ -79,7 +81,85 @@ const LandingPage = () => {
             </div>
           </div>
         </section>
-
+        {/* Seção de Benefícios */}
+        <section className="bg-blue-50 py-12 sm:py-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-center text-blue-900">
+              Por que Vivencie PEI?
+            </h2>
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {/* Benefício 1 */}
+              <div className="bg-white p-6 rounded-2xl shadow-md space-y-2 border border-blue-100 text-center">
+                <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-blue-100 p-2">
+                  <img
+                    src="/images/colaboracao.png"
+                    alt="Ícone de colaboração"
+                    className="h-full w-full object-contain"
+                  />
+                </div>
+                <h3 className="font-bold text-lg text-blue-600">
+                  Colaboração e Coerência
+                </h3>
+                <p className="text-sm text-gray-700">
+                  Promove a cooperação, unifica o processo e assegura que toda a
+                  equipe esteja alinhada a um propósito único.
+                </p>
+              </div>
+              {/* Benefício 2 */}
+              <div className="bg-white p-6 rounded-2xl shadow-md space-y-2 border border-blue-100 text-center">
+                <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-blue-100 p-2">
+                  <img
+                    src="/images/otimizacao.png"
+                    alt="Ícone de otimização de tempo"
+                    className="h-full w-full object-contain"
+                  />
+                </div>
+                <h3 className="font-bold text-lg text-blue-600">
+                  Otimização do Tempo
+                </h3>
+                <p className="text-sm text-gray-700">
+                  Minimiza a necessidade de reuniões e simplifica o processo de
+                  elaboração, edição e registro dos planos.
+                </p>
+              </div>
+              {/* Benefício 3 */}
+              <div className="bg-white p-6 rounded-2xl shadow-md space-y-2 border border-blue-100 text-center">
+                <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-blue-100 p-2">
+                  <img
+                    src="/images/visao.png"
+                    alt="Ícone de visão 360"
+                    className="h-full w-full object-contain"
+                  />
+                </div>
+                <h3 className="font-bold text-lg text-blue-600">
+                  Visão 360º do Aluno
+                </h3>
+                <p className="text-sm text-gray-700">
+                  Integra a avaliação de habilidades, interesses e gatilhos,
+                  oferecendo à equipe uma compreensão ampla e aprofundada do
+                  aluno.
+                </p>
+              </div>
+              {/* Benefício 4 */}
+              <div className="bg-white p-6 rounded-2xl shadow-md space-y-2 border border-blue-100 text-center">
+                <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-blue-100 p-2">
+                  <img
+                    src="/images/documentacao.png"
+                    alt="Ícone de documentação"
+                    className="h-full w-full object-contain"
+                  />
+                </div>
+                <h3 className="font-bold text-lg text-blue-600">
+                  Documentação Simplificada
+                </h3>
+                <p className="text-sm text-gray-700">
+                  Gera de forma automática um documento PDF completo, ideal para
+                  organizar, arquivar e compartilhar.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
         {/* Seção de Recursos */}
         <section className="bg-white py-12 sm:py-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
@@ -101,7 +181,7 @@ const LandingPage = () => {
                   <img
                     src="/images/avaliacao.png"
                     alt="Ícone de Avaliação"
-                    className="w-8 h-8"
+                    className="w-20 h-20"
                   />
                 </div>
                 <h3 className="font-extrabold text-xl text-blue-900">
@@ -121,7 +201,7 @@ const LandingPage = () => {
                   <img
                     src="/images/criacao.png"
                     alt="Ícone de Criação"
-                    className="w-16 h-16"
+                    className="w-20 h-20"
                   />
                 </div>
                 <h3 className="font-extrabold text-xl text-blue-900">
@@ -140,7 +220,7 @@ const LandingPage = () => {
                   <img
                     src="/images/acompanhamento.png"
                     alt="Ícone de Acompanhamento"
-                    className="w-16 h-16"
+                    className="w-20 h-20"
                   />
                 </div>
                 <h3 className="font-extrabold text-xl text-blue-900">
@@ -150,58 +230,6 @@ const LandingPage = () => {
                   Registre atividades e observações de forma detalhada e
                   centralizada, garantindo um histórico completo do
                   desenvolvimento do aluno.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Seção de Benefícios */}
-        <section className="bg-blue-50 py-12 sm:py-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-center text-blue-900">
-              Por que Vivencie PEI?
-            </h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {/* Benefício 1 */}
-              <div className="bg-white p-6 rounded-2xl shadow-md space-y-2 border border-blue-100">
-                <h3 className="font-bold text-lg text-blue-600">
-                  Colaboração e Coerência
-                </h3>
-                <p className="text-sm text-gray-700">
-                  Promove a cooperação, unifica o processo e assegura que toda a
-                  equipe esteja alinhada a um propósito único.
-                </p>
-              </div>
-              {/* Benefício 2 */}
-              <div className="bg-white p-6 rounded-2xl shadow-md space-y-2 border border-blue-100">
-                <h3 className="font-bold text-lg text-blue-600">
-                  Otimização do Tempo
-                </h3>
-                <p className="text-sm text-gray-700">
-                  Minimiza a necessidade de reuniões e simplifica o processo de
-                  elaboração, edição e registro dos planos.
-                </p>
-              </div>
-              {/* Benefício 3 */}
-              <div className="bg-white p-6 rounded-2xl shadow-md space-y-2 border border-blue-100">
-                <h3 className="font-bold text-lg text-blue-600">
-                  Visão 360º do Aluno
-                </h3>
-                <p className="text-sm text-gray-700">
-                  Integra a avaliação de habilidades, interesses e gatilhos,
-                  oferecendo à equipe uma compreensão ampla e aprofundada do
-                  aluno.
-                </p>
-              </div>
-              {/* Benefício 4 */}
-              <div className="bg-white p-6 rounded-2xl shadow-md space-y-2 border border-blue-100">
-                <h3 className="font-bold text-lg text-blue-600">
-                  Documentação Simplificada
-                </h3>
-                <p className="text-sm text-gray-700">
-                  Gera de forma automática um documento PDF completo, ideal para
-                  organizar, arquivar e compartilhar.
                 </p>
               </div>
             </div>
@@ -232,7 +260,7 @@ const LandingPage = () => {
                   <img
                     src="/images/gestao.png"
                     alt="Ícone de Gestão"
-                    className="w-16 h-16"
+                    className="w-20 h-20"
                   />
                 </div>
                 <h3 className="font-extrabold text-xl text-blue-900">
@@ -252,7 +280,7 @@ const LandingPage = () => {
                   <img
                     src="/images/arquivo.png"
                     alt="Ícone de Documentação"
-                    className="w-16 h-16"
+                    className="w-20 h-20"
                   />
                 </div>
                 <h3 className="font-extrabold text-xl text-blue-900">
@@ -289,7 +317,7 @@ const LandingPage = () => {
                   <img
                     src="/images/ia-pei.png" // Certifique-se de ter essa imagem no seu projeto
                     alt="Ícone de IA criando PEI"
-                    className="w-16 h-16"
+                    className="w-20 h-20"
                   />
                 </div>
                 <h3 className="font-extrabold text-xl text-blue-900">
@@ -312,7 +340,7 @@ const LandingPage = () => {
                   <img
                     src="/images/ia-aula.png" // Certifique-se de ter essa imagem no seu projeto
                     alt="Ícone de IA criando aulas"
-                    className="w-16 h-16"
+                    className="w-20 h-20"
                   />
                 </div>
                 <h3 className="font-extrabold text-xl text-blue-900">
@@ -350,7 +378,7 @@ const LandingPage = () => {
                   <img
                     src="/images/acompanhamento-equipe.png" // Certifique-se de ter essa imagem no seu projeto
                     alt="Ícone de Acompanhamento da Equipe"
-                    className="w-16 h-16"
+                    className="w-20 h-20"
                   />
                 </div>
                 <h3 className="font-extrabold text-xl text-blue-900">
@@ -372,7 +400,7 @@ const LandingPage = () => {
                   <img
                     src="/images/acompanhamento-gestao.png" // Certifique-se de ter essa imagem no seu projeto
                     alt="Ícone de Acompanhamento da Gestão"
-                    className="w-16 h-16"
+                    className="w-20 h-20"
                   />
                 </div>
                 <h3 className="font-extrabold text-xl text-blue-900">
@@ -413,7 +441,7 @@ const LandingPage = () => {
                   <img
                     src="/images/michelle-pollheim.png"
                     alt="Foto de Michelle Pollheim"
-                    className="h-32 w-32 rounded-full object-cover"
+                    className="h-36 w-36 rounded-full object-cover"
                   />
                 </div>
                 <h3 className="font-extrabold text-xl text-blue-900">
@@ -435,7 +463,7 @@ const LandingPage = () => {
                   <img
                     src="/images/shirlei-manske.png"
                     alt="Foto de Shirlei Manske"
-                    className="h-32 w-32 rounded-full object-cover"
+                    className="h-36 w-36 rounded-full object-cover"
                   />
                 </div>
                 <h3 className="font-extrabold text-xl text-blue-900">
@@ -461,7 +489,7 @@ const LandingPage = () => {
             <img
               src="/images/calendario.png"
               alt="Ícone de Calendário"
-              className="w-16 h-16 mx-auto mb-4"
+              className="w-20 h-20 mx-auto mb-4"
             />
             <h2 className="text-2xl sm:text-3xl font-extrabold text-blue-900">
               Agende uma Demonstração
