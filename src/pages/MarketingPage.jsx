@@ -268,7 +268,130 @@ const LandingPage = () => {
             </div>
           </div>
         </section>
+        {/* Nova Seção: Inteligência Artificial (IA) */}
+        <section className="bg-blue-50 py-12 sm:py-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+            <div className="text-center space-y-4">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-blue-900">
+                Com a IA, você não apenas fica mais fácil, fica melhor.
+              </h2>
+              <p className="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto">
+                Com a IA Gemini integrada, a Vivencie PEI auxilia professores a
+                otimizar seu tempo e a personalizar a jornada de aprendizado de
+                cada aluno, tornando o processo mais eficiente e focado.
+              </p>
+            </div>
 
+            <div className="grid md:grid-cols-2 gap-8 sm:gap-12">
+              {/* Funcionalidade 1: Criação de PEIs com IA */}
+              <div className="text-center space-y-4">
+                <div className="flex justify-center mb-4">
+                  <img
+                    src="/images/ia-pei.png" // Certifique-se de ter essa imagem no seu projeto
+                    alt="Ícone de IA criando PEI"
+                    className="w-16 h-16"
+                  />
+                </div>
+                <h3 className="font-extrabold text-xl text-blue-900">
+                  Criação de PEIs com IA
+                </h3>
+                <p className="text-sm text-gray-600">
+                  O Gemini otimiza a criação do Plano Educacional
+                  Individualizado (PEI) ao sugerir estratégias e atividades
+                  adaptadas às habilidades do aluno, com base em sua avaliação
+                  inicial. Isso torna o processo mais rápido e eficiente,
+                  permitindo que o professor personalize e refine as sugestões
+                  para garantir um plano perfeitamente alinhado às necessidades
+                  do estudante.
+                </p>
+              </div>
+
+              {/* Funcionalidade 2: Aulas Dinâmicas e Personalizadas */}
+              <div className="text-center space-y-4">
+                <div className="flex justify-center mb-4">
+                  <img
+                    src="/images/ia-aula.png" // Certifique-se de ter essa imagem no seu projeto
+                    alt="Ícone de IA criando aulas"
+                    className="w-16 h-16"
+                  />
+                </div>
+                <h3 className="font-extrabold text-xl text-blue-900">
+                  Aulas Dinâmicas e Personalizadas
+                </h3>
+                <p className="text-sm text-gray-600">
+                  A IA agiliza a criação de aulas e atividades, usando a
+                  Avaliação Inicial do aluno para gerar propostas
+                  personalizadas. Isso otimiza o tempo do professor, que pode
+                  adaptar facilmente as sugestões para a sala de aula,
+                  garantindo um aprendizado mais eficaz.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+        {/* Nova Seção: Acompanhamento de PEIs para a Equipe e Gestores */}
+        <section className="bg-white py-12 sm:py-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+            <div className="text-center space-y-4">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-blue-900">
+                Colaboração e Acompanhamento: Uma Visão Unificada.
+              </h2>
+              <p className="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto">
+                Nossas ferramentas de acompanhamento e gestão facilitam a
+                colaboração entre todos os envolvidos, garantindo alinhamento
+                contínuo com o desenvolvimento individual de cada aluno.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-8 sm:gap-12">
+              {/* Funcionalidade 1: Acompanhamento da Equipe */}
+              <div className="text-center space-y-4">
+                <div className="flex justify-center mb-4">
+                  <img
+                    src="/images/acompanhamento-equipe.png" // Certifique-se de ter essa imagem no seu projeto
+                    alt="Ícone de Acompanhamento da Equipe"
+                    className="w-16 h-16"
+                  />
+                </div>
+                <h3 className="font-extrabold text-xl text-blue-900">
+                  Página de Acompanhamento do AEE
+                </h3>
+                <p className="text-sm text-gray-600">
+                  A elaboração do Plano de Atendimento Educacional Especializado
+                  (AEE) tornou-se mais eficiente e estratégica com o apoio da
+                  inteligência artificial Gemini. A ferramenta permite a geração
+                  de sugestões de atividades personalizadas, de forma ágil e
+                  precisa, garantindo um planejamento pedagógico mais alinhado
+                  às habilidades e necessidades específicas de cada aluno.
+                </p>
+              </div>
+
+              {/* Funcionalidade 2: Acompanhamento da Gestão */}
+              <div className="text-center space-y-4">
+                <div className="flex justify-center mb-4">
+                  <img
+                    src="/images/acompanhamento-gestao.png" // Certifique-se de ter essa imagem no seu projeto
+                    alt="Ícone de Acompanhamento da Gestão"
+                    className="w-16 h-16"
+                  />
+                </div>
+                <h3 className="font-extrabold text-xl text-blue-900">
+                  Página de Acompanhamento da Gestão
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Através da página de Acompanhamento da Gestão, os gestores têm
+                  uma visão centralizada do Planejamento Individual do
+                  atendimento do AEE, podendo analisar cada atendimento
+                  realizado, acompanhar as habilidades desenvolvidas e registrar
+                  feedbacks diretamente para o profissional do Atendimento
+                  Educacional Especializado. Essa funcionalidade facilita a
+                  identificação de gargalos, promove uma comunicação mais
+                  eficiente e fortalece a atuação estratégica da gestão escolar.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
         {/* Seção Quem Somos */}
         <section className="bg-blue-50 py-12 sm:py-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
