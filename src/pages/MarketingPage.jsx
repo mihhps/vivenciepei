@@ -273,7 +273,7 @@ const LandingPage = () => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
             <div className="text-center space-y-4">
               <h2 className="text-2xl sm:text-3xl font-extrabold text-blue-900">
-                Com a IA, você não apenas fica mais fácil, fica melhor.
+                Com a IA, não apenas fica mais fácil, fica melhor.
               </h2>
               <p className="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto">
                 Com a IA Gemini integrada, a Vivencie PEI auxilia professores a
