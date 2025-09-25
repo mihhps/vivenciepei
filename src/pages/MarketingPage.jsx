@@ -433,8 +433,7 @@ const LandingPage = () => {
                 para um ensino verdadeiramente inclusivo e eficaz.
               </p>
             </div>
-
-            <div className="grid md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {/* Membro 1: Michelle Pollheim */}
               <div className="bg-white p-6 rounded-2xl shadow-md space-y-4 text-center border border-blue-100">
                 <div className="flex justify-center mb-4">
@@ -448,7 +447,7 @@ const LandingPage = () => {
                   Michelle Pollheim
                 </h3>
                 <p className="text-sm text-blue-600 font-bold">
-                  Fundadora e Orientadora Pedagógica
+                  Criadora e Orientadora Pedagógica
                 </p>
                 <p className="text-sm text-gray-700">
                   Com ampla vivência nas necessidades práticas das escolas,
@@ -477,6 +476,27 @@ const LandingPage = () => {
                   Shirlei trouxe a visão prática de quem está na linha de
                   frente, assegurando que a plataforma atenda de forma real às
                   demandas na elaboração do PEI.
+                </p>
+              </div>
+              {/* Membro 3: Késsia Janara Mafra da Silva */}
+              <div className="bg-white p-6 rounded-2xl shadow-md space-y-4 text-center border border-blue-100">
+                <div className="flex justify-center mb-4">
+                  <img
+                    src="/images/kessia-mafra.png"
+                    alt="Foto de Késsia Janara Mafra da Silva"
+                    className="h-36 w-36 rounded-full object-cover"
+                  />
+                </div>
+                <h3 className="font-extrabold text-xl text-blue-900">
+                  Késsia Janara Mafra da Silva
+                </h3>
+                <p className="text-sm text-blue-600 font-bold">
+                  Suporte em Avaliações e Educação Especial
+                </p>
+                <p className="text-sm text-gray-700">
+                  Késsia foi fundamental no suporte às avaliações e em tudo que
+                  envolve a Educação Especial, assegurando que a plataforma
+                  atendesse às especificidades dessa área.
                 </p>
               </div>
             </div>
