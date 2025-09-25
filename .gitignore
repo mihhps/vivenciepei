@@ -27,3 +27,8 @@ dist-ssr
 src/chave-firebase.json
 script/chave-firebase.json
 functions/serviceAccountKey.json 
+
+# Credenciais e arquivos locais
+admin-credentials.json
+consertarPermissoes.cjs
+.firebase/

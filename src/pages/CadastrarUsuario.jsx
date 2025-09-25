@@ -12,7 +12,6 @@ import { perfilRedirectMap } from "../config/routesConfig";
 // Importe o novo arquivo CSS
 import "../styles/CadastrarUsuario.css";
 
-// O componente em si não muda
 export default function CadastrarUsuario() {
   const [nome, setNome] = useState("");
   const [cargo, setCargo] = useState("");
@@ -105,20 +104,18 @@ export default function CadastrarUsuario() {
     setLoadingCadastro(true);
 
     try {
-      console.log("[CAD_USER_DEBUG] Iniciando cadastro...");
+      // Passo 1: Cria o usuário no sistema de Autenticação
       const cred = await createUserWithEmailAndPassword(
         auth,
         email.trim(),
         senha
       );
-      const novoUsuarioUid = cred.user.uid;
-      console.log(
-        "[CAD_USER_DEBUG] Usuário autenticado com UID:",
-        novoUsuarioUid
-      );
+      const novoUsuario = cred.user; // Obtém o objeto completo do novo usuário
 
+      // Passo 2: Prepara e salva os dados do usuário no Firestore
+      // Esta ação vai acionar sua Cloud Function para criar a permissão ("crachá")
       const dadosUsuarioFirestore = {
-        uid: novoUsuarioUid,
+        uid: novoUsuario.uid,
         nome: nome.trim(),
         email: email.trim(),
         cargo: cargo.trim(),
@@ -130,45 +127,34 @@ export default function CadastrarUsuario() {
         escolas: escolasSelecionadas,
         turmas: {},
       };
+      await setDoc(doc(db, "usuarios", novoUsuario.uid), dadosUsuarioFirestore);
 
-      await setDoc(doc(db, "usuarios", novoUsuarioUid), dadosUsuarioFirestore);
-      console.log(
-        "[CAD_USER_DEBUG] Documento Firestore salvo com ID:",
-        novoUsuarioUid
+      // Mostra uma mensagem de espera para o usuário
+      setSucesso(
+        "Usuário criado! Configurando permissões, por favor, aguarde..."
       );
 
-      const usuarioParaLocalStorage = {
-        ...dadosUsuarioFirestore,
-        id: novoUsuarioUid,
-      };
-      localStorage.setItem(
-        "usuarioLogado",
-        JSON.stringify(usuarioParaLocalStorage)
-      );
+      // Passo 3: Espera a Cloud Function trabalhar e força a atualização do "crachá"
+      setTimeout(async () => {
+        try {
+          await novoUsuario.getIdToken(true); // O 'true' FORÇA o recarregamento do token
+          console.log("Token de usuário atualizado com as novas permissões!");
 
-      setSucesso("Usuário cadastrado com sucesso!");
-      limparFeedback();
-
-      setNome("");
-      setCargo("");
-      setEmail("");
-      setSenha("");
-      setPerfil("");
-      setDisciplina("");
-      setEscolasSelecionadas({});
-
-      const rotaRedirecionamento = perfilRedirectMap[perfil];
-      if (rotaRedirecionamento) {
-        navigate(rotaRedirecionamento, {
-          state: { usuario: usuarioParaLocalStorage },
-        });
-      } else {
-        setErro(
-          "Perfil de usuário não mapeado para redirecionamento. Redirecionando para a página inicial."
-        );
-        limparFeedback();
-        navigate("/");
-      }
+          // Passo 4: Agora que o "crachá" está atualizado, podemos navegar
+          const rotaRedirecionamento = perfilRedirectMap[perfil];
+          if (rotaRedirecionamento) {
+            navigate(rotaRedirecionamento);
+          } else {
+            navigate("/"); // Rota padrão
+          }
+        } catch (tokenError) {
+          console.error("Erro ao forçar a atualização do token:", tokenError);
+          setErro(
+            "Não foi possível verificar as permissões. Por favor, tente fazer login manualmente."
+          );
+          setLoadingCadastro(false);
+        }
+      }, 4000); // 4 segundos é um tempo seguro para a Cloud Function ser executada.
     } catch (error) {
       console.error("Erro ao cadastrar usuário:", error);
       let mensagemErro = "Erro ao cadastrar. Verifique os dados e a conexão.";
@@ -181,8 +167,7 @@ export default function CadastrarUsuario() {
 
       setErro(mensagemErro);
       limparFeedback();
-    } finally {
-      setLoadingCadastro(false);
+      setLoadingCadastro(false); // Garante que o loading para em caso de erro
     }
   };
 
@@ -373,14 +358,13 @@ export default function CadastrarUsuario() {
           onClick={handleCadastro}
           disabled={loadingCadastro || loadingEscolas}
         >
-          {loadingCadastro ? "Cadastrando..." : "Cadastrar"}
+          {loadingCadastro ? "Configurando conta..." : "Cadastrar"}
         </button>
       </div>
     </div>
   );
 }
 
-// Os estilos inline que não precisam de alteração permanecem aqui
 const estilos = {
   container: {
     display: "flex",

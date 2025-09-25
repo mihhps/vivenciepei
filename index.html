@@ -15,24 +15,5 @@
     <div id="root"></div>
 
     <script type="module" src="/src/main.jsx"></script>
-
-    <script>
-      if ("serviceWorker" in navigator) {
-        window.addEventListener("load", () => {
-          // Correção: Apontando para o /sw.js que é gerado automaticamente pelo build
-          navigator.serviceWorker
-            .register("/sw.js")
-            .then((registration) => {
-              console.log(
-                "Service Worker registrado com sucesso:",
-                registration.scope
-              );
-            })
-            .catch((error) => {
-              console.error("Falha no registro do Service Worker:", error);
-            });
-        });
-      }
-    </script>
   </body>
 </html>
