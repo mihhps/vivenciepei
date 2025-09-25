@@ -162,6 +162,15 @@ export default function PainelSEME() {
                 texto="Relatórios do Aluno"
                 destino="/relatorios-aluno"
               />
+              <BotaoPainel
+                texto="Acompanhamento AEE"
+                destino="/acompanhamento-aee-selecao"
+              />
+
+              <BotaoPainel
+                texto="Acompanhamento AEE Gestão"
+                destino="/acompanhamento-gestao-selecao"
+              />
             </>
           )}
 

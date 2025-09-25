@@ -22,7 +22,7 @@ const painelDestinoMapeado = {
   desenvolvedora: "/painel-dev",
   gestao: "/painel-gestao",
   aee: "/painel-aee",
-  seme: "/acompanhamento",
+  seme: "/painel-seme", // Ou a rota correta para o painel da SEME
   professor: "/painel-professor",
   diretor: "/painel-gestao",
   diretor_adjunto: "/painel-gestao",
