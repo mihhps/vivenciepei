@@ -749,3 +749,96 @@
   display: block;
   text-align: right;
 }
+/* ================================================= */
+/* ##### ESTILOS PARA A TELA INICIAL (SEM PLANO) ##### */
+/* ================================================= */
+
+/* Container que preenche a tela e centraliza o card */
+.acompanhamento-container-inicial {
+  font-family: "Segoe UI", sans-serif;
+  background: linear-gradient(to bottom right, #1d3557, #457b9d);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+/* O card branco central */
+.tela-inicial-card {
+  background-color: #ffffff;
+  max-width: 500px;
+  width: 100%;
+  padding: 30px 40px;
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.tela-inicial-card h2 {
+  color: #1d3557;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.tela-inicial-card p {
+  color: #6c757d;
+  margin-top: 0;
+  margin-bottom: 2rem;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+/* Container para os dois botões principais */
+.opcoes-botoes {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem; /* Espaço entre os botões */
+  margin-bottom: 1.5rem;
+}
+
+/* Estilo genérico para os botões da tela inicial */
+.opcoes-botoes button {
+  width: 100%;
+  padding: 14px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+/* Botão "Criar Plano em Branco" (botão primário) */
+.opcoes-botoes button:first-of-type {
+  background-color: #2a9d8f; /* Verde */
+  color: white;
+}
+.opcoes-botoes button:first-of-type:hover {
+  background-color: #21867a;
+}
+
+/* Botão "Importar da Avaliação" (botão secundário) */
+.opcoes-botoes .botao-importar {
+  background-color: #f0f0f0;
+  color: #1d3557;
+  border: 1px solid #ddd;
+}
+.opcoes-botoes .botao-importar:hover {
+  background-color: #e0e0e0;
+}
+
+/* Mensagem de erro que aparece na parte de baixo */
+.mensagem-erro-inicial {
+  color: #e63946; /* Vermelho */
+  background-color: #ffe6e6;
+  border: 1px solid #e63946;
+  padding: 1rem;
+  border-radius: 8px;
+  font-weight: 500;
+  margin-top: 1rem;
+}

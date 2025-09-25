@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { db } from "../firebase";
+import { db, auth } from "../firebase"; // Adicione 'auth' aqui
 import {
   doc,
   getDoc,
@@ -262,12 +262,17 @@ export function usePlanoAEE(alunoId) {
   const criarPlanoEmBranco = async (alunoId) => {
     setEstado((s) => ({ ...s, carregando: true, erro: null }));
     try {
+      // ✅ ESTA É A LINHA QUE FALTAVA
+      const user = auth.currentUser;
+      if (!user) throw new Error("Usuário não autenticado.");
+
       const novoPlano = {
         habilidades: [],
         criadoEm: Timestamp.now(),
         dataPlano: new Date().toISOString().split("T")[0],
         alunoId: alunoId,
         horariosAtendimento: [],
+        criadorId: user.uid, // Agora a variável 'user' existe
       };
       const planoRef = doc(db, "alunos", alunoId, "planoAEE", "planoAtivo");
       await setDoc(planoRef, novoPlano);
@@ -280,7 +285,6 @@ export function usePlanoAEE(alunoId) {
       setEstado((s) => ({ ...s, carregando: false }));
     }
   };
-
   const importarDaAvaliacao = async (alunoId) => {
     setEstado((s) => ({ ...s, carregando: true, erro: null }));
     try {
@@ -324,6 +328,7 @@ export function usePlanoAEE(alunoId) {
         baseadoEm: avaliacaoSnap.docs[0].id,
         alunoId: alunoId,
         horariosAtendimento: [],
+        criadorId: user.uid,
       };
       const planoRef = doc(db, "alunos", alunoId, "planoAEE", "planoAtivo");
       await setDoc(planoRef, novoPlano);
