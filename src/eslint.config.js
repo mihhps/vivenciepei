@@ -1,33 +1,32 @@
-// /Users/aeeemebolf/Documents/vivenciepei/eslint.config.js
+// eslint.config.js
 
 const globals = require("globals");
 const js = require("@eslint/js");
 const pluginReact = require("eslint-plugin-react");
 const pluginReactHooks = require("eslint-plugin-react-hooks");
 const pluginJsxA11y = require("eslint-plugin-jsx-a11y");
-const pluginPrettier = require("eslint-plugin-prettier"); // Se você usa eslint-plugin-prettier
+const pluginPrettier = require("eslint-plugin-prettier");
 
 module.exports = [
   // --- Configuração de Ignorar Global ---
-  // Ignora node_modules, pastas de build e a pasta functions para linting do frontend
   {
     ignores: [
       "node_modules/**",
       "build/**",
       "dist/**",
-      "functions/**", // Ignora a pasta functions inteira para esta configuração
-      "public/**/*.mjs", // Ignora arquivos compilados de libs na pasta public
-      "src/styles/**", // Exemplo: se houver arquivos CSS que o ESLint tente parsear
+      "functions/**",
+      "public/**/*.mjs",
+      "src/styles/**",
     ],
   },
 
   // --- Configuração para o AMBIENTE NODE.JS (suas Cloud Functions) ---
   {
-    files: ["functions/**/*.js"], // Aplica-se a todos os arquivos .js dentro da pasta functions
-    extends: [js.configs.recommended, "google"], // Exemplo: Mantém o google config para Node.js
+    files: ["functions/**/*.js"],
+    extends: [js.configs.recommended, "google"],
     languageOptions: {
       ecmaVersion: 2022,
-      sourceType: "commonjs", // Suas Cloud Functions usam 'require', então CommonJS
+      sourceType: "commonjs",
       globals: {
         ...globals.node,
         functions: "readonly",
@@ -53,48 +52,46 @@ module.exports = [
 
   // --- Configuração para o AMBIENTE DE NAVEGADOR (seu frontend em src/) ---
   {
-    files: ["src/**/*.{js,jsx}"], // Aplica-se a arquivos .js e .jsx dentro da pasta src
+    files: ["src/**/*.{js,jsx}"],
     env: {
-      browser: true, // Habilita variáveis globais de navegador
-      es2021: true, // Habilita as últimas features do ES
-      node: false, // Desabilita variáveis globais de Node.js
+      browser: true,
+      es2021: true,
+      node: false,
     },
     extends: [
       js.configs.recommended,
       "plugin:react/recommended",
       "plugin:react-hooks/recommended",
       "plugin:jsx-a11y/recommended",
-      "plugin:prettier/recommended", // Certifique-se de que eslint-plugin-prettier está instalado
+      "plugin:prettier/recommended",
     ],
     languageOptions: {
       parserOptions: {
         ecmaFeatures: {
           jsx: true,
         },
-        ecmaVersion: 2021, // Ou 2022, "latest"
-        sourceType: "module", // Usa módulos ES
+        ecmaVersion: 2021,
+        sourceType: "module",
       },
       globals: {
-        ...globals.browser, // Variáveis globais do navegador (para console, setTimeout, fetch, etc.)
-        // Adicione outras globais que seu frontend possa usar e que não sejam detectadas automaticamente
-        // Ex: 'gtag': 'readonly',
+        ...globals.browser,
+        // Adicione outras globais do frontend aqui se necessário
       },
     },
     plugins: {
       react: pluginReact,
       "react-hooks": pluginReactHooks,
       "jsx-a11y": pluginJsxA11y,
-      prettier: pluginPrettier, // Se estiver usando eslint-plugin-prettier
+      prettier: pluginPrettier,
     },
     settings: {
       react: {
-        version: "detect", // Detecta a versão do React instalada
+        version: "detect",
       },
     },
     rules: {
-      // Suas regras personalizadas para o frontend
-      "react/react-in-jsx-scope": "off", // Para React 17+
-      "react/prop-types": "warn", // Mudar para warn para PropTypes
+      "react/react-in-jsx-scope": "off",
+      "react/prop-types": "warn",
       "no-unused-vars": [
         "warn",
         {
@@ -104,31 +101,32 @@ module.exports = [
         },
       ],
       "no-prototype-builtins": "off",
-      "no-undef": "error", // Manter erro para variáveis realmente não definidas
+      "no-undef": "error",
       "no-case-declarations": "error",
       "no-empty": ["error", { allowEmptyCatch: true }],
       "no-control-regex": "off",
       "getter-return": "warn",
-      "react/no-unescaped-entities": [
-        "error",
-        {
-          forbid: [
-            ">",
-            "}",
-            ")",
-            '"',
-            "'",
-            "]]", // Exemplo de como configurar
-            "&apos;",
-            "&lsquo;",
-            "&#39;",
-            "&rsquo;", // Adicione aqui se o erro for este
-          ],
-        },
-      ],
-      // Adicione aqui se houver erros 'no-undef' para APIs de navegador específicas que não são globais
-      // Ex: 'atob', 'Blob', 'URL', 'XMLHttpRequest', 'TextDecoder', 'WebAssembly', 'OffscreenCanvas', etc.
-      // Você pode tentar definir esses no 'globals' do languageOptions acima ou aqui se o erro persistir.
+      "react/no-unescaped-entities": "error",
+    },
+  },
+
+  // --- 🟢 CORREÇÃO: CONFIGURAÇÃO PARA O SERVICE WORKER ---
+  {
+    files: ["public/service-worker.js"], // Aplica-se APENAS ao arquivo do Service Worker
+    languageOptions: {
+      ecmaVersion: 2021,
+      sourceType: "script", // Workers geralmente usam 'script'
+      globals: {
+        // Habilita as variáveis globais específicas do Service Worker, incluindo 'self'
+        ...globals.serviceworker,
+        self: "readonly",
+      },
+    },
+    rules: {
+      // Desativa regras que causam o erro 'self is not defined' no ambiente de worker.
+      "no-restricted-globals": "off",
+      // Manter 'no-undef' desligado aqui garante que outras variáveis de worker também sejam aceitas.
+      "no-undef": "off",
     },
   },
 ];
