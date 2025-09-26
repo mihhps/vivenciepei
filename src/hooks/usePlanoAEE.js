@@ -16,11 +16,6 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 
-// IMPORTAÇÃO CRÍTICA: Chamadas de API foram isoladas no geminiService.js
-// Certifique-se de que o caminho abaixo está correto.
-import { generateSugestoesAEE } from "../services/geminiService";
-// REMOVIDO: const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-
 // Funções de Parse e Lógica da IA
 function parseAtividadeFromText(textResponse) {
   if (!textResponse) return null;
