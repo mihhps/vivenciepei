@@ -1,4 +1,3 @@
-// src/components/BotaoVoltar.jsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import * as PropTypesImport from "prop-types";
@@ -25,22 +24,28 @@ function BotaoVoltar({ destino, texto = "Voltar" }) {
     orientador_pedagogico: "/painel-gestao",
   };
 
-  // Se um destino for explicitamente passado, use-o como fallback
-  // Caso contrário, calcule o painel padrão com base no perfil
-  const fallbackDestino = destino || painelMap[perfil] || "/";
+  // Se um destino for explicitamente passado (prop destino), ele será usado diretamente.
+  // Caso contrário, calculamos o painel padrão com base no perfil.
+  const painelPadrao = painelMap[perfil] || "/";
 
   const handleVoltar = () => {
     try {
-      // Verifica se há entradas suficientes no histórico do navegador para voltar
-      // Uma heurística comum é window.history.length > 2.
-      // 1 geralmente é a URL atual. Se o usuário veio de outra página,
-      // history.length será no mínimo 2. Usar > 2 é mais seguro para garantir
-      // que há uma página "anterior" real.
+      // ----------------------------------------------------------------------
+      // LÓGICA CORRIGIDA: Prioriza o destino fixo se ele foi definido.
+      // ----------------------------------------------------------------------
+      if (destino) {
+        // Se um destino fixo foi passado (ex: "/avaliacao-inicial"), navega diretamente para ele.
+        navigate(destino);
+        return;
+      }
+
+      // Se não há destino fixo, tenta voltar no histórico.
+      // Uma heurística comum é window.history.length > 2 para garantir que há uma página "anterior" real.
       if (window.history.length > 2) {
         navigate(-1); // Volta para a página anterior no histórico
       } else {
-        // Se não há histórico para voltar, navega para o destino de fallback (painel)
-        navigate(fallbackDestino);
+        // Se não há histórico para voltar, navega para o painel padrão.
+        navigate(painelPadrao);
       }
     } catch (error) {
       console.error("Falha na navegação:", error);
