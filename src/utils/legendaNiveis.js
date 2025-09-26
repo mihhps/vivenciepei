@@ -7,5 +7,5 @@ export const legendaNiveis = {
   AV: "Apoio verbal",
   AVi: "Apoio visual",
   I: "Independente",
-  NA: "Não aplicável"
+  NA: "Não aplicável",
 };

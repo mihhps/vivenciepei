@@ -1,25 +1,26 @@
+// Localização Esperada: src/components/AreaPerguntas.jsx
+
 import React, { useState, useMemo, useCallback } from "react";
 import PropTypes from "prop-types";
 import { FaChevronDown } from "react-icons/fa";
 import "../styles/NiveisDeAvaliacao.css";
+// 1. NOVO: Importa a legenda fixa. Ajuste o caminho, se necessário.
+import { legendaNiveis as legendaEstatica } from "../utils/legendaNiveis";
 
 const AreaPerguntas = ({
   area,
-  dados, // Agora 'dados' é a array de habilidades
+  dados, // Array de habilidades
   respostas,
   observacoes,
   onResponder,
   onObservar,
   disabled,
 }) => {
-  // Inicializa todas as subáreas como expandidas, ou vazio, dependendo da sua preferência
   const [subareasExpandidas, setSubareasExpandidas] = useState(() => {
     if (!dados || dados.length === 0) return [];
     const uniqueSubareas = [...new Set(dados.map((item) => item.subarea))];
-    // Apenas a primeira subárea pode começar expandida, se desejar
+    // Deixa apenas a primeira subárea expandida por padrão
     return uniqueSubareas.length > 0 ? [uniqueSubareas[0]] : [];
-    // Para todas expandidas: return uniqueSubareas;
-    // Para todas recolhidas: return [];
   });
 
   const [tooltipVisivel, setTooltipVisivel] = useState({
@@ -78,19 +79,8 @@ const AreaPerguntas = ({
     ].includes(area);
   }, [area]);
 
-  const legendaNiveis = useMemo(() => {
-    if (!dados || dados.length === 0) return [];
-    const primeiraHabilidade = dados[0];
-    if (primeiraHabilidade && primeiraHabilidade.niveis) {
-      return Object.entries(primeiraHabilidade.niveis).map(
-        ([sigla, descricao]) => ({
-          sigla,
-          descricao,
-        })
-      );
-    }
-    return [];
-  }, [dados]);
+  // 2. Lógica de geração dinâmica da legenda FOI REMOVIDA.
+  //    Agora usamos a constante 'legendaEstatica' importada.
 
   // Se não houver dados, não renderiza nada
   if (!dados || dados.length === 0) {
@@ -127,11 +117,10 @@ const AreaPerguntas = ({
               <h4 className="accordion-title">{subareaName}</h4>
               <FaChevronDown className="accordion-icon" />
             </button>
-            {/* AQUI ESTÁ A MUDANÇA CRUCIAL: Renderiza o conteúdo APENAS se estiver expandido */}
             {subareasExpandidas.includes(subareaName) && (
               <div
                 id={`subarea-content-${subareaIndex}`}
-                className="accordion-content open" // Removida a lógica de maxHeight inline aqui
+                className="accordion-content open"
               >
                 {habilidadesNaSubarea.map((pergunta) => {
                   const habilidade = pergunta?.habilidade?.trim();
@@ -184,6 +173,7 @@ const AreaPerguntas = ({
                               }}
                             >
                               {nivel}
+                              {/* O TOOLTIP continua mostrando a descrição detalhada da habilidade (vindo do 'dados') */}
                               {tooltipVisivel.habilidade === habilidade &&
                                 tooltipVisivel.nivel === nivel && (
                                   <div className="tooltip-texto">
@@ -198,15 +188,11 @@ const AreaPerguntas = ({
                   );
                 })}
               </div>
-            )}{" "}
-            {/* FIM DA RENDERIZAÇÃO CONDICIONAL */}
+            )}
           </div>
         )
       )}
 
-      {/* Observações da área principal, se existirem na estrutura original do dados.observacao */}
-      {/* Se 'dados' é a array de habilidades, então 'observacao' da área deve vir do componente pai ou de outro lugar */}
-      {/* Por enquanto, estou assumindo que você ainda terá 'observacoes' vindo de props */}
       <div className="observacoes-area">
         <label htmlFor={`observacoes-${area}`}>
           <strong>Observações sobre "{area}":</strong>
@@ -219,10 +205,11 @@ const AreaPerguntas = ({
         />
       </div>
 
+      {/* 3. CORREÇÃO: Renderização da legenda usando a constante estática 'legendaEstatica' */}
       <div className="legenda-niveis">
         <strong>Legenda:</strong>
         <ul>
-          {legendaNiveis.map(({ sigla, descricao }) => (
+          {Object.entries(legendaEstatica).map(([sigla, descricao]) => (
             <li key={sigla}>
               <div
                 className={`circulo-nivel ${sigla}`}
@@ -242,7 +229,6 @@ const AreaPerguntas = ({
 AreaPerguntas.propTypes = {
   area: PropTypes.string.isRequired,
   dados: PropTypes.arrayOf(
-    // 'dados' agora é um array de objetos de habilidade
     PropTypes.shape({
       habilidade: PropTypes.string.isRequired,
       subarea: PropTypes.string.isRequired,
@@ -250,7 +236,7 @@ AreaPerguntas.propTypes = {
     })
   ).isRequired,
   respostas: PropTypes.object,
-  observacoes: PropTypes.string, // Assumindo que observacoes vem do pai
+  observacoes: PropTypes.string,
   onResponder: PropTypes.func.isRequired,
   onObservar: PropTypes.func.isRequired,
   disabled: PropTypes.bool,
