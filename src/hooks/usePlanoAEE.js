@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { db, auth } from "../firebase"; // Adicione 'auth' aqui
+import { db, auth } from "../firebase";
 import {
   doc,
   getDoc,
@@ -16,7 +16,10 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+// IMPORTAÇÃO CRÍTICA: Chamadas de API foram isoladas no geminiService.js
+// Certifique-se de que o caminho abaixo está correto.
+import { generateSugestoesAEE } from "../services/geminiService";
+// REMOVIDO: const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
 // Funções de Parse e Lógica da IA
 function parseAtividadeFromText(textResponse) {
@@ -91,12 +94,13 @@ async function buscarSugestoesComIA_REAL(
     habilidadeTexto = habilidadeObj.habilidade || "";
   }
 
-  if (!GEMINI_API_KEY) {
+  // Se a API Key não estiver configurada, usamos a simulação
+  if (!import.meta.env.VITE_GEMINI_API_KEY) {
     console.warn("API Key do Gemini não configurada. Usando simulação.");
     return buscarSugestoesComIA_SIMULACAO(tipo, habilidadeTexto);
   }
 
-  const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+  // --- MONTAGEM DO PROMPT ---
   const systemInstruction = `Você é um especialista em Atendimento Educacional Especializado (AEE). Crie sugestões de atividades pedagógicas concisas e práticas. Responda SEMPRE no formato solicitado e NADA MAIS.`;
   let userPrompt = "";
 
@@ -114,33 +118,26 @@ async function buscarSugestoesComIA_REAL(
     } anos.\n\nFormate CADA SUGESTÃO EXATAMENTE assim:\nTítulo: [Título da Atividade]\nObjetivos:\n- [Primeiro objetivo]\n- [Segundo objetivo]\nRecursos: [Materiais necessários]\nMetodologia: [Passo a passo com verbos no infinitivo.]\nDuração: [Duração estimada]\n\nSepare cada sugestão completa com a linha "---NOVA SUGESTAO---".`;
   }
 
-  const payload = {
-    contents: [{ parts: [{ text: userPrompt }] }],
-    system_instruction: { parts: [{ text: systemInstruction }] },
-    generationConfig: { temperature: 0.9 },
-  };
-  const response = await fetch(apiUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  if (!response.ok) {
-    const errorBody = await response.json();
-    throw new Error(
-      `Erro na API: ${errorBody.error?.message || "Resposta inválida"}`
+  // --- CHAMADA DO SERVIÇO CORRIGIDO ---
+  try {
+    const textResponse = await generateSugestoesAEE(
+      tipo,
+      userPrompt,
+      systemInstruction
     );
+    // --- TRATAMENTO DA RESPOSTA ---
+    if (tipo === "atividadePrincipal") {
+      return parseMultiplasAtividadesFromText(textResponse);
+    }
+    return textResponse
+      .split("|||")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  } catch (e) {
+    // Re-lança o erro com o contexto
+    console.error(`Erro ao chamar IA para ${tipo}:`, e);
+    throw new Error(`Erro na API: ${e.message}`);
   }
-  const result = await response.json();
-  const textResponse = result.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!textResponse) throw new Error("A IA não retornou uma resposta válida.");
-
-  if (tipo === "atividadePrincipal") {
-    return parseMultiplasAtividadesFromText(textResponse);
-  }
-  return textResponse
-    .split("|||")
-    .map((s) => s.trim())
-    .filter(Boolean);
 }
 
 async function buscarSugestoesComIA_SIMULACAO(tipo, habilidade = "") {
@@ -244,6 +241,7 @@ export function usePlanoAEE(alunoId) {
               : new Date(aluno.nascimento)
             ).getFullYear()
           : null;
+        // Chamada à função que executa a IA
         return await buscarSugestoesComIA_REAL(
           tipo,
           habilidade,
@@ -252,7 +250,13 @@ export function usePlanoAEE(alunoId) {
           forceRefresh
         );
       } catch (e) {
+        // O erro de API será capturado aqui
         console.error("Erro ao buscar sugestões:", e);
+        // Garante que o erro é visível na tela
+        setEstado((s) => ({
+          ...s,
+          erro: e.message || "Falha ao buscar sugestões da IA.",
+        }));
         throw new Error("Falha ao buscar sugestões da IA.");
       }
     },
@@ -262,7 +266,6 @@ export function usePlanoAEE(alunoId) {
   const criarPlanoEmBranco = async (alunoId) => {
     setEstado((s) => ({ ...s, carregando: true, erro: null }));
     try {
-      // ✅ ESTA É A LINHA QUE FALTAVA
       const user = auth.currentUser;
       if (!user) throw new Error("Usuário não autenticado.");
 
@@ -272,7 +275,7 @@ export function usePlanoAEE(alunoId) {
         dataPlano: new Date().toISOString().split("T")[0],
         alunoId: alunoId,
         horariosAtendimento: [],
-        criadorId: user.uid, // Agora a variável 'user' existe
+        criadorId: user.uid,
       };
       const planoRef = doc(db, "alunos", alunoId, "planoAEE", "planoAtivo");
       await setDoc(planoRef, novoPlano);
@@ -321,6 +324,10 @@ export function usePlanoAEE(alunoId) {
       });
       if (habilidadesParaPlanejar.length === 0)
         throw new Error("Nenhuma habilidade a ser trabalhada foi encontrada.");
+
+      const user = auth.currentUser;
+      if (!user) throw new Error("Usuário não autenticado."); // Checagem adicionada aqui
+
       const novoPlano = {
         habilidades: habilidadesParaPlanejar,
         criadoEm: Timestamp.now(),

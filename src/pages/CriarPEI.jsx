@@ -680,10 +680,28 @@ export default function CriarPEI() {
     }
   };
 
+  // CriarPEI.jsx (Substituir o bloco de handleGerarAtividadeIndividual)
+
   const handleGerarAtividadeIndividual = async (estrategia) => {
     if (!alunoSelecionado) return;
 
-    // CORREÇÃO 1: Normaliza a chave para ser sempre um texto
+    // 1. CORREÇÃO DE ESCOPO: Declare a variável aqui!
+    // Incluindo a lógica para tratar perfis de Gestão/Desenvolvedor/SEME como "Pedagogia Geral"
+    const perfilUsuario = usuarioLogado.perfil
+      ? usuarioLogado.perfil.toLowerCase()
+      : "";
+    let disciplinaParaIA = usuarioLogado.cargo || "Professor";
+
+    if (
+      ["desenvolvedor", "gestao", "seme", "professor regente"].includes(
+        perfilUsuario
+      ) ||
+      disciplinaParaIA === "Professor Regente"
+    ) {
+      disciplinaParaIA = "Pedagogia Geral";
+    }
+
+    // CORREÇÃO 2: Normaliza a chave para ser sempre um texto
     const keyTexto =
       typeof estrategia === "string" ? estrategia : estrategia.titulo;
 
@@ -700,15 +718,25 @@ export default function CriarPEI() {
 
     setCarregandoAtividadeIndividual((prev) => ({ ...prev, [keyTexto]: true }));
     try {
+      // 3. Chamada da API com o argumento corrigido (disciplinaParaIA)
       const respostaDaApi = await getSugestaoAtividadeParaEstrategia(
         alunoSelecionado,
-        estrategia
+        estrategia,
+        disciplinaParaIA // <--- Agora está definida!
       );
 
-      // CORREÇÃO 2: Garante que a resposta seja sempre uma lista de textos
-      const listaDeSugestoes = respostaDaApi.map((item) =>
-        typeof item === "string" ? item : item.atividade
-      );
+      // Garante que a resposta seja sempre uma lista de textos
+      const listaDeSugestoes = respostaDaApi
+        .map((item) =>
+          typeof item === "string"
+            ? item
+            : item.atividade || item.titulo || item.sugestao
+        )
+        .filter(Boolean);
+
+      if (listaDeSugestoes.length === 0) {
+        throw new Error("A IA não retornou sugestões formatadas.");
+      }
 
       setSugestoesAtividadesIndividuais((prev) => ({
         ...prev,
@@ -730,7 +758,6 @@ export default function CriarPEI() {
       }));
     }
   };
-
   const handleIncluirAtividade = (textoParaIncluir) => {
     setAtividadeAplicada((prev) =>
       prev ? `${prev}\n\n- ${textoParaIncluir}` : `- ${textoParaIncluir}`
@@ -738,7 +765,6 @@ export default function CriarPEI() {
   };
 
   return (
-    
     <div className="container" aria-busy={carregando}>
       <div className="card">
         <div className="card-header">
