@@ -552,7 +552,7 @@ const LandingPage = () => {
                   href="mailto:michellepollheim@icloud.com"
                   className="text-lg text-blue-100 hover:underline"
                 >
-                  michellepollheim@icloud.com
+                  contato@vivenciepei.com.br
                 </a>
               </div>
 
@@ -564,7 +564,7 @@ const LandingPage = () => {
                   className="w-6 h-6"
                 />
                 <a
-                  href="https://wa.me/5547992784778?text=Olá,%20gostaria%20de%20saber%20mais%20sobre%20a%20Vivencie%20PEI."
+                  href="https://wa.me/5547989192375?text=Olá,%20gostaria%20de%20saber%20mais%20sobre%20a%20Vivencie%20PEI."
                   className="text-lg text-blue-100 hover:underline"
                 >
                   WhatsApp
@@ -579,10 +579,10 @@ const LandingPage = () => {
                   className="w-7 h-7"
                 />
                 <a
-                  href="tel:+5547992784778"
+                  href="tel:+5547989192375"
                   className="text-lg text-blue-100 hover:underline"
                 >
-                  (47) 99278-4778
+                  (47) 98919-2375
                 </a>
               </div>
             </div>

@@ -165,6 +165,7 @@
 .sugestao-icon-btn {
   background: linear-gradient(45deg, #6a11cb, #2575fc);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   border: none;
   font-size: 1.2rem;
