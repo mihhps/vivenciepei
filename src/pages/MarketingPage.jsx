@@ -549,7 +549,7 @@ const LandingPage = () => {
                   className="w-6 h-6"
                 />
                 <a
-                  href="mailto:michellepollheim@icloud.com"
+                  href="mailto:contato@vivenciepei.com.br"
                   className="text-lg text-blue-100 hover:underline"
                 >
                   contato@vivenciepei.com.br
