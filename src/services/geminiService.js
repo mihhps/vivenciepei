@@ -100,7 +100,43 @@ async function callGeminiApi(prompt, config, context) {
   return textResponse;
 }
 
-// --- FUNÇÕES EXPORTADAS (QUE SEU COMPONENTE CriarPEI.jsx ESPERA) ---
+// --- CORREÇÃO CRÍTICA 2: FUNÇÃO EXPORTADA PARA O usePlanoAEE.js ---
+
+/**
+ * Função genérica para geração de Quebra-Gelo, Finalização e Atividade Principal
+ * usando os prompts já definidos no usePlanoAEE.
+ *
+ * @param {string} tipo - Tipo de sugestão ('atividadePrincipal', 'quebraGelo', 'finalizacao').
+ * @param {string} prompt - O prompt específico gerado no usePlanoAEE.
+ * @param {string} systemInstruction - Instrução de sistema para a IA.
+ * @returns {Promise<string>} O texto bruto da resposta da IA.
+ */
+export async function generateSugestoesAEE(tipo, prompt, systemInstruction) {
+  const context = `AEE_${tipo}`;
+
+  // Configuração padrão para texto corrido
+  const config = {
+    temperature: 0.7,
+    maxOutputTokens: 2048,
+  };
+
+  // Se for uma atividade principal, permite mais criatividade e tokens
+  if (tipo === "atividadePrincipal") {
+    config.maxOutputTokens = 8192;
+    config.temperature = 0.9;
+  }
+
+  // Combina a instrução do sistema com o prompt do usuário
+  const finalPrompt = systemInstruction
+    ? `${systemInstruction}\n\n${prompt}`
+    : prompt;
+
+  // Reutiliza a sua função centralizada para a chamada da API
+  // Não usa cache aqui, pois a lógica de cache está no usePlanoAEE.js
+  return await callGeminiApi(finalPrompt, config, context);
+}
+
+// --- FUNÇÕES EXPORTADAS RESTANTES (Mantidas para compatibilidade) ---
 
 /**
  * Gera SUGESTÕES DE ESTRATÉGIAS para uma habilidade específica (COM CACHE).

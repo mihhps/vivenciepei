@@ -2098,11 +2098,10 @@ export async function gerarPDFCompleto(
     console.error("Erro ao buscar avaliação de interesses para o PDF:", error);
     avaliacaoInteressesData = {};
   }
-
   let peisParaProcessar =
     Array.isArray(peisParaGeral) && peisParaGeral.length > 0
-      ? peisParaGeral
-      : await fetchPeis(aluno.id, aluno.nome);
+      ? peisParaGeral // Se for passado na chamada do VerPEIs.jsx
+      : await fetchPeis(aluno.id, aluno.nome); // Senão, busca de novo
 
   const peisOrdenados = peisParaProcessar.sort((a, b) => {
     const dataA = a.dataCriacao?.toDate

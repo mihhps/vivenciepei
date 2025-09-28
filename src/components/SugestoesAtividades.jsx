@@ -28,6 +28,9 @@ function SugestoesAtividades({
   const carregarSugestoesIniciais = (forceRefresh = false) => {
     setCarregando(true);
     setErro(null);
+
+    // ATENÇÃO: A função 'getSugestoes' (do hook usePlanoAEE) é que chama a IA.
+    // O erro 'generateSugestoesAEE' deve ser corrigido em usePlanoAEE.js.
     getSugestoes("atividadePrincipal", habilidade, forceRefresh)
       .then((resultado) => {
         if (resultado && resultado.length > 0) {
@@ -38,6 +41,7 @@ function SugestoesAtividades({
         }
       })
       .catch((err) => {
+        // Este é o console.error que reportou a Falha no fetch da IA.
         console.error("SugestoesAtividades: Erro ao buscar sugestões.", err);
         setErro("Não foi possível gerar a sugestão.");
       })
@@ -58,6 +62,8 @@ function SugestoesAtividades({
     const sugestaoAtual = sugestoesList[currentIndex];
     if (sugestaoAtual) {
       const descricaoFormatada = formatarDescricaoParaFormulario(sugestaoAtual);
+
+      // Chamando a função de callback para preencher o formulário no componente pai
       onSelectSugestao({ habilidade, descricao: descricaoFormatada });
     }
   };

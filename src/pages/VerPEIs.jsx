@@ -98,12 +98,12 @@ const calcularIdadeEFaixa = (nascimento) => {
     idade <= 3
       ? "0-3 anos"
       : idade <= 5
-        ? "4-5 anos"
-        : idade <= 8
-          ? "6-8 anos"
-          : idade <= 11
-            ? "9-11 anos"
-            : "12+ anos";
+      ? "4-5 anos"
+      : idade <= 8
+      ? "6-8 anos"
+      : idade <= 11
+      ? "9-11 anos"
+      : "12+ anos";
   return [idade, faixa];
 };
 
@@ -191,146 +191,156 @@ export default function VerPEIs() {
     try {
       const tipo = usuarioLogado?.perfil;
 
-      let alunosQuery, peisQuery, usuariosQuery, avaliacoesQuery;
+      // Variáveis para armazenar os dados finais
+      let alunosParaExibir = [];
+      let peisAgrupados = {};
+      let avaliacoesParaExibir = {};
+      let usuariosParaFiltro = [];
 
-      switch (tipo) {
-        case "desenvolvedor":
-        case "seme":
-        // ##### INÍCIO DA LÓGICA ALTERADA #####
-        // Perfil de Diretor e outros agora usam a mesma lógica do DEV
-        case "diretor":
-        case "diretor_adjunto":
-        case "gestao":
-        case "aee":
-        case "orientador_pedagogico":
-          console.log(
-            `[DEBUG] Perfil '${tipo}' com acesso total. Buscando todas as coleções sem filtro de escola.`
-          );
-          alunosQuery = collection(db, "alunos");
-          peisQuery = collection(db, "peis");
-          usuariosQuery = collection(db, "usuarios");
-          avaliacoesQuery = collection(db, "avaliacoesIniciais");
-          break;
-        // ##### FIM DA LÓGICA ALTERADA #####
+      if (perfisComAcessoAmplo.includes(tipo)) {
+        console.log(
+          `[DEBUG] Perfil '${tipo}' com acesso amplo. Buscando todos os dados.`
+        );
 
-        case "professor":
-          console.log(
-            "[DEBUG] Perfil de professor. Buscando por turmas e criador."
-          );
-          const turmasDoProfessor = userSchoolData?.turmas
-            ? Object.keys(userSchoolData.turmas)
-            : [];
-          if (turmasDoProfessor.length === 0) {
-            setCarregando(false);
-            setAlunos([]);
-            setPeisPorAluno({});
-            return;
+        const alunosQuery = collection(db, "alunos");
+        const peisQuery = collection(db, "peis");
+        const usuariosQuery = collection(db, "usuarios");
+        const avaliacoesQuery = collection(db, "avaliacoesIniciais");
+
+        const [
+          peisSnapshot,
+          alunosSnapshot,
+          usuariosSnapshot,
+          avaliacoesSnapshot,
+        ] = await Promise.all([
+          getDocs(peisQuery),
+          getDocs(alunosQuery),
+          getDocs(usuariosQuery),
+          getDocs(avaliacoesQuery),
+        ]);
+
+        avaliacoesSnapshot.docs.forEach((doc) => {
+          const data = doc.data();
+          if (data.alunoId) {
+            avaliacoesParaExibir[data.alunoId] = { id: doc.id, ...data };
           }
-          alunosQuery = query(
-            collection(db, "alunos"),
-            where("turma", "in", turmasDoProfessor)
-          );
-          peisQuery = query(
-            collection(db, "peis"),
-            where("criadorId", "==", usuarioLogado.email)
-          );
-          usuariosQuery = query(
-            collection(db, "usuarios"),
-            where("perfil", "==", "professor")
-          );
-          avaliacoesQuery = query(
-            collection(db, "avaliacoesIniciais"),
-            where("criadorId", "==", usuarioLogado.email)
-          );
-          break;
+        });
 
-        default:
-          console.warn(
-            "[AVISO] Perfil de usuário desconhecido ou não definido:",
-            tipo
-          );
-          setCarregando(false);
-          setAlunos([]);
-          setPeisPorAluno({});
-          return;
-      }
+        alunosParaExibir = alunosSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+          isTea: verificaTea(doc.data().diagnostico),
+        }));
 
-      const [
-        peisSnapshot,
-        alunosSnapshot,
-        usuariosSnapshot,
-        avaliacoesSnapshot,
-      ] = await Promise.all([
-        getDocs(peisQuery),
-        getDocs(alunosQuery),
-        getDocs(usuariosQuery),
-        getDocs(avaliacoesQuery),
-      ]);
+        usuariosParaFiltro = usuariosSnapshot.docs
+          .map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }))
+          .filter((u) => u.perfil === "professor");
 
-      const todasAvaliacoes = {};
-      avaliacoesSnapshot.docs.forEach((doc) => {
-        const data = doc.data();
-        let nomeAlunoAvaliacao = "";
-        if (typeof data.aluno === "string") {
-          nomeAlunoAvaliacao = data.aluno;
-        } else if (
-          typeof data.aluno === "object" &&
-          data.aluno !== null &&
-          typeof data.aluno.nome === "string"
-        ) {
-          nomeAlunoAvaliacao = data.aluno.nome;
+        const todosPeis = peisSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        let peisVisiveis = todosPeis;
+        if (filtroUsuario) {
+          peisVisiveis = todosPeis.filter((p) => p.criadorId === filtroUsuario);
         }
-        todasAvaliacoes[removerAcentosLocal(nomeAlunoAvaliacao)] = data;
-      });
-      setAvaliacoesIniciais(todasAvaliacoes);
 
-      const alunosSalvos = alunosSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-        isTea: verificaTea(doc.data().diagnostico),
-      }));
-      setAlunos(alunosSalvos);
+        alunosParaExibir.forEach((aluno) => {
+          peisAgrupados[aluno.id] = peisVisiveis
+            .filter((p) => p.alunoId === aluno.id)
+            .sort(
+              (a, b) =>
+                (b.dataCriacao?.toDate?.() || 0) -
+                (a.dataCriacao?.toDate?.() || 0)
+            );
+        });
+      } else if (tipo === "professor") {
+        console.log(
+          "[DEBUG] Perfil Professor: Carregando alunos da turma, avaliações de todos, e APENAS PEIs próprios."
+        );
 
-      const usuariosSalvos = usuariosSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setUsuarios(usuariosSalvos.filter((u) => u.perfil === "professor"));
+        const turmasDoProfessor = userSchoolData?.turmas
+          ? Object.keys(userSchoolData.turmas)
+          : [];
+        if (turmasDoProfessor.length === 0) {
+          setCarregando(false);
+          return;
+        }
 
-      const todosPeis = peisSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+        // 1. Buscar TODOS os alunos das turmas do professor
+        const alunosQuery = query(
+          collection(db, "alunos"),
+          where("turma", "in", turmasDoProfessor)
+        );
+        const alunosSnapshot = await getDocs(alunosQuery);
+        alunosParaExibir = alunosSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+          isTea: verificaTea(doc.data().diagnostico),
+        }));
 
-      let peisVisiveis = todosPeis;
-      if (tipo !== "professor" && filtroUsuario) {
-        peisVisiveis = todosPeis.filter((p) => p.criadorId === filtroUsuario);
+        const alunoIds = alunosParaExibir.map((aluno) => aluno.id);
+
+        // 2. REGRA AMPLA: Buscar TODAS as avaliações desses alunos
+        if (alunoIds.length > 0) {
+          const lotesDeIds = [];
+          for (let i = 0; i < alunoIds.length; i += 30) {
+            lotesDeIds.push(alunoIds.slice(i, i + 30));
+          }
+
+          const promessasAvaliacoes = lotesDeIds.map((lote) =>
+            getDocs(
+              query(
+                collection(db, "avaliacoesIniciais"),
+                where("alunoId", "in", lote)
+              )
+            )
+          );
+
+          const snapshotsAvaliacoes = await Promise.all(promessasAvaliacoes);
+
+          snapshotsAvaliacoes.flat().forEach((snapshot) => {
+            snapshot.docs.forEach((doc) => {
+              const data = doc.data();
+              if (data.alunoId) {
+                avaliacoesParaExibir[data.alunoId] = { id: doc.id, ...data };
+              }
+            });
+          });
+        }
+
+        // 3. REGRA RESTRITA: Buscar APENAS os PEIs criados por ESTE professor
+        const peisQuery = query(
+          collection(db, "peis"),
+          where("criadorId", "==", usuarioLogado.email)
+        );
+        const peisSnapshot = await getDocs(peisQuery);
+        const todosPeisDoProfessor = peisSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        // 4. Agrupar os PEIs (apenas os do professor) para os alunos
+        alunosParaExibir.forEach((aluno) => {
+          peisAgrupados[aluno.id] = todosPeisDoProfessor
+            .filter((p) => p.alunoId === aluno.id)
+            .sort(
+              (a, b) =>
+                (b.dataCriacao?.toDate?.() || 0) -
+                (a.dataCriacao?.toDate?.() || 0)
+            );
+        });
       }
 
-      const agrupados = {};
-      alunosSalvos.forEach((aluno) => {
-        agrupados[aluno.nome] = peisVisiveis
-          .filter((p) => {
-            if (!p.alunoId) {
-              console.warn(
-                `[AVISO] PEI com ID ${p.id} foi descartado por não ter o campo 'alunoId'. Verifique os dados no Firestore.`
-              );
-              return false;
-            }
-            return p.alunoId === aluno.id;
-          })
-          .sort((a, b) => {
-            const dataA = a.dataCriacao?.toDate
-              ? a.dataCriacao.toDate()
-              : new Date(0);
-            const dataB = b.dataCriacao?.toDate
-              ? b.dataCriacao.toDate()
-              : new Date(0);
-            return dataB.getTime() - dataA.getTime();
-          });
-      });
-
-      setPeisPorAluno(agrupados);
+      // Atualiza o estado com os dados processados para qualquer perfil
+      setAlunos(alunosParaExibir);
+      setAvaliacoesIniciais(avaliacoesParaExibir);
+      setUsuarios(usuariosParaFiltro);
+      setPeisPorAluno(peisAgrupados);
     } catch (erro) {
       console.error("Erro detalhado ao carregar dados:", erro);
       setErro(
@@ -343,7 +353,8 @@ export default function VerPEIs() {
     filtroUsuario,
     usuarioLogado,
     isLoadingUserSchool,
-    userSchoolData, // userSchoolId não é mais usado para estes perfis
+    userSchoolData,
+    perfisComAcessoAmplo,
   ]);
 
   useEffect(() => {
@@ -369,24 +380,21 @@ export default function VerPEIs() {
 
   const handleGerarPDF = async () => {
     try {
-      const alunoCompletoParaPDF = alunos.find((a) => a.nome === abaAtiva);
+      // --- CORREÇÃO: Busca o aluno e a avaliação pelo ID ---
+      const alunoCompletoParaPDF = alunos.find((a) => a.id === abaAtiva);
 
       if (!alunoCompletoParaPDF) {
-        alert(
-          `Dados completos do aluno (${abaAtiva}) não encontrados. Não é possível gerar o PDF.`
-        );
+        alert(`Dados completos do aluno não encontrados.`);
         return;
       }
 
-      const avaliacao =
-        avaliacoesIniciais[removerAcentosLocal(alunoCompletoParaPDF.nome)];
+      const avaliacao = avaliacoesIniciais[alunoCompletoParaPDF.id];
       if (!avaliacao) {
         alert(
           `Avaliação Inicial não encontrada para ${alunoCompletoParaPDF.nome}.`
         );
         return;
       }
-
       let avaliacaoInteressesData = null;
       try {
         const interessesDoc = await fetchAvaliacaoInteresses(
@@ -499,7 +507,7 @@ export default function VerPEIs() {
               >
                 <option value="">Selecione o Aluno</option>
                 {alunos.map((aluno) => (
-                  <option key={aluno.id} value={aluno.nome}>
+                  <option key={aluno.id} value={aluno.id}>
                     {aluno.nome} - {aluno.turma} {aluno.isTea ? " 🧩" : ""}
                   </option>
                 ))}
@@ -509,11 +517,13 @@ export default function VerPEIs() {
             <div style={estilos.conteudoAba}>
               {abaAtiva &&
                 (() => {
-                  const alunoDaAba = alunos.find((a) => a.nome === abaAtiva);
+                  const alunoDaAba = alunos.find((a) => a.id === abaAtiva);
                   const [idade, faixa] = alunoDaAba
                     ? calcularIdadeEFaixa(alunoDaAba.nascimento)
                     : ["-", "-"];
-                  const peis = peisPorAluno[abaAtiva] || [];
+                  const peis = alunoDaAba
+                    ? peisPorAluno[alunoDaAba.id] || []
+                    : [];
 
                   return (
                     <>
@@ -545,16 +555,13 @@ export default function VerPEIs() {
                               <p>
                                 <strong>Turma no PEI:</strong> {pei.turma}
                               </p>
-                              {(() => {
-                                let nomeAlunoPeiParaAvaliacao =
-                                  pei.aluno?.nome || pei.aluno || "";
 
+                              {(() => {
+                                {
+                                }
                                 const avaliacao =
-                                  avaliacoesIniciais[
-                                    removerAcentosLocal(
-                                      nomeAlunoPeiParaAvaliacao
-                                    )
-                                  ];
+                                  avaliacoesIniciais[alunoDaAba.id];
+
                                 const dataInicial = formatarDataSegura(
                                   avaliacao?.inicio
                                 );
@@ -607,7 +614,6 @@ export default function VerPEIs() {
                                   </button>
                                 </>
                               )}
-
                               <button
                                 style={estilos.visualizar}
                                 onClick={() =>
@@ -618,8 +624,9 @@ export default function VerPEIs() {
                               >
                                 Visualizar
                               </button>
+
                               <button
-                                className="botao-secundario"
+                                style={estilos.acompanhar} // Corrigido para a sintaxe de objeto React
                                 onClick={() =>
                                   navigate(`/acompanhar-metas/${pei.id}`)
                                 }
@@ -629,6 +636,7 @@ export default function VerPEIs() {
                               <button
                                 style={estilos.observacoes}
                                 onClick={() =>
+                                  // ...
                                   navigate(`/observacoes-aluno/${pei.id}`, {
                                     state: {
                                       alunoNome: pei.aluno,
@@ -765,9 +773,20 @@ const estilos = {
     borderRadius: "6px",
     cursor: "pointer",
   },
-  observacoes: {
-    backgroundColor: "#ffc107",
+  // NOVO ESTILO AQUI
+  acompanhar: {
+    backgroundColor: "#52b788", // Verde vibrante
     color: "#fff",
+    border: "none",
+    padding: "8px 16px",
+    borderRadius: "6px",
+    cursor: "pointer",
+    transition: "background-color 0.2s ease",
+  },
+  // CORRIGINDO O BOTÃO OBSERVAÇÕES PARA USAR SEU PRÓPRIO ESTILO
+  observacoes: {
+    backgroundColor: "#ffc107", // Amarelo
+    color: "#fff", // Texto branco para contraste
     border: "none",
     padding: "8px 16px",
     borderRadius: "6px",

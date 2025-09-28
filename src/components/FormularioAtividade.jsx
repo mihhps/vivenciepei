@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 
-// Componente para uma linha de habilidade (não precisa de alterações)
+// Componente LinhaHabilidade (sem alterações)
 const LinhaHabilidade = ({
   item,
   onChange,
@@ -63,41 +63,6 @@ const LinhaHabilidade = ({
           </button>
         )}
       </div>
-      <div className="form-group">
-        <label>Resultado*</label>
-        <div className="botoes-resultado">
-          <button
-            type="button"
-            onClick={() => onChange("resultado", "Deu Certo")}
-            className={item.resultado === "Deu Certo" ? "ativo" : ""}
-          >
-            Deu Certo
-          </button>
-          <button
-            type="button"
-            onClick={() => onChange("resultado", "Parcial")}
-            className={item.resultado === "Parcial" ? "ativo" : ""}
-          >
-            Parcial
-          </button>
-          <button
-            type="button"
-            onClick={() => onChange("resultado", "Com Dificuldade")}
-            className={item.resultado === "Com Dificuldade" ? "ativo" : ""}
-          >
-            Com Dificuldade
-          </button>
-        </div>
-      </div>
-      <div className="form-group">
-        <label>Observações</label>
-        <textarea
-          rows="2"
-          value={item.observacoes}
-          onChange={(e) => onChange("observacoes", e.target.value)}
-          placeholder="Como o aluno respondeu?"
-        />
-      </div>
     </div>
   );
 };
@@ -110,21 +75,27 @@ function FormularioAtividade({
   getSugestoes,
   onAbrirSugestoes,
 }) {
+  // ALTERAÇÃO: Adicionado estado para a data da atividade
+  const [dataAtividade, setDataAtividade] = useState(
+    new Date().toISOString().split("T")[0]
+  );
+
   const [formData, setFormData] = useState({
     quebraGelo: "",
     atividadePrincipal: {
       descricao: "",
-      habilidadesAvaliadas: [
-        { key: Date.now(), habilidadeId: "", resultado: "", observacoes: "" },
-      ],
+      habilidadesAvaliadas: [{ key: Date.now(), habilidadeId: "" }],
     },
     finalizacao: "",
   });
+
+  // O resto do seu código (hooks, effects, etc.) permanece o mesmo até a função handleSalvarClick...
+  // ... (todo o código que você já tem fica aqui) ...
+
   const [sugestaoCarregando, setSugestaoCarregando] = useState({
     quebraGelo: false,
     finalizacao: false,
   });
-
   const [sugestoesDisponiveis, setSugestoesDisponiveis] = useState({
     quebraGelo: [],
     finalizacao: [],
@@ -136,7 +107,6 @@ function FormularioAtividade({
 
   useEffect(() => {
     if (!dadosIniciais?.tipo) return;
-
     if (dadosIniciais.tipo === "habilidade") {
       const habilidadeJaExiste =
         formData.atividadePrincipal.habilidadesAvaliadas.some(
@@ -202,15 +172,12 @@ function FormularioAtividade({
     }
   }, [dadosIniciais]);
 
-  // Localize a função handleSugerir no seu código FormularioAtividade.jsx
   const handleSugerir = async (tipo) => {
     setSugestaoCarregando((prev) => ({ ...prev, [tipo]: true }));
     try {
       let listaSugestoes = sugestoesDisponiveis[tipo];
       let indiceAtual = indicesAtuais[tipo];
-
       if (listaSugestoes.length === 0 || indiceAtual === 0) {
-        // Força a busca de novas sugestões
         listaSugestoes = await getSugestoes(tipo, null, true);
         if (!listaSugestoes || listaSugestoes.length === 0) {
           throw new Error("Nenhuma sugestão foi retornada.");
@@ -220,8 +187,6 @@ function FormularioAtividade({
           [tipo]: listaSugestoes,
         }));
         setIndicesAtuais((prev) => ({ ...prev, [tipo]: 1 }));
-
-        // AQUI ESTÁ A CORREÇÃO para a primeira sugestão
         const primeiraSugestao = listaSugestoes[0];
         const texto =
           typeof primeiraSugestao === "object" && primeiraSugestao.texto
@@ -229,12 +194,9 @@ function FormularioAtividade({
             : primeiraSugestao;
         setFormData((prev) => ({ ...prev, [tipo]: texto }));
       } else {
-        // Se já temos a lista, pegue a próxima sugestão
         const proximaSugestao = listaSugestoes[indiceAtual];
         const proximoIndice = (indiceAtual + 1) % listaSugestoes.length;
         setIndicesAtuais((prev) => ({ ...prev, [tipo]: proximoIndice }));
-
-        // AQUI ESTÁ A CORREÇÃO para as próximas sugestões
         const texto =
           typeof proximaSugestao === "object" && proximaSugestao.texto
             ? proximaSugestao.texto
@@ -250,18 +212,11 @@ function FormularioAtividade({
 
   const getButtonText = (tipo) => {
     if (sugestaoCarregando[tipo]) return "Gerando...";
-    const lista = sugestoesDisponiveis[tipo];
-
-    // Se já temos uma lista carregada
-    if (lista.length > 0) {
-      // Se o índice voltou a 0, significa que o próximo clique buscará novas ideias
-      if (indicesAtuais[tipo] === 0) {
-        return "💡 Buscar Novas Ideias";
-      }
-      // Caso contrário, apenas mostra que buscará a próxima
-      return `💡 Próxima Sugestão`;
+    if (sugestoesDisponiveis[tipo].length > 0) {
+      return indicesAtuais[tipo] === 0
+        ? "💡 Buscar Novas Ideias"
+        : `💡 Próxima Sugestão`;
     }
-    // Estado inicial antes da primeira busca
     return "💡 Sugerir";
   };
 
@@ -281,29 +236,28 @@ function FormularioAtividade({
   };
 
   const adicionarLinhaHabilidade = (habilidadeId = "") => {
-    const novasHabilidades = [
+    handlePrincipalChange("habilidadesAvaliadas", [
       ...formData.atividadePrincipal.habilidadesAvaliadas,
-      { key: Date.now(), habilidadeId, resultado: "", observacoes: "" },
-    ];
-    handlePrincipalChange("habilidadesAvaliadas", novasHabilidades);
+      { key: Date.now(), habilidadeId },
+    ]);
   };
 
   const removerLinhaHabilidade = (index) => {
-    const novasHabilidades =
+    handlePrincipalChange(
+      "habilidadesAvaliadas",
       formData.atividadePrincipal.habilidadesAvaliadas.filter(
         (_, i) => i !== index
-      );
-    handlePrincipalChange("habilidadesAvaliadas", novasHabilidades);
+      )
+    );
   };
 
   const limparFormulario = () => {
+    setDataAtividade(new Date().toISOString().split("T")[0]); // Reseta a data também
     setFormData({
       quebraGelo: "",
       atividadePrincipal: {
         descricao: "",
-        habilidadesAvaliadas: [
-          { key: Date.now(), habilidadeId: "", resultado: "", observacoes: "" },
-        ],
+        habilidadesAvaliadas: [{ key: Date.now(), habilidadeId: "" }],
       },
       finalizacao: "",
     });
@@ -318,17 +272,18 @@ function FormularioAtividade({
       return;
     }
     const validas = atividadePrincipal.habilidadesAvaliadas.filter(
-      (h) => h.habilidadeId && h.resultado
+      (h) => h.habilidadeId
     );
     if (validas.length === 0) {
       alert(
-        "Adicione e avalie pelo menos uma habilidade na atividade principal."
+        "Adicione pelo menos uma habilidade trabalhada na atividade principal."
       );
       return;
     }
 
     const dadosParaSalvar = {
       ...formData,
+      dataAtividade, // ALTERAÇÃO: Incluindo a data no objeto a ser salvo
       atividadePrincipal: {
         ...atividadePrincipal,
         habilidadesAvaliadas: validas.map(({ key, ...h }) => ({
@@ -336,6 +291,8 @@ function FormularioAtividade({
           habilidadeTexto:
             plano.habilidades.find((ph) => ph.id === h.habilidadeId)
               ?.habilidade || "N/A",
+          resultado: "",
+          observacoes: "",
         })),
       },
     };
@@ -346,13 +303,28 @@ function FormularioAtividade({
   const podeSalvar =
     formData.atividadePrincipal.descricao.trim() &&
     formData.atividadePrincipal.habilidadesAvaliadas.some(
-      (h) => h.habilidadeId && h.resultado
+      (h) => h.habilidadeId
     ) &&
     !estado.carregando;
 
   return (
     <div className="form-atividade-content">
+      {/* ALTERAÇÃO: Adicionado o campo de data no topo do formulário */}
+      <div className="form-group" style={{ marginBottom: "20px" }}>
+        <label htmlFor="data-atividade" style={{ fontWeight: "bold" }}>
+          Data da Atividade*
+        </label>
+        <input
+          type="date"
+          id="data-atividade"
+          value={dataAtividade}
+          onChange={(e) => setDataAtividade(e.target.value)}
+          className="input-data-atividade" // Adicione uma classe se precisar de estilo específico
+        />
+      </div>
+
       <div className="form-section quebra-gelo-section">
+        {/* ... (resto do seu JSX quebra-gelo) ... */}
         <div className="form-section-header">
           <label htmlFor="quebra-gelo">Quebra-Gelo (Opcional)</label>
           <button
@@ -378,6 +350,7 @@ function FormularioAtividade({
       </div>
 
       <div className="form-section">
+        {/* ... (resto do seu JSX atividade principal) ... */}
         <div className="form-section-header">
           <label>Atividade Principal*</label>
         </div>
@@ -392,7 +365,6 @@ function FormularioAtividade({
             required
           />
         </div>
-
         <label className="label-habilidades-avaliadas">
           Habilidades Trabalhadas*
         </label>
@@ -421,6 +393,7 @@ function FormularioAtividade({
       </div>
 
       <div className="form-section finalizacao-section">
+        {/* ... (resto do seu JSX finalização) ... */}
         <div className="form-section-header">
           <label htmlFor="finalizacao">Finalização (Opcional)</label>
           <button

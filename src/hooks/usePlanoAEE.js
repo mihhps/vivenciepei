@@ -13,10 +13,11 @@ import {
   addDoc,
   updateDoc,
   Timestamp,
-  serverTimestamp,
 } from "firebase/firestore";
 
-// Funções de Parse e Lógica da IA
+import { generateSugestoesAEE } from "../services/geminiService";
+
+// Funções de Parse e Lógica da IA (sem alterações)
 function parseAtividadeFromText(textResponse) {
   if (!textResponse) return null;
   const atividade = {};
@@ -88,17 +89,12 @@ async function buscarSugestoesComIA_REAL(
   if (tipo === "atividadePrincipal") {
     habilidadeTexto = habilidadeObj.habilidade || "";
   }
-
-  // Se a API Key não estiver configurada, usamos a simulação
   if (!import.meta.env.VITE_GEMINI_API_KEY) {
     console.warn("API Key do Gemini não configurada. Usando simulação.");
     return buscarSugestoesComIA_SIMULACAO(tipo, habilidadeTexto);
   }
-
-  // --- MONTAGEM DO PROMPT ---
   const systemInstruction = `Você é um especialista em Atendimento Educacional Especializado (AEE). Crie sugestões de atividades pedagógicas concisas e práticas. Responda SEMPRE no formato solicitado e NADA MAIS.`;
   let userPrompt = "";
-
   if (tipo === "quebraGelo") {
     userPrompt = `Gere 5 sugestões criativas e DIFERENTES de atividade de "quebra-gelo" para o início de um atendimento AEE (duração ~5 min) para um aluno de ${
       idadeAluno || "idade não informada"
@@ -112,15 +108,12 @@ async function buscarSugestoesComIA_REAL(
       idadeAluno || "não informada"
     } anos.\n\nFormate CADA SUGESTÃO EXATAMENTE assim:\nTítulo: [Título da Atividade]\nObjetivos:\n- [Primeiro objetivo]\n- [Segundo objetivo]\nRecursos: [Materiais necessários]\nMetodologia: [Passo a passo com verbos no infinitivo.]\nDuração: [Duração estimada]\n\nSepare cada sugestão completa com a linha "---NOVA SUGESTAO---".`;
   }
-
-  // --- CHAMADA DO SERVIÇO CORRIGIDO ---
   try {
     const textResponse = await generateSugestoesAEE(
       tipo,
       userPrompt,
       systemInstruction
     );
-    // --- TRATAMENTO DA RESPOSTA ---
     if (tipo === "atividadePrincipal") {
       return parseMultiplasAtividadesFromText(textResponse);
     }
@@ -129,7 +122,6 @@ async function buscarSugestoesComIA_REAL(
       .map((s) => s.trim())
       .filter(Boolean);
   } catch (e) {
-    // Re-lança o erro com o contexto
     console.error(`Erro ao chamar IA para ${tipo}:`, e);
     throw new Error(`Erro na API: ${e.message}`);
   }
@@ -174,10 +166,8 @@ export function usePlanoAEE(alunoId) {
         getDoc(alunoRef),
         getDoc(planoRef),
       ]);
-
       if (!alunoSnap.exists()) throw new Error("Aluno não encontrado.");
       setAluno({ id: alunoSnap.id, ...alunoSnap.data() });
-
       if (planoSnap.exists()) {
         const planoData = planoSnap.data();
         let dataPlanoFormatada = planoData.dataPlano || "";
@@ -227,7 +217,6 @@ export function usePlanoAEE(alunoId) {
       }
       if (!aluno)
         throw new Error("Dados do aluno não carregados para gerar sugestão.");
-
       try {
         const idade = aluno?.nascimento
           ? new Date().getFullYear() -
@@ -236,18 +225,9 @@ export function usePlanoAEE(alunoId) {
               : new Date(aluno.nascimento)
             ).getFullYear()
           : null;
-        // Chamada à função que executa a IA
-        return await buscarSugestoesComIA_REAL(
-          tipo,
-          habilidade,
-          idade,
-          aluno,
-          forceRefresh
-        );
+        return await buscarSugestoesComIA_REAL(tipo, habilidade, idade);
       } catch (e) {
-        // O erro de API será capturado aqui
         console.error("Erro ao buscar sugestões:", e);
-        // Garante que o erro é visível na tela
         setEstado((s) => ({
           ...s,
           erro: e.message || "Falha ao buscar sugestões da IA.",
@@ -263,7 +243,6 @@ export function usePlanoAEE(alunoId) {
     try {
       const user = auth.currentUser;
       if (!user) throw new Error("Usuário não autenticado.");
-
       const novoPlano = {
         habilidades: [],
         criadoEm: Timestamp.now(),
@@ -283,6 +262,7 @@ export function usePlanoAEE(alunoId) {
       setEstado((s) => ({ ...s, carregando: false }));
     }
   };
+
   const importarDaAvaliacao = async (alunoId) => {
     setEstado((s) => ({ ...s, carregando: true, erro: null }));
     try {
@@ -319,10 +299,8 @@ export function usePlanoAEE(alunoId) {
       });
       if (habilidadesParaPlanejar.length === 0)
         throw new Error("Nenhuma habilidade a ser trabalhada foi encontrada.");
-
       const user = auth.currentUser;
-      if (!user) throw new Error("Usuário não autenticado."); // Checagem adicionada aqui
-
+      if (!user) throw new Error("Usuário não autenticado.");
       const novoPlano = {
         habilidades: habilidadesParaPlanejar,
         criadoEm: Timestamp.now(),
@@ -344,16 +322,32 @@ export function usePlanoAEE(alunoId) {
     }
   };
 
+  // ===================================================================
+  // ===== INÍCIO DA CORREÇÃO NA FUNÇÃO salvarPlanejamentoDeAtividade =====
+  // ===================================================================
   const salvarPlanejamentoDeAtividade = async (dadosPlanejamento) => {
     setEstado((s) => ({ ...s, carregando: true, erro: null }));
     try {
       const atividadesRef = collection(db, "alunos", alunoId, "atividadesAEE");
+
+      // Pega a data que vem do formulário (Ex: "2025-09-28")
+      const dataSelecionada = dadosPlanejamento.dataAtividade;
+
+      // Converte a string de data para um objeto Timestamp do Firestore
+      // Adicionamos T12:00:00 para evitar problemas com fuso horário
+      const dataParaSalvar = Timestamp.fromDate(
+        new Date(`${dataSelecionada}T12:00:00`)
+      );
+
+      // Remove o campo 'dataAtividade' para não salvá-lo duas vezes
+      const { dataAtividade, ...restoDosDados } = dadosPlanejamento;
+
       await addDoc(atividadesRef, {
-        ...dadosPlanejamento,
-        data: Timestamp.now(),
+        ...restoDosDados, // Salva os dados da atividade (quebra-gelo, etc.)
+        data: dataParaSalvar, // Usa a data selecionada
         status: "Planejada",
       });
-      await carregarDados();
+      await carregarDados(); // Recarrega os dados para mostrar a nova atividade na lista
     } catch (e) {
       console.error("Erro ao salvar planejamento:", e);
       setEstado({
@@ -365,6 +359,9 @@ export function usePlanoAEE(alunoId) {
       setEstado((s) => ({ ...s, carregando: false }));
     }
   };
+  // ================================================================
+  // ===== FIM DA CORREÇÃO ==========================================
+  // ================================================================
 
   const salvarRegistroDeAtendimento = async (
     atividadeId,

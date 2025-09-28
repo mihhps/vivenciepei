@@ -17,6 +17,14 @@ import { useAuth } from "../context/AuthContext";
 import BotaoVoltar from "../components/BotaoVoltar";
 import "../styles/AcompanharMetas.css";
 
+const formatarParaClasse = (texto) => {
+  // Normaliza (decompondo acentos), remove os acentos, e substitui espaços por traços.
+  return texto
+    .toLowerCase()
+    .normalize("NFD") // Decompõe caracteres acentuados (e.g., 'ã' vira 'a' + til)
+    .replace(/[\u0300-\u036f]/g, "") // Remove os diacríticos (til, acento, etc.)
+    .replace(/ /g, "-");
+};
 export default function AcompanharMetas() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -96,10 +104,7 @@ export default function AcompanharMetas() {
       return;
     }
 
-    const estrategiasAplicadas = Object.keys(
-      registroAtual.estrategias || {}
-    ).filter((key) => registroAtual.estrategias[key]);
-
+    const estrategiasAplicadas = [];
     try {
       const novaObs = {
         habilidade,
@@ -230,7 +235,9 @@ export default function AcompanharMetas() {
                     <button
                       key={opcao}
                       type="button"
-                      className={`botao-status ${statusAtual === opcao ? "ativo" : ""} ${opcao.toLowerCase().replace(" ", "-")}`}
+                      className={`botao-status ${
+                        statusAtual === opcao ? "ativo" : ""
+                      } ${formatarParaClasse(opcao)}`}
                       onClick={() => handleStatusChange(meta.habilidade, opcao)}
                     >
                       {opcao}
@@ -252,35 +259,6 @@ export default function AcompanharMetas() {
                       )
                     }
                   />
-
-                  {meta.estrategias && meta.estrategias.length > 0 && (
-                    <div className="estrategias-checkbox-wrapper">
-                      <label>
-                        Quais estratégias você utilizou neste registro?
-                      </label>
-                      <div className="checkbox-group">
-                        {meta.estrategias.map((est, i) => (
-                          <div key={i} className="checkbox-item">
-                            <input
-                              type="checkbox"
-                              id={`${meta.habilidade}-${i}`}
-                              checked={
-                                novaObservacao[meta.habilidade]?.estrategias?.[
-                                  est
-                                ] || false
-                              }
-                              onChange={() =>
-                                handleEstrategiaChange(meta.habilidade, est)
-                              }
-                            />
-                            <label htmlFor={`${meta.habilidade}-${i}`}>
-                              {est}
-                            </label>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
 
                   <button
                     onClick={() => handleSalvarObservacao(meta.habilidade)}

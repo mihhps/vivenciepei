@@ -100,7 +100,21 @@
   border-radius: 6px;
   cursor: pointer;
 }
+.acompanhar {
+  /* Verde vibrante para indicar ação e progresso */
+  background-color: #52b788 !important; /* FORÇA o verde */
+  color: #fff !important; /* FORÇA o texto branco */
+  border: none !important;
+  padding: 8px 16px !important;
+  border-radius: 6px !important;
+  cursor: pointer;
+  /* Efeito hover sutil */
+  transition: background-color 0.2s ease;
+}
 
+.acompanhar:hover {
+  background-color: #40916c !important; /* Tom um pouco mais escuro no hover */
+}
 .gerar {
   background-color: #2a9d8f;
   color: #fff;

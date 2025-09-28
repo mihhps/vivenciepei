@@ -1,258 +1,415 @@
-/* Estilos gerais */
+/* ---------------------------------------------------------------- */
+/* ESTILOS GERAIS E LAYOUT MODERNO */
+/* ---------------------------------------------------------------- */
+
 .acompanhamento-wrapper {
   display: flex;
   justify-content: center;
-  align-items: center;
-  padding: 2rem;
+  align-items: flex-start; /* Alinha no topo, melhor para páginas longas */
+  padding: 3rem 2rem; /* Mais respiro */
   min-height: 100vh;
-  background-color: #f0f2f5;
-  font-family: Arial, sans-serif;
+  /* Fundo suave com gradiente sutil */
+  background-color: #eef1f6;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
 }
 
 .acompanhamento-card {
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  padding: 2rem;
+  background-color: #ffffff;
+  border-radius: 16px; /* Borda mais arredondada */
+  /* Sombra moderna e suave */
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  padding: 2.5rem;
   width: 100%;
-  max-width: 900px;
+  max-width: 960px; /* Maior largura */
 }
 
 .titulo-pagina {
   text-align: center;
-  color: #333;
-  margin-bottom: 0.5rem;
+  color: #1a202c; /* Cor escura e moderna */
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+  font-size: 2rem;
 }
 
 .subtitulo-pagina {
   text-align: center;
-  color: #555;
-  margin-bottom: 2rem;
+  color: #718096;
+  margin-bottom: 3rem;
+  font-size: 1.1rem;
 }
 
 .carregando {
   text-align: center;
-  font-size: 1.2rem;
-  color: #666;
+  font-size: 1.5rem;
+  color: #4a5568;
 }
 
-/* Blocos de meta e informações */
+/* ---------------------------------------------------------------- */
+/* BLOCOS DE META E INFORMAÇÕES */
+/* ---------------------------------------------------------------- */
+
 .meta-bloco {
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
-  background-color: #f9f9f9;
+  border: 1px solid #e2e8f0; /* Borda mais clara */
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2.5rem;
+  background-color: #ffffff;
+  /* Sombra sutil para destacar o bloco */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease;
+}
+
+.meta-bloco:hover {
+  transform: translateY(-3px); /* Efeito sutil de "levantar" */
 }
 
 .meta-bloco h4 {
-  color: #007bff;
-  margin-bottom: 0.5rem;
+  color: #3182ce; /* Azul mais profundo */
+  margin-bottom: 0.75rem;
+  font-size: 1.3rem;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 0.5rem;
 }
 
 .meta-info-subtitulo {
-  font-size: 0.9rem;
-  color: #777;
-  margin-bottom: 1rem;
+  font-size: 0.95rem;
+  color: #718096;
+  margin-bottom: 1.5rem;
 }
 
 .objetivos-bloco,
 .estrategias-planejadas-bloco {
-  border-left: 3px solid #007bff;
-  padding-left: 1rem;
+  /* Linha lateral mais suave */
+  border-left: 4px solid #4299e1;
+  padding-left: 1.25rem;
   margin-top: 1.5rem;
+  background-color: #f7fafc; /* Fundo leve para destaque */
+  padding: 1rem 1.25rem;
+  border-radius: 6px;
+  color: #4a5568; /* Garante cor do texto nos blocos */
 }
 
 .objetivos-bloco h5,
 .estrategias-planejadas-bloco h5 {
-  color: #333;
-  margin-bottom: 0.5rem;
+  color: #2d3748;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
 }
 
 .estrategias-planejadas-bloco ul {
-  list-style: disc;
-  padding-left: 1.5rem;
+  list-style: none; /* Remove bullet points */
+  padding-left: 0;
   margin-top: 0;
 }
 
-/* Botões de status */
+.estrategias-planejadas-bloco li {
+  padding-left: 1.5em;
+  text-indent: -1.5em;
+  margin-bottom: 0.5em;
+  color: #4a5568;
+}
+
+.estrategias-planejadas-bloco li::before {
+  content: "🚀"; /* Ícone moderno para listas */
+  margin-right: 0.5em;
+  font-size: 0.9em;
+}
+/* ---------------------------------------------------------------- */
+/* BOTÕES DE STATUS (FORÇANDO AS CORES) */
+/* ---------------------------------------------------------------- */
+
 .botoes-status {
   display: flex;
-  gap: 1rem;
-  margin-top: 1.5rem;
-}
-
-.botao-status {
-  flex: 1;
-  padding: 0.75rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: bold;
-  transition: all 0.3s ease;
-}
-
-.botao-status.nao-iniciado {
-  background-color: #f44336;
-  color: #fff;
-  border-color: #f44336;
-}
-
-.botao-status.em-andamento {
-  background-color: #ffc107;
-  color: #333;
-  border-color: #ffc107;
-}
-
-.botao-status.concluido {
-  background-color: #4caf50;
-  color: #fff;
-  border-color: #4caf50;
-}
-
-.botao-status:not(.ativo) {
-  opacity: 0.6;
-}
-
-.botao-status:not(.ativo):hover {
-  opacity: 1;
-}
-
-/* Diário de Bordo e Observações */
-.diario-de-bordo {
+  gap: 0.75rem;
   margin-top: 2rem;
+  background-color: #edf2f7;
+  padding: 0.5rem;
+  border-radius: 10px;
+}
+
+.botoes-status .botao-status {
+  flex: 1;
+  padding: 0.8rem 1rem;
+  border: none !important;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  font-size: 0.95rem;
+
+  /* Estado Inativo: Discreto */
+  background-color: transparent !important;
+  color: #4a5568 !important;
+  opacity: 1 !important;
+}
+
+/* Estilo ATIVO (Genérico) */
+.botoes-status .botao-status.ativo {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+/* 1. NÃO INICIADO (VERMELHO) */
+.botoes-status .botao-status.nao-iniciado.ativo {
+  background-color: #e53e3e !important; /* FORÇA o vermelho */
+  color: white !important;
+}
+
+/* 2. EM ANDAMENTO (LARANJA) - Deixando a regra forte, já que funciona */
+.botoes-status .botao-status.em-andamento.ativo {
+  background-color: #dd6b20 !important;
+  color: white !important;
+}
+
+/* 3. CONCLUÍDO (VERDE) */
+.botoes-status .botao-status.concluido.ativo {
+  background-color: #38a169 !important; /* FORÇA o verde */
+  color: white !important;
+}
+
+/* Hover nos botões INATIVOS */
+.botoes-status .botao-status:not(.ativo):hover {
+  background-color: #cbd5e0 !important;
+}
+
+/* ---------------------------------------------------------------- */
+/* DIÁRIO DE BORDO E OBSERVAÇÕES */
+/* ---------------------------------------------------------------- */
+
+.diario-de-bordo {
+  margin-top: 2.5rem;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 2rem;
 }
 
 .diario-de-bordo h5 {
-  color: #333;
-  margin-bottom: 1rem;
+  color: #2d3748;
+  font-size: 1.15rem;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
 }
 
+/* Layout da nova observação */
 .nova-observacao {
-  display: flex;
-  flex-direction: column;
+  display: grid; /* Usar grid para melhor controle */
+  grid-template-columns: 1fr; /* Padrão de uma coluna */
   gap: 1rem;
 }
 
 .nova-observacao textarea {
   width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  min-height: 100px;
+  padding: 1rem;
+  border: 1px solid #cbd5e0;
+  border-radius: 8px;
   resize: vertical;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  font-family: inherit; /* Herda a fonte principal */
+}
+
+.nova-observacao textarea:focus {
+  border-color: #3182ce;
+  box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.2); /* Foco moderno */
+  outline: none;
 }
 
 .nova-observacao button {
-  padding: 0.75rem;
-  background-color: #007bff;
+  padding: 0.85rem;
+  background-color: #4299e1; /* Azul moderno */
   color: #fff;
+  font-weight: 600;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  width: auto; /* Ajusta largura ao conteúdo se grid permitir */
+  align-self: flex-start; /* Alinha o botão ao início na vertical */
 }
 
 .nova-observacao button:hover {
-  background-color: #0056b3;
+  background-color: #3182ce;
+  transform: translateY(-1px);
 }
 
 .estrategias-checkbox-wrapper {
-  background-color: #e9ecef;
+  background-color: #f7fafc; /* Fundo mais claro e suave */
   padding: 1rem;
-  border-radius: 4px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
 }
 
 .estrategias-checkbox-wrapper label {
   font-weight: bold;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem; /* Mais espaço */
   display: block;
+  color: #2d3748;
 }
 
 .checkbox-group {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 1.25rem; /* Aumenta o espaço entre os checkboxes */
 }
 
 .checkbox-item {
-  display: flex;
+  display: flex; /* Garante que input e label estejam alinhados */
   align-items: center;
   gap: 0.5rem;
+  color: #4a5568;
+  font-size: 0.95rem;
+}
+/* Estilo para o input checkbox para ser mais moderno */
+.checkbox-item input[type="checkbox"] {
+  appearance: none; /* Remove o estilo padrão do navegador */
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid #a0aec0;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.2s ease;
 }
 
+.checkbox-item input[type="checkbox"]:checked {
+  background-color: #4299e1; /* Cor de check moderna */
+  border-color: #4299e1;
+}
+
+.checkbox-item input[type="checkbox"]:checked::before {
+  content: "✔"; /* Ícone de check */
+  color: white;
+  font-size: 0.8em;
+}
+
+/* ---------------------------------------------------------------- */
+/* LISTA DE OBSERVAÇÕES E ESTILOS AUXILIARES */
+/* ---------------------------------------------------------------- */
+
 .lista-observacoes {
-  margin-top: 1.5rem;
+  margin-top: 1.5rem; /* Margem ajustada */
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.5rem; /* Mais espaço entre os itens */
 }
 
 .observacao-item {
   background-color: #fff;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 1rem;
-  position: relative; /* Essencial para posicionar o botão de exclusão */
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); /* Sombra mais leve */
+  transition: box-shadow 0.2s ease;
+  position: relative; /* Essencial para o posicionamento do botão de excluir */
+}
+
+.observacao-item:hover {
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .observacao-item .texto {
-  margin-bottom: 0.5rem;
-  color: #333;
+  margin-bottom: 1rem;
+  color: #2d3748;
+  line-height: 1.6;
 }
 
 .estrategias-aplicadas {
-  margin-top: 0.5rem;
+  margin-top: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .tag-estrategia {
-  background-color: #cfe2f3;
-  color: #004d99;
-  padding: 0.25rem 0.5rem;
-  border-radius: 12px;
-  font-size: 0.8rem;
-  margin-right: 0.5rem;
-  white-space: nowrap;
+  background-color: #e6fffa; /* Cor de tag moderna (verde/azul claro) */
+  color: #319795;
+  padding: 0.3rem 0.6rem;
+  border-radius: 16px;
+  font-size: 0.85rem;
+  font-weight: 500;
 }
 
 .meta-info {
-  font-size: 0.8rem;
-  color: #777;
+  font-size: 0.85rem;
+  color: #a0aec0;
   text-align: right;
-  margin-top: 0.5rem;
+  margin-top: 1rem;
+  font-style: italic;
+  padding-right: 40px; /* Espaço para o botão de excluir */
 }
 
 .sem-observacoes {
+  padding: 1rem;
+  background-color: #f7fafc;
+  border: 1px dashed #e2e8f0;
+  border-radius: 8px;
   text-align: center;
   color: #999;
   font-style: italic;
   margin-top: 1rem;
 }
 
-/* Estilo do botão de excluir */
+/* Estilo do botão de excluir corrigido e moderno */
 .botao-excluir-obs {
-  /* Altera a cor de fundo para vermelho */
-  background-color: #e74c3c;
-  /* Altera a cor do texto para branco */
-  color: white;
-  /* Define um preenchimento menor para diminuir o tamanho do botão */
-  padding: 5px 10px;
-  /* Remove a borda */
+  /* Posição absoluta dentro do item da observação */
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+
+  /* Estilo visual sutil */
+  background-color: transparent;
+  color: #e53e3e; /* Cor de perigo (vermelho) */
   border: none;
-  /* Arredonda as bordas */
-  border-radius: 4px;
-  /* Garante que o cursor seja um ponteiro */
+  padding: 0; /* Remove padding desnecessário */
   cursor: pointer;
-  /* Adiciona uma transição suave para o efeito de hover */
-  transition: background-color 0.2s ease-in-out;
-  /* Remove a posição absoluta que você tinha, se não for mais necessária */
-  position: static; /* Ou remova a propriedade completamente */
-  /* Remove o tamanho de fonte grande, deixando o tamanho padrão */
-  font-size: 1em;
-  /* Adiciona uma margem, se necessário */
-  margin-left: 10px;
+  transition: color 0.2s ease, transform 0.1s ease;
+  font-size: 0.9em;
+  font-weight: 600;
+  text-decoration: none; /* Garante que não tenha sublinhado */
+
+  /* Remove os estilos que escondiam o texto/usavam ícone */
+  text-indent: 0;
+  overflow: visible;
+  width: auto;
+  height: auto;
 }
 
 .botao-excluir-obs:hover {
-  /* Escurece a cor de fundo no hover */
-  background-color: #c0392b;
+  color: #c0392b; /* Vermelho mais escuro no hover */
+  transform: scale(1.05);
+  text-decoration: underline;
+}
+
+/* Garante que o texto 'em' (meta-info) não interfira no botão */
+.meta-info {
+  /* Remove o padding-right que foi adicionado antes */
+  padding-right: 0;
+  /* Volta o alinhamento para o canto direito, mas longe do botão */
+  margin-right: 45px;
+}
+
+/* Estilo para telas menores (responsividade básica) */
+@media (max-width: 768px) {
+  .acompanhamento-card {
+    padding: 1.5rem;
+  }
+  .botoes-status {
+    flex-direction: column; /* Empilha os botões em telas pequenas */
+  }
+  .nova-observacao button {
+    width: 100%; /* Botão de registro ocupa largura total */
+  }
+  .checkbox-group {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .observacao-item {
+    padding: 1.2rem;
+  }
+  .botao-excluir-obs {
+    top: 0.75rem;
+    right: 0.75rem;
+  }
 }

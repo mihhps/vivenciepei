@@ -5,11 +5,11 @@ import {
   doc,
   setDoc,
   updateDoc,
+  getDoc,
   query,
   where,
   getDocs,
   serverTimestamp,
-  addDoc,
   limit,
   orderBy,
 } from "firebase/firestore";
@@ -20,6 +20,7 @@ export function useAvaliacaoForm(alunos) {
   const [proximaAvaliacao, setProximaAvaliacao] = useState("");
   const [respostas, setRespostas] = useState({});
   const [observacoes, setObservacoes] = useState({});
+  const [avaliacaoDocId, setAvaliacaoDocId] = useState(null);
 
   const [estado, setEstado] = useState({
     carregandoAvaliacao: false,
@@ -28,18 +29,14 @@ export function useAvaliacaoForm(alunos) {
     sucesso: null,
   });
 
-  const [avaliacaoDocId, setAvaliacaoDocId] = useState(null);
-
-  const avaliacaoExiste = useMemo(() => {
-    return (
-      Object.keys(respostas).length > 0 || Object.keys(observacoes).length > 0
-    );
-  }, [respostas, observacoes]);
+  const avaliacaoExiste = useMemo(() => !!avaliacaoDocId, [avaliacaoDocId]);
 
   const idade = useMemo(() => {
     if (alunoSelecionado && alunoSelecionado.dataNascimento) {
       const hoje = new Date();
-      const nascimento = new Date(alunoSelecionado.dataNascimento);
+      const nascimento = alunoSelecionado.dataNascimento.toDate
+        ? alunoSelecionado.dataNascimento.toDate()
+        : new Date(alunoSelecionado.dataNascimento);
       let idadeCalculada = hoje.getFullYear() - nascimento.getFullYear();
       const mes = hoje.getMonth() - nascimento.getMonth();
       if (mes < 0 || (mes === 0 && hoje.getDate() < nascimento.getDate())) {
@@ -50,13 +47,17 @@ export function useAvaliacaoForm(alunos) {
     return "";
   }, [alunoSelecionado]);
 
+  const limparFormulario = () => {
+    setRespostas({});
+    setObservacoes({});
+    setInicio("");
+    setProximaAvaliacao("");
+    setAvaliacaoDocId(null);
+  };
+
   const carregarAvaliacaoDoAluno = useCallback(async (alunoId) => {
     if (!alunoId) {
-      setRespostas({});
-      setObservacoes({});
-      setInicio("");
-      setProximaAvaliacao("");
-      setAvaliacaoDocId(null);
+      limparFormulario();
       return;
     }
 
@@ -66,82 +67,57 @@ export function useAvaliacaoForm(alunos) {
       erro: null,
       sucesso: null,
     }));
+
     try {
-      const avaliacoesRef = collection(db, "avaliacoesIniciais");
-      const q = query(
-        avaliacoesRef,
-        where("aluno.id", "==", alunoId),
-        orderBy("dataCriacao", "desc"),
-        limit(1)
-      );
-      const querySnapshot = await getDocs(q);
+      // LÓGICA MELHORADA: Tenta buscar diretamente pelo ID do aluno primeiro (mais eficiente)
+      const docRef = doc(db, "avaliacoesIniciais", alunoId);
+      let docSnap = await getDoc(docRef);
+      let avaliacaoEncontrada = null;
 
-      if (!querySnapshot.empty) {
-        const docSnap = querySnapshot.docs[0];
-        const avaliacaoEncontrada = docSnap.data();
+      if (docSnap.exists()) {
+        avaliacaoEncontrada = docSnap.data();
         setAvaliacaoDocId(docSnap.id);
-
-        let loadedInicio = avaliacaoEncontrada.inicio;
-        let loadedProximaAvaliacao = avaliacaoEncontrada.proximaAvaliacao;
-
-        let formattedInicio = "";
-        let formattedProximaAvaliacao = "";
-
-        if (
-          loadedInicio &&
-          typeof loadedInicio === "object" &&
-          loadedInicio.seconds !== undefined
-        ) {
-          formattedInicio = new Date(loadedInicio.seconds * 1000)
-            .toISOString()
-            .split("T")[0];
-        } else if (loadedInicio instanceof Date) {
-          formattedInicio = loadedInicio.toISOString().split("T")[0];
-        } else if (typeof loadedInicio === "string") {
-          formattedInicio = loadedInicio;
+      } else {
+        // Fallback: Se não encontrou pelo ID, procura via query (para dados antigos)
+        const q = query(
+          collection(db, "avaliacoesIniciais"),
+          where("aluno.id", "==", alunoId),
+          orderBy("dataCriacao", "desc"),
+          limit(1)
+        );
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          docSnap = querySnapshot.docs[0];
+          avaliacaoEncontrada = docSnap.data();
+          setAvaliacaoDocId(docSnap.id);
         }
+      }
 
-        if (
-          loadedProximaAvaliacao &&
-          typeof loadedProximaAvaliacao === "object" &&
-          loadedProximaAvaliacao.seconds !== undefined
-        ) {
-          formattedProximaAvaliacao = new Date(
-            loadedProximaAvaliacao.seconds * 1000
-          )
-            .toISOString()
-            .split("T")[0];
-        } else if (loadedProximaAvaliacao instanceof Date) {
-          formattedProximaAvaliacao = loadedProximaAvaliacao
-            .toISOString()
-            .split("T")[0];
-        } else if (typeof loadedProximaAvaliacao === "string") {
-          formattedProximaAvaliacao = loadedProximaAvaliacao;
-        }
+      if (avaliacaoEncontrada) {
+        // Formata as datas corretamente a partir do timestamp do Firestore
+        const formatarData = (data) => {
+          if (!data) return "";
+          if (data.seconds)
+            return new Date(data.seconds * 1000).toISOString().split("T")[0];
+          if (data instanceof Date) return data.toISOString().split("T")[0];
+          return data; // Assume que já é uma string 'YYYY-MM-DD'
+        };
 
-        setInicio(formattedInicio);
-        setProximaAvaliacao(formattedProximaAvaliacao);
+        setInicio(formatarData(avaliacaoEncontrada.inicio));
+        setProximaAvaliacao(formatarData(avaliacaoEncontrada.proximaAvaliacao));
         setRespostas(avaliacaoEncontrada.respostas || {});
         setObservacoes(avaliacaoEncontrada.observacoes || {});
       } else {
-        setRespostas({});
-        setObservacoes({});
-        setInicio("");
-        setProximaAvaliacao("");
-        setAvaliacaoDocId(null);
+        limparFormulario();
       }
 
-      setEstado((prev) => ({
-        ...prev,
-        carregandoAvaliacao: false,
-        sucesso: null,
-      }));
+      setEstado((prev) => ({ ...prev, carregandoAvaliacao: false }));
     } catch (error) {
       console.error("Erro ao carregar avaliação do Firestore:", error);
       setEstado((prev) => ({
         ...prev,
         carregandoAvaliacao: false,
-        erro: "Erro ao carregar avaliação. Tente novamente.",
+        erro: "Erro ao carregar avaliação.",
       }));
     }
   }, []);
@@ -150,11 +126,7 @@ export function useAvaliacaoForm(alunos) {
     async (alunoNome) => {
       const aluno = alunos.find((a) => a.nome === alunoNome);
       setAlunoSelecionado(aluno || null);
-      if (aluno) {
-        await carregarAvaliacaoDoAluno(aluno.id);
-      } else {
-        await carregarAvaliacaoDoAluno(null);
-      }
+      await carregarAvaliacaoDoAluno(aluno?.id || null);
     },
     [alunos, carregarAvaliacaoDoAluno]
   );
@@ -175,38 +147,47 @@ export function useAvaliacaoForm(alunos) {
         erro: null,
         sucesso: null,
       }));
+
       try {
-        const dadosAvaliacao = {
+        // ALTERAÇÃO: Adicionado o campo 'alunoId' para consistência dos dados
+        const dadosBase = {
+          alunoId: alunoSelecionado.id, // <-- CORREÇÃO PRINCIPAL
           aluno: {
             id: alunoSelecionado.id,
             nome: alunoSelecionado.nome,
           },
-          alunoId: alunoSelecionado.id, // <-- Linha adicionada
           turma: alunoSelecionado.turma,
           inicio,
           proximaAvaliacao,
           respostas,
           observacoes,
           criador: usuarioLogado.nome,
-          criadorId: usuarioLogado.id,
+          criadorId: usuarioLogado.id || usuarioLogado.email, // Garante que um ID seja salvo
           escolaId: usuarioLogado.escolas
             ? Object.keys(usuarioLogado.escolas)[0]
             : null,
-          dataCriacao: serverTimestamp(),
         };
 
-        const avaliacoesRef = collection(db, "avaliacoesIniciais");
-
         if (avaliacaoDocId) {
+          // Atualiza o documento existente
           const docRef = doc(db, "avaliacoesIniciais", avaliacaoDocId);
           await updateDoc(docRef, {
-            ...dadosAvaliacao,
+            ...dadosBase,
             dataUltimaAtualizacao: serverTimestamp(),
           });
           console.log("Avaliação atualizada com sucesso! ID:", avaliacaoDocId);
         } else {
-          await addDoc(avaliacoesRef, dadosAvaliacao);
-          console.log("Nova avaliação salva com sucesso!");
+          // Cria um novo documento usando o ID do aluno
+          const newDocRef = doc(db, "avaliacoesIniciais", alunoSelecionado.id);
+          await setDoc(newDocRef, {
+            ...dadosBase,
+            dataCriacao: serverTimestamp(),
+          });
+          setAvaliacaoDocId(alunoSelecionado.id);
+          console.log(
+            "Nova avaliação salva com sucesso! ID:",
+            alunoSelecionado.id
+          );
         }
 
         setEstado((prev) => ({
@@ -221,7 +202,7 @@ export function useAvaliacaoForm(alunos) {
         setEstado((prev) => ({
           ...prev,
           salvando: false,
-          erro: "Erro ao salvar avaliação. Verifique suas permissões do Firestore.",
+          erro: "Erro ao salvar avaliação.",
         }));
         return false;
       }
@@ -254,6 +235,7 @@ export function useAvaliacaoForm(alunos) {
       avaliacaoExiste,
       estado,
       setEstado,
+      avaliacaoDocId,
     }),
     [
       alunoSelecionado,
@@ -266,6 +248,7 @@ export function useAvaliacaoForm(alunos) {
       idade,
       avaliacaoExiste,
       estado,
+      avaliacaoDocId,
     ]
   );
 }

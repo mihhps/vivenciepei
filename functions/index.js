@@ -4,12 +4,7 @@ const admin = require("firebase-admin");
 
 // Importa as funções v2 do Firestore para gatilhos de documentos (onDocumentWritten, etc.)
 // e para funções HTTPS (onCall, onRequest)
-const {
-  onDocumentWritten,
-  onDocumentCreated,
-  onDocumentUpdated,
-  onDocumentDeleted,
-} = require("firebase-functions/v2/firestore");
+const { onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { onCall, onRequest } = require("firebase-functions/v2/https");
 
 // Inicializa o Admin SDK do Firebase
@@ -38,13 +33,11 @@ const normalizarTurma = (turma) => {
   }
   const partes = turma.trim().toLowerCase().split(" ");
   for (let i = 0; i < partes.length; i++) {
-    // --- INÍCIO DA CORREÇÃO ---
     // Adiciona uma verificação específica para os algarismos romanos "i" e "ii"
     if (partes[i] === "i" || partes[i] === "ii") {
       partes[i] = partes[i].toUpperCase();
       continue; // Pula para a próxima palavra
     }
-    // --- FIM DA CORREÇÃO ---
 
     if (
       partes[i].length > 0 &&
@@ -57,6 +50,14 @@ const normalizarTurma = (turma) => {
   }
   return partes.join(" ");
 };
+
+/**
+ * Retorna o status detalhado do PEI e das revisões de um aluno.
+ * @param {Object} peiData - Os dados do PEI mais recente.
+ * @param {Object} prazos - Os prazos limites anuais.
+ * @param {Date} hoje - A data de hoje (zerada).
+ * @returns {Object} Detalhes do status.
+ */
 const getPeiStatusDetails = (peiData, prazos, hoje) => {
   // Verificação de PEI Concluído (permanece igual)
   if (peiData?.status?.toLowerCase() === "concluído") {
@@ -100,6 +101,7 @@ const getPeiStatusDetails = (peiData, prazos, hoje) => {
   } else {
     if (dataLimiteCriacaoPEI && dataCriacaoPei > dataLimiteCriacaoPEI) {
       statusPeiGeral = "Criado (Atrasado)";
+      // Não marca como atrasado real, pois foi entregue, mesmo que fora do prazo
     } else {
       statusPeiGeral = "Criado no Prazo";
     }
@@ -118,7 +120,7 @@ const getPeiStatusDetails = (peiData, prazos, hoje) => {
     } else {
       // Se NÃO foi concluída, aí sim verificamos se está atrasada ou pendente.
       if (dataLimiteRevisao1Sem && hojeZerado > dataLimiteRevisao1Sem) {
-        statusRevisao1 = "Concluído";
+        statusRevisao1 = "Atrasado"; // <-- CORREÇÃO APLICADA AQUI
         finalIsAtrasadoRealmente = true;
       } else {
         statusRevisao1 = "Pendente";
@@ -143,6 +145,13 @@ const getPeiStatusDetails = (peiData, prazos, hoje) => {
     }
   }
 
+  // O status geral só será "Atrasado" se o isAtrasadoRealmente for true
+  if (finalIsAtrasadoRealmente) {
+    statusPeiGeral = statusPeiGeral.includes("Atrasado")
+      ? statusPeiGeral
+      : "Atrasado";
+  }
+
   return {
     statusPeiGeral,
     statusRevisao1,
@@ -152,8 +161,9 @@ const getPeiStatusDetails = (peiData, prazos, hoje) => {
       peiData?.dataUltimaRevisao || peiData?.dataCriacao || null,
   };
 };
+
 // =========================================================================
-// ========= INÍCIO DA FUNÇÃO CORRIGIDA =====================================
+// ========= INÍCIO DA FUNÇÃO DE CÁLCULO ====================================
 // =========================================================================
 async function calcularStatusProfessor(professorId) {
   const anoAtual = new Date().getFullYear();
@@ -335,7 +345,7 @@ async function calcularStatusProfessor(professorId) {
     });
   }
 
-  // CORREÇÃO DE BUG #2: O "anoLetivo" foi adicionado aqui, que é o lugar certo!
+  // O "anoLetivo" foi adicionado aqui, que é o lugar certo!
   return {
     professorId: professorId,
     professorNome: professorData.nome,
@@ -349,7 +359,7 @@ async function calcularStatusProfessor(professorId) {
   };
 }
 // =========================================================================
-// ========= FIM DA FUNÇÃO CORRIGIDA =======================================
+// ========= FIM DA FUNÇÃO DE CÁLCULO ======================================
 // =========================================================================
 
 // =========================================================================
@@ -382,55 +392,56 @@ exports.onAlunoWriteNormalizeTurma = onDocumentWritten(
   }
 );
 
-/**
- * Gatilho que normaliza as chaves das turmas quando um professor é criado ou atualizado.
- */
 exports.onProfessorWriteNormalizeTurmas = onDocumentWritten(
   "usuarios/{userId}",
   async (event) => {
+    // Pega os dados apenas APÓS a escrita
     const afterData = event.data.after?.data();
-    const beforeData = event.data.before?.data();
+    const afterRef = event.data.after?.ref;
 
-    if (!afterData || afterData.perfil !== "professor") {
-      return null; // Apenas processa professores
+    // Sai da função se não houver dados, referência ou se o perfil não for de professor
+    if (!afterData || !afterRef || afterData.perfil !== "professor") {
+      return null;
     }
 
-    const turmasBefore =
-      beforeData && beforeData.turmas ? beforeData.turmas : {};
-    const turmasAfter = afterData && afterData.turmas ? afterData.turmas : {};
+    const turmasAtuais = afterData.turmas || {};
+    const turmasNormalizadas = {};
+    let precisaAtualizar = false;
 
-    const turmasKeysAfter = new Set(Object.keys(turmasAfter));
-
-    let turmasAtualizadas = {};
-    let mudancaDetectada = false;
-
-    for (const turma of turmasKeysAfter) {
+    // Itera sobre as chaves (nomes das turmas) do objeto atual
+    for (const turma of Object.keys(turmasAtuais)) {
       const turmaNormalizada = normalizarTurma(turma);
-      if (turmaNormalizada && turmaNormalizada !== turma) {
-        turmasAtualizadas[turmaNormalizada] = turmasAfter[turma];
-        mudancaDetectada = true;
-      } else {
-        turmasAtualizadas[turma] = turmasAfter[turma];
+
+      // Adiciona a versão normalizada ao novo objeto
+      turmasNormalizadas[turmaNormalizada] = turmasAtuais[turma];
+
+      // Se a chave normalizada for diferente da original, sabemos que precisa de atualização
+      if (turma !== turmaNormalizada) {
+        precisaAtualizar = true;
       }
     }
 
+    // Se o número de turmas mudou (ex: "1 Ano A" e "1 ano a" viraram uma só), também precisa atualizar
     if (
-      Object.keys(turmasAtualizadas).length !== Object.keys(turmasAfter).length
+      Object.keys(turmasAtuais).length !==
+      Object.keys(turmasNormalizadas).length
     ) {
-      mudancaDetectada = true;
+      precisaAtualizar = true;
     }
 
-    if (mudancaDetectada) {
+    // Apenas se uma mudança foi detectada, realiza a escrita no banco
+    if (precisaAtualizar) {
       console.log(
         `Normalizando turmas do professor:`,
-        turmasAfter,
+        turmasAtuais,
         "->",
-        turmasAtualizadas
+        turmasNormalizadas
       );
-      return event.data.after.ref.update({ turmas: turmasAtualizadas });
+      // Usa 'update' para alterar apenas o campo 'turmas'
+      return afterRef.update({ turmas: turmasNormalizadas });
     }
 
-    return null;
+    return null; // Nenhuma mudança necessária
   }
 );
 
@@ -441,7 +452,7 @@ exports.setCustomUserClaimsOnProfileUpdate = onDocumentWritten(
   "usuarios/{userId}",
   async (event) => {
     const userId = event.params.userId;
-    const beforeData = event.data.before?.data();
+
     const afterData = event.data.after?.data();
 
     let currentClaims = {};
@@ -465,17 +476,33 @@ exports.setCustomUserClaimsOnProfileUpdate = onDocumentWritten(
         shouldUpdateClaims = true;
       }
     } else {
-      if (newClaims.perfil !== afterData.perfil) {
-        newClaims.perfil = afterData.perfil;
+      // Usa toLowerCase() para garantir que o claim seja sempre minúsculo
+      const afterPerfil = afterData.perfil.toLowerCase().trim();
+      if (newClaims.perfil !== afterPerfil) {
+        newClaims.perfil = afterPerfil;
         shouldUpdateClaims = true;
       }
+    }
+
+    // Adiciona o claim 'admin' se o perfil for desenvolvedor ou SEME
+    const isAdminProfile =
+      afterData?.perfil?.toLowerCase() === "desenvolvedor" ||
+      afterData?.perfil?.toLowerCase() === "seme";
+    if (isAdminProfile && newClaims.admin !== true) {
+      newClaims.admin = true;
+      shouldUpdateClaims = true;
+    } else if (!isAdminProfile && newClaims.admin !== undefined) {
+      delete newClaims.admin;
+      shouldUpdateClaims = true;
     }
 
     if (shouldUpdateClaims) {
       try {
         await admin.auth().setCustomUserClaims(userId, newClaims);
         functions.logger.log(
-          `[setCustomClaims] Custom claims atualizadas para o usuário ${userId}: ${JSON.stringify(newClaims)}`
+          `[setCustomClaims] Custom claims atualizadas para o usuário ${userId}: ${JSON.stringify(
+            newClaims
+          )}`
         );
       } catch (error) {
         functions.logger.error(
@@ -526,11 +553,14 @@ exports.onPeiWrite = onDocumentWritten("peis/{peiId}", async (event) => {
     return null;
   }
 
+  // Normaliza a turma antes da busca!
+  const turmaNormalizada = normalizarTurma(alunoData.turma);
+
   // Busca todos os professores vinculados à turma do aluno
   const professoresSnap = await db
     .collection("usuarios")
     .where("perfil", "==", "professor")
-    .where(`turmas.${alunoData.turma}`, "==", true)
+    .where(`turmas.${turmaNormalizada}`, "==", true) // Usa a turma normalizada
     .get();
 
   if (professoresSnap.empty) {
@@ -641,12 +671,15 @@ exports.onAlunoWrite = onDocumentWritten("alunos/{alunoId}", async (event) => {
   if (!alunoDataAfter && !alunoDataBefore) return null;
 
   const affectedTurmas = new Set();
-  if (alunoDataAfter?.turma) affectedTurmas.add(alunoDataAfter.turma);
+
+  // Normaliza a turma antes de adicionar ao Set!
+  if (alunoDataAfter?.turma)
+    affectedTurmas.add(normalizarTurma(alunoDataAfter.turma));
   if (
     alunoDataBefore?.turma &&
     alunoDataBefore.turma !== alunoDataAfter?.turma
   ) {
-    affectedTurmas.add(alunoDataBefore.turma);
+    affectedTurmas.add(normalizarTurma(alunoDataBefore.turma)); // Normaliza turma anterior
   }
 
   if (affectedTurmas.size === 0) {
@@ -658,14 +691,13 @@ exports.onAlunoWrite = onDocumentWritten("alunos/{alunoId}", async (event) => {
 
   const batch = db.batch();
   const processedProfessors = new Set(); // Para evitar processar o mesmo professor múltiplas vezes
-  const professorBatchLimit = FIRESTORE_QUERY_BATCH_SIZE; // Reutiliza a constante para batch de professores
 
   for (const turmaId of affectedTurmas) {
     // Busca professores vinculados à turma que mudou
     const professoresSnap = await db
       .collection("usuarios")
       .where("perfil", "==", "professor")
-      .where(`turmas.${turmaId}`, "==", true)
+      .where(`turmas.${turmaId}`, "==", true) // Usa a turma normalizada do Set
       .get();
 
     for (const doc /* of */ of professoresSnap.docs) {
@@ -796,7 +828,6 @@ exports.recalcularTodosPrazos = onRequest(
   { region: "southamerica-east1" }, // Defina a região da sua função
   async (req, res) => {
     // --- Tratamento de CORS (MANDATÓRIO PARA onRequest) ---
-    // --- Tratamento de CORS (MANDATÓRIO PARA onRequest) ---
     // Permite tanto seu site em produção quanto o ambiente local
     const allowedOrigins = [
       "http://localhost:5199",
@@ -806,9 +837,6 @@ exports.recalcularTodosPrazos = onRequest(
     if (allowedOrigins.includes(origin)) {
       res.set("Access-Control-Allow-Origin", origin);
     }
-
-    res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
-    res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
     res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
     res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
@@ -982,26 +1010,29 @@ exports.recalcularTodosPrazos = onRequest(
     }
   }
 );
+// ESTRUTURA CORRETA
+
 exports.getpeiacompanhamentobyschool = onRequest(
-  { region: "southamerica-east1", cors: true }, // Habilita CORS diretamente
+  { region: "southamerica-east1", cors: true },
   async (req, res) => {
-    // Tratamento de CORS para compatibilidade extra
-    res.set("Access-Control-Allow-Origin", "*");
-    if (req.method === "OPTIONS") {
-      res.set("Access-Control-Allow-Methods", "POST");
-      res.set("Access-Control-Allow-Headers", "Content-Type");
-      res.set("Access-Control-Max-Age", "3600");
-      res.status(204).send("");
-      return;
-    }
-
-    if (req.method !== "POST" || !req.body.anoLetivo) {
-      return res.status(400).json({
-        error: "Requisição inválida. Use POST e forneça o 'anoLetivo'.",
-      });
-    }
-
+    // Adicionando o 'try' logo no início da lógica da função
     try {
+      // Tratamento de CORS para compatibilidade extra
+      res.set("Access-Control-Allow-Origin", "*");
+      if (req.method === "OPTIONS") {
+        res.set("Access-Control-Allow-Methods", "POST");
+        res.set("Access-Control-Allow-Headers", "Content-Type");
+        res.set("Access-Control-Max-Age", "3600");
+        res.status(204).send("");
+        return;
+      }
+
+      if (req.method !== "POST" || !req.body.anoLetivo) {
+        return res.status(400).json({
+          error: "Requisição inválida. Use POST e forneça o 'anoLetivo'.",
+        });
+      }
+
       const anoLetivo = req.body.anoLetivo;
       const resumosSnap = await db
         .collection("acompanhamentoPrazosPEIResumo")
@@ -1033,20 +1064,18 @@ exports.getpeiacompanhamentobyschool = onRequest(
               totalAlunosMonitorados: 0,
               pendenteCriacao: 0,
               atrasados: 0,
-              emDia: 0, // Novo status!
+              emDia: 0,
             };
           }
 
           const stats = escolasResumo[escolaId];
           stats.totalAlunosMonitorados++;
 
-          // Lógica de status simplificada
           if (aluno.statusPeiGeral?.includes("Aguardando Criação")) {
             stats.pendenteCriacao++;
           } else if (aluno.isAtrasadoRealmente) {
             stats.atrasados++;
           } else {
-            // Se não está pendente e nem atrasado, está em dia.
             stats.emDia++;
           }
         });
@@ -1061,11 +1090,12 @@ exports.getpeiacompanhamentobyschool = onRequest(
 
       return res.status(200).json(dadosAgregados);
     } catch (err) {
+      // O 'catch' agora está dentro da função, no lugar certo
       functions.logger.error("Erro em getpeiacompanhamentobyschool:", err);
       return res.status(500).json({ error: "Erro interno do servidor." });
     }
-  }
-);
+  } // <--- Fechamento da função async
+); // <--- Fechamento da chamada 'onRequest'
 // =========================================================================
 // NOVO GATILHO PARA A COLEÇÃO 'pei_contribucoes'
 // =========================================================================
@@ -1095,10 +1125,13 @@ exports.onPeiContribuicaoWrite = onDocumentWritten(
       return null;
     }
 
+    // Normaliza a turma antes da busca!
+    const turmaNormalizada = normalizarTurma(alunoData.turma);
+
     const professoresSnap = await db
       .collection("usuarios")
       .where("perfil", "==", "professor")
-      .where(`turmas.${alunoData.turma}`, "==", true)
+      .where(`turmas.${turmaNormalizada}`, "==", true) // Usa a turma normalizada
       .get();
 
     if (professoresSnap.empty) {
@@ -1161,6 +1194,7 @@ exports.marcarRevisaoComoConcluida = onCall(
     }
 
     try {
+      // Tenta atualizar a coleção 'pei_contribucoes', que é a nova coleção
       const peiRef = db.collection("pei_contribucoes").doc(peiId);
 
       // Cria o objeto de atualização dinamicamente
@@ -1171,6 +1205,8 @@ exports.marcarRevisaoComoConcluida = onCall(
       updateData[`revisoes.${semestre}.revisadoPor`] = professorId;
 
       await peiRef.update(updateData);
+
+      // Gatilho onPeiContribuicaoWrite será disparado e recalculará o status do professor.
 
       return {
         success: true,

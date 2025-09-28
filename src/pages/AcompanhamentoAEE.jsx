@@ -355,15 +355,6 @@ function AcompanhamentoAEE() {
           <div className="header-central">
             <h1>Plano de Acompanhamento AEE</h1>
           </div>
-          <div className="data-plano-container">
-            <label>Data do Plano:</label>
-            <input
-              type="date"
-              value={plano.dataPlano || ""}
-              onChange={(e) => salvarDataPlano(e.target.value)}
-              className="data-plano-input"
-            />
-          </div>
         </header>
 
         <div className="aluno-info-header">

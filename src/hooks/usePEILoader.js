@@ -87,9 +87,15 @@ async function carregarDadosDoFirestore(usuarioLogado) {
   });
   const todosPeis = Array.from(todosPeisMap.values());
 
+  // --- CORREÇÃO APLICADA AQUI ---
+  // Criamos o mapa de avaliações de forma mais robusta, garantindo
+  // que a chave `alunoId` exista no documento.
   const avaliacoesIniciais = {};
   avaliacoesSnapshot.docs.forEach((doc) => {
-    avaliacoesIniciais[doc.data().alunoId] = doc.data();
+    const data = doc.data();
+    if (data.alunoId) {
+      avaliacoesIniciais[data.alunoId] = { id: doc.id, ...data };
+    }
   });
 
   const peisPorAluno = {};
@@ -161,7 +167,6 @@ export function usePEILoader(dispatch, state) {
           }
         );
 
-        // Despacha uma ação para remover o PEI do estado local (UI reage instantaneamente)
         dispatch({ type: "REMOVE_PEI_SUCCESS", payload: peiParaExcluir });
         toast.success("PEI excluído com sucesso!");
       } catch (error) {
@@ -175,15 +180,25 @@ export function usePEILoader(dispatch, state) {
 
   const gerarPDF = useCallback(
     async (aluno, peisDoAluno) => {
-      // Condições de guarda para evitar execução desnecessária
       if (!aluno || !peisDoAluno || peisDoAluno.length === 0) {
         toast.error(
           "Não é possível gerar o PDF: dados do aluno ou PEIs em falta."
         );
         return;
       }
+
+      // --- DEBUG ADICIONADO PARA VERIFICAÇÃO ---
+      // Estes logs vão te mostrar no console exatamente o que o código está procurando
+      // e o que ele tem disponível. A comparação entre eles revelará o problema.
+      console.log("Procurando avaliação para o aluno com ID:", aluno.id);
+      console.log(
+        "Chaves de avaliações disponíveis:",
+        Object.keys(avaliacoesIniciais)
+      );
+
       const avaliacao = avaliacoesIniciais[aluno.id];
       if (!avaliacao) {
+        // O alerta original foi trocado por um toast.error, que é mais elegante.
         toast.error(`Avaliação Inicial não encontrada para ${aluno.nome}`);
         return;
       }
@@ -192,7 +207,6 @@ export function usePEILoader(dispatch, state) {
       toast.info("A gerar o PDF, por favor aguarde...");
       try {
         await gerarPDFCompleto(aluno, usuarioLogado, peisDoAluno, avaliacao);
-        // O sucesso é o download do ficheiro, não precisa de toast de sucesso aqui.
       } catch (error) {
         console.error("Erro ao gerar PDF:", error);
         toast.error(`Ocorreu um erro ao gerar o PDF: ${error.message}`);
@@ -203,5 +217,5 @@ export function usePEILoader(dispatch, state) {
     [usuarioLogado, avaliacoesIniciais, dispatch]
   );
 
-  return { excluirPEI, gerarPDF }; // O hook retorna as ações prontas para serem usadas.
+  return { excluirPEI, gerarPDF };
 }
