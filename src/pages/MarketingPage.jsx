@@ -521,7 +521,7 @@ const LandingPage = () => {
             </p>
             <div className="mt-8 flex justify-center">
               <a
-                href="mailto:michellepollheim@icloud.com?subject=Agendar%20Demonstração"
+                href="mailto:contato@vivenciepei.com.br?subject=Agendar%20Demonstração"
                 className="inline-block px-8 py-3 font-semibold text-white bg-blue-600 rounded-full shadow-lg transition-transform transform hover:scale-105 hover:bg-blue-700"
               >
                 Agendar Agora
