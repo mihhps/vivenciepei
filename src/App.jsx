@@ -85,6 +85,10 @@ const VisualizarAvaliacaoInteressesPage = lazy(() =>
   import("./pages/VisualizarAvaliacaoInteressesPage.jsx")
 );
 const VisualizarPei = lazy(() => import("./pages/VisualizarPei.jsx"));
+// 💡 NOVO: Importe o Gerenciador de Convites
+const GerenciadorConvites = lazy(() =>
+  import("./pages/GerenciadorConvites.jsx")
+);
 
 // Configuração do PDF.js Worker
 import * as pdfjsLib from "pdfjs-dist/build/pdf";
@@ -127,6 +131,9 @@ function AppContent() {
               <Route path="/painel-aee" element={<PainelAee />} />
               <Route path="/painel-professor" element={<PainelProfessor />} />
               <Route path="/painel-dev" element={<PainelDev />} />
+              {/* 💡 NOVO: Rota para o Gerenciador de Convites */}
+              <Route path="/admin/convites" element={<GerenciadorConvites />} />
+
               <Route path="/cadastrar-aluno" element={<CadastroAluno />} />
               <Route path="/editar-aluno/:id" element={<EditarAluno />} />
               <Route path="/cadastro-usuario" element={<CadastrarUsuario />} />

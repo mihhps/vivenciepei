@@ -195,7 +195,12 @@ export default function PainelGestao() {
 
           {abaAtiva === "gestao" && (
             <>
-              {/* ===== BOTÃO ADICIONADO AQUI ===== */}
+              {/* 💡 NOVO: Botão para Gerenciador de Convites */}
+              <BotaoPainel
+                texto="Gerenciar Convites"
+                destino="/admin/convites"
+              />
+              {/* ===== BOTÃO ADICIONADO AQUI (Acompanhar Planos AEE) ===== */}
               <BotaoPainel
                 texto="Acompanhar Planos AEE"
                 destino="/acompanhamento-gestao-selecao"

@@ -188,7 +188,7 @@ export default function Login() {
         </p>
 
         <p style={{ marginTop: 20 }}>
-          Ainda não tem conta?{" "}
+          Tem um código de acesso?{" "}
           <Link
             to="/cadastro-professor"
             style={{
@@ -200,7 +200,7 @@ export default function Login() {
               pointerEvents: loading ? "none" : "auto",
             }}
           >
-            Cadastre-se como professor
+            Faça seu cadastro de Professor aqui.
           </Link>
         </p>
       </div>

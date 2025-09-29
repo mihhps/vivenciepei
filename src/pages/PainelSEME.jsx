@@ -192,6 +192,11 @@ export default function PainelSEME() {
 
           {abaAtiva === "gestao" && (
             <>
+              {/* 💡 NOVO: Botão para Gerenciador de Convites */}
+              <BotaoPainel
+                texto="Gerenciar Convites"
+                destino="/admin/convites"
+              />
               <BotaoPainel
                 texto="Cadastrar Usuário"
                 destino="/cadastro-usuario"
