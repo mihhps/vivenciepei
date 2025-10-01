@@ -1,11 +1,9 @@
-import { resolve, dirname } from "path"; // 'dirname' foi adicionado
+import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
-// CORREÇÃO: Esta é uma forma mais explícita de obter o caminho do diretório,
-// o que resolve o erro de linting no editor de código.
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -22,7 +20,7 @@ export default defineConfig({
         name: "Vivencie PEI",
         short_name: "VivenciePEI",
         description:
-          "Plataforma para criação e gestão de Planos Educacionais Individualizados.",
+          "Platforma para criação e gestão de Planos Educacionais Individualizados.",
         theme_color: "#1d3557",
         background_color: "#ffffff",
         display: "standalone",
@@ -44,6 +42,12 @@ export default defineConfig({
   ],
   server: {
     port: 5199,
+    // --- SEÇÃO ADICIONADA PARA CORRIGIR O WEBSOCKET HMR ---
+    hmr: {
+      host: "localhost",
+      protocol: "ws",
+    },
+    // ----------------------------------------------------
   },
   optimizeDeps: {
     include: [
@@ -64,7 +68,6 @@ export default defineConfig({
     },
     rollupOptions: {
       input: {
-        // Agora, com __dirname definido, esta parte funcionará sem erros.
         main: resolve(__dirname, "index.html"),
         app: resolve(__dirname, "app.html"),
       },

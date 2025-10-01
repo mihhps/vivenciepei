@@ -12,6 +12,7 @@ import {
   serverTimestamp,
   limit,
   orderBy,
+  addDoc, // Adicionado para criar documentos com ID automático
 } from "firebase/firestore";
 
 export function useAvaliacaoForm(alunos) {
@@ -34,9 +35,11 @@ export function useAvaliacaoForm(alunos) {
   const idade = useMemo(() => {
     if (alunoSelecionado && alunoSelecionado.dataNascimento) {
       const hoje = new Date();
+      // Garante que o objeto de data é criado corretamente
       const nascimento = alunoSelecionado.dataNascimento.toDate
         ? alunoSelecionado.dataNascimento.toDate()
         : new Date(alunoSelecionado.dataNascimento);
+
       let idadeCalculada = hoje.getFullYear() - nascimento.getFullYear();
       const mes = hoje.getMonth() - nascimento.getMonth();
       if (mes < 0 || (mes === 0 && hoje.getDate() < nascimento.getDate())) {
@@ -61,6 +64,10 @@ export function useAvaliacaoForm(alunos) {
       return;
     }
 
+    // --- CONSOLE.LOG PARA DEBUG ---
+    console.log("Tentando carregar avaliação para Aluno ID:", alunoId);
+    // ------------------------------------
+
     setEstado((prev) => ({
       ...prev,
       carregandoAvaliacao: true,
@@ -69,55 +76,166 @@ export function useAvaliacaoForm(alunos) {
     }));
 
     try {
-      // LÓGICA MELHORADA: Tenta buscar diretamente pelo ID do aluno primeiro (mais eficiente)
-      const docRef = doc(db, "avaliacoesIniciais", alunoId);
-      let docSnap = await getDoc(docRef);
       let avaliacaoEncontrada = null;
+      let docSnap;
+
+      // Garante que o ID do aluno está limpo
+      const cleanedAlunoId = alunoId.trim();
+      // Converte para minúsculas apenas para buscas adicionais, caso haja inconsistência de case
+      const lowerCaseAlunoId = cleanedAlunoId.toLowerCase();
+
+      // 1. Tenta buscar pelo formato antigo/direto (ID do Documento = ID do Aluno)
+      // Nota: Esta busca é case-sensitive no ID do documento.
+      const docRef = doc(db, "avaliacoesIniciais", cleanedAlunoId);
+      docSnap = await getDoc(docRef);
 
       if (docSnap.exists()) {
+        console.log(
+          "Avaliação encontrada na Busca 1 (ID do Documento - Formato Antigo):",
+          docSnap.id
+        );
         avaliacaoEncontrada = docSnap.data();
         setAvaliacaoDocId(docSnap.id);
       } else {
-        // Fallback: Se não encontrou pelo ID, procura via query (para dados antigos)
-        const q = query(
+        // CORREÇÃO CRÍTICA: Alteramos a query para usar 'alunoId' (campo de nível raiz)
+        // que foi confirmado no seu documento, em vez de 'aluno.id'.
+
+        // 2. Busca pelo formato ideal: 'alunoId' com ordenação (exige índice composto)
+        console.log(
+          "Não encontrado na Busca 1. Tentando Busca 2 (Query - Ordenada) usando 'alunoId'..."
+        );
+        // Tentativa 1: Busca com o ID original (case-sensitive)
+        let q2 = query(
           collection(db, "avaliacoesIniciais"),
-          where("aluno.id", "==", alunoId),
+          where("alunoId", "==", cleanedAlunoId), // <<-- CAMPO CORRIGIDO para 'alunoId'
           orderBy("dataCriacao", "desc"),
           limit(1)
         );
-        const querySnapshot = await getDocs(q);
+
+        let querySnapshot = await getDocs(q2);
+
+        // Tentativa 2: Busca com o ID em minúsculas (para contornar inconsistência no Firestore)
+        if (querySnapshot.empty && cleanedAlunoId !== lowerCaseAlunoId) {
+          console.log(
+            "Busca 2 (Original) falhou. Tentando Busca 2 (Lowercase) usando 'alunoId'..."
+          );
+          q2 = query(
+            collection(db, "avaliacoesIniciais"),
+            where("alunoId", "==", lowerCaseAlunoId), // <<-- CAMPO CORRIGIDO para 'alunoId'
+            orderBy("dataCriacao", "desc"),
+            limit(1)
+          );
+          querySnapshot = await getDocs(q2);
+        }
+
         if (!querySnapshot.empty) {
           docSnap = querySnapshot.docs[0];
+          console.log(
+            "Avaliação encontrada na Busca 2 (Query - Ordenada):",
+            docSnap.id
+          );
           avaliacaoEncontrada = docSnap.data();
           setAvaliacaoDocId(docSnap.id);
+        } else {
+          // 3. Busca de fallback: Apenas pelo 'alunoId' (Busca Simples)
+          console.log(
+            "Não encontrado na Busca 2. Tentando Busca 3 (Query - Simples) usando 'alunoId'..."
+          );
+          // Tentativa 1: Busca com o ID original (case-sensitive)
+          let q3 = query(
+            collection(db, "avaliacoesIniciais"),
+            where("alunoId", "==", cleanedAlunoId), // <<-- CAMPO CORRIGIDO para 'alunoId'
+            limit(1) // Pega apenas um resultado
+          );
+
+          querySnapshot = await getDocs(q3);
+
+          // Tentativa 2: Busca com o ID em minúsculas
+          if (querySnapshot.empty && cleanedAlunoId !== lowerCaseAlunoId) {
+            console.log(
+              "Busca 3 (Original) falhou. Tentando Busca 3 (Lowercase) usando 'alunoId'..."
+            );
+            q3 = query(
+              collection(db, "avaliacoesIniciais"),
+              where("alunoId", "==", lowerCaseAlunoId), // <<-- CAMPO CORRIGIDO para 'alunoId'
+              limit(1)
+            );
+            querySnapshot = await getDocs(q3);
+          }
+
+          if (!querySnapshot.empty) {
+            docSnap = querySnapshot.docs[0];
+            console.log(
+              "Avaliação encontrada na Busca 3 (Query - Simples):",
+              docSnap.id
+            );
+            avaliacaoEncontrada = docSnap.data();
+            setAvaliacaoDocId(docSnap.id);
+          } else {
+            console.log("Nenhuma avaliação encontrada nas três buscas.");
+          }
         }
       }
 
       if (avaliacaoEncontrada) {
         // Formata as datas corretamente a partir do timestamp do Firestore
+        // Melhoria: Lida com Timestamps do Firestore, objetos Date, e strings ISO
         const formatarData = (data) => {
           if (!data) return "";
           if (data.seconds)
             return new Date(data.seconds * 1000).toISOString().split("T")[0];
           if (data instanceof Date) return data.toISOString().split("T")[0];
-          return data; // Assume que já é uma string 'YYYY-MM-DD'
+          // Tenta converter strings ISO (como "2025-07-14T19:11:42.232Z") para o formato YYYY-MM-DD
+          if (typeof data === "string" && data.includes("T")) {
+            return new Date(data).toISOString().split("T")[0];
+          }
+          // Lida com Timestamps do Firebase que podem ter sido salvos como objetos aninhados
+          if (
+            data &&
+            typeof data === "object" &&
+            data.hasOwnProperty("nanoseconds") &&
+            data.hasOwnProperty("seconds")
+          ) {
+            return new Date(data.seconds * 1000).toISOString().split("T")[0];
+          }
+          return data; // Assume que já é uma string 'YYYY-MM-DD' ou valor inválido/inexistente
         };
 
-        setInicio(formatarData(avaliacaoEncontrada.inicio));
-        setProximaAvaliacao(formatarData(avaliacaoEncontrada.proximaAvaliacao));
+        const inicioFormatado = formatarData(avaliacaoEncontrada.inicio);
+        const proximaAvaliacaoFormatada = formatarData(
+          avaliacaoEncontrada.proximaAvaliacao
+        );
+
+        // Usa o docSnap.id que foi definido na busca de sucesso
+        const docIdLog = docSnap ? docSnap.id : "ID não definido";
+        setAvaliacaoDocId(docSnap.id);
+
+        setInicio(inicioFormatado);
+        setProximaAvaliacao(proximaAvaliacaoFormatada);
         setRespostas(avaliacaoEncontrada.respostas || {});
         setObservacoes(avaliacaoEncontrada.observacoes || {});
+
+        console.log(
+          "Dados da avaliação carregados com sucesso. Doc ID:",
+          docIdLog
+        );
+        console.log(
+          "Início:",
+          inicioFormatado,
+          "Próxima Avaliação:",
+          proximaAvaliacaoFormatada
+        );
       } else {
         limparFormulario();
       }
 
       setEstado((prev) => ({ ...prev, carregandoAvaliacao: false }));
     } catch (error) {
-      console.error("Erro ao carregar avaliação do Firestore:", error);
+      console.error("Erro FATAL ao carregar avaliação do Firestore:", error);
       setEstado((prev) => ({
         ...prev,
         carregandoAvaliacao: false,
-        erro: "Erro ao carregar avaliação.",
+        erro: "Erro ao carregar avaliação. Verifique o console.",
       }));
     }
   }, []);
@@ -149,11 +267,10 @@ export function useAvaliacaoForm(alunos) {
       }));
 
       try {
-        // ALTERAÇÃO: Adicionado o campo 'alunoId' para consistência dos dados
         const dadosBase = {
-          alunoId: alunoSelecionado.id, // <-- CORREÇÃO PRINCIPAL
+          alunoId: alunoSelecionado.id, // ID na raiz, USADO PARA CONSULTAS
           aluno: {
-            id: alunoSelecionado.id,
+            // Removido o campo 'id' daqui para evitar duplicação e inconsistência na busca.
             nome: alunoSelecionado.nome,
           },
           turma: alunoSelecionado.turma,
@@ -162,14 +279,14 @@ export function useAvaliacaoForm(alunos) {
           respostas,
           observacoes,
           criador: usuarioLogado.nome,
-          criadorId: usuarioLogado.id || usuarioLogado.email, // Garante que um ID seja salvo
+          criadorId: usuarioLogado.id || usuarioLogado.email,
           escolaId: usuarioLogado.escolas
             ? Object.keys(usuarioLogado.escolas)[0]
             : null,
         };
 
         if (avaliacaoDocId) {
-          // Atualiza o documento existente
+          // Lógica para ATUALIZAR (mantém o ID original do documento)
           const docRef = doc(db, "avaliacoesIniciais", avaliacaoDocId);
           await updateDoc(docRef, {
             ...dadosBase,
@@ -177,17 +294,19 @@ export function useAvaliacaoForm(alunos) {
           });
           console.log("Avaliação atualizada com sucesso! ID:", avaliacaoDocId);
         } else {
-          // Cria um novo documento usando o ID do aluno
-          const newDocRef = doc(db, "avaliacoesIniciais", alunoSelecionado.id);
-          await setDoc(newDocRef, {
+          // Lógica para CRIAR (usa addDoc para ID automático, o padrão correto)
+          const avaliacoesRef = collection(db, "avaliacoesIniciais");
+
+          // Usa addDoc para criar um novo documento com ID automático
+          const newDoc = await addDoc(avaliacoesRef, {
             ...dadosBase,
             dataCriacao: serverTimestamp(),
           });
-          setAvaliacaoDocId(alunoSelecionado.id);
-          console.log(
-            "Nova avaliação salva com sucesso! ID:",
-            alunoSelecionado.id
-          );
+
+          // Seta o ID recém-criado (o UUID automático)
+          setAvaliacaoDocId(newDoc.id);
+
+          console.log("Nova avaliação salva com sucesso! ID:", newDoc.id);
         }
 
         setEstado((prev) => ({

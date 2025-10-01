@@ -73,13 +73,30 @@ const Reavaliacao = () => {
 
     setEstado({ carregandoAvaliacao: true, erro: null });
     try {
-      const q = query(
+      const cleanedAlunoId = alunoId.trim();
+      const lowerCaseAlunoId = cleanedAlunoId.toLowerCase();
+      let querySnapshot;
+
+      // CORREÇÃO 1: Usar 'alunoId' (campo de nível raiz) para busca, em vez de 'aluno.id'
+      // Tentativa 1: Busca com o ID original (case-sensitive)
+      let q = query(
         collection(db, "avaliacoesIniciais"),
-        where("aluno.id", "==", alunoId),
+        where("alunoId", "==", cleanedAlunoId),
         orderBy("dataCriacao", "desc"),
         limit(1)
       );
-      const querySnapshot = await getDocs(q);
+      querySnapshot = await getDocs(q);
+
+      // Tentativa 2: Fallback para busca em minúsculas (para contornar inconsistência de case)
+      if (querySnapshot.empty && cleanedAlunoId !== lowerCaseAlunoId) {
+        q = query(
+          collection(db, "avaliacoesIniciais"),
+          where("alunoId", "==", lowerCaseAlunoId),
+          orderBy("dataCriacao", "desc"),
+          limit(1)
+        );
+        querySnapshot = await getDocs(q);
+      }
 
       if (querySnapshot.empty) {
         setEstado({
@@ -93,7 +110,10 @@ const Reavaliacao = () => {
 
       const alunoCompleto = alunos.find((a) => a.id === alunoId);
 
+      // Usar a data de hoje para o início da reavaliação
       const dataInicioReavaliacao = new Date().toISOString().split("T")[0];
+
+      // Calcular a data da próxima reavaliação (6 meses depois)
       const dataProximaReavaliacao = addMonths(new Date(), 6)
         .toISOString()
         .split("T")[0];
@@ -154,23 +174,30 @@ const Reavaliacao = () => {
 
   const onSalvarReavaliacaoClick = useCallback(async () => {
     if (!inicio || !proximaAvaliacao || !alunoSelecionado) {
-      alert(
-        "Por favor, preencha as datas de Início e Próxima Avaliação e selecione um aluno."
-      );
+      // Usando mensagem na tela em vez de alert()
+      setEstado((prev) => ({
+        ...prev,
+        erro: "Por favor, preencha as datas de Início e Próxima Avaliação e selecione um aluno.",
+      }));
       return;
     }
 
     setEstado({ salvando: true, erro: null });
 
+    // CORREÇÃO 2: Adicionar 'alunoId' no nível raiz para que a busca funcione
     const dadosParaSalvar = {
-      aluno: alunoSelecionado,
+      alunoId: alunoSelecionado.id, // CAMPO CRÍTICO para as queries
+      aluno: {
+        // Reduzido para consistência
+        nome: alunoSelecionado.nome,
+      },
       turma: alunoSelecionado.turma,
       respostas: respostas,
       observacoes: observacoes,
       inicio: inicio,
       proximaAvaliacao: proximaAvaliacao,
       criador: usuarioLogado.nome,
-      criadorId: usuarioLogado.id,
+      criadorId: usuarioLogado.id || usuarioLogado.email,
       escolaId: usuarioLogado.escolas
         ? Object.keys(usuarioLogado.escolas)[0]
         : null,
@@ -180,6 +207,7 @@ const Reavaliacao = () => {
     try {
       await addDoc(collection(db, "avaliacoesIniciais"), dadosParaSalvar);
       setEstado({ sucesso: "Reavaliação salva com sucesso!", salvando: false });
+      // Redireciona após o salvamento
       setTimeout(() => navigate("/ver-avaliacoes"), 1500);
     } catch (error) {
       console.error("Erro ao salvar reavaliação:", error);
@@ -216,7 +244,11 @@ const Reavaliacao = () => {
         <div className="mensagem-sucesso">{estado.sucesso}</div>
       )}
 
-      {alunoSelecionado && (
+      {(carregandoAlunos || estado.carregandoAvaliacao) && (
+        <div className="mensagem-carregando">Carregando dados...</div>
+      )}
+
+      {alunoSelecionado && !carregandoAlunos && !estado.carregandoAvaliacao && (
         <>
           <p className="aluno-idade">
             Idade: <strong>{idade}</strong> anos
@@ -250,7 +282,9 @@ const Reavaliacao = () => {
               <button
                 key={area}
                 onClick={() => setAreaSelecionada(area)}
-                className={`area-botao ${areaSelecionada === area ? "ativo" : ""}`}
+                className={`area-botao ${
+                  areaSelecionada === area ? "ativo" : ""
+                }`}
                 disabled={carregandoGeral}
               >
                 {area}
