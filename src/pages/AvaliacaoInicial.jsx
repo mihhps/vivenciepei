@@ -11,6 +11,8 @@ import { gerarPDFAvaliacaoInicialParaPreencher } from "../utils/gerarPDFAvaliaca
 import { gerarPDFAvaliacaoInicialPreenchida } from "../utils/gerarPDFAvaliacaoInicialPreenchida";
 
 import "../styles/AvaliacaoInicial.css";
+// NOVO: Import do ícone de usuário
+import { FaUserCircle } from "react-icons/fa";
 
 const painelDestinoMapeado = {
   desenvolvedor: "/painel-dev",
@@ -22,6 +24,35 @@ const painelDestinoMapeado = {
   diretor: "/painel-gestao",
   diretor_adjunto: "/painel-gestao",
   orientador_pedagogico: "/painel-gestao",
+};
+
+// NOVO: Função para calcular a idade exata em anos e meses a partir da data de nascimento
+const calcularIdadeExata = (dataNascimentoString) => {
+  if (!dataNascimentoString) return null;
+
+  const dataNascimento = new Date(dataNascimentoString);
+  const hoje = new Date();
+
+  if (isNaN(dataNascimento)) return null;
+
+  let anos = hoje.getFullYear() - dataNascimento.getFullYear();
+  let meses = hoje.getMonth() - dataNascimento.getMonth();
+  let dias = hoje.getDate() - dataNascimento.getDate();
+
+  // Ajusta anos e meses se o aniversário ainda não ocorreu neste mês
+  if (dias < 0) {
+    meses--;
+    // Pega o número de dias do mês anterior
+    dias += new Date(hoje.getFullYear(), hoje.getMonth(), 0).getDate();
+  }
+  if (meses < 0) {
+    anos--;
+    meses += 12;
+  }
+
+  // Converte para decimal
+  const idadeDecimal = anos + meses / 12 + dias / 365.25;
+  return idadeDecimal;
 };
 
 function AvaliacaoInicial() {
@@ -128,6 +159,28 @@ function AvaliacaoInicial() {
     }
   }, [navigate, form.alunoSelecionado]);
 
+  // NOVO: Função para formatar a idade em anos e meses para exibição
+  const formatarIdade = useCallback((idadeDecimal) => {
+    const idade = Number(idadeDecimal);
+    if (isNaN(idade) || idade <= 0) {
+      return "N/A";
+    }
+    const idadeAnos = Math.floor(idade);
+    const idadeMeses = Math.round((idade - idadeAnos) * 12);
+
+    let resultado = `${idadeAnos} ano${idadeAnos !== 1 ? "s" : ""}`;
+    if (idadeMeses > 0) {
+      resultado += ` e ${idadeMeses} mes${idadeMeses !== 1 ? "es" : ""}`;
+    }
+    return resultado;
+  }, []);
+
+  // MUDANÇA CRÍTICA: Calcular idade no componente usando a data de nascimento do aluno
+  const idadeAtual = useMemo(() => {
+    const dataNascimento = form.alunoSelecionado?.nascimento;
+    return calcularIdadeExata(dataNascimento);
+  }, [form.alunoSelecionado]);
+
   const carregandoGeral =
     carregandoAlunos || form.estado.carregandoAvaliacao || form.estado.salvando;
 
@@ -164,9 +217,27 @@ function AvaliacaoInicial() {
 
       {form.alunoSelecionado && (
         <>
-          <p className="aluno-idade">
-            Idade: <strong>{form.idade}</strong> anos
-          </p>
+          {/* --- NOVO BLOCO: FOTO E IDADE --- */}
+          <div style={estilos.infoGeralContainer}>
+            {/* FOTO / PLACEHOLDER */}
+            <div style={estilos.fotoContainer}>
+              {form.alunoSelecionado.fotoUrl ? (
+                <img
+                  src={form.alunoSelecionado.fotoUrl}
+                  alt={`Foto de ${form.alunoSelecionado.nome}`}
+                  style={estilos.foto}
+                />
+              ) : (
+                <FaUserCircle style={estilos.fotoPlaceholder} />
+              )}
+            </div>
+
+            {/* IDADE (MANTIDA) */}
+            <p className="aluno-idade" style={estilos.idadeText}>
+              Idade: <strong>{formatarIdade(idadeAtual)}</strong>
+            </p>
+          </div>
+          {/* --- FIM DO BLOCO FOTO/IDADE --- */}
 
           <div style={estilos.botoesPDF}>
             <button
@@ -279,68 +350,120 @@ function AvaliacaoInicial() {
   );
 }
 
-// Estilos inline para os novos botões
+// Estilos inline para os botões de Ação, PDF e agora FOTO (Modernizados)
 const estilos = {
+  // --- NOVOS ESTILOS PARA FOTO E IDADE ---
+  infoGeralContainer: {
+    display: "flex",
+    alignItems: "center",
+    marginBottom: "20px",
+    paddingBottom: "20px",
+    borderBottom: "1px solid #e2e8f0",
+  },
+  fotoContainer: {
+    width: "70px",
+    height: "70px",
+    borderRadius: "50%",
+    overflow: "hidden",
+    marginRight: "15px",
+    flexShrink: 0,
+    border: "2px solid #4c51bf", // Cor primária
+    backgroundColor: "#edf2f7",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  foto: {
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+  },
+  fotoPlaceholder: {
+    fontSize: "2.5em",
+    color: "#4c51bf",
+  },
+  idadeText: {
+    margin: 0,
+    fontSize: "1.1rem",
+    color: "#4a5568",
+  },
+  // --- FIM DOS ESTILOS FOTO ---
+
   botoesContainer: {
     display: "flex",
     flexDirection: "column",
     gap: "15px",
     alignItems: "center",
     width: "100%",
-    margin: "20px 0",
+    margin: "30px 0 20px 0",
   },
+  // Botão Iniciar Reavaliação (Amarelo)
   botaoReavaliacao: {
-    backgroundColor: "#ffc107",
-    color: "#fff",
-    border: "none",
-    padding: "12px 24px",
-    borderRadius: "8px",
-    fontSize: "16px",
-    fontWeight: "bold",
+    backgroundColor: "#f6ad55",
+    color: "#1a202c",
+    border: "2px solid #f6ad55",
+    padding: "14px 28px",
+    borderRadius: "12px",
+    fontSize: "17px",
+    fontWeight: "700",
     cursor: "pointer",
     width: "100%",
-    transition: "background-color 0.2s",
+    transition: "all 0.2s",
+    boxShadow: "0 4px 10px rgba(246, 173, 85, 0.4)",
   },
+  // Botão Salvar (Verde/Teal)
   botaoSalvar: {
-    backgroundColor: "#2a9d8f",
+    backgroundColor: "#38b2ac",
     color: "#fff",
     border: "none",
-    padding: "12px 24px",
-    borderRadius: "8px",
-    fontSize: "16px",
-    fontWeight: "bold",
+    padding: "14px 28px",
+    borderRadius: "12px",
+    fontSize: "17px",
+    fontWeight: "700",
     cursor: "pointer",
     width: "100%",
     transition: "background-color 0.2s",
+    boxShadow: "0 4px 10px rgba(56, 178, 172, 0.4)",
   },
+  // --- BOTÕES PDF MODERNIZADOS ---
   botoesPDF: {
     display: "flex",
-    gap: "10px",
+    gap: "15px",
     width: "100%",
     flexWrap: "wrap",
     justifyContent: "center",
+    margin: "25px 0",
   },
+  // Botão de PDF Vazio (Estilo Secundário/Claro)
   botaoPDFVazio: {
-    backgroundColor: "#457b9d",
-    color: "#fff",
-    border: "none",
-    padding: "10px 15px",
-    borderRadius: "6px",
-    fontSize: "14px",
+    backgroundColor: "#ffffff",
+    color: "#4c51bf",
+    border: "2px solid #4c51bf",
+    padding: "12px 20px",
+    borderRadius: "10px",
+    fontSize: "15px",
+    fontWeight: "600",
     cursor: "pointer",
-    transition: "background-color 0.2s",
-    flex: "1 1 auto",
+    transition: "all 0.2s",
+    flex: "1 1 45%",
+    minWidth: "150px",
+    textTransform: "uppercase",
   },
+  // Botão de PDF Preenchido (Estilo Primário/Escuro)
   botaoPDFPreenchido: {
-    backgroundColor: "#1d3557",
+    backgroundColor: "#4c51bf",
     color: "#fff",
-    border: "none",
-    padding: "10px 15px",
-    borderRadius: "6px",
-    fontSize: "14px",
+    border: "2px solid #4c51bf",
+    padding: "12px 20px",
+    borderRadius: "10px",
+    fontSize: "15px",
+    fontWeight: "600",
     cursor: "pointer",
-    transition: "background-color 0.2s",
-    flex: "1 1 auto",
+    transition: "all 0.2s",
+    flex: "1 1 45%",
+    minWidth: "150px",
+    textTransform: "uppercase",
+    boxShadow: "0 4px 10px rgba(76, 81, 191, 0.4)",
   },
 };
 

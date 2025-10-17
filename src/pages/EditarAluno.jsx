@@ -1,6 +1,6 @@
 // src/pages/editaraluno.jsx
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react"; // NOVO: useRef
 import { useParams, useNavigate } from "react-router-dom";
 import {
   doc,
@@ -10,9 +10,11 @@ import {
   query,
   getDocs,
 } from "firebase/firestore";
-import { db } from "../firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage"; // NOVO: Import do Storage
+import { db, storage } from "../firebase"; // NOVO: Import do objeto storage
 import BotaoVoltar from "../components/BotaoVoltar";
 import styled from "styled-components";
+import { FaUpload } from "react-icons/fa"; // NOVO: Ícone de upload
 
 // --- Styled Components ---
 const FormContainer = styled.div`
@@ -93,6 +95,47 @@ const BotaoSalvar = styled.button`
     cursor: not-allowed;
   }
 `;
+
+// NOVOS STYLED COMPONENTS PARA FOTO
+const PhotoWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+`;
+
+const PhotoDisplay = styled.img`
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 15px;
+  border: 4px solid #457b9d; /* Borda para destaque */
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+`;
+
+const UploadButton = styled.button`
+  background-color: #457b9d;
+  color: white;
+  padding: 8px 15px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #386782;
+  }
+  input[type="file"] {
+    display: none;
+  }
+`;
 // --- Fim Styled Components ---
 
 function EditarAluno() {
@@ -108,6 +151,11 @@ function EditarAluno() {
   const [carregandoDadosAluno, setCarregandoDadosAluno] = useState(true);
   const [carregandoTurmas, setCarregandoTurmas] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // NOVO ESTADO: Gerencia a nova foto e a pré-visualização
+  const [novaFotoArquivo, setNovaFotoArquivo] = useState(null);
+  const [fotoPreviewUrl, setFotoPreviewUrl] = useState("");
+  const fileInputRef = useRef(null); // Ref para o input file
 
   // --- Efeito 1: Carregar os dados do Aluno ---
   useEffect(() => {
@@ -125,6 +173,11 @@ function EditarAluno() {
 
         const data = docSnap.data();
         setAlunoData(data);
+
+        // CARREGA A FOTO EXISTENTE PARA PRÉ-VISUALIZAÇÃO
+        if (data.fotoUrl) {
+          setFotoPreviewUrl(data.fotoUrl);
+        }
 
         if (data.escolaId) {
           setEscolaIdDoAluno(data.escolaId);
@@ -227,6 +280,24 @@ function EditarAluno() {
     setAlunoData({ ...alunoData, [name]: value });
   };
 
+  // NOVO: Manipulador de alteração de foto
+  const handleFotoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setNovaFotoArquivo(file);
+      setFotoPreviewUrl(URL.createObjectURL(file)); // Pré-visualização do novo arquivo
+    } else {
+      setNovaFotoArquivo(null);
+      // Volta para a URL original do banco de dados se o usuário cancelar
+      setFotoPreviewUrl(alunoData.fotoUrl || "");
+    }
+  };
+
+  // NOVO: Função para disparar o clique do input file
+  const handleUploadButtonClick = () => {
+    fileInputRef.current.click();
+  };
+
   const calcularIdade = (dataNasc) => {
     if (!dataNasc) return "";
     const hoje = new Date();
@@ -247,6 +318,8 @@ function EditarAluno() {
 
   const salvar = async () => {
     setIsSaving(true);
+    let novaFotoUrl = alunoData.fotoUrl || ""; // Assume a URL existente
+
     const turmaSelecionadaObj = turmasDisponiveis.find(
       (t) => t.id === turmaSelecionadaId
     );
@@ -267,14 +340,34 @@ function EditarAluno() {
     }
 
     try {
+      // 1. Upload da Nova Foto (SE HOUVER)
+      if (novaFotoArquivo) {
+        const storageRef = ref(
+          storage,
+          `fotos_alunos/${id}_${Date.now()}_${novaFotoArquivo.name}`
+        );
+        const uploadTask = await uploadBytes(storageRef, novaFotoArquivo);
+        novaFotoUrl = await getDownloadURL(uploadTask.ref);
+        console.log("Nova foto enviada:", novaFotoUrl);
+      }
+
+      // 2. Montar Dados para Atualização
       const docRef = doc(db, "alunos", id);
       const dadosParaAtualizar = {
         ...alunoData,
+        // Garante que o nome da turma e turno sejam salvos
         turma: turmaSelecionadaObj.nome,
         turno: turnoExibido,
-        turmaId: turmaSelecionadaObj.id,
+        // Adiciona a nova URL da foto (ou a antiga, se o upload não ocorreu)
+        fotoUrl: novaFotoUrl,
       };
+
+      // Remove campos que não devem ser salvos diretamente no doc se houver
+      delete dadosParaAtualizar.escolaId;
+
+      // 3. Atualizar Firestore
       await updateDoc(docRef, dadosParaAtualizar);
+
       alert("Dados atualizados com sucesso!");
       navigate("/ver-alunos");
     } catch (erro) {
@@ -308,10 +401,36 @@ function EditarAluno() {
     >
       <BotaoVoltar />
       <h2 style={{ textAlign: "center", marginBottom: "30px" }}>
-        Editar Aluno
+        Editar Aluno: {alunoData.nome}
       </h2>
 
       <FormContainer>
+        {/* --- NOVO BLOCO: VISUALIZAÇÃO E UPLOAD DE FOTO --- */}
+        <PhotoWrapper>
+          <PhotoDisplay
+            src={
+              fotoPreviewUrl || "https://via.placeholder.com/120?text=Sem+Foto"
+            }
+            alt={`Foto de ${alunoData.nome}`}
+          />
+          <UploadButton onClick={handleUploadButtonClick} disabled={isSaving}>
+            <FaUpload /> {novaFotoArquivo ? "Trocar Foto" : "Adicionar Foto"}
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFotoChange}
+              ref={fileInputRef}
+              disabled={isSaving}
+            />
+          </UploadButton>
+          {novaFotoArquivo && (
+            <p style={{ fontSize: "0.85em", color: "green", marginTop: "5px" }}>
+              Nova foto pronta para ser salva!
+            </p>
+          )}
+        </PhotoWrapper>
+        {/* --- FIM DO BLOCO FOTO --- */}
+
         <Label htmlFor="nome">Nome:</Label>
         <Input
           id="nome"
@@ -354,9 +473,9 @@ function EditarAluno() {
           disabled={isSaving}
         />
 
-        <Label htmlFor="turma">Escola do Aluno:</Label>
+        <Label htmlFor="escolaInput">Escola do Aluno:</Label>
         <Input
-          id="escola"
+          id="escolaInput"
           type="text"
           value={
             alunoData.escolaId
@@ -380,10 +499,10 @@ function EditarAluno() {
             {!escolaIdDoAluno
               ? "Escola do aluno não definida"
               : carregandoTurmas
-                ? "Carregando turmas..."
-                : turmasDisponiveis.length === 0
-                  ? "Nenhuma turma cadastrada para esta escola"
-                  : "Selecione a Turma"}
+              ? "Carregando turmas..."
+              : turmasDisponiveis.length === 0
+              ? "Nenhuma turma cadastrada para esta escola"
+              : "Selecione a Turma"}
           </option>
           {turmasDisponiveis.map((turma) => (
             <option key={turma.id} value={turma.id}>

@@ -13,13 +13,20 @@ import {
 } from "firebase/firestore";
 import { fetchAvaliacaoInteresses } from "../utils/firebaseUtils";
 import { useUserSchool } from "../hooks/useUserSchool";
+import { FaUserCircle, FaPuzzlePiece, FaChevronDown } from "react-icons/fa"; // FaChevronDown para o filtro
 
-// IMPORTS DOS DADOS PARA OBJETIVOS DE PRAZO
+// NOVO: Importa o styled-components
+import styled from "styled-components";
+
+// IMPORTAÇÃO DO COMPONENTE SELECAOALUNO MODERNIZADO
+import SelecaoAluno from "../components/SelecaoAluno";
+
+// IMPORTS DOS DADOS PARA OBJETIVOS DE PRAZO (Mantidos)
 import estruturaPEI from "../data/estruturaPEI2";
 import objetivosCurtoPrazoData from "../data/objetivosCurtoPrazo";
 import objetivosMedioPrazoData from "../data/objetivosMedioPrazo";
 
-// --- Funções de Mapeamento de Dados ---
+// --- Funções Auxiliares (Mantidas) ---
 const getEstruturaPEIMap = (estrutura) => {
   const map = {};
   if (!estrutura) return map;
@@ -82,7 +89,6 @@ const getObjetivosPrazoMap = (prazoData) => {
   return map;
 };
 
-// --- Funções Auxiliares Comuns ---
 const calcularIdadeEFaixa = (nascimento) => {
   if (!nascimento) return ["-", "-"];
   const hoje = new Date();
@@ -121,15 +127,6 @@ function formatarDataSegura(data) {
   }
 }
 
-const removerAcentosLocal = (str) => {
-  const safeStr = typeof str === "string" ? str : "";
-  return safeStr
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
-};
-
 const verificaTea = (diagnostico) => {
   if (!diagnostico) return false;
   const diagnosticoLowerCase = diagnostico.toLowerCase();
@@ -138,6 +135,86 @@ const verificaTea = (diagnostico) => {
     diagnosticoLowerCase.includes(palavra)
   );
 };
+
+const calcularIdadeCompleta = (dataNascimentoString) => {
+  if (!dataNascimentoString) return "N/A";
+
+  const dataNasc =
+    typeof dataNascimentoString.toDate === "function"
+      ? dataNascimentoString.toDate()
+      : new Date(dataNascimentoString);
+
+  const hoje = new Date();
+
+  if (isNaN(dataNasc)) return "N/A";
+
+  let anos = hoje.getFullYear() - dataNasc.getFullYear();
+  let meses = hoje.getMonth() - dataNasc.getMonth();
+
+  if (meses < 0 || (meses === 0 && hoje.getDate() < dataNasc.getDate())) {
+    anos--;
+    meses = 12 + meses;
+  }
+
+  const idadeAnos = Math.floor(anos);
+  const idadeMeses = meses;
+
+  let resultado = `${idadeAnos} ano${idadeAnos !== 1 ? "s" : ""}`;
+  if (idadeMeses > 0) {
+    resultado += ` e ${idadeMeses} mes${idadeMeses !== 1 ? "es" : ""}`;
+  }
+  return resultado;
+};
+
+// --- COMPONENTES ESTILIZADOS PARA O FILTRO DO PROFESSOR (NOVO BLOCO) ---
+
+const StyledFilterWrapper = styled.div`
+  position: relative;
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #ddd;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  background-color: white; /* Fundo branco garantido */
+
+  &:hover {
+    border-color: #457b9d;
+    box-shadow: 0 0 0 3px rgba(69, 123, 157, 0.2);
+  }
+`;
+
+const StyledFilterSelect = styled.select`
+  width: 100%;
+  padding: 10px 40px 10px 15px;
+  border: none;
+  background-color: transparent;
+  color: #333;
+  font-size: 1em;
+  cursor: pointer;
+  outline: none;
+
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+
+  option[value=""] {
+    color: #999;
+  }
+`;
+
+const FilterIcon = styled(FaChevronDown)`
+  position: absolute;
+  top: 50%;
+  right: 15px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: #457b9d;
+  font-size: 0.8em;
+  transition: color 0.3s ease;
+`;
+
+// --- FIM DOS NOVOS COMPONENTES ESTILIZADOS PARA O FILTRO DO PROFESSOR ---
 
 export default function VerPEIs() {
   const navigate = useNavigate();
@@ -341,6 +418,11 @@ export default function VerPEIs() {
       setAvaliacoesIniciais(avaliacoesParaExibir);
       setUsuarios(usuariosParaFiltro);
       setPeisPorAluno(peisAgrupados);
+
+      // Define a aba ativa para o primeiro aluno, se houver, ou a mantém vazia
+      if (alunosParaExibir.length > 0 && !abaAtiva) {
+        setAbaAtiva(alunosParaExibir[0].id);
+      }
     } catch (erro) {
       console.error("Erro detalhado ao carregar dados:", erro);
       setErro(
@@ -355,6 +437,7 @@ export default function VerPEIs() {
     isLoadingUserSchool,
     userSchoolData,
     perfisComAcessoAmplo,
+    abaAtiva,
   ]);
 
   useEffect(() => {
@@ -421,6 +504,30 @@ export default function VerPEIs() {
     }
   };
 
+  // --- Funções Auxiliares para o SelecaoAluno
+  const handleSelecionarAluno = (e) => {
+    const selectedAlunoNomeCompleto = e.target.value;
+    const foundAluno = alunosParaSelecao.find(
+      (a) => a.nome === selectedAlunoNomeCompleto
+    );
+
+    if (foundAluno) {
+      setAbaAtiva(foundAluno.id);
+    } else {
+      setAbaAtiva("");
+    }
+  };
+
+  // Cria a lista de alunos formatada para o SelecaoAluno (Nome, ID)
+  const alunosParaSelecao = alunos.map((a) => ({
+    id: a.id,
+    nome: `${a.nome} - ${a.turma} ${a.isTea ? "🧩" : ""}`,
+  }));
+
+  // Encontra o nome completo para pré-selecionar no dropdown
+  const nomeAlunoAtivo =
+    alunosParaSelecao.find((a) => a.id === abaAtiva)?.nome || "";
+
   if (carregando) {
     return (
       <div style={estilos.fundo}>
@@ -449,7 +556,11 @@ export default function VerPEIs() {
   return (
     <div style={estilos.fundo}>
       <div style={estilos.card}>
-        <BotaoVoltar />
+        {/* NOVO POSICIONAMENTO DO BOTÃO VOLTAR (top-left) */}
+        <div style={{ position: "absolute", top: "20px", left: "20px" }}>
+          <BotaoVoltar />
+        </div>
+
         <h2 style={estilos.titulo}>PEIs por Aluno</h2>
 
         {perfisComAcessoAmplo.includes(tipo) && (
@@ -457,19 +568,22 @@ export default function VerPEIs() {
             <label htmlFor="filtroUsuario" style={estilos.filtroLabel}>
               Filtrar por professor:
             </label>
-            <select
-              id="filtroUsuario"
-              onChange={(e) => setFiltroUsuario(e.target.value)}
-              value={filtroUsuario}
-              style={estilos.filtroSelect}
-            >
-              <option value="">Todos os professores</option>
-              {usuarios.map((u) => (
-                <option key={u.id} value={u.email}>
-                  {u.nome}
-                </option>
-              ))}
-            </select>
+            {/* CORRIGIDO: Agora usa Styled Components para o filtro do professor */}
+            <StyledFilterWrapper>
+              <StyledFilterSelect
+                id="filtroUsuario"
+                onChange={(e) => setFiltroUsuario(e.target.value)}
+                value={filtroUsuario}
+              >
+                <option value="">Todos os professores</option>
+                {usuarios.map((u) => (
+                  <option key={u.id} value={u.email}>
+                    {u.nome}
+                  </option>
+                ))}
+              </StyledFilterSelect>
+              <FilterIcon />
+            </StyledFilterWrapper>
           </div>
         )}
 
@@ -482,36 +596,13 @@ export default function VerPEIs() {
             <div
               style={{ width: "100%", maxWidth: "400px", marginBottom: "30px" }}
             >
-              <label
-                htmlFor="alunoSelect"
-                style={{
-                  fontWeight: "bold",
-                  display: "block",
-                  marginBottom: "8px",
-                }}
-              >
-                Selecione o Aluno:
-              </label>
-              <select
-                id="alunoSelect"
-                value={abaAtiva}
-                onChange={(e) => setAbaAtiva(e.target.value)}
-                style={{
-                  padding: "12px",
-                  width: "100%",
-                  borderRadius: "6px",
-                  border: "1px solid #ccc",
-                  backgroundColor: "#f8f9fa",
-                  fontSize: "16px",
-                }}
-              >
-                <option value="">Selecione o Aluno</option>
-                {alunos.map((aluno) => (
-                  <option key={aluno.id} value={aluno.id}>
-                    {aluno.nome} - {aluno.turma} {aluno.isTea ? " 🧩" : ""}
-                  </option>
-                ))}
-              </select>
+              {/* CORRIGIDO: Usa o componente SelecaoAluno modernizado */}
+              <SelecaoAluno
+                alunos={alunosParaSelecao}
+                alunoSelecionado={nomeAlunoAtivo}
+                onSelecionar={handleSelecionarAluno}
+                disabled={carregando}
+              />
             </div>
 
             <div style={estilos.conteudoAba}>
@@ -521,27 +612,58 @@ export default function VerPEIs() {
                   const [idade, faixa] = alunoDaAba
                     ? calcularIdadeEFaixa(alunoDaAba.nascimento)
                     : ["-", "-"];
+                  const idadeCompleta = alunoDaAba
+                    ? calcularIdadeCompleta(alunoDaAba.nascimento)
+                    : "N/A";
+
                   const peis = alunoDaAba
                     ? peisPorAluno[alunoDaAba.id] || []
                     : [];
 
                   return (
                     <>
-                      <div style={estilos.infoAluno}>
-                        <p>
-                          <strong>Idade:</strong> {idade} anos ({faixa})
-                        </p>
-                        {alunoDaAba?.turma && (
-                          <p>
-                            <strong>Turma:</strong> {alunoDaAba.turma}
-                          </p>
-                        )}
-                        {alunoDaAba?.isTea && (
-                          <p style={{ fontWeight: "bold", color: "#1d3557" }}>
-                            Transtorno do Espectro Autista (TEA) 🧩
-                          </p>
-                        )}
-                      </div>
+                      {/* --- BLOCO: FOTO E DETALHES (Mantido) --- */}
+                      {alunoDaAba && (
+                        <div style={estilos.infoGeralContainer}>
+                          {/* FOTO / PLACEHOLDER */}
+                          <div style={estilos.fotoContainer}>
+                            {alunoDaAba.fotoUrl ? (
+                              <img
+                                src={alunoDaAba.fotoUrl}
+                                alt={`Foto de ${alunoDaAba.nome}`}
+                                style={estilos.foto}
+                              />
+                            ) : (
+                              <FaUserCircle style={estilos.fotoPlaceholder} />
+                            )}
+                          </div>
+
+                          {/* DETALHES */}
+                          <div style={estilos.detalhesWrapper}>
+                            <h3 style={estilos.nomeText}>
+                              {alunoDaAba.nome}
+                              {alunoDaAba.isTea && (
+                                <FaPuzzlePiece
+                                  style={estilos.teaBadge}
+                                  title="Aluno com TEA"
+                                />
+                              )}
+                            </h3>
+                            <p style={estilos.detalhe}>
+                              <strong>Idade:</strong> {idadeCompleta}
+                            </p>
+                            <p style={estilos.detalhe}>
+                              <strong>Turma:</strong>{" "}
+                              {alunoDaAba.turma || "N/A"}
+                            </p>
+                            <p style={estilos.detalhe}>
+                              <strong>Diagnóstico:</strong>{" "}
+                              {alunoDaAba.diagnostico || "N/A"}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      {/* --- FIM DO BLOCO FOTO/DETALHES --- */}
 
                       {peis.length === 0 ? (
                         <p style={estilos.semDados}>
@@ -557,8 +679,6 @@ export default function VerPEIs() {
                               </p>
 
                               {(() => {
-                                {
-                                }
                                 const avaliacao =
                                   avaliacoesIniciais[alunoDaAba.id];
 
@@ -626,7 +746,7 @@ export default function VerPEIs() {
                               </button>
 
                               <button
-                                style={estilos.acompanhar} // Corrigido para a sintaxe de objeto React
+                                style={estilos.acompanhar}
                                 onClick={() =>
                                   navigate(`/acompanhar-metas/${pei.id}`)
                                 }
@@ -688,12 +808,14 @@ const estilos = {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
+    position: "relative", // CRUCIAL para o botão Voltar (Passo 4)
   },
   titulo: {
     textAlign: "center",
     fontSize: "26px",
     color: "#1d3557",
     marginBottom: "20px",
+    marginTop: "20px", // Margem para afastar do botão Voltar
   },
   filtroContainer: {
     width: "100%",
@@ -707,21 +829,60 @@ const estilos = {
     fontWeight: "500",
     color: "#1d3557",
   },
-  filtroSelect: {
-    padding: "10px",
-    borderRadius: "6px",
-    border: "1px solid #ccc",
-    backgroundColor: "#f8f9fa",
-    width: "100%",
-  },
   conteudoAba: {
     width: "100%",
   },
-  infoAluno: {
+  infoGeralContainer: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: "20px",
     marginBottom: "20px",
-    padding: "10px",
-    backgroundColor: "#f8f9fa",
-    borderRadius: "8px",
+    padding: "15px",
+    backgroundColor: "#eef2f5",
+    borderRadius: "10px",
+    border: "1px solid #e2e8f0",
+    width: "100%",
+  },
+  fotoContainer: {
+    width: "80px",
+    height: "80px",
+    borderRadius: "50%",
+    overflow: "hidden",
+    flexShrink: 0,
+    border: "3px solid #4c51bf",
+    backgroundColor: "#ffffff",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  foto: {
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+  },
+  fotoPlaceholder: {
+    fontSize: "3em",
+    color: "#4c51bf",
+  },
+  detalhesWrapper: {
+    flexGrow: 1,
+  },
+  nomeText: {
+    fontSize: "1.6em",
+    color: "#1d3557",
+    fontWeight: "700",
+    margin: "0 0 5px 0",
+  },
+  teaBadge: {
+    fontSize: "1em",
+    color: "#29ABE2",
+    marginLeft: "10px",
+  },
+  detalhe: {
+    fontSize: "0.95em",
+    color: "#4a5568",
+    margin: "0 0 3px 0",
+    lineHeight: "1.4",
   },
   cardInterno: {
     backgroundColor: "#ffffff",
@@ -773,9 +934,8 @@ const estilos = {
     borderRadius: "6px",
     cursor: "pointer",
   },
-  // NOVO ESTILO AQUI
   acompanhar: {
-    backgroundColor: "#52b788", // Verde vibrante
+    backgroundColor: "#52b788",
     color: "#fff",
     border: "none",
     padding: "8px 16px",
@@ -783,10 +943,9 @@ const estilos = {
     cursor: "pointer",
     transition: "background-color 0.2s ease",
   },
-  // CORRIGINDO O BOTÃO OBSERVAÇÕES PARA USAR SEU PRÓPRIO ESTILO
   observacoes: {
-    backgroundColor: "#ffc107", // Amarelo
-    color: "#fff", // Texto branco para contraste
+    backgroundColor: "#ffc107",
+    color: "#fff",
     border: "none",
     padding: "8px 16px",
     borderRadius: "6px",

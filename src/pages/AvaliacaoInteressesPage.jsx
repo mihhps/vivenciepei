@@ -1,10 +1,12 @@
+// src/pages/AvaliacaoInteressesPage.js (COMPLETO E CORRIGIDO)
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import "../styles/AvaliacaoInteressesPage.css";
 
 import { db } from "../firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import { FaFilePdf } from "react-icons/fa";
+import { FaFilePdf, FaUserCircle } from "react-icons/fa"; // Adicionado FaUserCircle
 
 import { useAlunos } from "../hooks/useAlunos";
 import SelecaoAluno from "../components/SelecaoAluno";
@@ -20,7 +22,10 @@ import {
 
 import { gerarPDFAvaliacaoInteressesParaPreencher } from "../utils/pdfGeneratorInteresses";
 
+// Removida a importação incorreta de SECOES_AVALIACAO
+
 // --- NOVOS COMPONENTES ESTILIZADOS ---
+// Mantidos os estilos que você já tinha...
 
 const BotaoGerarPdf = styled.button`
   display: flex;
@@ -64,9 +69,7 @@ const PdfButtonContainer = styled.div`
   border-radius: 50%;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   cursor: pointer;
-  transition:
-    background-color 0.3s ease,
-    transform 0.3s ease;
+  transition: background-color 0.3s ease, transform 0.3s ease;
 
   &:hover {
     background-color: #3b6883;
@@ -325,6 +328,63 @@ const RadioLabel = styled.label`
   }
 `;
 
+// NOVOS COMPONENTES ESTILIZADOS PARA A FOTO E INFORMAÇÃO
+const AlunoInfoContainer = styled.div`
+  display: flex;
+  align-items: center;
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #e0e0e0;
+`;
+
+const FotoDisplay = styled.img`
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 15px;
+  flex-shrink: 0;
+  border: 3px solid #457b9d;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+`;
+
+const FotoPlaceholder = styled(FaUserCircle)`
+  width: 70px;
+  height: 70px;
+  color: #457b9d;
+  font-size: 3em;
+  flex-shrink: 0;
+  margin-right: 15px;
+  background-color: #f0f8ff;
+  border-radius: 50%;
+`;
+
+// NOVO: Função para calcular a idade em anos e meses (copiada de AvaliacaoInicial.js)
+const calcularIdadeCompleta = (dataNascimentoString) => {
+  if (!dataNascimentoString) return "N/A";
+
+  const dataNascimento = new Date(dataNascimentoString);
+  const hoje = new Date();
+
+  if (isNaN(dataNascimento)) return "N/A";
+
+  let anos = hoje.getFullYear() - dataNascimento.getFullYear();
+  let meses = hoje.getMonth() - dataNascimento.getMonth();
+
+  if (meses < 0 || (meses === 0 && hoje.getDate() < dataNascimento.getDate())) {
+    anos--;
+    meses = 12 + meses;
+  }
+
+  const idadeAnos = Math.floor(anos);
+  const idadeMeses = meses;
+
+  let resultado = `${idadeAnos} ano${idadeAnos !== 1 ? "s" : ""}`;
+  if (idadeMeses > 0) {
+    resultado += ` e ${idadeMeses} mes${idadeMeses !== 1 ? "es" : ""}`;
+  }
+  return resultado;
+};
 // --- FIM DOS COMPONENTES ESTILIZADOS ---
 
 const getInitialFormData = () => {
@@ -430,7 +490,7 @@ function AvaliacaoInteressesPage() {
 
         if (alunoDocSnap.exists()) {
           const fetchedAluno = { id: alunoDocSnap.id, ...alunoDocSnap.data() };
-          setAluno(fetchedAluno);
+          setAluno(fetchedAluno); // ✅ SETANDO ALUNO AQUI PARA PEGAR A FOTO
 
           const appId =
             typeof __app_id !== "undefined" ? __app_id : "default-app-id";
@@ -553,6 +613,7 @@ function AvaliacaoInteressesPage() {
 
         await setDoc(avaliacaoDocRef, {
           alunoId: alunoSelecionadoDropdown.id,
+          alunoNome: alunoSelecionadoDropdown.nome,
           data: formData,
           dataAvaliacao: new Date().toISOString(),
           salvoPor: userId,
@@ -587,6 +648,10 @@ function AvaliacaoInteressesPage() {
     }
   }, [alunoSelecionadoDropdown]);
 
+  // Obtém os detalhes do aluno para exibir foto e idade
+  const alunoParaExibir = aluno || alunoSelecionadoDropdown;
+  const idadeExibicao = calcularIdadeCompleta(alunoParaExibir?.nascimento);
+
   if (!isAuthReady || isLoadingProfile) {
     return (
       <div className="avaliacao-container loading">
@@ -597,6 +662,125 @@ function AvaliacaoInteressesPage() {
 
   return (
     <AvaliacaoContainer>
+      <style>
+        {/* CSS INLINE MANTIDO */}
+        {`
+        .habilidade-item-radio {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 12px 15px;
+          border-bottom: 1px solid #e0e0e0;
+        }
+
+        .texto-habilidade {
+          font-weight: 500;
+          color: #333;
+          flex-grow: 1;
+        }
+
+        .niveis-habilidade {
+          display: flex;
+          gap: 5px;
+        }
+
+        .circulo-nivel {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 30px;
+          height: 30px;
+          border-radius: 50%;
+          border: 2px solid #ccc;
+          color: #666;
+          font-size: 0.8em;
+          font-weight: bold;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          position: relative; 
+        }
+
+        .circulo-nivel:hover {
+          border-color: #457b9d;
+        }
+        
+        .circulo-nivel .tooltiptext {
+          visibility: hidden;
+          width: 250px;
+          background-color: #555;
+          color: #fff;
+          text-align: center;
+          border-radius: 6px;
+          padding: 5px 0;
+          position: absolute;
+          z-index: 1;
+          bottom: 125%; 
+          left: 50%;
+          margin-left: -125px;
+          opacity: 0;
+          transition: opacity 0.3s;
+          font-size: 0.9em;
+        }
+        
+        .circulo-nivel:hover .tooltiptext {
+          visibility: visible;
+          opacity: 1;
+        }
+
+        .circulo-nivel.ativo {
+          color: #fff;
+          border-color: #1d3557;
+          transform: scale(1.1);
+        }
+
+        .circulo-nivel.ativo.NA,
+        .circulo-nivel.NA.ativo {
+          background-color: #a8dadc;
+          border-color: #a8dadc;
+          color: #1d3557;
+        }
+        
+        .circulo-nivel.ativo.NR,
+        .circulo-nivel.NR.ativo {
+          background-color: #e63946;
+          border-color: #e63946;
+        }
+        
+        .circulo-nivel.ativo.AF,
+        .circulo-nivel.AF.ativo {
+          background-color: #f4a261;
+          border-color: #f4a261;
+        }
+        
+        .circulo-nivel.ativo.AG,
+        .circulo-nivel.AG.ativo {
+          background-color: #e9c46a;
+          border-color: #e9c46a;
+        }
+        
+        .circulo-nivel.ativo.AV,
+        .circulo-nivel.AV.ativo {
+          background-color: #2a9d8f;
+          border-color: #2a9d8f;
+        }
+        
+        .circulo-nivel.ativo.AVi,
+        .circulo-nivel.AVi.ativo {
+          background-color: #264653;
+          border-color: #264653;
+        }
+        
+        .circulo-nivel.ativo.I,
+        .circulo-nivel.I.ativo {
+          background-color: #28a745;
+          border-color: #28a745;
+        }
+
+        .hidden-radio-input {
+          display: none;
+        }
+      `}
+      </style>
       <AvaliacaoHeader>
         <BackButton onClick={() => navigate(-1)} disabled={salvando}>
           &larr; Voltar
@@ -659,9 +843,32 @@ function AvaliacaoInteressesPage() {
         ) : (
           alunoSelecionadoDropdown && (
             <form onSubmit={handleSubmit} className="avaliacao-form">
-              <h2 className="aluno-nome-header">
-                Aluno: {alunoSelecionadoDropdown.nome || "Nome Indisponível"}
-              </h2>
+              {/* --- NOVO BLOCO: FOTO E IDADE --- */}
+              <AlunoInfoContainer>
+                {/* FOTO / PLACEHOLDER */}
+                {alunoParaExibir?.fotoUrl ? (
+                  <FotoDisplay
+                    src={alunoParaExibir.fotoUrl}
+                    alt={`Foto de ${alunoParaExibir.nome}`}
+                  />
+                ) : (
+                  <FotoPlaceholder />
+                )}
+
+                {/* DETALHES */}
+                <div>
+                  <h2 className="aluno-nome-header" style={{ margin: 0 }}>
+                    {alunoParaExibir.nome || "Nome Indisponível"}
+                  </h2>
+                  <p className="aluno-idade" style={{ margin: "5px 0 0 0" }}>
+                    Idade:{" "}
+                    <span style={{ fontWeight: "bold" }}>{idadeExibicao}</span>
+                  </p>
+                </div>
+              </AlunoInfoContainer>
+              {/* --- FIM DO BLOCO FOTO/IDADE --- */}
+
+              {sucesso && <SuccessMessage>{sucesso}</SuccessMessage>}
 
               {/* Seção 1: Interesses e Pontos Fortes */}
               <section className="form-section">
@@ -681,7 +888,14 @@ function AvaliacaoInteressesPage() {
                         {NIVEIS_AVALIACAO.map((nivel) => (
                           <label
                             key={nivel}
-                            className={`circulo-nivel ${nivel.replace(/\s/g, "")} ${formData.atividadesFavoritas[activity] === nivel ? "ativo" : ""}`}
+                            className={`circulo-nivel ${nivel.replace(
+                              /\s/g,
+                              ""
+                            )} ${
+                              formData.atividadesFavoritas[activity] === nivel
+                                ? "ativo"
+                                : ""
+                            }`}
                           >
                             <input
                               type="radio"
@@ -804,7 +1018,14 @@ function AvaliacaoInteressesPage() {
                         {NIVEIS_AVALIACAO.map((nivel) => (
                           <label
                             key={nivel}
-                            className={`circulo-nivel ${nivel.replace(/\s/g, "")} ${formData.sinaisDesregulacao[sign] === nivel ? "ativo" : ""}`}
+                            className={`circulo-nivel ${nivel.replace(
+                              /\s/g,
+                              ""
+                            )} ${
+                              formData.sinaisDesregulacao[sign] === nivel
+                                ? "ativo"
+                                : ""
+                            }`}
                           >
                             <input
                               type="radio"
@@ -849,7 +1070,15 @@ function AvaliacaoInteressesPage() {
                         {NIVEIS_AVALIACAO.map((nivel) => (
                           <label
                             key={nivel}
-                            className={`circulo-nivel ${nivel.replace(/\s/g, "")} ${formData.situacoesDesregulacao[situation] === nivel ? "ativo" : ""}`}
+                            className={`circulo-nivel ${nivel.replace(
+                              /\s/g,
+                              ""
+                            )} ${
+                              formData.situacoesDesregulacao[situation] ===
+                              nivel
+                                ? "ativo"
+                                : ""
+                            }`}
                           >
                             <input
                               type="radio"

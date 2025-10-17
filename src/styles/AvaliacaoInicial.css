@@ -1,13 +1,19 @@
-/* src/styles/AvaliacaoInicial.css */
+/* src/styles/AvaliacaoInicial.css - Versão Final Completa e Repaginada */
 
-/* --- Layout Geral da Página --- */
+/* --- Layout Geral da Página (Modernizado) --- */
 html,
 body {
   height: 100%;
   margin: 0;
   padding: 0;
-  overflow-y: auto; /* usa a barra do navegador */
+  overflow-y: auto;
   padding-top: 0px;
+  /* Tipografia Moderna e Fundo Suave */
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue",
+    sans-serif;
+  background-color: #f0f4f8; /* Fundo mais suave que branco puro */
+  color: #333;
 }
 
 main {
@@ -15,27 +21,31 @@ main {
   display: flex;
   flex-direction: column;
 }
+
 .avaliacao-card {
   background: #fff;
   max-width: 900px;
-  margin: 20px auto; /* continua centralizado */
-  border-radius: 12px;
-  margin: 60px auto 20px;
-  padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  /* Canto moderno */
+  border-radius: 20px;
+  margin: 60px auto 30px;
+  /* Sombra moderna e elevada (sutil) */
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  padding: 35px; /* Mais preenchimento */
+  overflow-x: hidden;
 }
 
-/* --- Barra de Informação da Escola (NOVO) --- */
+/* --- Barra de Informação da Escola (Original) --- */
 .escola-ativa-bar {
-  margin: -30px -30px 25px -30px;
-  padding: 12px 30px;
-  background-color: #f7f9fc;
-  border-bottom: 1px solid #e0e0e0;
-  border-top-left-radius: 16px;
-  border-top-right-radius: 16px;
+  margin: -35px -35px 30px -35px; /* Ajuste para o novo padding do card */
+  padding: 15px 35px;
+  background-color: #eef2f5; /* Fundo suave */
+  border-bottom: 1px solid #e2e8f0;
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
   text-align: center;
   font-size: 1rem;
-  color: #1d3557;
+  color: #1a202c;
+  font-weight: 600;
 }
 
 /* --- Cabeçalho e Título --- */
@@ -43,26 +53,60 @@ main {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 25px;
-  border-bottom: 1px solid #eee;
-  padding-bottom: 1rem;
+  margin-bottom: 30px;
+  border-bottom: 2px solid #eef2f5;
+  padding-bottom: 1.2rem;
 }
 
 .avaliacao-titulo {
-  color: #1d3557;
-  font-size: 1.5rem;
+  color: #1a202c;
+  font-size: 2rem;
+  font-weight: 700;
   text-align: center;
   margin: 0 1rem;
 }
 
 /* --- Formulários (Seleção, Datas) --- */
+
+/* --- Formulários (Seleção, Datas) --- */
+
+/* Seleção de Aluno (Estilo Moderno) */
 .selecao-aluno-container select {
-  padding: 10px;
+  padding: 14px; /* Aumentado o padding */
   width: 100%;
-  border-radius: 6px;
-  border: 1px solid #ccc;
+  border-radius: 12px; /* Canto Super Arredondado */
+  border: 1px solid #d2dae2; /* Borda sutil */
+  background-color: #ffffff;
   font-size: 16px;
   margin-bottom: 25px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  /* Garante que o ícone de seta do select fique na posição */
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234c51bf' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  cursor: pointer;
+}
+.selecao-aluno-container select:focus {
+  border-color: #4c51bf; /* Cor primária de foco */
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(76, 81, 191, 0.2);
+}
+
+/* Informação da Idade (Estilo Moderno) */
+.aluno-idade {
+  font-size: 1.1rem;
+  color: #718096; /* Texto sutil, mas legível */
+  margin-bottom: 15px; /* Mais espaço */
+  font-weight: 500;
+  /* Adicionar uma linha divisória discreta se desejar: */
+  /* border-bottom: 1px dashed #e2e8f0;
+    padding-bottom: 10px; */
+}
+.aluno-idade strong {
+  color: #1a202c; /* Idade em destaque */
+  font-weight: 700;
 }
 
 .date-inputs-container {
@@ -70,51 +114,61 @@ main {
   gap: 30px;
   margin-bottom: 30px;
   flex-wrap: wrap;
+  /* Adicionar uma linha divisória para separar das abas se necessário: */
+  /* border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 20px; */
 }
-
-.date-input-group {
-  display: flex;
-  flex-direction: column;
-}
-
-.date-input-group label {
-  font-weight: bold;
-  margin-bottom: 4px;
-}
-
+/* Inputs de Data (Estilo Moderno) */
 .date-input-group input[type="date"] {
-  padding: 8px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-  width: 200px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #d2dae2;
+  width: 180px;
+  font-size: 16px;
 }
 
-/* --- Botões de Navegação (Áreas/Tabs) --- */
+.aluno-idade {
+  font-size: 1.1rem;
+  color: #718096;
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+/* --- Botões de Navegação (Áreas/Tabs) - Estilo Pílula Moderno --- */
 .area-tabs-container {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin-bottom: 30px;
+  margin-bottom: 35px;
+  margin-top: 20px;
+  border-bottom: 1px solid #eef2f5;
+  padding-bottom: 15px;
 }
 
 .area-botao {
-  padding: 10px 18px;
-  border-radius: 20px;
+  padding: 10px 20px;
+  border-radius: 25px;
   border: none;
-  background-color: #f0f0f0;
+  background-color: #edf2f7;
   cursor: pointer;
-  transition: all 0.3s ease;
-  font-weight: 500;
+  transition: all 0.2s ease;
+  font-weight: 600;
   white-space: nowrap;
+  color: #4a5568;
+}
+
+.area-botao:hover:not(.ativo) {
+  background-color: #e2e8f0;
 }
 
 .area-botao.ativo {
-  background-color: #1d3557;
+  background-color: #4c51bf;
   color: #ffffff;
-  font-weight: bold;
+  font-weight: 700;
+  box-shadow: 0 4px 10px rgba(76, 81, 191, 0.3);
 }
 
-/* --- Botões de Ação (Salvar, Ver Avaliações) --- */
+/* --- Botões de Ação (Original/Base) --- */
 .botao-salvar {
   background-color: #2a9d8f;
   color: white;
@@ -148,7 +202,7 @@ main {
   background-color: #e0e0e0;
 }
 
-/* --- Mensagens e Carregamento --- */
+/* --- Mensagens e Carregamento (Original) --- */
 .mensagem-erro,
 .mensagem-sucesso {
   margin: 15px 0;
@@ -192,7 +246,7 @@ main {
   background-color: #1d3557;
 }
 
-/* --- SEÇÃO DE AVALIAÇÃO --- */
+/* --- SEÇÃO DE AVALIAÇÃO (Acordeão e Habilidades) --- */
 
 /* Novo container para o título da área e o botão "Marcar área como NA" */
 .area-header-with-button {
@@ -209,15 +263,23 @@ main {
   margin-bottom: 40px;
 }
 
+/* WRAPPER DE ROLAGEM (Essencial para a funcionalidade) */
+.habilidades-scroll-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  padding-bottom: 5px;
+  overflow-y: visible;
+}
+
 .area-titulo {
   font-size: 20px;
-  color: #1d3557;
+  color: #1a202c;
   text-align: left;
-  font-weight: 600;
+  font-weight: 700;
   flex-shrink: 0;
 }
 
-/* NOVO: Estilo para o botão "Marcar área como NA" */
+/* Estilo para o botão "Marcar área como NA" */
 .marcar-na-area-btn {
   background-color: #adb5bd;
   color: white;
@@ -243,40 +305,44 @@ main {
 
 /* Estilos para o item do acordeão (cada subárea) */
 .accordion-item {
-  border: 1px solid #e0e0e0;
-  border-radius: 10px;
-  margin-bottom: 12px;
+  border: none; /* Removendo a borda de 1px */
+  border-radius: 12px;
+  margin-bottom: 15px;
   overflow: visible;
   background-color: #ffffff;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
   transition: box-shadow 0.2s ease;
 }
 
 .accordion-item:hover {
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
 }
 
 /* Estilos para o cabeçalho do acordeão (botão clicável) */
 .accordion-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  padding: 18px 25px;
-  background-color: #f8f8f8;
+  padding: 20px 25px;
+  background-color: #f7f9fc;
   border: none;
+  border-radius: 12px;
   cursor: pointer;
-  font-size: 17px;
-  font-weight: bold;
-  color: #333;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a202c;
+  transition: background-color 0.2s ease, color 0.2s ease;
   font-family: inherit;
   text-align: left;
 }
 
-.accordion-header:hover:not(:disabled) {
-  background-color: #f0f0f0;
-  color: #1d3557;
+.accordion-header.expanded {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  background-color: #fff;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.accordion-header:hover:not(.expanded):not(:disabled) {
+  background-color: #eef2f5;
+  color: #1a202c;
 }
 
 .accordion-header:disabled {
@@ -302,15 +368,16 @@ main {
 
 .accordion-header.expanded .accordion-icon {
   transform: rotate(180deg);
-  color: #1d3557;
+  color: #4c51bf; /* Cor primária */
 }
 
 /* Estilos para o conteúdo do acordeão (onde as habilidades estão) */
 .accordion-content {
   background-color: #ffffff;
-  padding: 0 25px;
+  padding: 0 55px;
   max-height: 0;
-  overflow: visible; /* ALTERAÇÃO AQUI: de hidden para visible */
+  overflow-y: hidden;
+  overflow-x: visible;
   transition: max-height 0.5s ease-in-out, padding 0.5s ease-in-out;
 }
 
@@ -326,31 +393,40 @@ main {
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid #f0f0f0;
-  padding: 12px 0;
+  padding: 7.5px 0;
   margin-bottom: 0;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  min-width: fit-content;
 }
 .linha-habilidade:last-child {
   border-bottom: none;
 }
 
-/* Estilos para o texto da habilidade */
+/* Estilos para o texto da habilidade (Versão 2 - Mais Robusta) */
 .texto-habilidade {
-  flex: 1 1 65%;
+  flex: 1 1 auto;
   font-size: 15px;
-  color: #444;
+  color: #2d3748;
+  font-weight: 500;
   padding-right: 20px;
   white-space: normal;
   box-sizing: border-box;
-  min-width: 280px;
+  max-width: 70%;
   line-height: 1.4;
+
+  /* --- Propriedades para quebra de texto correta --- */
+  overflow-wrap: break-word; /* Quebra palavras longas para evitar overflow */
+  word-break: break-word; /* Garante a quebra (alternativa para alguns casos) */
+  -webkit-hyphens: auto; /* Adiciona hifens no Chrome/Safari */
+  -ms-hyphens: auto; /* Adiciona hifens no IE/Edge */
+  hyphens: auto; /* Adiciona hifens (padrão) */
 }
 
 /* Estilos para o contêiner dos botões de nível */
 .niveis-habilidade {
   display: flex;
-  gap: 5px;
-  flex-wrap: nowrap; /* <-- AQUI: Mude para 'wrap' se quiser quebra de linha */
+  gap: 3px;
+  flex-wrap: nowrap;
   align-items: center;
   flex-shrink: 0;
   flex-basis: auto;
@@ -358,32 +434,34 @@ main {
 
 /* Estilos para cada círculo de nível individual */
 .circulo-nivel {
-  width: 30px;
-  height: 30px;
+  width: 32px; /* Levemente maior */
+  height: 32px;
   border-radius: 50%;
-  font-size: 12px;
-  font-weight: bold;
+  font-size: 13px;
+  font-weight: 700;
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
   opacity: 0.6;
   cursor: pointer;
-  transition: opacity 0.2s, outline 0.2s, transform 0.2s;
+  transition: all 0.2s;
   user-select: none;
   border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Sombra para profundidade */
   position: relative;
+  z-index: 1;
 }
 
 /* Estilo para o círculo de nível ATIVO (selecionado) */
 .circulo-nivel.ativo {
   opacity: 1;
-  outline: 2px solid #1d3557;
-  transform: scale(1.15);
-  box-shadow: 0 0 10px rgba(29, 53, 87, 0.6);
+  outline: 3px solid #4c51bf; /* Cor primária moderna */
+  transform: scale(1.1); /* Levemente menor que antes para ser sutil */
+  box-shadow: 0 0 12px rgba(76, 81, 191, 0.7);
 }
 
-/* Cores específicas para cada nível */
+/* Cores específicas para cada nível (Mantenha suas cores) */
 .circulo-nivel.NR {
   background-color: #e63946;
 }
@@ -408,24 +486,24 @@ main {
 
 /* Estilos para o textarea de observações */
 .observacoes-area {
-  margin-top: 30px;
-  padding: 15px;
-  background-color: #f9f9f9;
-  border-radius: 8px;
-  border: 1px solid #eee;
+  margin-top: 40px;
+  padding: 20px;
+  background-color: #f7f9fc;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
 }
 .observacoes-area label {
   display: block;
-  font-weight: bold;
-  margin-bottom: 8px;
-  color: #1d3557;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: #1a202c;
 }
 .observacoes-area textarea {
   width: 100%;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  font-size: 14px;
+  padding: 12px;
+  border: 1px solid #cbd5e0;
+  border-radius: 8px;
+  font-size: 15px;
   min-height: 90px;
   box-sizing: border-box;
   resize: vertical;
@@ -433,16 +511,16 @@ main {
 
 /* Estilos para a legenda dos níveis */
 .legenda-niveis {
-  background: #f9f9f9;
-  padding: 15px;
-  border-radius: 8px;
+  background: #edf2f7;
+  padding: 20px;
+  border-radius: 12px;
   margin-top: 30px;
-  font-size: 13px;
-  border: 1px solid #eee;
+  font-size: 14px;
+  border: 1px solid #e2e8f0;
 }
 
 .legenda-niveis strong {
-  color: #1d3557;
+  color: #1a202c;
 }
 
 .legenda-niveis ul {
@@ -468,30 +546,37 @@ main {
   opacity: 1;
   border: none;
   flex-shrink: 0;
+  box-shadow: none; /* Sem sombra para a legenda */
+  z-index: auto;
 }
 
-/* Estilos do Tooltip */
+/* Estilos do Tooltip (Solução Fixed Final) */
 .tooltip-texto {
   width: 200px;
   max-width: 250px;
-  background-color: #333;
+  background-color: #1a202c;
   color: #fff;
   text-align: center;
-  border-radius: 6px;
-  padding: 8px 10px;
+  border-radius: 8px;
+  padding: 10px;
 
-  position: absolute;
-  z-index: 10;
-  bottom: 150%;
-  left: 50%;
-  transform: translateX(-50%);
+  /* ESSENCIAL: Ignora o overflow dos pais */
+  position: fixed;
+  /* Z-index muito alto */
+  z-index: 9999;
+  /* Permite que o clique passe (para o botão de nível) */
+  pointer-events: none;
+
+  /* Reset de posicionamento (controlado pelo JS) */
+  bottom: auto;
+  left: auto;
+  transform: none;
 
   opacity: 1;
-  transition: opacity 0.3s;
+  transition: opacity 0.1s;
   font-size: 14px;
-  white-space: normal;
   word-wrap: break-word;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 }
 
 .tooltip-texto::after {
@@ -502,5 +587,5 @@ main {
   transform: translateX(-50%);
   border-width: 5px;
   border-style: solid;
-  border-color: #333 transparent transparent transparent;
+  border-color: #1a202c transparent transparent transparent;
 }

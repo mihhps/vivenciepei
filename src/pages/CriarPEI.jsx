@@ -16,7 +16,7 @@ import {
 import BotaoVoltar from "../components/BotaoVoltar";
 import BotaoVerPEIs from "../components/BotaoVerPEIs";
 import { useNavigate, useLocation } from "react-router-dom";
-import { FaPuzzlePiece } from "react-icons/fa";
+import { FaPuzzlePiece, FaUserCircle } from "react-icons/fa"; // NOVO: Importar FaUserCircle
 
 import { useUserSchool } from "../hooks/useUserSchool";
 
@@ -52,6 +52,33 @@ const verificaTea = (diagnostico) => {
   return palavrasChave.some((palavra) =>
     diagnosticoLowerCase.includes(palavra)
   );
+};
+
+// NOVO: Função para calcular a idade completa (copiada de outros componentes)
+const calcularIdadeCompleta = (dataNascimentoString) => {
+  if (!dataNascimentoString) return "N/A";
+
+  const dataNascimento = new Date(dataNascimentoString);
+  const hoje = new Date();
+
+  if (isNaN(dataNascimento)) return "N/A";
+
+  let anos = hoje.getFullYear() - dataNascimento.getFullYear();
+  let meses = hoje.getMonth() - dataNascimento.getMonth();
+
+  if (meses < 0 || (meses === 0 && hoje.getDate() < dataNascimento.getDate())) {
+    anos--;
+    meses = 12 + meses;
+  }
+
+  const idadeAnos = Math.floor(anos);
+  const idadeMeses = meses;
+
+  let resultado = `${idadeAnos} ano${idadeAnos !== 1 ? "s" : ""}`;
+  if (idadeMeses > 0) {
+    resultado += ` e ${idadeMeses} mes${idadeMeses !== 1 ? "es" : ""}`;
+  }
+  return resultado;
 };
 
 const getEstruturaPEIMap = (estrutura) => {
@@ -248,6 +275,56 @@ const buildNewPeiFromAssessment = (
     }
   );
   return newPeiData;
+};
+
+// --- ESTILOS INLINE PARA FOTO E INFORMAÇÃO ---
+const infoStyles = {
+  infoGeralContainer: {
+    display: "flex",
+    alignItems: "center",
+    marginBottom: "20px",
+    paddingBottom: "20px",
+    borderBottom: "1px solid #e0eeef",
+  },
+  fotoContainer: {
+    width: "70px",
+    height: "70px",
+    borderRadius: "50%",
+    overflow: "hidden",
+    marginRight: "15px",
+    flexShrink: 0,
+    border: "3px solid #4c51bf",
+    backgroundColor: "#edf2f7",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  foto: {
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+  },
+  fotoPlaceholder: {
+    fontSize: "2.5em",
+    color: "#4c51bf",
+  },
+  nomeText: {
+    margin: 0,
+    fontSize: "1.4em",
+    fontWeight: "700",
+    color: "#1a202c",
+    marginBottom: "4px",
+  },
+  idadeText: {
+    margin: 0,
+    fontSize: "1em",
+    color: "#4a5568",
+  },
+  teaBadge: {
+    fontSize: "1em",
+    color: "#29ABE2",
+    marginLeft: "10px",
+  },
 };
 
 // --- COMPONENTE PRINCIPAL ---
@@ -801,6 +878,42 @@ export default function CriarPEI() {
 
         {alunoSelecionado && (
           <>
+            {/* --- NOVO BLOCO: FOTO E INFORMAÇÕES GERAIS --- */}
+            <div style={infoStyles.infoGeralContainer}>
+              {/* FOTO / PLACEHOLDER */}
+              <div style={infoStyles.fotoContainer}>
+                {alunoSelecionado.fotoUrl ? (
+                  <img
+                    src={alunoSelecionado.fotoUrl}
+                    alt={`Foto de ${alunoSelecionado.nome}`}
+                    style={infoStyles.foto}
+                  />
+                ) : (
+                  <FaUserCircle style={infoStyles.fotoPlaceholder} />
+                )}
+              </div>
+              {/* DETALHES */}
+              <div>
+                <p style={infoStyles.nomeText}>
+                  {alunoSelecionado.nome}
+                  {alunoSelecionado.isTea && (
+                    <FaPuzzlePiece
+                      style={infoStyles.teaBadge}
+                      title="Aluno com TEA"
+                    />
+                  )}
+                </p>
+                <p style={infoStyles.idadeText}>
+                  Idade: {calcularIdadeCompleta(alunoSelecionado.nascimento)}
+                </p>
+                <p style={infoStyles.idadeText}>
+                  Turma: {alunoSelecionado.turma || "N/A"} (
+                  {alunoSelecionado.turno})
+                </p>
+              </div>
+            </div>
+            {/* --- FIM DO BLOCO FOTO/INFORMAÇÕES --- */}
+
             <div className="area-buttons-container">
               {Object.keys(pei).map((area) => (
                 <button

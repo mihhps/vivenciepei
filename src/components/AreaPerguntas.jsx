@@ -1,10 +1,10 @@
 // Localização Esperada: src/components/AreaPerguntas.jsx
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useRef } from "react"; // <-- NOVO: useRef
 import PropTypes from "prop-types";
 import { FaChevronDown } from "react-icons/fa";
 import "../styles/NiveisDeAvaliacao.css";
-// 1. NOVO: Importa a legenda fixa. Ajuste o caminho, se necessário.
+// Ajuste o caminho para sua legenda
 import { legendaNiveis as legendaEstatica } from "../utils/legendaNiveis";
 
 const AreaPerguntas = ({
@@ -23,10 +23,16 @@ const AreaPerguntas = ({
     return uniqueSubareas.length > 0 ? [uniqueSubareas[0]] : [];
   });
 
-  const [tooltipVisivel, setTooltipVisivel] = useState({
+  // ESTADO DO TOOLTIP: Gerencia dados e posição (para position: fixed)
+  const [tooltipData, setTooltipData] = useState({
     habilidade: null,
     nivel: null,
+    descricao: null,
+    style: {}, // Armazena top e left fixos
   });
+
+  // NOVO: Ref para armazenar o ID do temporizador de esconder
+  const hideTimeoutRef = useRef(null);
 
   const toggleSubarea = useCallback((subareaName) => {
     setSubareasExpandidas((prev) =>
@@ -64,12 +70,81 @@ const AreaPerguntas = ({
     }
   }, [disabled, area, dados, onResponder]);
 
-  const handleToggleTooltip = useCallback((habilidade, nivel) => {
-    setTooltipVisivel((prev) =>
-      prev.habilidade === habilidade && prev.nivel === nivel
-        ? { habilidade: null, nivel: null }
-        : { habilidade, nivel }
-    );
+  // MUDANÇA: Função de mouse enter para CALCULAR E MOSTRAR
+  const handleMouseEnter = useCallback(
+    (e, habilidade, nivel, descricao) => {
+      // 1. Se houver um temporizador para esconder, cancelamos ele!
+      if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current);
+        hideTimeoutRef.current = null;
+      }
+
+      // Não mostrar se já estiver visível no mesmo lugar
+      if (
+        tooltipData.habilidade === habilidade &&
+        tooltipData.nivel === nivel
+      ) {
+        return;
+      }
+
+      const target = e.currentTarget;
+      const rect = target.getBoundingClientRect();
+      const tooltipWidth = 200;
+      const verticalOffset = 90; // Ajuste vertical: Altura da caixa + seta + margem (MANTIDO)
+
+      // 1. Calcula a posição LEFT para centralizar sobre o círculo
+      const left = rect.left + rect.width / 2 - tooltipWidth / 2;
+
+      // 2. Calcula a posição TOP
+      const top = rect.top - verticalOffset;
+
+      // 3. Define os novos dados do tooltip com o estilo fixed
+      setTooltipData({
+        habilidade,
+        nivel,
+        descricao,
+        style: {
+          position: "fixed",
+          top: `${top}px`,
+          left: `${left}px`,
+        },
+      });
+    },
+    [tooltipData]
+  );
+
+  // MUDANÇA: Função de mouse leave para INICIAR O TEMPORIZADOR DE ESCONDER
+  const handleMouseLeave = useCallback(() => {
+    // 1. Limpa qualquer temporizador anterior
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current);
+    }
+
+    // 2. Inicia um novo temporizador para esconder após 100ms
+    // Se o mouse entrar em outro botão nesse período, o timer será cancelado em handleMouseEnter.
+    hideTimeoutRef.current = setTimeout(() => {
+      setTooltipData({
+        habilidade: null,
+        nivel: null,
+        descricao: null,
+        style: {},
+      });
+      hideTimeoutRef.current = null;
+    }, 100); // Atraso de 100ms
+  }, []);
+
+  const handleCircleClick = useCallback((habilidade, nivel) => {
+    // Esconde o tooltip ao clicar (e cancela qualquer temporizador de esconder)
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current);
+      hideTimeoutRef.current = null;
+    }
+    setTooltipData({
+      habilidade: null,
+      nivel: null,
+      descricao: null,
+      style: {},
+    });
   }, []);
 
   const areaPodeSerIgnorada = useMemo(() => {
@@ -78,9 +153,6 @@ const AreaPerguntas = ({
       "Comunicação Alternativa e Não Verbal",
     ].includes(area);
   }, [area]);
-
-  // 2. Lógica de geração dinâmica da legenda FOI REMOVIDA.
-  //    Agora usamos a constante 'legendaEstatica' importada.
 
   // Se não houver dados, não renderiza nada
   if (!dados || dados.length === 0) {
@@ -122,75 +194,109 @@ const AreaPerguntas = ({
                 id={`subarea-content-${subareaIndex}`}
                 className="accordion-content open"
               >
-                {habilidadesNaSubarea.map((pergunta) => {
-                  const habilidade = pergunta?.habilidade?.trim();
-                  if (!habilidade) {
-                    return null;
-                  }
-                  return (
-                    <div key={habilidade} className="linha-habilidade">
-                      <div className="texto-habilidade">{habilidade}</div>
-                      <div className="niveis-habilidade">
-                        {Object.entries(pergunta.niveis).map(
-                          ([nivel, descricao]) => (
-                            <div
-                              key={nivel}
-                              className={`circulo-nivel ${nivel} ${
-                                respostas && respostas[habilidade] === nivel
-                                  ? "ativo"
-                                  : ""
-                              }`}
-                              onClick={() => {
-                                if (!disabled) {
-                                  onResponder(area, habilidade, nivel);
-                                  handleToggleTooltip(habilidade, nivel);
+                {/* === WRAPPER DE ROLAGEM MANTIDO AQUI === */}
+                <div className="habilidades-scroll-wrapper">
+                  {habilidadesNaSubarea.map((pergunta) => {
+                    const habilidade = pergunta?.habilidade?.trim();
+                    // Lógica de TÍTULO/SEPARADOR: verifica se a habilidade tem a propriedade 'niveis'
+                    const isAvaliavel =
+                      pergunta.niveis &&
+                      Object.keys(pergunta.niveis).length > 0;
+
+                    if (!habilidade) {
+                      return null;
+                    }
+
+                    // 1. Renderiza como TÍTULO/SEPARADOR se NÃO for avaliável
+                    if (!isAvaliavel) {
+                      return (
+                        <h5
+                          key={habilidade}
+                          className="subarea-separador"
+                          style={{
+                            // Estilos inline para garantir que o separador se destaque corretamente
+                            marginTop: "20px",
+                            marginBottom: "5px",
+                            color: "#1d3557",
+                            fontWeight: "700",
+                            fontSize: "15.5px",
+                          }}
+                        >
+                          {habilidade}
+                        </h5>
+                      );
+                    }
+
+                    // 2. Renderiza como LINHA AVALIÁVEL (com os círculos)
+                    return (
+                      <div key={habilidade} className="linha-habilidade">
+                        <div className="texto-habilidade">{habilidade}</div>
+                        <div className="niveis-habilidade">
+                          {Object.entries(pergunta.niveis).map(
+                            ([nivel, descricao]) => (
+                              <div
+                                key={nivel}
+                                className={`circulo-nivel ${nivel} ${
+                                  respostas && respostas[habilidade] === nivel
+                                    ? "ativo"
+                                    : ""
+                                }`}
+                                onClick={() => {
+                                  if (!disabled) {
+                                    onResponder(area, habilidade, nivel);
+                                    handleCircleClick(habilidade, nivel);
+                                  }
+                                }}
+                                // MUDANÇA: Usa as novas funções de mouse
+                                onMouseEnter={(e) =>
+                                  handleMouseEnter(
+                                    e,
+                                    habilidade,
+                                    nivel,
+                                    descricao
+                                  )
                                 }
-                              }}
-                              onMouseLeave={() =>
-                                setTooltipVisivel({
-                                  habilidade: null,
-                                  nivel: null,
-                                })
-                              }
-                              aria-label={`Marcar ${habilidade} como ${descricao}`}
-                              role="radio"
-                              aria-checked={
-                                respostas && respostas[habilidade] === nivel
-                              }
-                              tabIndex={disabled ? -1 : 0}
-                              onKeyPress={(e) => {
-                                if (
-                                  !disabled &&
-                                  (e.key === "Enter" || e.key === " ")
-                                ) {
-                                  e.preventDefault();
-                                  onResponder(area, habilidade, nivel);
-                                  handleToggleTooltip(habilidade, nivel);
+                                onMouseLeave={handleMouseLeave}
+                                aria-label={`Marcar ${habilidade} como ${descricao}`}
+                                role="radio"
+                                aria-checked={
+                                  respostas && respostas[habilidade] === nivel
                                 }
-                              }}
-                              style={{
-                                pointerEvents: disabled ? "none" : "auto",
-                              }}
-                            >
-                              {nivel}
-                              {/* O TOOLTIP continua mostrando a descrição detalhada da habilidade (vindo do 'dados') */}
-                              {tooltipVisivel.habilidade === habilidade &&
-                                tooltipVisivel.nivel === nivel && (
-                                  <div className="tooltip-texto">
-                                    {descricao}
-                                  </div>
-                                )}
-                            </div>
-                          )
-                        )}
+                                tabIndex={disabled ? -1 : 0}
+                                onKeyPress={(e) => {
+                                  if (
+                                    !disabled &&
+                                    (e.key === "Enter" || e.key === " ")
+                                  ) {
+                                    e.preventDefault();
+                                    onResponder(area, habilidade, nivel);
+                                    handleCircleClick(habilidade, nivel);
+                                  }
+                                }}
+                                style={{
+                                  pointerEvents: disabled ? "none" : "auto",
+                                }}
+                              >
+                                {nivel}
+                              </div>
+                            )
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
         )
+      )}
+
+      {/* === RENDERIZAÇÃO CENTRALIZADA DO TOOLTIP FORA DO FLUXO DO DOM === */}
+      {tooltipData.habilidade && tooltipData.nivel && (
+        <div className="tooltip-texto" style={tooltipData.style}>
+          {tooltipData.descricao}
+        </div>
       )}
 
       <div className="observacoes-area">
@@ -205,7 +311,7 @@ const AreaPerguntas = ({
         />
       </div>
 
-      {/* 3. CORREÇÃO: Renderização da legenda usando a constante estática 'legendaEstatica' */}
+      {/* 3. Renderização da legenda usando a constante estática 'legendaEstatica' */}
       <div className="legenda-niveis">
         <strong>Legenda:</strong>
         <ul>
@@ -232,7 +338,7 @@ AreaPerguntas.propTypes = {
     PropTypes.shape({
       habilidade: PropTypes.string.isRequired,
       subarea: PropTypes.string.isRequired,
-      niveis: PropTypes.object.isRequired,
+      niveis: PropTypes.object, // Tornamos 'niveis' opcional para aceitar títulos
     })
   ).isRequired,
   respostas: PropTypes.object,

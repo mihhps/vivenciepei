@@ -1,10 +1,12 @@
+// src/pages/AvaliacaoInteressesPage.js (MODIFICADO COM FOTO)
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import "../styles/AvaliacaoInteressesPage.css";
 
 import { db } from "../firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import { FaFilePdf } from "react-icons/fa";
+import { FaFilePdf, FaUserCircle } from "react-icons/fa"; // NOVO: FaUserCircle
 
 import { useAlunos } from "../hooks/useAlunos";
 import SelecaoAluno from "../components/SelecaoAluno";
@@ -61,9 +63,7 @@ const PdfButtonContainer = styled.div`
   border-radius: 50%;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   cursor: pointer;
-  transition:
-    background-color 0.3s ease,
-    transform 0.3s ease;
+  transition: background-color 0.3s ease, transform 0.3s ease;
 
   &:hover {
     background-color: #3b6883;
@@ -301,7 +301,7 @@ const RadioOptions = styled.div`
 `;
 
 const RadioLabel = styled.label`
-  position: relative; // Adicionado para posicionar o Tooltip
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -333,7 +333,7 @@ const RadioLabel = styled.label`
     padding: 5px 0;
     position: absolute;
     z-index: 1;
-    bottom: 125%; // Posição acima do elemento
+    bottom: 125%;
     left: 50%;
     margin-left: -125px;
     opacity: 0;
@@ -358,6 +358,36 @@ const RadioLabel = styled.label`
   }
 `;
 
+// NOVOS COMPONENTES ESTILIZADOS PARA A FOTO
+const AlunoInfoContainer = styled.div`
+  display: flex;
+  align-items: center;
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #e0e0e0;
+`;
+
+const FotoDisplay = styled.img`
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 15px;
+  flex-shrink: 0;
+  border: 3px solid #457b9d;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+`;
+
+const FotoPlaceholder = styled(FaUserCircle)`
+  width: 70px;
+  height: 70px;
+  color: #457b9d;
+  font-size: 3em;
+  flex-shrink: 0;
+  margin-right: 15px;
+  background-color: #f0f8ff;
+  border-radius: 50%;
+`;
 // --- FIM DOS COMPONENTES ESTILIZADOS ---
 
 const getInitialFormData = () => {
@@ -377,6 +407,33 @@ const getInitialFormData = () => {
     }
   });
   return initialState;
+};
+
+// NOVO: Função para calcular a idade em anos e meses (copiada de AvaliacaoInicial.js)
+const calcularIdadeCompleta = (dataNascimentoString) => {
+  if (!dataNascimentoString) return "N/A";
+
+  const dataNascimento = new Date(dataNascimentoString);
+  const hoje = new Date();
+
+  if (isNaN(dataNascimento)) return "N/A";
+
+  let anos = hoje.getFullYear() - dataNascimento.getFullYear();
+  let meses = hoje.getMonth() - dataNascimento.getMonth();
+
+  if (meses < 0 || (meses === 0 && hoje.getDate() < dataNascimento.getDate())) {
+    anos--;
+    meses = 12 + meses;
+  }
+
+  const idadeAnos = Math.floor(anos);
+  const idadeMeses = meses;
+
+  let resultado = `${idadeAnos} ano${idadeAnos !== 1 ? "s" : ""}`;
+  if (idadeMeses > 0) {
+    resultado += ` e ${idadeMeses} mes${idadeMeses !== 1 ? "es" : ""}`;
+  }
+  return resultado;
 };
 
 function AvaliacaoInicial0a3Page() {
@@ -446,9 +503,9 @@ function AvaliacaoInicial0a3Page() {
 
         if (alunoDocSnap.exists()) {
           const fetchedAluno = { id: alunoDocSnap.id, ...alunoDocSnap.data() };
-          setAluno(fetchedAluno);
+          setAluno(fetchedAluno); // ✅ SETANDO ALUNO AQUI PARA PEGAR A FOTO
 
-          // ✅ CORREÇÃO AQUI: Caminho simplificado para a coleção de avaliações
+          // Caminho simplificado para a coleção de avaliações
           const avaliacaoDocRef = doc(
             db,
             "avaliacoesIniciais0a3",
@@ -568,7 +625,7 @@ function AvaliacaoInicial0a3Page() {
 
         await setDoc(avaliacaoDocRef, {
           alunoId: alunoSelecionadoDropdown.id,
-          alunoNome: alunoSelecionadoDropdown.nome, // ✅ NOVO CAMPO ADICIONADO AQUI
+          alunoNome: alunoSelecionadoDropdown.nome,
           data: formData,
           dataAvaliacao: new Date().toISOString(),
           salvoPor: userId,
@@ -602,6 +659,10 @@ function AvaliacaoInicial0a3Page() {
     }
   }, [alunoSelecionadoDropdown]);
 
+  // Obtém os detalhes do aluno para exibir foto e idade
+  const alunoParaExibir = aluno || alunoSelecionadoDropdown;
+  const idadeExibicao = calcularIdadeCompleta(alunoParaExibir?.nascimento);
+
   if (!isAuthReady || isLoadingProfile) {
     return (
       <div className="avaliacao-container loading">
@@ -613,6 +674,7 @@ function AvaliacaoInicial0a3Page() {
   return (
     <AvaliacaoContainer>
       <style>
+        {/* CSS INLINE MANTIDO */}
         {`
         .habilidade-item-radio {
           display: flex;
@@ -646,7 +708,7 @@ function AvaliacaoInicial0a3Page() {
           font-weight: bold;
           cursor: pointer;
           transition: all 0.2s ease;
-          position: relative; // Adicionado para o posicionamento do tooltip
+          position: relative; // Adicionado para posicionar o Tooltip
         }
 
         .circulo-nivel:hover {
@@ -790,9 +852,30 @@ function AvaliacaoInicial0a3Page() {
         ) : (
           alunoSelecionadoDropdown && (
             <form onSubmit={handleSubmit} className="avaliacao-form">
-              <h2 className="aluno-nome-header">
-                Aluno: {alunoSelecionadoDropdown.nome || "Nome Indisponível"}
-              </h2>
+              {/* --- NOVO BLOCO: FOTO E IDADE --- */}
+              <AlunoInfoContainer>
+                {/* FOTO / PLACEHOLDER */}
+                {alunoParaExibir?.fotoUrl ? (
+                  <FotoDisplay
+                    src={alunoParaExibir.fotoUrl}
+                    alt={`Foto de ${alunoParaExibir.nome}`}
+                  />
+                ) : (
+                  <FotoPlaceholder />
+                )}
+
+                {/* DETALHES */}
+                <div>
+                  <h2 className="aluno-nome-header" style={{ margin: 0 }}>
+                    {alunoParaExibir.nome || "Nome Indisponível"}
+                  </h2>
+                  <p className="aluno-idade" style={{ margin: "5px 0 0 0" }}>
+                    Idade:{" "}
+                    <span style={{ fontWeight: "bold" }}>{idadeExibicao}</span>
+                  </p>
+                </div>
+              </AlunoInfoContainer>
+              {/* --- FIM DO BLOCO FOTO/IDADE --- */}
 
               {sucesso && <SuccessMessage>{sucesso}</SuccessMessage>}
 
@@ -818,7 +901,14 @@ function AvaliacaoInicial0a3Page() {
                               ([nivelKey, nivelValue]) => (
                                 <label
                                   key={nivelKey}
-                                  className={`circulo-nivel ${nivelKey.replace(/\s/g, "")} ${formData[habilidade.habilidade] === nivelKey ? "ativo" : ""}`}
+                                  className={`circulo-nivel ${nivelKey.replace(
+                                    /\s/g,
+                                    ""
+                                  )} ${
+                                    formData[habilidade.habilidade] === nivelKey
+                                      ? "ativo"
+                                      : ""
+                                  }`}
                                 >
                                   <input
                                     type="radio"

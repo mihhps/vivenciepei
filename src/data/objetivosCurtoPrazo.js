@@ -728,6 +728,7 @@ const objetivosCurtoPrazo = {
         },
       },
     },
+
     "Habilidades Sociais": {
       "Demonstrar empatia em situações sociais": {
         NR: {
@@ -911,7 +912,268 @@ const objetivosCurtoPrazo = {
             "Perceber uma necessidade e resolver um pequeno problema para um colega (ex: pegar algo que caiu) sem ser solicitado, em 85% das oportunidades, por uma semana.",
         },
       },
+      "Iniciar conversas ou interações sociais com colegas": {
+        NR: {
+          objetivo:
+            "Olhar para um colega em atividade por 3 segundos, com apoio físico do professor para direcionar o olhar, em 80% das oportunidades, por 3 dias consecutivos.",
+        },
+        AF: {
+          objetivo:
+            "Tocar levemente no ombro de um colega para iniciar uma interação, com apoio físico leve, em 60% das oportunidades, dentro de duas semanas.",
+        },
+        AG: {
+          objetivo:
+            "Fazer um gesto de 'vem brincar' para um colega, seguindo o modelo do professor, em 70% das oportunidades, dentro de três semanas.",
+        },
+        AV: {
+          objetivo:
+            "Dizer 'Oi, [Nome do Colega]' para iniciar a interação, após o professor indicar verbalmente, em 75% das oportunidades, dentro de um mês.",
+        },
+        AVi: {
+          objetivo:
+            "Selecionar um cartão visual de 'iniciar conversa' (ex: 'eu quero brincar') em uma prancha de comunicação, em 80% das oportunidades, dentro de um mês.",
+        },
+        I: {
+          objetivo:
+            "Propor um jogo ou atividade a um colega de forma espontânea, mantendo o engajamento por 5 minutos, em 85% das oportunidades, por uma semana.",
+        },
+      },
+      "Aceitar sugestões ou mudanças propostas por colegas": {
+        NR: {
+          objetivo:
+            "Permitir que um colega toque em seu brinquedo por 5 segundos, com apoio físico tranquilizador, sem protesto, em 80% das ocorrências, por 3 sessões.",
+        },
+        AF: {
+          objetivo:
+            "Seguir uma mudança simples de regra proposta por um colega (ex: mudar a cor da peça), com apoio físico leve, em 60% das ocorrências, dentro de duas semanas.",
+        },
+        AG: {
+          objetivo:
+            "Fazer um gesto de 'ok' (polegar para cima) para uma sugestão do colega, seguindo o modelo do professor, em 70% das ocorrências, dentro de três semanas.",
+        },
+        AV: {
+          objetivo:
+            "Dizer 'sim, podemos fazer isso' ou 'boa ideia', ao aceitar a sugestão do colega, em 75% das oportunidades, dentro de um mês.",
+        },
+        AVi: {
+          objetivo:
+            "Apontar para um 'cartão de flexibilidade' (duas setas em direções diferentes) ao aceitar a sugestão do colega, em 80% das oportunidades, dentro de um mês.",
+        },
+        I: {
+          objetivo:
+            "Incorporar uma sugestão de um colega em um projeto, explicando o porquê da mudança, de forma autônoma, em 85% das oportunidades, por uma semana.",
+        },
+      },
+      "Reagir de forma adequada a críticas ou frustrações": {
+        NR: {
+          objetivo:
+            "Aceitar uma correção de tarefa (pequena mudança) sem protesto (choro, grito) por 5 segundos, com apoio físico tranquilizador, em 80% das ocorrências, por 3 dias consecutivos.",
+        },
+        AF: {
+          objetivo:
+            "Permanecer sentado por 10 segundos após uma crítica, com apoio físico leve no ombro, sem tentar fugir, em 60% das ocorrências, dentro de duas semanas.",
+        },
+        AG: {
+          objetivo:
+            "Fazer um gesto de 'respirar fundo' ao ouvir uma crítica (comportamental ou acadêmica), seguindo o modelo do professor, em 70% das ocorrências, dentro de três semanas.",
+        },
+        AV: {
+          objetivo:
+            "Dizer 'vou tentar de novo' após receber um feedback negativo sobre o trabalho, com apoio verbal leve, em 75% das oportunidades, dentro de um mês.",
+        },
+        AVi: {
+          objetivo:
+            "Consultar um 'painel de calma' visual (ex: termômetro de emoções) após a frustração, antes de reagir, em 80% das ocorrências, dentro de um mês.",
+        },
+        I: {
+          objetivo:
+            "Pedir um feedback ou correção ao adulto sobre seu trabalho (ex: 'O que eu posso melhorar?'), sem desorganização, em 85% das oportunidades, por uma semana.",
+        },
+      },
+      "Demonstrar comportamentos de autocontrole diante de provocações": {
+        NR: {
+          objetivo:
+            "Aceitar ser afastado do colega provocador (1 metro), com apoio físico, sem resistência, em 80% das ocorrências, por 3 dias consecutivos.",
+        },
+        AF: {
+          objetivo:
+            "Ignorar uma provocação verbal por 5 segundos, com apoio físico leve para manter o foco na atividade, em 60% das ocorrências, dentro de duas semanas.",
+        },
+        AG: {
+          objetivo:
+            "Fazer um gesto de 'mãos quietas' (mãos no colo) ao ser provocado, seguindo o modelo gestual do professor, em 70% das ocorrências, dentro de três semanas.",
+        },
+        AV: {
+          objetivo:
+            "Dizer 'pare' ou 'não gostei' em voz firme para o colega provocador, com apoio verbal leve, em 75% das oportunidades, dentro de um mês.",
+        },
+        AVi: {
+          objetivo:
+            "Apontar para um 'cartão de ignorar' (ex: figura de orelhas tampadas) ao sentir o impulso de reagir à provocação, em 80% das ocorrências, dentro de um mês.",
+        },
+        I: {
+          objetivo:
+            "Manter a calma e continuar a atividade após uma provocação, ignorando o colega, sem necessidade de intervenção, em 85% das ocorrências, por uma semana.",
+        },
+      },
+      "Manter contato visual durante interações sociais": {
+        NR: {
+          objetivo:
+            "Manter o contato visual com o adulto por 2 segundos ao ser chamado pelo nome, com apoio físico (toque no ombro), em 80% das tentativas, por 3 dias consecutivos.",
+        },
+        AF: {
+          objetivo:
+            "Olhar para o colega por 3 segundos quando ele fala, com apoio físico leve para direcionar o rosto, em 60% das interações, dentro de duas semanas.",
+        },
+        AG: {
+          objetivo:
+            "Manter o contato visual por 5 segundos em uma conversa, após o professor gesticular 'olhe aqui' (apontar para os olhos), em 70% das interações, dentro de três semanas.",
+        },
+        AV: {
+          objetivo:
+            "Olhar para o falante por pelo menos 7 segundos durante a conversa, após o lembrete verbal 'olhe para o colega!', em 75% das oportunidades, dentro de um mês.",
+        },
+        AVi: {
+          objetivo:
+            "Utilizar um 'adesivo de foco' (ex: um pequeno ponto) na testa do adulto para auxiliar a manter o contato visual por 10 segundos, em 80% das oportunidades, dentro de um mês.",
+        },
+        I: {
+          objetivo:
+            "Manter o contato visual de forma natural em uma conversa de 1 minuto, variando o foco de forma adequada (alternando entre o falante e o objeto), em 85% das oportunidades, por uma semana.",
+        },
+      },
+      "Aceitar o 'não' ou frustrações sem reagir negativamente": {
+        NR: {
+          objetivo:
+            "Aceitar o 'não' do professor e permitir ser redirecionado para outra atividade (troca de ambiente), com apoio físico, sem choro, em 80% das ocorrências, por 3 dias consecutivos.",
+        },
+        AF: {
+          objetivo:
+            "Ouvir o 'não' e permanecer na atividade por 10 segundos antes de tentar novamente, com apoio físico leve no ombro, em 60% das ocorrências, dentro de duas semanas.",
+        },
+        AG: {
+          objetivo:
+            "Fazer um gesto de 'tudo bem' (polegar para cima) ao ouvir o 'não', seguindo o modelo do professor, em 70% das ocorrências, dentro de três semanas.",
+        },
+        AV: {
+          objetivo:
+            "Dizer 'ok' ou 'tudo bem' após a negativa do adulto (ex: não pode brincar agora), sem desorganização, em 75% das oportunidades, dentro de um mês.",
+        },
+        AVi: {
+          objetivo:
+            "Consultar um 'painel de espera' visual (ex: 'depois da roda') ao receber uma negativa, em 80% das ocorrências, dentro de um mês.",
+        },
+        I: {
+          objetivo:
+            "Aceitar o 'não' e propor uma solução alternativa (ex: 'Se não pode agora, pode mais tarde?') de forma calma e autônoma, em 85% das ocorrências, por uma semana.",
+        },
+      },
+      "Brincar ou interagir com colegas de forma cooperativa": {
+        NR: {
+          objetivo:
+            "Permitir que um colega brinque com um item igual ou similar ao seu (brincar em paralelo) por 1 minuto, com apoio físico tranquilizador, em 80% das atividades, por 3 dias consecutivos.",
+        },
+        AF: {
+          objetivo:
+            "Participar de uma atividade cooperativa de 2 passos (ex: eu coloco o bloco, ele coloca a peça) com apoio físico leve, em 60% das atividades, dentro de duas semanas.",
+        },
+        AG: {
+          objetivo:
+            "Fazer um gesto de 'sua vez' para o colega durante um jogo, seguindo o modelo do professor, em 70% das oportunidades, dentro de três semanas.",
+        },
+        AV: {
+          objetivo:
+            "Dizer 'vamos fazer juntos' para convidar o colega, após o professor sugerir o comando verbal, em 75% das oportunidades, dentro de um mês.",
+        },
+        AVi: {
+          objetivo:
+            "Apontar para uma 'figura de cooperação' (ex: duas pessoas construindo algo) para engajar-se na atividade com um colega, em 80% das oportunidades, dentro de um mês.",
+        },
+        I: {
+          objetivo:
+            "Organizar uma brincadeira cooperativa com 2 ou mais colegas (ex: construir uma casa de blocos) de forma espontânea, mantendo o engajamento por 5 minutos, em 85% das oportunidades, por uma semana.",
+        },
+      },
+      "Esperar por ajuda sem interromper o adulto ou os colegas": {
+        NR: {
+          objetivo:
+            "Permanecer na tarefa por 5 segundos após levantar a mão para pedir ajuda, com apoio físico tranquilizador (toque no ombro), em 80% das ocorrências, por 3 dias consecutivos.",
+        },
+        AF: {
+          objetivo:
+            "Levantar a mão para pedir ajuda e manter a espera por 10 segundos, com apoio físico leve (guia de postura), sem vocalizar, em 60% das ocorrências, dentro de duas semanas.",
+        },
+        AG: {
+          objetivo:
+            "Fazer um gesto de 'espera' (mão estendida) ao ver o adulto ocupado e retornar à espera na mesa, em 70% das ocorrências, dentro de três semanas.",
+        },
+        AV: {
+          objetivo:
+            "Dizer 'espere' ou 'com licença' antes de interromper o colega, após o lembrete verbal do professor, em 75% das oportunidades, dentro de um mês.",
+        },
+        AVi: {
+          objetivo:
+            "Consultar um 'cartão de espera' (ex: criança com a mão levantada) e retornar à tarefa enquanto espera, em 80% das oportunidades, dentro de um mês.",
+        },
+        I: {
+          objetivo:
+            "Esperar a vez para solicitar ajuda ao adulto por 1 minuto, engajando-se em uma atividade paralela (ex: folhear um livro) sem prompts, em 85% das oportunidades, por uma semana.",
+        },
+      },
+      "Lidar com perdas em jogos ou atividades competitivas": {
+        NR: {
+          objetivo:
+            "Permanecer sentado por 5 segundos após o colega vencer um jogo, com apoio físico tranquilizador, sem protesto, em 80% das ocorrências, por 3 dias consecutivos.",
+        },
+        AF: {
+          objetivo:
+            "Dar um 'bate aqui' no colega vencedor, com a mão guiada pelo professor, em 60% das ocorrências, dentro de duas semanas.",
+        },
+        AG: {
+          objetivo:
+            "Fazer um gesto de 'parabéns' (aplauso leve) para o colega que ganhou, seguindo o modelo do professor, em 70% das ocorrências, dentro de três semanas.",
+        },
+        AV: {
+          objetivo:
+            "Dizer 'bom jogo' ou 'parabéns', após perder, com apoio verbal leve, em 75% das oportunidades, dentro de um mês.",
+        },
+        AVi: {
+          objetivo:
+            "Apontar para um 'cartão de bom perdedor' (ex: 'sorrir e apertar a mão') após o resultado do jogo, em 80% das oportunidades, dentro de um mês.",
+        },
+        I: {
+          objetivo:
+            "Aceitar a derrota e propor um novo jogo para o colega vencedor, sem desorganização ou intervenção, em 85% das ocorrências, por uma semana.",
+        },
+      },
+      "Fazer escolhas simples em atividades sociais ou pedagógicas": {
+        NR: {
+          objetivo:
+            "Tocar em uma das duas opções de brinquedo oferecidas, com a mão guiada pelo professor, em 80% das tentativas, por 3 sessões.",
+        },
+        AF: {
+          objetivo:
+            "Apontar para uma das duas opções de atividade (ex: *Lego* ou *Massinha*), com apoio físico leve, em 60% das tentativas, dentro de duas semanas.",
+        },
+        AG: {
+          objetivo:
+            "Fazer um gesto de 'eu quero' (mão no peito) para a atividade escolhida, seguindo o modelo do professor, em 70% das oportunidades, dentro de três semanas.",
+        },
+        AV: {
+          objetivo:
+            "Nomear a atividade escolhida (ex: 'eu quero desenhar') entre 3 opções, após o professor perguntar, em 75% das oportunidades, dentro de um mês.",
+        },
+        AVi: {
+          objetivo:
+            "Selecionar a imagem da atividade em um quadro de escolha (4 opções), de forma autônoma, em 80% das oportunidades, dentro de um mês.",
+        },
+        I: {
+          objetivo:
+            "Fazer uma escolha entre 5 opções e iniciar a atividade escolhida em 10 segundos, sem hesitação ou mediação, em 85% das oportunidades, por uma semana.",
+        },
+      },
     },
+
     "Autonomia e Convivência": {
       "Cumprir regras coletivas mesmo sem supervisão direta": {
         NR: {

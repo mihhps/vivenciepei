@@ -1,5 +1,3 @@
-
-
 // src/pages/VerAlunos.jsx
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
@@ -14,7 +12,13 @@ import {
   getDoc,
   orderBy,
 } from "firebase/firestore";
-import { FaPencilAlt, FaTrashAlt, FaPlus, FaPuzzlePiece } from "react-icons/fa";
+import {
+  FaPencilAlt,
+  FaTrashAlt,
+  FaPlus,
+  FaPuzzlePiece,
+  FaUserCircle,
+} from "react-icons/fa"; // NOVO: FaUserCircle
 import Loader from "../components/Loader";
 import { useNavigate } from "react-router-dom";
 
@@ -60,7 +64,7 @@ const verificaTea = (diagnostico) => {
   );
 };
 
-// --- Estilos JSX (sem alterações) ---
+// --- Estilos JSX (ADICIONADO ESTILOS DA FOTO E NOVO LAYOUT DO CARD) ---
 const styles = {
   container: {
     minHeight: "100vh",
@@ -116,6 +120,7 @@ const styles = {
     gap: "20px",
     justifyContent: "flex-start",
   },
+  // NOVO LAYOUT DO CARD
   studentCard: {
     background: "#fff",
     borderRadius: "10px",
@@ -125,11 +130,43 @@ const styles = {
     display: "flex",
     flexDirection: "column",
   },
+  // NOVOS ESTILOS PARA FOTO/PLACEHOLDER
+  photoContainer: {
+    width: "70px",
+    height: "70px",
+    borderRadius: "50%",
+    overflow: "hidden",
+    marginRight: "15px",
+    flexShrink: 0,
+    border: "2px solid #457b9d",
+    backgroundColor: "#e0f2ff", // Cor de fundo se não houver foto
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  photo: {
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+  },
+  photoPlaceholder: {
+    fontSize: "2.5em",
+    color: "#457b9d",
+  },
+  infoWrapper: {
+    display: "flex",
+    alignItems: "flex-start",
+    marginBottom: "15px",
+  },
+  details: {
+    flexGrow: 1,
+  },
   actionButtons: {
     marginTop: "auto",
     paddingTop: "10px",
     display: "flex",
     gap: 10,
+    justifyContent: "flex-end", // Alinhar botões à direita
   },
   editButton: {
     background: "#457b9d",
@@ -158,6 +195,8 @@ const styles = {
 };
 
 export default function VerAlunos() {
+  // ... (Componente principal e lógica de carregamento, mantida inalterada)
+
   const navigate = useNavigate();
 
   const [alunos, setAlunos] = useState([]);
@@ -172,7 +211,6 @@ export default function VerAlunos() {
 
   const usuario = useMemo(() => getLocalStorageSafe("usuarioLogado", {}), []);
 
-  // ##### ALTERAÇÃO 1: Adicionado "seme" à lista de perfis que podem editar/excluir #####
   const podeEditar = useMemo(
     () =>
       ["gestao", "aee", "desenvolvedor", "diretor", "seme"].includes(
@@ -181,7 +219,6 @@ export default function VerAlunos() {
     [usuario?.perfil]
   );
 
-  // ##### ALTERAÇÃO 2: Corrigido o destino do botão "Voltar" para o perfil SEME #####
   const handleVoltar = useCallback(() => {
     const perfil = usuario?.perfil?.toLowerCase();
     switch (perfil) {
@@ -194,7 +231,7 @@ export default function VerAlunos() {
       case "orientador pedagógico":
         navigate("/painel-gestao");
         break;
-      case "seme": // Caso do SEME foi separado
+      case "seme":
         navigate("/painel-seme");
         break;
       case "aee":
@@ -498,21 +535,44 @@ export default function VerAlunos() {
           <div style={styles.studentGrid}>
             {alunos.map((aluno) => (
               <div key={aluno.id} style={styles.studentCard}>
-                <h4 style={{ marginBottom: 10, color: "#1d3557" }}>
-                  {aluno.nome}
-                </h4>
-                <p>
-                  <strong>Turma:</strong> {aluno.turma || "N/A"}
-                </p>
-                <p>
-                  <strong>Turno:</strong> {aluno.turno || "N/A"}
-                </p>
-                <p>
-                  <strong>Idade:</strong> {calcularIdade(aluno.nascimento)}
-                </p>
+                {/* --- NOVO BLOCO: FOTO E DETALHES --- */}
+                <div style={styles.infoWrapper}>
+                  {/* FOTO/PLACEHOLDER */}
+                  <div style={styles.photoContainer}>
+                    {aluno.fotoUrl ? (
+                      <img
+                        src={aluno.fotoUrl}
+                        alt={`Foto de ${aluno.nome}`}
+                        style={styles.photo}
+                      />
+                    ) : (
+                      <FaUserCircle style={styles.photoPlaceholder} />
+                    )}
+                  </div>
+
+                  {/* DETALHES PRINCIPAIS */}
+                  <div style={styles.details}>
+                    <h4 style={{ marginBottom: 5, color: "#1d3557" }}>
+                      {aluno.nome}
+                    </h4>
+                    <p style={{ fontSize: "0.9em", color: "#4a5568" }}>
+                      <strong>Idade:</strong> {calcularIdade(aluno.nascimento)}{" "}
+                      anos
+                    </p>
+                    <p style={{ fontSize: "0.9em", color: "#4a5568" }}>
+                      <strong>Turma:</strong> {aluno.turma || "N/A"}
+                    </p>
+                    <p style={{ fontSize: "0.9em", color: "#4a5568" }}>
+                      <strong>Turno:</strong> {aluno.turno || "N/A"}
+                    </p>
+                  </div>
+                </div>
+
+                {/* INFORMAÇÕES SECUNDÁRIAS ABAIXO DA FOTO */}
                 <p>
                   <strong>Diagnóstico:</strong> {aluno.diagnostico || "N/A"}
                 </p>
+
                 {aluno.isTea && (
                   <FaPuzzlePiece
                     style={{

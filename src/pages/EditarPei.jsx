@@ -1,7 +1,14 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, {
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  useRef, // Mantido
+} from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import BotaoVoltar from "../components/BotaoVoltar";
-import { db } from "../firebase";
+// BotaoVerPEIs removido ❌
+import { db, storage } from "../firebase"; // 'storage' reintroduzido
 import {
   doc,
   getDoc,
@@ -14,22 +21,74 @@ import {
   getDocs,
   serverTimestamp,
 } from "firebase/firestore";
-import "../styles/EditarPei.css";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage"; // Mantido
+import styled from "styled-components";
+import { FaUserCircle, FaPuzzlePiece, FaCamera } from "react-icons/fa"; // Mantido
+import "../styles/EditarPei.css"; // Certifique-se de adicionar o CSS aqui
 
-// IMPORTAÇÕES DOS DADOS
+// Importações dos dados (Mantidas)
 import estruturaPEI from "../data/estruturaPEI2";
 import objetivosCurtoPrazoData from "../data/objetivosCurtoPrazo";
 import objetivosMedioPrazoData from "../data/objetivosMedioPrazo";
 import { avaliacaoInicial } from "../data/avaliacaoInicialData";
 
-// ✅ NOVAS IMPORTAÇÕES DE IA
+// ✅ NOVAS IMPORTAÇÕES DE IA (Mantidas)
 import {
   getSugestaoEstrategiasPEI,
   getSugestaoAtividadePEI,
   getSugestaoAtividadeParaEstrategia,
 } from "../services/geminiService";
 
-// --- Funções de Mapeamento de Dados ---
+// --- Funções Auxiliares Comuns (Mantidas) ---
+const verificaTea = (diagnostico) => {
+  if (!diagnostico) return false;
+  const diagnosticoLowerCase = diagnostico.toLowerCase();
+  const palavrasChave = ["tea", "autismo", "espectro autista"];
+  return palavrasChave.some((palavra) =>
+    diagnosticoLowerCase.includes(palavra)
+  );
+};
+
+// Função para calcular a idade em anos e meses (Mantida)
+const calcularIdadeCompleta = (dataNascimentoString) => {
+  if (!dataNascimentoString) return "N/A";
+
+  const dataNascimento = new Date(dataNascimentoString);
+  const hoje = new Date();
+
+  if (isNaN(dataNascimento)) return "N/A";
+
+  let anos = hoje.getFullYear() - dataNascimento.getFullYear();
+  let meses = hoje.getMonth() - dataNascimento.getMonth();
+
+  if (meses < 0 || (meses === 0 && hoje.getDate() < dataNascimento.getDate())) {
+    anos--;
+    meses = 12 + meses;
+  }
+
+  const idadeAnos = Math.floor(anos);
+  const idadeMeses = meses;
+
+  let resultado = `${idadeAnos} ano${idadeAnos !== 1 ? "s" : ""}`;
+  if (idadeMeses > 0) {
+    resultado += ` e ${idadeMeses} mes${idadeMeses !== 1 ? "es" : ""}`;
+  }
+  return resultado;
+};
+
+// FUNÇÃO FALTANTE (Mantida)
+function formatarData(data) {
+  if (!data) return "-";
+  const dateObj =
+    typeof data.toDate === "function" ? data.toDate() : new Date(data);
+  if (isNaN(dateObj.getTime())) return "-";
+  const dia = String(dateObj.getDate()).padStart(2, "0");
+  const mes = String(dateObj.getMonth() + 1).padStart(2, "0");
+  const ano = dateObj.getFullYear();
+  return `${dia}-${mes}-${ano}`;
+}
+
+// --- Funções de Mapeamento de Dados (Omitidas para concisão) ---
 const getEstruturaPEIMap = (estrutura) => {
   const map = {};
   if (!estrutura) return map;
@@ -107,6 +166,81 @@ const normalizarEstrategias = (estrategias) => {
   return [];
 };
 
+// --- Styled Components (Ajustados) ---
+const PhotoWrapper = styled.div`
+  position: relative;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-right: 20px;
+`;
+
+const UploadButton = styled.button`
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background-color: #457b9d;
+  color: white;
+  border: 2px solid #f1faee;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #1d3557;
+  }
+`;
+
+const PhotoDisplay = styled.img`
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #1d3557;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.15);
+`;
+
+const PhotoPlaceholder = styled(FaUserCircle)`
+  width: 100px;
+  height: 100px;
+  color: #a8dadc;
+  font-size: 5em;
+  padding: 5px;
+  background-color: #f1faee;
+  border-radius: 50%;
+`;
+
+const AlunoInfoSection = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  padding-bottom: 20px;
+  margin-bottom: 25px;
+  border-bottom: 1px solid #e2e8f0;
+`;
+
+const AlunoDetailsWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  padding-left: 0px;
+  flex-grow: 1;
+`;
+
+// Container do topo: ajustado para remover o espaço do BotaoVerPEIs
+const CardHeaderTopHarmonizado = styled.div`
+  display: flex;
+  justify-content: space-between; /* Ajustado para alinhar apenas o BotaoVoltar à esquerda */
+  align-items: center;
+  margin-bottom: 20px;
+`;
+
 function EditarPei() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -121,7 +255,15 @@ function EditarPei() {
   const [activeTab, setActiveTab] = useState("longoPrazo");
   const [objetivosSelecionados, setObjetivosSelecionados] = useState({});
 
-  // ✅ NOVOS ESTADOS PARA A IA
+  // ESTADOS DE FOTO E UPLOAD: Mantidos
+  const [novaFotoArquivo, setNovaFotoArquivo] = useState(null);
+  const [fotoPreviewUrl, setFotoPreviewUrl] = useState("");
+  const fileInputRef = useRef(null);
+
+  // ESTADOS DE DETALHES DO ALUNO: MANTIDO
+  const [alunoDetalhes, setAlunoDetalhes] = useState(null);
+
+  // ✅ NOVOS ESTADOS PARA A IA (Mantidos)
   const [estrategiasIA, setEstrategiasIA] = useState({});
   const [carregandoIA, setCarregandoIA] = useState(null);
   const [sugestoesAtividadesIndividuais, setSugestoesAtividadesIndividuais] =
@@ -150,11 +292,13 @@ function EditarPei() {
 
   const todasAsAreas = useMemo(() => Object.keys(avaliacaoInicial), []);
 
-  // ✅ NOVO useMemo: para coletar as estratégias selecionadas para o brainstorm de atividades.
   const estrategiasSelecionadas = useMemo(() => {
     const todasEstrategias = new Set();
     if (!pei || !entradaManual) return [];
-    Object.entries(pei.resumoPEI || {}).forEach(([area, metas]) => {
+
+    const resumoPei = pei.resumoPEI || {};
+
+    Object.entries(resumoPei).forEach(([area, metas]) => {
       metas.forEach((meta) => {
         const manualKey = `${area}-${meta.habilidade.replace(
           /[^a-zA-Z0-9-]/g,
@@ -174,6 +318,25 @@ function EditarPei() {
     return Array.from(todasEstrategias);
   }, [pei, entradaManual]);
 
+  // Função para buscar detalhes do aluno (Mantida)
+  const buscarDetalhesDoAluno = useCallback(
+    async (alunoId) => {
+      if (!alunoId) return;
+      try {
+        const alunoDocRef = doc(db, "alunos", alunoId);
+        const alunoDocSnap = await getDoc(alunoDocRef);
+        if (alunoDocSnap.exists()) {
+          const data = alunoDocSnap.data();
+          setAlunoDetalhes(data);
+          setFotoPreviewUrl(data.fotoUrl || "");
+        }
+      } catch (error) {
+        console.error("Erro ao buscar detalhes do aluno:", error);
+      }
+    },
+    [setFotoPreviewUrl]
+  );
+
   const carregarPei = useCallback(async () => {
     setCarregando(true);
     setErro(null);
@@ -187,6 +350,9 @@ function EditarPei() {
       const dados = docSnap.data();
       const alunoId = dados.alunoId;
       const currentYear = new Date().getFullYear();
+
+      // CHAMA A FUNÇÃO DE BUSCA DE DETALHES DO ALUNO
+      await buscarDetalhesDoAluno(alunoId);
 
       const qPrimeiroPeiDoAluno = query(
         collection(db, "peis"),
@@ -299,9 +465,15 @@ function EditarPei() {
         };
 
         objetivosParaSelecao[manualKey] = {
-          curtoPrazo: [objetivosDoProfessor.curtoPrazo].filter(Boolean),
-          medioPrazo: [objetivosDoProfessor.medioPrazo].filter(Boolean),
-          longoPrazo: [objetivosDoProfessor.longoPrazo].filter(Boolean),
+          curtoPrazo: Array.from(
+            new Set([objetivosDoProfessor.curtoPrazo])
+          ).filter(Boolean),
+          medioPrazo: Array.from(
+            new Set([objetivosDoProfessor.medioPrazo])
+          ).filter(Boolean),
+          longoPrazo: Array.from(
+            new Set([objetivosDoProfessor.longoPrazo])
+          ).filter(Boolean),
         };
         if (!peiAgrupadoPorArea[area]) {
           peiAgrupadoPorArea[area] = [];
@@ -333,7 +505,13 @@ function EditarPei() {
     } finally {
       setCarregando(false);
     }
-  }, [id, estruturaPEIMap, objetivosCurtoPrazoMap, objetivosMedioPrazoMap]);
+  }, [
+    id,
+    estruturaPEIMap,
+    objetivosCurtoPrazoMap,
+    objetivosMedioPrazoMap,
+    buscarDetalhesDoAluno,
+  ]);
 
   useEffect(() => {
     if (id) {
@@ -344,13 +522,48 @@ function EditarPei() {
     }
   }, [id, carregarPei]);
 
-  // ✅ NOVAS FUNÇÕES: Chamadas de API para a IA
+  // FUNÇÕES DE MANIPULAÇÃO DE FOTO: Mantidas
+  const handleFotoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setNovaFotoArquivo(file);
+      // Cria URL de visualização local para o usuário
+      const fileUrl = URL.createObjectURL(file);
+      setFotoPreviewUrl(fileUrl);
+    } else {
+      setNovaFotoArquivo(null);
+      // Volta para o URL original do aluno se a seleção for cancelada
+      setFotoPreviewUrl(alunoDetalhes?.fotoUrl || "");
+    }
+  };
+
+  const handleUploadButtonClick = () => {
+    fileInputRef.current.click();
+  };
+
+  // Função para upload de foto (usada dentro do handleSalvar)
+  const uploadNovaFoto = async (alunoId, fotoFile) => {
+    if (!fotoFile || !alunoId) return alunoDetalhes?.fotoUrl || "";
+
+    const storageRef = ref(storage, `fotos-alunos/${alunoId}`);
+    try {
+      const snapshot = await uploadBytes(storageRef, fotoFile);
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      return downloadURL;
+    } catch (error) {
+      console.error("Erro ao fazer upload da foto:", error);
+      setErro("Erro ao fazer upload da foto. O PEI não foi salvo.");
+      throw new Error("Falha no upload da foto."); // Propaga o erro para impedir o salvamento
+    }
+  };
+
+  // ✅ NOVAS FUNÇÕES: Chamadas de API para a IA (Mantidas)
   const handleGerarEstrategiasIA = async (meta, area, manualKey) => {
-    if (!pei.alunoId) return setErro("Aluno do PEI não encontrado.");
+    if (!alunoDetalhes) return setErro("Detalhes do aluno não carregados.");
     setCarregandoIA(manualKey);
     try {
       const novasEstrategias = await getSugestaoEstrategiasPEI(
-        pei.aluno,
+        alunoDetalhes,
         meta,
         area
       );
@@ -366,9 +579,12 @@ function EditarPei() {
   };
 
   const handleGerarAtividadeIndividual = async (estrategia) => {
-    if (!pei.aluno) return; // Garante que o objeto aluno exista
+    if (!alunoDetalhes) return;
 
-    // Se já temos uma lista de sugestões, apenas sorteamos uma nova para exibir
+    const keyTexto =
+      typeof estrategia === "string" ? estrategia : estrategia.titulo;
+
+    // Lógica de cache/re-exibição
     if (sugestoesAtividadesIndividuais[estrategia]?.lista?.length > 0) {
       const listaExistente = sugestoesAtividadesIndividuais[estrategia].lista;
       const novaSugestao =
@@ -380,24 +596,20 @@ function EditarPei() {
       return;
     }
 
-    // Se não temos, buscamos na API
     setCarregandoAtividadeIndividual((prev) => ({
       ...prev,
       [estrategia]: true,
     }));
     try {
-      // É importante passar o cargo do usuário logado aqui também
       const listaDeSugestoes = await getSugestaoAtividadeParaEstrategia(
-        pei.aluno,
+        alunoDetalhes,
         estrategia,
         usuarioLogado.cargo
       );
 
-      // Sorteia a primeira sugestão para exibir
       const primeiraSugestao =
         listaDeSugestoes[Math.floor(Math.random() * listaDeSugestoes.length)];
 
-      // Agora salvamos a lista completa e a sugestão a ser exibida
       setSugestoesAtividadesIndividuais((prev) => ({
         ...prev,
         [estrategia]: {
@@ -426,6 +638,13 @@ function EditarPei() {
     setCarregando(true);
     setErro(null);
     try {
+      // 1. Upload da Nova Foto
+      let novaFotoUrl = alunoDetalhes?.fotoUrl || "";
+      if (novaFotoArquivo && pei.alunoId) {
+        novaFotoUrl = await uploadNovaFoto(pei.alunoId, novaFotoArquivo);
+      }
+
+      // 2. Processamento do Resumo PEI (Mantido)
       const resumoAtualizado = Object.values(pei.resumoPEI).flatMap((metas) =>
         metas.map((meta) => {
           const manualKey = meta.area
@@ -456,7 +675,9 @@ function EditarPei() {
           };
         })
       );
-      const mesAtual = new Date().getMonth(); // 0 = Janeiro, 11 = Dezembro
+
+      // 3. Preparar dados de revisão (Mantido)
+      const mesAtual = new Date().getMonth();
       const semestreAtual =
         mesAtual < 6 ? "primeiroSemestre" : "segundoSemestre";
 
@@ -466,23 +687,35 @@ function EditarPei() {
         revisadoPor: usuarioLogado.uid,
       };
 
-      await updateDoc(doc(db, "peis", id), {
+      // 4. Atualizar o Documento PEI (Mantido)
+      const dadosParaAtualizar = {
         resumoPEI: resumoAtualizado,
         atividadeAplicada: atividadeAplicada,
         dataUltimaRevisao: serverTimestamp(),
         [`revisoes.${semestreAtual}`]: dadosDaRevisao,
-      });
+      };
+
+      await updateDoc(doc(db, "peis", id), dadosParaAtualizar);
+
+      // 5. Atualizar o Documento do Aluno com a nova fotoUrl
+      if (novaFotoUrl !== alunoDetalhes?.fotoUrl) {
+        await updateDoc(doc(db, "alunos", pei.alunoId), {
+          fotoUrl: novaFotoUrl,
+        });
+      }
 
       alert("PEI atualizado com sucesso! 🎉");
       navigate("/ver-peis");
     } catch (error) {
       console.error("Erro ao salvar PEI:", error);
-      setErro("Erro ao salvar o PEI. Tente novamente.");
+      if (!erro) setErro("Erro ao salvar o PEI. Tente novamente.");
     } finally {
       setCarregando(false);
     }
   };
+
   const handleRemoverMeta = (habilidadeMetaRemover) => {
+    // Lógica de remoção de meta (Mantida)
     if (
       window.confirm(
         `Tem certeza que deseja remover a meta "${habilidadeMetaRemover}"?`
@@ -492,6 +725,8 @@ function EditarPei() {
         if (!prevPei) return null;
         const novasAreas = { ...prevPei.resumoPEI };
         let metaRemovida = false;
+        let metaRemovidaArea = null;
+
         for (const area in novasAreas) {
           const metasDaArea = novasAreas[area];
           const novaListaMetas = metasDaArea.filter(
@@ -500,17 +735,16 @@ function EditarPei() {
           if (novaListaMetas.length !== metasDaArea.length) {
             novasAreas[area] = novaListaMetas;
             metaRemovida = true;
+            metaRemovidaArea = area;
             break;
           }
         }
+
         if (!metaRemovida) return prevPei;
+
+        // Limpar estados manuais e de objetivos
         const novaEntradaManual = { ...entradaManual };
         const novaObjetivosSelecionados = { ...objetivosSelecionados };
-        const metaRemovidaArea = Object.keys(novasAreas).find((area) =>
-          novasAreas[area].some(
-            (meta) => meta.habilidade === habilidadeMetaRemover
-          )
-        );
         const manualKey = `${metaRemovidaArea}-${habilidadeMetaRemover.replace(
           /[^a-zA-Z0-9-]/g,
           ""
@@ -519,12 +753,14 @@ function EditarPei() {
         delete novaObjetivosSelecionados[manualKey];
         setEntradaManual(novaEntradaManual);
         setObjetivosSelecionados(novaObjetivosSelecionados);
+
         return { ...prevPei, resumoPEI: novasAreas };
       });
     }
   };
 
   const handleCheckboxChange = (manualKey, estrategia, estaMarcado) => {
+    // Lógica de checkbox (Mantida)
     setEntradaManual((prev) => {
       const estrategiasAtuais = prev[manualKey]?.estrategias || [];
       const novasEstrategias = estaMarcado
@@ -538,10 +774,11 @@ function EditarPei() {
   };
 
   const handleObjetivoChange = (manualKey, prazo, objetivo, estaMarcado) => {
+    // Lógica de objetivo (Mantida)
     setObjetivosSelecionados((prev) => {
       const objetivosDoPrazo = prev[manualKey]?.[prazo] || [];
       const novosObjetivosDoPrazo = estaMarcado
-        ? [objetivo]
+        ? [objetivo] // Apenas um objetivo pode ser selecionado por prazo
         : objetivosDoPrazo.filter((obj) => obj !== objetivo);
 
       return {
@@ -554,13 +791,22 @@ function EditarPei() {
     });
   };
 
-  if (carregando)
+  // Montar informações principais do aluno para a UI (Ajustado)
+  const alunoNome = pei?.aluno || alunoDetalhes?.nome || "Aluno Desconhecido";
+  const alunoTurma = pei?.turma || alunoDetalhes?.turma || "N/A";
+  // Usa o URL de preview (se houver upload) ou o URL original do Firebase.
+  const alunoFotoUrl = fotoPreviewUrl || alunoDetalhes?.fotoUrl || "";
+  const alunoTea =
+    alunoDetalhes?.diagnostico && verificaTea(alunoDetalhes.diagnostico);
+  const idadeExibicao = calcularIdadeCompleta(alunoDetalhes?.nascimento);
+
+  if (carregando && !alunoDetalhes)
     return (
       <div className="estado-container">
         <p>Carregando PEI...</p>
       </div>
     );
-  if (erro)
+  if (erro && !alunoDetalhes)
     return (
       <div className="estado-container">
         <p className="mensagem-erro">{erro}</p>
@@ -598,11 +844,78 @@ function EditarPei() {
   return (
     <div className="editar-pei-fundo">
       <div className="editar-pei-card">
-        <BotaoVoltar />
-        <h2 className="editar-pei-titulo">
-          Editar PEI: {pei.aluno || "Aluno não identificado"}
-        </h2>
+        {/* --- INÍCIO DO HEADER SIMPLIFICADO --- */}
+        <CardHeaderTopHarmonizado>
+          <BotaoVoltar />
+          {/* ❌ Escola Ativa Removida */}
+          {/* ❌ BotaoVerPEIs Removido */}
+        </CardHeaderTopHarmonizado>
+        {/* --- FIM DO HEADER SIMPLIFICADO --- */}
 
+        {/* --- BLOCO: FOTO E DETALHES DO ALUNO (Mantido com a lógica de foto) --- */}
+        <AlunoInfoSection>
+          {/* FOTO (Visualização e UPLOAD) */}
+          <PhotoWrapper>
+            {alunoFotoUrl ? (
+              <PhotoDisplay src={alunoFotoUrl} alt={`Foto de ${alunoNome}`} />
+            ) : (
+              <PhotoPlaceholder />
+            )}
+            {/* Input de arquivo Oculto */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFotoChange}
+              style={{ display: "none" }}
+              accept="image/*"
+              disabled={carregando}
+            />
+            {/* Botão de Upload */}
+            <UploadButton
+              onClick={handleUploadButtonClick}
+              title="Mudar foto do aluno"
+              disabled={carregando}
+            >
+              <FaCamera style={{ fontSize: "0.8em" }} />
+            </UploadButton>
+          </PhotoWrapper>
+
+          {/* DETALHES */}
+          <AlunoDetailsWrapper>
+            <h2 className="aluno-nome-header">
+              {alunoNome}
+              {alunoTea && (
+                <FaPuzzlePiece
+                  style={{ color: "#29ABE2", marginLeft: "10px" }}
+                  title="Aluno com TEA"
+                />
+              )}
+            </h2>
+            <p className="aluno-detail-item">
+              <strong>Turma:</strong> {alunoTurma}
+            </p>
+            <p className="aluno-detail-item">
+              <strong>Idade:</strong> {idadeExibicao}
+            </p>
+            <p className="aluno-detail-item">
+              <strong>Início PEI:</strong> {formatarData(pei.dataCriacao)}
+            </p>
+            {/* Mensagem de nova foto */}
+            {novaFotoArquivo && (
+              <p
+                className="info-text"
+                style={{ color: "#2a9d8f", fontWeight: "bold" }}
+              >
+                Nova foto pronta para ser salva!
+              </p>
+            )}
+          </AlunoDetailsWrapper>
+        </AlunoInfoSection>
+        {/* --- FIM DO BLOCO FOTO/DETALHES --- */}
+
+        {erro && <div className="mensagem-erro">{erro}</div>}
+
+        {/* Área de botões e conteúdo (Mantida) */}
         <div className="area-buttons-container">
           {todasAsAreas.map((area) => (
             <button
@@ -663,9 +976,10 @@ function EditarPei() {
           </div>
         )}
 
-        {/* ✅ NOVO: Seção de Brainstorm de Atividades */}
+        {/* Seção de Conteúdo (Mantida) */}
         {areaAtiva === "atividadeAplicada" ? (
           <article className="meta-card">
+            {/* ... Conteúdo de Atividade Aplicada (Mantido) ... */}
             <h3 className="meta-card-titulo">Brainstorm de Atividades</h3>
             <p className="info-text">
               Gere ideias para cada estratégia selecionada e depois inclua as
@@ -687,21 +1001,21 @@ function EditarPei() {
                         ? "Gerando..."
                         : "Gerar Sugestão 💡"}
                     </button>
-                    {sugestoesAtividadesIndividuais[estrategia]?.exibida && ( // <-- Ponto de mudança
+                    {sugestoesAtividadesIndividuais[estrategia]?.exibida && (
                       <div className="sugestao-individual-container">
                         <textarea
                           className="textarea-sugestao"
                           rows="3"
                           value={
                             sugestoesAtividadesIndividuais[estrategia].exibida
-                          } // <-- Ponto de mudança
+                          }
                           readOnly
                         />
                         <button
                           className="botao-incluir"
                           onClick={() =>
                             handleIncluirAtividade(
-                              sugestoesAtividadesIndividuais[estrategia].exibida // <-- Ponto de mudança
+                              sugestoesAtividadesIndividuais[estrategia].exibida
                             )
                           }
                         >
@@ -743,7 +1057,6 @@ function EditarPei() {
                 )}`;
                 const entrada = entradaManual[manualKey] || {};
 
-                // ✅ NOVO: Adiciona estratégias geradas pela IA à lista de exibição
                 const strategiesFromManual = entrada.estrategiasManuais
                   ? entrada.estrategiasManuais
                       .split("\n")
@@ -753,7 +1066,7 @@ function EditarPei() {
                 const strategiesToDisplay = Array.from(
                   new Set([
                     ...(meta.estrategias || []),
-                    // CORREÇÃO: Mapeia os objetos da IA para extrair apenas o título (string)
+                    // Mapeia os objetos da IA para extrair apenas o título (string)
                     ...(estrategiasIA[manualKey] || []).map(
                       (est) => est.titulo
                     ),
@@ -911,9 +1224,9 @@ function EditarPei() {
         )}
 
         <button
-          className="botao-salvar"
           onClick={handleSalvar}
-          disabled={carregando || !pei}
+          className="botao-salvar"
+          disabled={carregando}
         >
           {carregando ? "Salvando..." : "Salvar Alterações"}
         </button>

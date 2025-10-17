@@ -1,18 +1,18 @@
-// src/pages/CadastroAluno.js (MODIFICADO)
+// src/pages/CadastroAluno.js (FINAL COM FOTO E PEI CORRIGIDOS)
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
 import BotaoVoltar from "../components/BotaoVoltar";
-import { db } from "../firebase";
+import { db, storage } from "../firebase";
 import {
   collection,
   addDoc,
   serverTimestamp,
   getDocs,
-  query,
 } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
-// --- Styled Components (Mantenha os mesmos que você já tem ou do exemplo anterior) ---
+// --- Styled Components (MANTIDOS) ---
 const PageContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -69,6 +69,12 @@ const Select = styled.select`
   font-size: 1em;
   background-color: white;
   box-sizing: border-box;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234c51bf' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  cursor: pointer;
 
   &:focus {
     border-color: #007bff;
@@ -104,18 +110,70 @@ const MensagemIdade = styled.p`
   color: #555;
   margin: -10px 0 5px 0;
 `;
+
+const FileInputLabel = styled.label`
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #333;
+`;
+
+const FileInputContainer = styled.div`
+  border: 1px dashed #ccc;
+  border-radius: 8px;
+  padding: 15px;
+  text-align: center;
+  cursor: pointer;
+  background-color: #f9f9f9;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: #f0f0f0;
+  }
+
+  input[type="file"] {
+    display: none;
+  }
+`;
+
+const FileNameDisplay = styled.span`
+  display: block;
+  margin-top: 10px;
+  font-size: 0.9em;
+  color: #666;
+`;
+
+const ImagePreview = styled.img`
+  max-width: 150px;
+  max-height: 150px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin: 15px auto 5px auto;
+  display: block;
+  border: 3px solid #eee;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+`;
 // --- Fim Styled Components ---
+
+// NOVO: Função para obter o UID do usuário logado do localStorage
+const getCurrentUserId = () => {
+  const usuarioLogado = JSON.parse(localStorage.getItem("usuarioLogado"));
+  // Assumindo que o UID está na propriedade 'uid' do objeto logado
+  return usuarioLogado?.uid || null;
+};
 
 async function criarPEIPlaceholderParaAluno(
   alunoId,
   escolaIdDoAluno,
-  anoLetivo
+  anoLetivo,
+  criadorId // <-- NOVO ARGUMENTO
 ) {
-  if (!alunoId || !escolaIdDoAluno || !anoLetivo) {
+  if (!alunoId || !escolaIdDoAluno || !anoLetivo || !criadorId) {
     console.error("Dados insuficientes para criar PEI placeholder:", {
       alunoId,
       escolaIdDoAluno,
       anoLetivo,
+      criadorId,
     });
     return;
   }
@@ -127,6 +185,7 @@ async function criarPEIPlaceholderParaAluno(
     criadoEm: serverTimestamp(),
     ultimaModificacao: serverTimestamp(),
     resumoPEI: [],
+    criadorId: criadorId, // <-- CORREÇÃO CRÍTICA: Adicionado o ID do criador
   };
   try {
     const peiDocRef = await addDoc(collection(db, "peis"), dadosPEIPlaceholder);
@@ -145,18 +204,24 @@ function CadastroAluno() {
   const [nome, setNome] = useState("");
   const [nascimento, setNascimento] = useState("");
   const [diagnostico, setDiagnostico] = useState("");
-  const [turmaSelecionadaId, setTurmaSelecionadaId] = useState(""); // Agora guarda o ID da turma
-  const [turnoExibido, setTurnoExibido] = useState(""); // Exibe o turno da turma selecionada
+  const [turmaSelecionadaId, setTurmaSelecionadaId] = useState("");
+  const [turnoExibido, setTurnoExibido] = useState("");
   const [idade, setIdade] = useState("");
   const [escolaIdSelecionada, setEscolaIdSelecionada] = useState("");
   const [listaEscolas, setListaEscolas] = useState([]);
-  const [turmasDisponiveis, setTurmasDisponiveis] = useState([]); // Lista de objetos { id, nome, turno }
+  const [turmasDisponiveis, setTurmasDisponiveis] = useState([]);
   const [loadingEscolas, setLoadingEscolas] = useState(true);
   const [loadingTurmas, setLoadingTurmas] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [fotoAluno, setFotoAluno] = useState(null);
+  const [fotoPreviewUrl, setFotoPreviewUrl] = useState("");
 
-  // --- Efeito para carregar Escolas ---
+  // NOVO: Ref para manipular o clique no input file escondido
+  const fileInputRef = useRef(null);
+
+  // --- Efeitos e Lógica de Cálculo de Idade ---
   useEffect(() => {
+    // ... (Efeito para carregar Escolas) ...
     const fetchEscolas = async () => {
       setLoadingEscolas(true);
       try {
@@ -176,8 +241,8 @@ function CadastroAluno() {
     fetchEscolas();
   }, []);
 
-  // --- Efeito para carregar Turmas baseadas na Escola Selecionada ---
   useEffect(() => {
+    // ... (Efeito para carregar Turmas) ...
     const fetchTurmas = async () => {
       if (!escolaIdSelecionada) {
         setTurmasDisponiveis([]);
@@ -187,7 +252,6 @@ function CadastroAluno() {
       }
       setLoadingTurmas(true);
       try {
-        // Busca turmas da SUBCOLEÇÃO 'turmas' dentro da escola selecionada
         const turmasQuery = collection(
           db,
           "escolas",
@@ -198,13 +262,13 @@ function CadastroAluno() {
         const turmasData = turmasSnapshot.docs.map((doc) => ({
           id: doc.id,
           nome: doc.data().nome,
-          turno: doc.data().turno, // Importante: pegar o turno da turma
+          turno: doc.data().turno,
         }));
         setTurmasDisponiveis(
           turmasData.sort((a, b) => a.nome.localeCompare(b.nome))
         );
-        setTurmaSelecionadaId(""); // Reseta a seleção da turma
-        setTurnoExibido(""); // Limpa o turno ao mudar a escola
+        setTurmaSelecionadaId("");
+        setTurnoExibido("");
       } catch (error) {
         console.error("Erro ao buscar turmas:", error);
         alert("Não foi possível carregar as turmas para a escola selecionada.");
@@ -217,8 +281,8 @@ function CadastroAluno() {
     fetchTurmas();
   }, [escolaIdSelecionada]);
 
-  // --- Efeito para preencher o Turno automaticamente ao selecionar a Turma ---
   useEffect(() => {
+    // ... (Efeito para preencher o Turno) ...
     if (turmaSelecionadaId && turmasDisponiveis.length > 0) {
       const turma = turmasDisponiveis.find((t) => t.id === turmaSelecionadaId);
       if (turma) {
@@ -227,11 +291,10 @@ function CadastroAluno() {
         setTurnoExibido("");
       }
     } else {
-      setTurnoExibido(""); // Limpa se nenhuma turma estiver selecionada
+      setTurnoExibido("");
     }
   }, [turmaSelecionadaId, turmasDisponiveis]);
 
-  // --- Funções de Manipulação ---
   const calcularIdade = (dataNasc) => {
     if (!dataNasc) return "";
     const hoje = new Date();
@@ -251,9 +314,37 @@ function CadastroAluno() {
     setIdade(calcularIdade(data));
   };
 
+  const handleFotoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setFotoAluno(file);
+      setFotoPreviewUrl(URL.createObjectURL(file));
+    } else {
+      setFotoAluno(null);
+      setFotoPreviewUrl("");
+    }
+  };
+
+  // NOVO: Função para disparar o clique no input file
+  const handleFileUploadClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
   const handleSalvar = async (e) => {
     e.preventDefault();
     setIsSaving(true);
+
+    // CORREÇÃO CRÍTICA 1: Obter o ID do criador
+    const criadorId = getCurrentUserId();
+    if (!criadorId) {
+      alert(
+        "Erro: ID do usuário logado não encontrado. Por favor, faça login novamente."
+      );
+      setIsSaving(false);
+      return;
+    }
 
     const turmaSelecionadaObj = turmasDisponiveis.find(
       (t) => t.id === turmaSelecionadaId
@@ -263,8 +354,8 @@ function CadastroAluno() {
       !nome ||
       !nascimento ||
       !diagnostico ||
-      !turmaSelecionadaId || // Agora verificamos o ID da turma
-      !turnoExibido || // Verificamos se o turno foi preenchido automaticamente
+      !turmaSelecionadaId ||
+      !turnoExibido ||
       !escolaIdSelecionada
     ) {
       alert(
@@ -275,30 +366,47 @@ function CadastroAluno() {
     }
 
     const anoLetivoParaCadastro = new Date().getFullYear();
+    let fotoUrl = "";
 
     try {
+      // 1. Upload da foto, se houver
+      if (fotoAluno) {
+        const storageRef = ref(
+          storage,
+          `fotos_alunos/${nome.trim()}_${Date.now()}_${fotoAluno.name}`
+        );
+        const uploadTask = await uploadBytes(storageRef, fotoAluno);
+        fotoUrl = await getDownloadURL(uploadTask.ref);
+        console.log("Foto do aluno enviada:", fotoUrl);
+      }
+
+      // 2. Salvar dados do aluno no Firestore
       const dadosAlunoParaSalvar = {
         nome: nome.trim(),
         nascimento,
         diagnostico: diagnostico.trim(),
-        // Salva o NOME da turma e o TURNO associado a ela
         turma: turmaSelecionadaObj.nome,
         turno: turnoExibido,
         escolaId: escolaIdSelecionada,
         anoLetivoAtivo: anoLetivoParaCadastro,
         dataCadastro: serverTimestamp(),
+        fotoUrl: fotoUrl, // Adiciona a URL da foto
+        // Não é necessário o criadorId aqui, pois o PEI já o terá.
       };
 
       const alunoDocRef = await addDoc(
         collection(db, "alunos"),
-        dadosAlunoParaSalvar // CORRIGIDO: Era 'dadosAlunoParaSalvos'
+        dadosAlunoParaSalvar
       );
       console.log("Aluno cadastrado com ID: ", alunoDocRef.id);
 
+      // 3. Criar PEI Placeholder
+      // CORREÇÃO CRÍTICA 2: Passando o criadorId para a função
       await criarPEIPlaceholderParaAluno(
         alunoDocRef.id,
         dadosAlunoParaSalvar.escolaId,
-        anoLetivoParaCadastro
+        anoLetivoParaCadastro,
+        criadorId // <-- NOVO ARGUMENTO CORRIGIDO
       );
 
       alert("Aluno cadastrado e PEI inicial criado com sucesso!");
@@ -310,7 +418,8 @@ function CadastroAluno() {
       setTurmaSelecionadaId("");
       setTurnoExibido("");
       setIdade("");
-      // setEscolaIdSelecionada(""); // Descomente se quiser limpar a escola também
+      setFotoAluno(null);
+      setFotoPreviewUrl("");
     } catch (error) {
       console.error("Erro ao salvar aluno no Firestore:", error);
       alert(
@@ -329,6 +438,29 @@ function CadastroAluno() {
         </div>
         <Titulo>Cadastro de Aluno</Titulo>
         <StyledForm onSubmit={handleSalvar}>
+          {/* Pré-visualização da Foto */}
+          {fotoPreviewUrl && (
+            <ImagePreview src={fotoPreviewUrl} alt="Pré-visualização da foto" />
+          )}
+
+          {/* Campo de Upload de Foto */}
+          <FileInputLabel>Foto do Aluno (opcional):</FileInputLabel>
+          <FileInputContainer onClick={handleFileUploadClick}>
+            <input
+              id="fotoAluno"
+              type="file"
+              accept="image/*"
+              onChange={handleFotoChange}
+              disabled={isSaving}
+              ref={fileInputRef}
+            />
+            {fotoAluno ? (
+              <FileNameDisplay>{fotoAluno.name}</FileNameDisplay>
+            ) : (
+              <span>Clique ou arraste para selecionar uma foto</span>
+            )}
+          </FileInputContainer>
+
           <Input
             type="text"
             placeholder="Nome Completo do Aluno"
@@ -362,8 +494,8 @@ function CadastroAluno() {
             value={escolaIdSelecionada}
             onChange={(e) => {
               setEscolaIdSelecionada(e.target.value);
-              setTurmaSelecionadaId(""); // Reseta a turma ao mudar a escola
-              setTurnoExibido(""); // Reseta o turno
+              setTurmaSelecionadaId("");
+              setTurnoExibido("");
             }}
             required
             disabled={loadingEscolas || isSaving}
@@ -378,9 +510,8 @@ function CadastroAluno() {
             ))}
           </Select>
 
-          {/* Select para Turma (Agora busca da subcoleção da escola) */}
           <Select
-            value={turmaSelecionadaId} // Usa o ID da turma selecionada
+            value={turmaSelecionadaId}
             onChange={(e) => setTurmaSelecionadaId(e.target.value)}
             required
             disabled={!escolaIdSelecionada || loadingTurmas || isSaving}
@@ -389,10 +520,10 @@ function CadastroAluno() {
               {!escolaIdSelecionada
                 ? "Selecione uma escola primeiro"
                 : loadingTurmas
-                  ? "Carregando turmas..."
-                  : turmasDisponiveis.length === 0
-                    ? "Nenhuma turma cadastrada para esta escola"
-                    : "Selecione a Turma"}
+                ? "Carregando turmas..."
+                : turmasDisponiveis.length === 0
+                ? "Nenhuma turma cadastrada para esta escola"
+                : "Selecione a Turma"}
             </option>
             {turmasDisponiveis.map((turma) => (
               <option key={turma.id} value={turma.id}>
@@ -401,14 +532,13 @@ function CadastroAluno() {
             ))}
           </Select>
 
-          {/* Campo de Turno (Apenas para exibição, preenchido automaticamente) */}
           <Input
             type="text"
             placeholder="Turno (automático)"
             value={turnoExibido}
-            readOnly // Não permite edição manual
-            disabled={true} // Mantém desabilitado
-            style={{ backgroundColor: "#f0f0f0", cursor: "not-allowed" }} // Estilo para indicar que é readOnly
+            readOnly
+            disabled={true}
+            style={{ backgroundColor: "#f0f0f0", cursor: "not-allowed" }}
           />
 
           <BotaoSalvar type="submit" disabled={isSaving}>

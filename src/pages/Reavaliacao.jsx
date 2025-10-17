@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+// src/pages/Reavaliacao.jsx
+
+import React, { useState, useMemo, useCallback, useEffect } from "react"; // <-- CORREÇÃO: useEffect importado
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../firebase";
 import {
@@ -11,6 +13,7 @@ import {
   serverTimestamp,
   limit,
 } from "firebase/firestore";
+import { FaUserCircle } from "react-icons/fa"; // Importar ícone para placeholder
 
 import { avaliacaoInicial } from "../data/avaliacaoInicialData";
 import { useAlunos } from "../hooks/useAlunos";
@@ -25,6 +28,32 @@ const addMonths = (date, months) => {
   const d = new Date(date);
   d.setMonth(d.getMonth() + months);
   return d;
+};
+
+// NOVO: Função para calcular a idade exata (MOVIDA PARA FORA DO COMPONENTE)
+const calcularIdadeExata = (dataNascimentoString) => {
+  if (!dataNascimentoString) return null;
+
+  const dataNascimento = new Date(dataNascimentoString);
+  const hoje = new Date();
+
+  if (isNaN(dataNascimento)) return null;
+
+  let anos = hoje.getFullYear() - dataNascimento.getFullYear();
+  let meses = hoje.getMonth() - dataNascimento.getMonth();
+  let dias = hoje.getDate() - dataNascimento.getDate();
+
+  if (dias < 0) {
+    meses--;
+    dias += new Date(hoje.getFullYear(), hoje.getMonth(), 0).getDate();
+  }
+  if (meses < 0) {
+    anos--;
+    meses += 12;
+  }
+
+  const idadeDecimal = anos + meses / 12 + dias / 365.25;
+  return idadeDecimal;
 };
 
 const Reavaliacao = () => {
@@ -49,7 +78,7 @@ const Reavaliacao = () => {
     observacoes,
     inicio,
     proximaAvaliacao,
-    idade,
+    // Idade não precisa ser usada aqui, pois a calcularemos internamente se o hook não a fornecer.
     estado,
     setEstado,
   } = useAvaliacaoForm(alunos);
@@ -77,8 +106,7 @@ const Reavaliacao = () => {
       const lowerCaseAlunoId = cleanedAlunoId.toLowerCase();
       let querySnapshot;
 
-      // CORREÇÃO 1: Usar 'alunoId' (campo de nível raiz) para busca, em vez de 'aluno.id'
-      // Tentativa 1: Busca com o ID original (case-sensitive)
+      // Busca a última avaliação inicial
       let q = query(
         collection(db, "avaliacoesIniciais"),
         where("alunoId", "==", cleanedAlunoId),
@@ -87,7 +115,6 @@ const Reavaliacao = () => {
       );
       querySnapshot = await getDocs(q);
 
-      // Tentativa 2: Fallback para busca em minúsculas (para contornar inconsistência de case)
       if (querySnapshot.empty && cleanedAlunoId !== lowerCaseAlunoId) {
         q = query(
           collection(db, "avaliacoesIniciais"),
@@ -110,10 +137,8 @@ const Reavaliacao = () => {
 
       const alunoCompleto = alunos.find((a) => a.id === alunoId);
 
-      // Usar a data de hoje para o início da reavaliação
       const dataInicioReavaliacao = new Date().toISOString().split("T")[0];
 
-      // Calcular a data da próxima reavaliação (6 meses depois)
       const dataProximaReavaliacao = addMonths(new Date(), 6)
         .toISOString()
         .split("T")[0];
@@ -149,6 +174,7 @@ const Reavaliacao = () => {
     areasParaAbas,
   ]);
 
+  // CORREÇÃO: useEffect para carregar a avaliação
   useEffect(() => {
     if (alunoId && alunos.length > 0) {
       carregarUltimaAvaliacao();
@@ -174,7 +200,6 @@ const Reavaliacao = () => {
 
   const onSalvarReavaliacaoClick = useCallback(async () => {
     if (!inicio || !proximaAvaliacao || !alunoSelecionado) {
-      // Usando mensagem na tela em vez de alert()
       setEstado((prev) => ({
         ...prev,
         erro: "Por favor, preencha as datas de Início e Próxima Avaliação e selecione um aluno.",
@@ -184,11 +209,9 @@ const Reavaliacao = () => {
 
     setEstado({ salvando: true, erro: null });
 
-    // CORREÇÃO 2: Adicionar 'alunoId' no nível raiz para que a busca funcione
     const dadosParaSalvar = {
-      alunoId: alunoSelecionado.id, // CAMPO CRÍTICO para as queries
+      alunoId: alunoSelecionado.id,
       aluno: {
-        // Reduzido para consistência
         nome: alunoSelecionado.nome,
       },
       turma: alunoSelecionado.turma,
@@ -207,7 +230,6 @@ const Reavaliacao = () => {
     try {
       await addDoc(collection(db, "avaliacoesIniciais"), dadosParaSalvar);
       setEstado({ sucesso: "Reavaliação salva com sucesso!", salvando: false });
-      // Redireciona após o salvamento
       setTimeout(() => navigate("/ver-avaliacoes"), 1500);
     } catch (error) {
       console.error("Erro ao salvar reavaliação:", error);
@@ -223,6 +245,25 @@ const Reavaliacao = () => {
     navigate,
     setEstado,
   ]);
+
+  // NOVO: Função para formatar a idade para exibição
+  const formatarIdadeExibicao = useCallback((aluno) => {
+    const dataNascimento = aluno?.nascimento;
+    const idadeDecimal = calcularIdadeExata(dataNascimento);
+    const idadeNum = Number(idadeDecimal);
+
+    if (isNaN(idadeNum) || idadeNum <= 0) {
+      return "N/A";
+    }
+    const idadeAnos = Math.floor(idadeNum);
+    const idadeMeses = Math.round((idadeNum - idadeAnos) * 12);
+
+    let resultado = `${idadeAnos} ano${idadeAnos !== 1 ? "s" : ""}`;
+    if (idadeMeses > 0) {
+      resultado += ` e ${idadeMeses} mes${idadeMeses !== 1 ? "es" : ""}`;
+    }
+    return resultado;
+  }, []);
 
   const carregandoGeral =
     carregandoAlunos || estado.carregandoAvaliacao || estado.salvando;
@@ -250,9 +291,27 @@ const Reavaliacao = () => {
 
       {alunoSelecionado && !carregandoAlunos && !estado.carregandoAvaliacao && (
         <>
-          <p className="aluno-idade">
-            Idade: <strong>{idade}</strong> anos
-          </p>
+          {/* --- NOVO BLOCO: FOTO E IDADE --- */}
+          <div style={estilos.infoGeralContainer}>
+            {/* FOTO / PLACEHOLDER */}
+            <div style={estilos.fotoContainer}>
+              {alunoSelecionado.fotoUrl ? (
+                <img
+                  src={alunoSelecionado.fotoUrl}
+                  alt={`Foto de ${alunoSelecionado.nome}`}
+                  style={estilos.foto}
+                />
+              ) : (
+                <FaUserCircle style={estilos.fotoPlaceholder} />
+              )}
+            </div>
+
+            {/* IDADE */}
+            <p className="aluno-idade" style={estilos.idadeText}>
+              Idade: <strong>{formatarIdadeExibicao(alunoSelecionado)}</strong>
+            </p>
+          </div>
+          {/* --- FIM DO BLOCO FOTO/IDADE --- */}
 
           <div className="date-inputs-container">
             <div className="date-input-group">
@@ -315,6 +374,44 @@ const Reavaliacao = () => {
       )}
     </div>
   );
+};
+
+// --- Estilos Inline Replicados de AvaliacaoInicial.js (Para a Foto) ---
+const estilos = {
+  infoGeralContainer: {
+    display: "flex",
+    alignItems: "center",
+    marginBottom: "20px",
+    paddingBottom: "20px",
+    borderBottom: "1px solid #e2e8f0",
+  },
+  fotoContainer: {
+    width: "70px",
+    height: "70px",
+    borderRadius: "50%",
+    overflow: "hidden",
+    marginRight: "15px",
+    flexShrink: 0,
+    border: "2px solid #4c51bf", // Cor primária
+    backgroundColor: "#edf2f7",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  foto: {
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+  },
+  fotoPlaceholder: {
+    fontSize: "2.5em",
+    color: "#4c51bf",
+  },
+  idadeText: {
+    margin: 0,
+    fontSize: "1.1rem",
+    color: "#4a5568",
+  },
 };
 
 export default Reavaliacao;

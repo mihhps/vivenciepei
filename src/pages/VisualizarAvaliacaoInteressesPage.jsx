@@ -1,16 +1,59 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom"; // Adicionado useLocation
 import { db } from "../firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { useAlunos } from "../hooks/useAlunos";
 import SelecaoAluno from "../components/SelecaoAluno";
-import "../styles/AvaliacaoInteressesPage.css";
+import "../styles/AvaliacaoInteressesPage.css"; // Manter para estilos globais, se houver
 import { useAuth } from "../context/AuthContext";
 import { gerarPDFCompleto } from "../utils/gerarPDFCompleto";
 import styled from "styled-components";
-import { FaFilePdf } from "react-icons/fa";
+import { FaFilePdf, FaUserCircle, FaPuzzlePiece } from "react-icons/fa"; // NOVO: Ícones
 
-// --- NOVOS COMPONENTES ESTILIZADOS ---
+// --- Funções Auxiliares (Copiadas do VisualizarPei.jsx ou adaptadas) ---
+// NOVO: Função para calcular a idade exata em anos e meses
+const calcularIdadeCompleta = (dataNascimento) => {
+  if (!dataNascimento) return "N/A";
+
+  const dataNasc =
+    typeof dataNascimento.toDate === "function"
+      ? dataNascimento.toDate()
+      : new Date(dataNascimento);
+  const hoje = new Date();
+
+  if (isNaN(dataNasc)) return "N/A";
+
+  let anos = hoje.getFullYear() - dataNasc.getFullYear();
+  let meses = hoje.getMonth() - dataNasc.getMonth();
+
+  if (meses < 0 || (meses === 0 && hoje.getDate() < dataNasc.getDate())) {
+    anos--;
+    meses = 12 + meses;
+  }
+
+  const idadeAnos = Math.floor(anos);
+  const idadeMeses = meses;
+
+  let resultado = `${idadeAnos} ano${idadeAnos !== 1 ? "s" : ""}`;
+  if (idadeMeses > 0) {
+    resultado += ` e ${idadeMeses} mes${idadeMeses !== 1 ? "es" : ""}`;
+  }
+  return resultado;
+};
+
+const formatarData = (data) => {
+  if (!data) return "-";
+  const dateObj =
+    typeof data.toDate === "function" ? data.toDate() : new Date(data);
+  if (isNaN(dateObj.getTime())) return "-";
+  const dia = String(dateObj.getDate()).padStart(2, "0");
+  const mes = String(dateObj.getMonth() + 1).padStart(2, "0");
+  const ano = dateObj.getFullYear();
+  return `${dia}-${mes}-${ano}`;
+};
+// --- FIM Funções Auxiliares ---
+
+// --- COMPONENTES ESTILIZADOS (Mantidos do original e adicionados os novos do VisualizarPei) ---
 const FormActions = styled.div`
   display: flex;
   justify-content: center;
@@ -29,9 +72,7 @@ const PdfButtonContainer = styled.div`
   border-radius: 50%;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   cursor: pointer;
-  transition:
-    background-color 0.3s ease,
-    transform 0.3s ease;
+  transition: background-color 0.3s ease, transform 0.3s ease;
 
   &:hover {
     background-color: #3b6883;
@@ -117,7 +158,69 @@ const AvaliacaoContainer = styled.div`
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   font-family: "Segoe UI", sans-serif;
 `;
-// --- FIM DOS COMPONENTES ESTILIZADOS ---
+
+// NOVOS ESTILOS (copiados/adaptados de estilos.infoGeralContainer do VisualizarPei.jsx)
+const InfoGeralContainer = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  margin-bottom: 30px;
+  padding: 15px;
+  background-color: #f7f9fc;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+`;
+
+const FotoContainer = styled.div`
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 3px solid #4c51bf;
+  background-color: #edf2f7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const Foto = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+`;
+
+const FotoPlaceholder = styled(FaUserCircle)`
+  font-size: 3em;
+  color: #4c51bf;
+`;
+
+const DetalhesWrapper = styled.div`
+  flex-grow: 1;
+`;
+
+const NomeText = styled.h3`
+  font-size: 1.6em;
+  color: #1d3557;
+  font-weight: 700;
+  margin: 0 0 5px 0;
+  display: flex; /* Para alinhar o ícone TEA */
+  align-items: center;
+`;
+
+const TeaBadge = styled(FaPuzzlePiece)`
+  font-size: 1em;
+  color: #29abe2;
+  margin-left: 10px;
+`;
+
+const Detalhe = styled.p`
+  font-size: 0.95em;
+  color: #4a5568;
+  margin: 0 0 3px 0;
+  line-height: 1.4;
+`;
+// --- FIM DOS NOVOS COMPONENTES ESTILIZADOS ---
 
 // --- Listas de Itens para Rádios (Mantidas para renderização) ---
 const ATIVIDADES_FAVORITAS_LIST = [
@@ -172,9 +275,10 @@ const SITUACOES_DESREGULACAO_LIST = [
 function VisualizarAvaliacaoInteressesPage() {
   const { alunoId: alunoIdFromParams } = useParams();
   const navigate = useNavigate();
+  const location = useLocation(); // Adicionado para BotaoVoltar
   const { userId, isAuthReady, currentUser } = useAuth();
 
-  const [aluno, setAluno] = useState(null);
+  const [aluno, setAluno] = useState(null); // Refere-se aos dados completos do aluno
   const [alunoSelecionadoDropdown, setAlunoSelecionadoDropdown] =
     useState(null);
   const [avaliacaoData, setAvaliacaoData] = useState(null);
@@ -216,7 +320,7 @@ function VisualizarAvaliacaoInteressesPage() {
       setCarregando(true);
       setErro(null);
       setAvaliacaoData(null);
-      setAluno(null);
+      setAluno(null); // Resetar aluno também
 
       try {
         // Busca os dados do aluno (lógica mantida)
@@ -229,21 +333,17 @@ function VisualizarAvaliacaoInteressesPage() {
           return;
         }
         const fetchedAluno = { id: alunoDocSnap.id, ...alunoDocSnap.data() };
-        setAluno(fetchedAluno);
+        setAluno(fetchedAluno); // ATUALIZADO: Salva os dados completos do aluno
 
-        // **** ALTERAÇÃO INICIADA ****
-        // Agora busca a avaliação diretamente do caminho público.
+        // Busca a avaliação de interesses
         const appId =
           typeof __app_id !== "undefined" ? __app_id : "default-app-id";
         const avaliacaoDocPath = `artifacts/${appId}/public/data/avaliacoesInteresses/${fetchedAluno.id}`;
         const avaliacaoDocRef = doc(db, avaliacaoDocPath);
         const avaliacaoDocSnap = await getDoc(avaliacaoDocRef);
-        // **** ALTERAÇÃO FINALIZADA ****
 
         if (avaliacaoDocSnap.exists()) {
-          // **** CORREÇÃO DO BUG ****
-          // Acessa o campo 'data' dentro do documento da avaliação.
-          setAvaliacaoData(avaliacaoDocSnap.data().data);
+          setAvaliacaoData(avaliacaoDocSnap.data().data); // Acessa o campo 'data'
         } else {
           setErro("Avaliação de interesses não encontrada para este aluno.");
         }
@@ -322,7 +422,6 @@ function VisualizarAvaliacaoInteressesPage() {
       await gerarPDFCompleto({
         aluno,
         avaliacaoInteresses: avaliacaoData,
-        // Se houver outras avaliações, elas podem ser passadas aqui
         responsavel: currentUser.nome || "Não identificado",
       });
     } catch (pdfError) {
@@ -335,6 +434,13 @@ function VisualizarAvaliacaoInteressesPage() {
 
   const carregandoGeral = carregando || carregandoAlunosFromHook;
 
+  // NOVO: Cálculo para exibição da idade e status TEA
+  const idadeCompletaExibicao = aluno?.nascimento
+    ? calcularIdadeCompleta(aluno.nascimento)
+    : "N/A";
+  const alunoTea =
+    aluno?.diagnostico && aluno.diagnostico.toLowerCase().includes("tea");
+
   if (!isAuthReady) {
     return (
       <div className="view-container loading">Carregando autenticação...</div>
@@ -342,32 +448,35 @@ function VisualizarAvaliacaoInteressesPage() {
   }
 
   return (
-    <div className="avaliacao-container">
+    <AvaliacaoContainer>
+      {" "}
+      {/* Use AvaliacaoContainer como o div principal */}
       <AvaliacaoHeader>
-        <BackButton onClick={() => navigate(-1)}>&larr; Voltar</BackButton>
+        <BackButton onClick={() => navigate(location.state?.from || -1)}>
+          &larr; Voltar
+        </BackButton>
         <PageTitle>
           Visualização da Avaliação de Interesses e Gatilhos
         </PageTitle>
         <HeaderButtonsGroup>
-          {alunoSelecionadoDropdown && avaliacaoData && (
-            <PdfButtonContainer
-              onClick={handleGerarPdfAvaliacaoInteresses}
-              role="button"
-              aria-label="Gerar PDF Completo da Avaliação"
-              disabled={gerandoPdf}
-            >
-              <FaFilePdf size={20} color="#f4f4f4" />
-              <TooltipText>Gerar PDF Completo</TooltipText>
-            </PdfButtonContainer>
-          )}
+          {aluno &&
+            avaliacaoData && ( // Só mostra o botão PDF se tiver aluno e avaliação
+              <PdfButtonContainer
+                onClick={handleGerarPdfAvaliacaoInteresses}
+                role="button"
+                aria-label="Gerar PDF Completo da Avaliação"
+                disabled={gerandoPdf}
+              >
+                <FaFilePdf size={20} color="#f4f4f4" />
+                <TooltipText>Gerar PDF Completo</TooltipText>
+              </PdfButtonContainer>
+            )}
         </HeaderButtonsGroup>
       </AvaliacaoHeader>
-
       {erroAlunosFromHook && (
         <div className="mensagem-erro">{erroAlunosFromHook}</div>
       )}
       {erro && <div className="mensagem-erro">{erro}</div>}
-
       {carregandoAlunosFromHook ? (
         <div className="loading-message">Carregando lista de alunos...</div>
       ) : (
@@ -378,19 +487,45 @@ function VisualizarAvaliacaoInteressesPage() {
           disabled={carregandoGeral}
         />
       )}
-
       {carregando && !carregandoAlunosFromHook && (
         <div className="loading-message">Carregando avaliação do aluno...</div>
       )}
-
       {alunoSelecionadoDropdown && avaliacaoData && aluno ? (
         <div className="avaliacao-form">
-          <h2 className="aluno-nome-header">
+          {/* --- NOVO BLOCO: INFORMAÇÕES DO ALUNO (FOTO/DETALHES) --- */}
+          <InfoGeralContainer>
+            {/* FOTO / PLACEHOLDER */}
+            <FotoContainer>
+              {aluno.fotoUrl ? (
+                <Foto src={aluno.fotoUrl} alt={`Foto de ${aluno.nome}`} />
+              ) : (
+                <FotoPlaceholder />
+              )}
+            </FotoContainer>
+
+            {/* DETALHES */}
+            <DetalhesWrapper>
+              <NomeText>
+                {aluno.nome}
+                {alunoTea && <TeaBadge title="Aluno com TEA" />}
+              </NomeText>
+              <Detalhe>
+                <strong>Idade:</strong> {idadeCompletaExibicao}
+              </Detalhe>
+              <Detalhe>
+                <strong>Turma:</strong> {aluno.turma || "-"}
+              </Detalhe>
+              <Detalhe>
+                <strong>Diagnóstico:</strong> {aluno.diagnostico || "-"}
+              </Detalhe>
+            </DetalhesWrapper>
+          </InfoGeralContainer>
+          {/* --- FIM DO BLOCO FOTO/DETALHES --- */}
+          {/* <h2 className="aluno-nome-header">
             Aluno: <strong>{aluno.nome || "Nome Indisponível"}</strong>
-          </h2>
-
+          </h2> */}{" "}
+          {/* Removido, substituído pelo bloco acima */}
           <FormActions>{/* O botão foi movido para o cabeçalho */}</FormActions>
-
           <section className="form-section">
             <h2>Seção 1: Interesses e Pontos Fortes</h2>
 
@@ -482,7 +617,6 @@ function VisualizarAvaliacaoInteressesPage() {
               )}
             </div>
           </section>
-
           <section className="form-section">
             <h2>Seção 2: Gatilhos de Desregulação e Desconforto</h2>
 
@@ -597,7 +731,6 @@ function VisualizarAvaliacaoInteressesPage() {
               )}
             </div>
           </section>
-
           <section className="form-section">
             <h2>Seção 3: Estratégias e Apoio</h2>
 
@@ -693,7 +826,7 @@ function VisualizarAvaliacaoInteressesPage() {
           </div>
         )
       )}
-    </div>
+    </AvaliacaoContainer>
   );
 }
 

@@ -1,16 +1,16 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import BotaoVoltar from "../components/BotaoVoltar";
+import { FaUserCircle } from "react-icons/fa"; // NOVO: Ícone para placeholder
 
-// Importações dos dados para preencher objetivos, se necessário
-// Importe esses arquivos, pois o VisualizarPei também precisa deles para compatibilidade
-import estruturaPEI from "../data/estruturaPEI2"; // Seu arquivo principal (para objetivo de LONGO PRAZO e estratégias)
+// Importações dos dados
+import estruturaPEI from "../data/estruturaPEI2";
 import objetivosCurtoPrazoData from "../data/objetivosCurtoPrazo";
 import objetivosMedioPrazoData from "../data/objetivosMedioPrazo";
 
-// --- Funções de Mapeamento de Dados (Replicadas do gerarPDFCompleto.js / CriarPEI.jsx) ---
+// --- Funções de Mapeamento de Dados (Mantidas) ---
 const getEstruturaPEIMap = (estrutura) => {
   const map = {};
   if (!estrutura) return map;
@@ -79,14 +79,13 @@ const coresPorNivel = {
   AF: "#fff2cc",
   AG: "#d0f0c0",
   AV: "#eeeeee",
-  AVi: "#cce5ff", // Mudei para uma cor diferente de AF
+  AVi: "#cce5ff",
   I: "#f0ccff",
 };
 
 function calcularIdadeEFaixa(nascimento) {
   if (!nascimento) return ["-", "-"];
   const hoje = new Date();
-  // Garante que a data de nascimento é um objeto Date
   const nasc =
     typeof nascimento.toDate === "function"
       ? nascimento.toDate()
@@ -99,26 +98,52 @@ function calcularIdadeEFaixa(nascimento) {
     idade <= 3
       ? "0-3 anos"
       : idade <= 5
-        ? "4-5 anos"
-        : idade <= 8
-          ? "6-8 anos"
-          : idade <= 11
-            ? "9-11 anos"
-            : "12+ anos";
+      ? "4-5 anos"
+      : idade <= 8
+      ? "6-8 anos"
+      : idade <= 11
+      ? "9-11 anos"
+      : "12+ anos";
   return [idade, faixa];
 }
 
 function formatarData(data) {
   if (!data) return "-";
-  // Verifica se é um Timestamp do Firestore e converte
   const dateObj =
     typeof data.toDate === "function" ? data.toDate() : new Date(data);
-  if (isNaN(dateObj.getTime())) return "-"; // Verifica se a data é válida
+  if (isNaN(dateObj.getTime())) return "-";
   const dia = String(dateObj.getDate()).padStart(2, "0");
   const mes = String(dateObj.getMonth() + 1).padStart(2, "0");
   const ano = dateObj.getFullYear();
   return `${dia}-${mes}-${ano}`;
 }
+
+// NOVO: Função para calcular a idade exata em anos e meses
+const calcularIdadeCompleta = (dataNascimentoString) => {
+  if (!dataNascimentoString) return "N/A";
+
+  const dataNascimento = new Date(dataNascimentoString);
+  const hoje = new Date();
+
+  if (isNaN(dataNascimento)) return "N/A";
+
+  let anos = hoje.getFullYear() - dataNascimento.getFullYear();
+  let meses = hoje.getMonth() - dataNascimento.getMonth();
+
+  if (meses < 0 || (meses === 0 && hoje.getDate() < dataNascimento.getDate())) {
+    anos--;
+    meses = 12 + meses;
+  }
+
+  const idadeAnos = Math.floor(anos);
+  const idadeMeses = meses;
+
+  let resultado = `${idadeAnos} ano${idadeAnos !== 1 ? "s" : ""}`;
+  if (idadeMeses > 0) {
+    resultado += ` e ${idadeMeses} mes${idadeMeses !== 1 ? "es" : ""}`;
+  }
+  return resultado;
+};
 
 export default function VisualizarPei() {
   const { id } = useParams();
@@ -126,11 +151,10 @@ export default function VisualizarPei() {
   const navigate = useNavigate();
 
   const [pei, setPei] = useState(null);
-  const [alunoInfo, setAlunoInfo] = useState(null); // Para guardar info do aluno do Firebase
+  const [alunoInfo, setAlunoInfo] = useState(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState(null);
 
-  // Mapeamentos para buscar os objetivos de prazos específicos
   const estruturaPEIMap = useMemo(() => getEstruturaPEIMap(estruturaPEI), []);
   const objetivosCurtoPrazoMap = useMemo(
     () => getObjetivosPrazoMap(objetivosCurtoPrazoData),
@@ -148,10 +172,9 @@ export default function VisualizarPei() {
       let loadedPei = null;
       let loadedAluno = null;
 
-      // 1. Tentar carregar o PEI do location.state (vindo do VerPEIs)
+      // 1. Tentar carregar o PEI do location.state
       if (location.state && location.state.pei) {
         loadedPei = location.state.pei;
-        // Se o aluno completo também foi passado no state, use-o
         if (location.state.aluno) {
           loadedAluno = location.state.aluno;
         }
@@ -170,7 +193,6 @@ export default function VisualizarPei() {
 
       // 3. Buscar informações completas do aluno, se ainda não tiver
       if (!loadedAluno && loadedPei.alunoId) {
-        // Assumindo que 'alunoId' existe no PEI
         const alunoRef = doc(db, "alunos", loadedPei.alunoId);
         const alunoSnap = await getDoc(alunoRef);
         if (alunoSnap.exists()) {
@@ -228,8 +250,8 @@ export default function VisualizarPei() {
         const estrategiasPadrao = Array.isArray(meta.estrategias)
           ? meta.estrategias
           : Array.isArray(meta.estrategiasSelecionadas)
-            ? meta.estrategiasSelecionadas
-            : [];
+          ? meta.estrategiasSelecionadas
+          : [];
 
         return {
           ...meta,
@@ -274,7 +296,6 @@ export default function VisualizarPei() {
   }
 
   if (!pei || !alunoInfo) {
-    // Verifica se alunoInfo também está carregado
     return (
       <div style={estilos.container}>
         <div style={estilos.card}>
@@ -286,6 +307,10 @@ export default function VisualizarPei() {
   }
 
   const [idade, faixa] = calcularIdadeEFaixa(alunoInfo.nascimento);
+  const idadeCompletaExibicao = calcularIdadeCompleta(alunoInfo.nascimento); // Idade formatada
+  const alunoTea =
+    alunoInfo.diagnostico &&
+    alunoInfo.diagnostico.toLowerCase().includes("tea");
 
   const metasAgrupadas = {};
   pei.resumoPEI?.forEach((meta) => {
@@ -300,43 +325,64 @@ export default function VisualizarPei() {
   return (
     <div style={estilos.container}>
       <div style={estilos.card}>
-        {/* Usar o 'to' no BotaoVoltar para que ele possa voltar para a aba correta em /ver-peis */}
         <BotaoVoltar to={location.state?.voltarPara || "/ver-peis"} />
         <h2 style={estilos.titulo}>Plano Educacional Individualizado (PEI)</h2>
 
-        <div style={estilos.infoAluno}>
-          <p>
-            <strong>Aluno:</strong> {alunoInfo.nome}
-          </p>
-          <p>
-            <strong>Idade:</strong> {idade} anos ({faixa})
-          </p>
-          <p>
-            <strong>Turma:</strong> {alunoInfo.turma || pei.turma}
-          </p>
-          <p>
-            <strong>Diagnóstico:</strong> {alunoInfo.diagnostico || "-"}
-          </p>
+        {/* --- NOVO BLOCO: INFORMAÇÕES DO ALUNO (FOTO/DETALHES) --- */}
+        <div style={estilos.infoGeralContainer}>
+          {/* FOTO / PLACEHOLDER */}
+          <div style={estilos.fotoContainer}>
+            {alunoInfo.fotoUrl ? (
+              <img
+                src={alunoInfo.fotoUrl}
+                alt={`Foto de ${alunoInfo.nome}`}
+                style={estilos.foto}
+              />
+            ) : (
+              <FaUserCircle style={estilos.fotoPlaceholder} />
+            )}
+          </div>
+
+          {/* DETALHES */}
+          <div style={estilos.detalhesWrapper}>
+            <h3 style={estilos.nomeText}>
+              {alunoInfo.nome}
+              {alunoTea && (
+                <FaPuzzlePiece style={estilos.teaBadge} title="Aluno com TEA" />
+              )}
+            </h3>
+            <p style={estilos.detalhe}>
+              <strong>Idade:</strong> {idadeCompletaExibicao}
+            </p>
+            <p style={estilos.detalhe}>
+              <strong>Turma:</strong> {alunoInfo.turma || pei.turma}
+            </p>
+            <p style={estilos.detalhe}>
+              <strong>Diagnóstico:</strong> {alunoInfo.diagnostico || "-"}
+            </p>
+          </div>
+        </div>
+        {/* --- FIM DO BLOCO FOTO/DETALHES --- */}
+
+        <div style={estilos.infoPei}>
           <p>
             <strong>Início do PEI:</strong> {formatarData(pei.dataCriacao)}
           </p>
           <p>
-            <strong>Última Revisão do PEI:</strong>{" "}
-            {formatarData(pei.dataUltimaRevisao)}
+            <strong>Última Revisão:</strong>{" "}
+            {formatarData(pei.dataUltimaRevisao) ||
+              formatarData(pei.dataCriacao)}
           </p>
           <p>
-            <strong>Criado por:</strong> {pei.nomeCriador || "-"}
+            <strong>Elaborado por:</strong> {pei.nomeCriador || "-"}
           </p>
         </div>
-
-        <hr style={{ margin: "30px 0" }} />
 
         <h3 style={estilos.subtitulo}>Metas por Área</h3>
 
         {Object.entries(metasAgrupadas).map(([area, subareas], i) => (
           <div key={i} style={{ marginBottom: "40px" }}>
-            <h4 style={estilos.tituloArea}>{area}</h4>{" "}
-            {/* Usar estilo específico */}
+            <h4 style={estilos.tituloArea}>{area}</h4>
             {Object.entries(subareas).map(([subarea, metas], j) => (
               <div key={j} style={estilos.blocoSubarea}>
                 {subarea !== "Sem Subárea" && (
@@ -344,14 +390,11 @@ export default function VisualizarPei() {
                 )}
                 <table style={estilos.tabela}>
                   <thead>
-                    <tr style={{ backgroundColor: "#f1f1f1" }}>
+                    <tr style={{ backgroundColor: "#eef2f5" }}>
                       <th style={estilos.cell}>Habilidade</th>
-                      <th style={estilos.cellNivel}>Nível Atual</th>{" "}
-                      {/* <-- Corrigido */}
-                      <th style={estilos.cellNivel}>Nível Almejado</th>{" "}
-                      {/* <-- Corrigido */}
-                      <th style={estilos.cell}>Objetivos (CP/MP/LP)</th>{" "}
-                      {/* Atualizado */}
+                      <th style={estilos.cellNivel}>Nível Atual</th>
+                      <th style={estilos.cellNivel}>Nível Almejado</th>
+                      <th style={estilos.cell}>Objetivos (CP/MP/LP)</th>
                       <th style={estilos.cell}>Estratégias</th>
                     </tr>
                   </thead>
@@ -365,12 +408,8 @@ export default function VisualizarPei() {
                         }}
                       >
                         <td style={estilos.cell}>{meta.habilidade}</td>
-                        <td style={estilos.cellNivel}>{meta.nivel}</td>{" "}
-                        {/* Centralizar nível */}
-                        <td style={estilos.cellNivel}>
-                          {meta.nivelAlmejado}
-                        </td>{" "}
-                        {/* Centralizar nível */}
+                        <td style={estilos.cellNivel}>{meta.nivel}</td>
+                        <td style={estilos.cellNivel}>{meta.nivelAlmejado}</td>
                         <td style={estilos.cell}>
                           <p>
                             <strong>Curto Prazo:</strong>{" "}
@@ -404,15 +443,13 @@ export default function VisualizarPei() {
             ))}
           </div>
         ))}
-        {/* 👇👇 SUBSTITUA O BLOCO ANTIGO POR ESTE 👇👇 */}
+
         {pei.atividadeAplicada && (
           <div style={estilos.blocoSubarea}>
-            {" "}
-            {/* Adicionamos o 'bloco' aqui */}
             <h3 style={estilos.subtitulo}>Atividade Aplicada</h3>
             <table style={estilos.tabela}>
               <thead>
-                <tr style={{ backgroundColor: "#f1f1f1" }}>
+                <tr style={{ backgroundColor: "#eef2f5" }}>
                   <th style={estilos.cell}>Descrição da Atividade</th>
                 </tr>
               </thead>
@@ -424,11 +461,10 @@ export default function VisualizarPei() {
             </table>
           </div>
         )}
-        {/* 👆👆 FIM DA SUBSTITUIÇÃO 👆👆 */}
+
         <div style={{ marginTop: "50px", textAlign: "right" }}>
           <p>
-            <strong>Elaborado por:</strong> {pei.nomeCriador || "-"} (
-            {pei.cargoCriador || "-"})
+            <strong>Criado por:</strong> {pei.nomeCriador || "-"}
           </p>
         </div>
       </div>
@@ -440,7 +476,7 @@ const estilos = {
   container: {
     display: "flex",
     justifyContent: "center",
-    padding: "40px", // Reduzido de 150px para melhor visualização em telas menores
+    padding: "40px",
     fontFamily: "'Segoe UI', sans-serif",
     backgroundColor: "#f8f9fa",
   },
@@ -451,13 +487,16 @@ const estilos = {
     padding: "40px",
     borderRadius: "20px",
     boxShadow: "0 0 20px rgba(0,0,0,0.1)",
-    position: "relative", // Para o BotaoVoltar
+    position: "relative",
   },
   titulo: {
     textAlign: "center",
     fontSize: "24px",
     color: "#1d3557",
     marginBottom: "30px",
+    marginTop: "20px",
+    borderBottom: "1px solid #e0e0e0",
+    paddingBottom: "10px",
   },
   subtitulo: {
     fontSize: "20px",
@@ -466,19 +505,71 @@ const estilos = {
   },
   // Novo estilo para o título da área para diferenciá-lo do subtítulo da subárea
   tituloArea: {
-    fontSize: "1.5em", // Um pouco maior que o subtítulo da subárea
+    fontSize: "1.5em",
     color: "#1d3557",
     marginBottom: "15px",
     borderBottom: "2px solid #1d3557",
     paddingBottom: "5px",
   },
   tituloSubarea: {
-    fontSize: "1.1em", // Menor que o título da área, mas maior que o corpo
+    fontSize: "1.1em",
     color: "#457b9d",
     marginBottom: "10px",
     fontWeight: "bold",
   },
-  infoAluno: {
+  // --- ESTILOS DE INFORMAÇÃO GERAL (FOTO/DETALHES) ---
+  infoGeralContainer: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: "20px",
+    marginBottom: "30px",
+    padding: "15px",
+    backgroundColor: "#f7f9fc",
+    borderRadius: "10px",
+    border: "1px solid #e2e8f0",
+  },
+  fotoContainer: {
+    width: "80px",
+    height: "80px",
+    borderRadius: "50%",
+    overflow: "hidden",
+    flexShrink: 0,
+    border: "3px solid #4c51bf",
+    backgroundColor: "#edf2f7",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  foto: {
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+  },
+  fotoPlaceholder: {
+    fontSize: "3em",
+    color: "#4c51bf",
+  },
+  detalhesWrapper: {
+    flexGrow: 1,
+  },
+  nomeText: {
+    fontSize: "1.6em",
+    color: "#1d3557",
+    fontWeight: "700",
+    margin: "0 0 5px 0",
+  },
+  teaBadge: {
+    fontSize: "1em",
+    color: "#29ABE2",
+    marginLeft: "10px",
+  },
+  detalhe: {
+    fontSize: "0.95em",
+    color: "#4a5568",
+    margin: "0 0 3px 0",
+    lineHeight: "1.4",
+  },
+  infoPei: {
     fontSize: "1em",
     lineHeight: "1.8",
     marginBottom: "20px",
@@ -487,6 +578,8 @@ const estilos = {
     borderRadius: "10px",
     border: "1px solid #d0e0ea",
   },
+  // --- FIM DOS ESTILOS DE INFORMAÇÃO GERAL ---
+
   blocoSubarea: {
     marginBottom: "30px",
     padding: "20px",
@@ -497,22 +590,21 @@ const estilos = {
   tabela: {
     width: "100%",
     borderCollapse: "collapse",
-    fontSize: "0.9em", // Ajustado para ser legível
+    fontSize: "0.9em",
   },
   cell: {
     border: "1px solid #ccc",
-    padding: "8px", // Padding ajustado
+    padding: "8px",
     verticalAlign: "top",
-    whiteSpace: "pre-wrap", // Mantém a quebra de linha
-    wordBreak: "break-word", // Quebra palavras longas
+    whiteSpace: "pre-wrap",
+    wordBreak: "break-word",
   },
   cellNivel: {
-    // Estilo para centralizar os níveis
     border: "1px solid #ccc",
     padding: "8px",
     verticalAlign: "middle",
-    textAlign: "center", // Centraliza o texto
+    textAlign: "center",
     fontWeight: "bold",
-    whiteSpace: "nowrap", // Evita quebra de linha para siglas curtas
+    whiteSpace: "nowrap",
   },
 };

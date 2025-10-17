@@ -76,9 +76,7 @@
   font-size: 17px;
   font-weight: bold;
   color: #333;
-  transition:
-    background-color 0.3s ease,
-    color 0.3s ease;
+  transition: background-color 0.3s ease, color 0.3s ease;
   font-family: inherit;
   text-align: left;
 }
@@ -105,9 +103,7 @@
   font-size: 20px;
   color: #a0a0a0;
   margin-left: 15px;
-  transition:
-    transform 0.3s ease,
-    color 0.3s ease;
+  transition: transform 0.3s ease, color 0.3s ease;
   flex-shrink: 0;
 }
 
@@ -123,9 +119,7 @@
   max-height: 0;
   /* CORREÇÃO: Também garante que o conteúdo visível não seja cortado */
   overflow: visible;
-  transition:
-    max-height 0.5s ease-in-out,
-    padding 0.5s ease-in-out;
+  transition: max-height 0.5s ease-in-out, padding 0.5s ease-in-out;
 }
 
 .accordion-content.open {
@@ -138,11 +132,12 @@
 .linha-habilidade {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  /* CORREÇÃO PRINCIPAL DO DESALINHAMENTO: Alinha itens ao topo */
+  align-items: flex-start;
   border-bottom: 1px solid #f0f0f0;
   padding: 12px 0;
   margin-bottom: 0;
-  flex-wrap: wrap;
+  flex-wrap: nowrap; /* Impede que os níveis caiam para a linha de baixo em telas menores */
 }
 .linha-habilidade:last-child {
   border-bottom: none;
@@ -150,7 +145,8 @@
 
 /* Estilos para o texto da habilidade */
 .texto-habilidade {
-  flex: 1 1 65%;
+  /* Aumentando a flex-basis para dar mais espaço ao texto (de 65% para 70%) */
+  flex: 1 1 70%;
   font-size: 15px;
   color: #444;
   padding-right: 20px;
@@ -158,6 +154,22 @@
   box-sizing: border-box;
   min-width: 280px;
   line-height: 1.4;
+
+  /* CORREÇÃO CRÍTICA PARA O VAZAMENTO DE TEXTO */
+  word-wrap: break-word;
+  word-break: break-all;
+}
+
+/* ESTILO DO SEPARADOR (Autonomia e Convivência) */
+.subarea-separador {
+  display: block !important;
+  width: 100%;
+  margin: 15px 0 5px 0;
+  padding: 5px 0;
+  font-size: 17px !important;
+  color: #1d3557 !important;
+  font-weight: 700 !important;
+  border-bottom: none !important;
 }
 
 /* Estilos para o contêiner dos botões de nível */
@@ -165,7 +177,8 @@
   display: flex;
   gap: 5px;
   flex-wrap: nowrap;
-  align-items: center;
+  /* Garante que os botões (círculos) estejam alinhados ao topo */
+  align-items: flex-start;
   flex-shrink: 0;
   flex-basis: auto;
 }
@@ -183,10 +196,7 @@
   justify-content: center;
   opacity: 0.6;
   cursor: pointer;
-  transition:
-    opacity 0.2s,
-    outline 0.2s,
-    transform 0.2s;
+  transition: opacity 0.2s, outline 0.2s, transform 0.2s;
   user-select: none;
   border: 1px solid rgba(0, 0, 0, 0.1);
   /* CORREÇÃO: Torna o círculo o ponto de referência para o tooltip */
@@ -299,7 +309,7 @@
   padding: 8px 10px;
 
   position: absolute;
-  z-index: 10; /* CORREÇÃO: Aumenta o z-index para garantir que fique na frente */
+  z-index: 10;
   bottom: 150%;
   left: 50%;
   transform: translateX(-50%);

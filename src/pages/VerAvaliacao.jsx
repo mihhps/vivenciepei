@@ -1,4 +1,6 @@
-import React, { useEffect, useState, useMemo } from "react";
+// src/pages/VerAvaliacao.jsx (CORRIGIDO COM FOTO)
+
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 // Importações do Firestore (mantidas)
 import {
@@ -8,15 +10,12 @@ import {
   query,
   where,
   getDocs,
+  orderBy,
 } from "firebase/firestore";
-// Presume-se que 'db' esteja sendo importado de um arquivo 'firebase.js'
-// Como não temos o arquivo, faremos a importação do `db` vir do contexto
-// Se este componente usa o hook useAuth, db será obtido de lá.
-// Por enquanto, mantenho a importação local de `db` (se for o caso)
-// import { db } from "../firebase"; // COMENTADO: O CONTEXTO DEVE FORNECER db
 
+import { useAuth } from "../context/AuthContext";
+import { FaUserCircle } from "react-icons/fa"; // NOVO: Importar ícone para placeholder
 import { avaliacaoInicial } from "../data/avaliacaoInicialData";
-import { useAuth } from "../context/AuthContext"; // Importação do useAuth
 
 // ÍCONES SVG INLINE (sem alterações, mantidos como no original)
 const ArrowLeftIcon = (props) => (
@@ -373,6 +372,32 @@ const formatarData = (dataInput) => {
   } catch (e) {
     return "Data inválida";
   }
+};
+// NOVO: Função para calcular a idade em anos e meses (baseado na data de nascimento)
+const calcularIdadeCompleta = (dataNascimentoString) => {
+  if (!dataNascimentoString) return "N/A";
+
+  const dataNascimento = new Date(dataNascimentoString);
+  const hoje = new Date();
+
+  if (isNaN(dataNascimento)) return "N/A";
+
+  let anos = hoje.getFullYear() - dataNascimento.getFullYear();
+  let meses = hoje.getMonth() - dataNascimento.getMonth();
+
+  if (meses < 0 || (meses === 0 && hoje.getDate() < dataNascimento.getDate())) {
+    anos--;
+    meses = 12 + meses;
+  }
+
+  const idadeAnos = Math.floor(anos);
+  const idadeMeses = meses;
+
+  let resultado = `${idadeAnos} ano${idadeAnos !== 1 ? "s" : ""}`;
+  if (idadeMeses > 0) {
+    resultado += ` e ${idadeMeses} mes${idadeMeses !== 1 ? "es" : ""}`;
+  }
+  return resultado;
 };
 
 // Componente DetalhesContent (sem alterações)
@@ -826,8 +851,28 @@ function VerAvaliacao() {
   const [avaliacaoComparacaoId, setAvaliacaoComparacaoId] = useState(null);
   const [activeTab, setActiveTab] = useState("Detalhes");
 
+  // Novo estado para armazenar os dados completos do aluno (incluindo foto/nascimento)
+  const [alunoDetalhes, setAlunoDetalhes] = useState(null);
+
   const PRIMARY_COLOR = "#1d3557";
   const ACCENT_COLOR = "#2a9d8f";
+
+  // NOVO: Função para buscar detalhes do aluno
+  const buscarDetalhesDoAluno = useCallback(
+    async (alunoId) => {
+      if (!alunoId || !dbInstance) return;
+      try {
+        const alunoDocRef = doc(dbInstance, "alunos", alunoId);
+        const alunoDocSnap = await getDoc(alunoDocRef);
+        if (alunoDocSnap.exists()) {
+          setAlunoDetalhes(alunoDocSnap.data());
+        }
+      } catch (error) {
+        console.error("Erro ao buscar detalhes do aluno:", error);
+      }
+    },
+    [dbInstance]
+  );
 
   useEffect(() => {
     if (!dbInstance) return;
@@ -848,6 +893,14 @@ function VerAvaliacao() {
           setHistoricoAvaliacoes(historico);
           setAvaliacaoBase(avaliacaoMaisRecente);
 
+          // Chamar a busca de detalhes do aluno, usando o alunoId da avaliação
+          // Assumindo que o ID do aluno está no campo 'alunoId' ou 'aluno.id' da avaliação
+          const alunoIdDaAvaliacao =
+            avaliacaoMaisRecente.alunoId || avaliacaoMaisRecente.aluno?.id;
+          if (alunoIdDaAvaliacao) {
+            await buscarDetalhesDoAluno(alunoIdDaAvaliacao);
+          }
+
           if (historico.length >= 2) {
             const segundaMaisRecenteId = historico[historico.length - 2].id;
             setAvaliacaoComparacaoId(segundaMaisRecenteId);
@@ -865,7 +918,7 @@ function VerAvaliacao() {
       }
     };
     carregarAvaliacao();
-  }, [id, dbInstance]);
+  }, [id, dbInstance, buscarDetalhesDoAluno]);
 
   const handleAvaliacaoChange = (event) => {
     const docId = event.target.value;
@@ -910,6 +963,10 @@ function VerAvaliacao() {
       ? historicoAvaliacoes[historicoAvaliacoes.length - 1].id
       : null;
 
+  const alunoFotoUrl = alunoDetalhes?.fotoUrl;
+  const alunoNascimento = alunoDetalhes?.nascimento;
+  const idadeCompleta = calcularIdadeCompleta(alunoNascimento);
+
   const TabButton = ({ name, icon: Icon, onClick }) => {
     const isActive = activeTab === name;
     const activeStyle = {
@@ -942,12 +999,44 @@ function VerAvaliacao() {
           </h1>
         </header>
 
+        {/* --- NOVO BLOCO: INFORMAÇÕES DO ALUNO --- */}
         <div
-          className="bg-white p-5 sm:p-6 rounded-2xl shadow-xl mb-6 border-t-8"
+          className="bg-white p-5 sm:p-6 rounded-2xl shadow-xl mb-6 border-t-8 flex items-start space-x-5"
           style={{ borderColor: PRIMARY_COLOR }}
         >
-          <h2 className="text-2xl font-bold text-gray-800 mb-1">{alunoNome}</h2>
+          {/* FOTO / PLACEHOLDER */}
+          <div className="flex-shrink-0 w-24 h-24 rounded-full overflow-hidden bg-gray-100 border-4 border-white shadow-md flex items-center justify-center">
+            {alunoFotoUrl ? (
+              <img
+                src={alunoFotoUrl}
+                alt={`Foto de ${alunoNome}`}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <FaUserCircle className="w-full h-full text-gray-400" />
+            )}
+          </div>
+
+          {/* NOME E DETALHES */}
+          <div>
+            <h2 className="text-3xl font-extrabold text-gray-800 mb-1">
+              {alunoNome}
+            </h2>
+            <p className="text-lg text-gray-600">
+              Idade:{" "}
+              <span className="font-semibold text-gray-700">
+                {idadeCompleta}
+              </span>
+            </p>
+            <p className="text-lg text-gray-600">
+              Turma:{" "}
+              <span className="font-semibold text-gray-700">
+                {avaliacaoBase.turma || "N/A"}
+              </span>
+            </p>
+          </div>
         </div>
+        {/* --- FIM DO BLOCO INFORMAÇÕES DO ALUNO --- */}
 
         {/* Seletor de Avaliação Principal (influencia a aba Detalhes) */}
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6 p-4 bg-white rounded-xl shadow-lg border border-gray-100">
@@ -1021,7 +1110,7 @@ function VerAvaliacao() {
             <ComparacaoContent
               historicoAvaliacoes={historicoAvaliacoes}
               avaliacaoBase={avaliacaoBase}
-              setAvaliacaoBase={setAvaliacaoBase} // <-- PROP ADICIONADA
+              setAvaliacaoBase={setAvaliacaoBase}
               avaliacaoComparacaoId={avaliacaoComparacaoId}
               setAvaliacaoComparacaoId={setAvaliacaoComparacaoId}
               primaryColor={PRIMARY_COLOR}
