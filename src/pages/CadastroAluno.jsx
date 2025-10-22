@@ -1,4 +1,4 @@
-// src/pages/CadastroAluno.js (FINAL COM FOTO E PEI CORRIGIDOS)
+// src/pages/CadastroAluno.js (FINAL COM FOTO E PEI CORRIGIDOS E VALIDAÇÕES DE FOTO)
 
 import React, { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
@@ -155,10 +155,9 @@ const ImagePreview = styled.img`
 `;
 // --- Fim Styled Components ---
 
-// NOVO: Função para obter o UID do usuário logado do localStorage
+// Função para obter o UID do usuário logado do localStorage
 const getCurrentUserId = () => {
   const usuarioLogado = JSON.parse(localStorage.getItem("usuarioLogado"));
-  // Assumindo que o UID está na propriedade 'uid' do objeto logado
   return usuarioLogado?.uid || null;
 };
 
@@ -166,7 +165,7 @@ async function criarPEIPlaceholderParaAluno(
   alunoId,
   escolaIdDoAluno,
   anoLetivo,
-  criadorId // <-- NOVO ARGUMENTO
+  criadorId
 ) {
   if (!alunoId || !escolaIdDoAluno || !anoLetivo || !criadorId) {
     console.error("Dados insuficientes para criar PEI placeholder:", {
@@ -185,7 +184,7 @@ async function criarPEIPlaceholderParaAluno(
     criadoEm: serverTimestamp(),
     ultimaModificacao: serverTimestamp(),
     resumoPEI: [],
-    criadorId: criadorId, // <-- CORREÇÃO CRÍTICA: Adicionado o ID do criador
+    criadorId: criadorId,
   };
   try {
     const peiDocRef = await addDoc(collection(db, "peis"), dadosPEIPlaceholder);
@@ -216,7 +215,7 @@ function CadastroAluno() {
   const [fotoAluno, setFotoAluno] = useState(null);
   const [fotoPreviewUrl, setFotoPreviewUrl] = useState("");
 
-  // NOVO: Ref para manipular o clique no input file escondido
+  // Ref para manipular o clique no input file escondido
   const fileInputRef = useRef(null);
 
   // --- Efeitos e Lógica de Cálculo de Idade ---
@@ -314,18 +313,58 @@ function CadastroAluno() {
     setIdade(calcularIdade(data));
   };
 
+  // --- ALTERAÇÃO PRINCIPAL: Validação de Formato e Tamanho/Dimensão ---
   const handleFotoChange = (e) => {
     const file = e.target.files[0];
+
     if (file) {
-      setFotoAluno(file);
-      setFotoPreviewUrl(URL.createObjectURL(file));
+      // 1. VALIDAÇÃO DE TAMANHO MÁXIMO (2 MB)
+      const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB em bytes
+      if (file.size > MAX_FILE_SIZE) {
+        alert("A foto é muito grande. O tamanho máximo permitido é de 2MB.");
+        e.target.value = null; // Limpa o input
+        setFotoAluno(null);
+        setFotoPreviewUrl("");
+        return;
+      }
+
+      // 2. VALIDAÇÃO DE DIMENSÃO MÍNIMA (150x150 pixels)
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const MIN_DIMENSION = 150;
+
+          if (img.width < MIN_DIMENSION || img.height < MIN_DIMENSION) {
+            alert(
+              `A imagem deve ter no mínimo ${MIN_DIMENSION}x${MIN_DIMENSION} pixels. Recomendamos fotos quadradas para o melhor ajuste na visualização de perfil.`
+            );
+            e.target.value = null;
+            setFotoAluno(null);
+            setFotoPreviewUrl("");
+          } else {
+            // Se passou nas validações
+            setFotoAluno(file);
+            setFotoPreviewUrl(URL.createObjectURL(file));
+          }
+        };
+        img.onerror = () => {
+          alert("Não foi possível carregar a imagem para validação.");
+          e.target.value = null;
+          setFotoAluno(null);
+          setFotoPreviewUrl("");
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
     } else {
       setFotoAluno(null);
       setFotoPreviewUrl("");
     }
   };
+  // --- FIM DA ALTERAÇÃO PRINCIPAL ---
 
-  // NOVO: Função para disparar o clique no input file
+  // Função para disparar o clique no input file
   const handleFileUploadClick = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
@@ -336,7 +375,6 @@ function CadastroAluno() {
     e.preventDefault();
     setIsSaving(true);
 
-    // CORREÇÃO CRÍTICA 1: Obter o ID do criador
     const criadorId = getCurrentUserId();
     if (!criadorId) {
       alert(
@@ -390,8 +428,7 @@ function CadastroAluno() {
         escolaId: escolaIdSelecionada,
         anoLetivoAtivo: anoLetivoParaCadastro,
         dataCadastro: serverTimestamp(),
-        fotoUrl: fotoUrl, // Adiciona a URL da foto
-        // Não é necessário o criadorId aqui, pois o PEI já o terá.
+        fotoUrl: fotoUrl,
       };
 
       const alunoDocRef = await addDoc(
@@ -401,12 +438,11 @@ function CadastroAluno() {
       console.log("Aluno cadastrado com ID: ", alunoDocRef.id);
 
       // 3. Criar PEI Placeholder
-      // CORREÇÃO CRÍTICA 2: Passando o criadorId para a função
       await criarPEIPlaceholderParaAluno(
         alunoDocRef.id,
         dadosAlunoParaSalvar.escolaId,
         anoLetivoParaCadastro,
-        criadorId // <-- NOVO ARGUMENTO CORRIGIDO
+        criadorId
       );
 
       alert("Aluno cadastrado e PEI inicial criado com sucesso!");
@@ -449,7 +485,8 @@ function CadastroAluno() {
             <input
               id="fotoAluno"
               type="file"
-              accept="image/*"
+              // AQUI ESTÁ A ESPECIFICAÇÃO DE FORMATO
+              accept="image/jpeg, image/png, image/webp"
               onChange={handleFotoChange}
               disabled={isSaving}
               ref={fileInputRef}
@@ -457,7 +494,11 @@ function CadastroAluno() {
             {fotoAluno ? (
               <FileNameDisplay>{fotoAluno.name}</FileNameDisplay>
             ) : (
-              <span>Clique ou arraste para selecionar uma foto</span>
+              <span>
+                Clique ou arraste para selecionar uma foto
+                <br />
+                (JPG/PNG/WEBP, máx. 2MB, mín. 150x150)
+              </span>
             )}
           </FileInputContainer>
 
