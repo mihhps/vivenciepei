@@ -1,11 +1,13 @@
-/* --- Estilo da Página e Container Principal --- */
+/* =======================================================
+   PAINEL PROFESSOR - Layout Geral
+   ======================================================= */
 .painel-page-container {
   min-height: 100vh;
   width: 100%;
   background: linear-gradient(to bottom, #00264d, #005b96);
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
   padding: 40px 20px;
   box-sizing: border-box;
   font-family: "Segoe UI", sans-serif;
@@ -18,19 +20,22 @@
   border-radius: 20px;
   box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
   width: 100%;
-  max-width: 500px;
+  max-width: 600px;
   text-align: center;
   position: relative;
+
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
 
-/* --- Perfil do Usuário (Canto Esquerdo) --- */
+/* --- Perfil do Usuário (Fluxo Normal) --- */
 .user-profile-top-corner {
-  position: absolute;
-  top: 25px;
-  left: 30px;
   display: flex;
   align-items: center;
   gap: 12px;
+  justify-content: flex-start;
+  margin-bottom: 5px;
 }
 .user-text {
   text-align: left;
@@ -39,7 +44,7 @@
   white-space: nowrap;
 }
 .user-text strong {
-  color: #1d3557;
+  color: #003366;
   font-size: 1rem;
   font-weight: 600;
 }
@@ -54,13 +59,13 @@
   height: 100%;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid #e0e0e0;
+  border: 2px solid #005b96;
 }
 .avatar-botao-editar {
   position: absolute;
   bottom: -3px;
   right: -3px;
-  background-color: #1d3557;
+  background-color: #005b96;
   color: white;
   border: 2px solid white;
   border-radius: 50%;
@@ -77,96 +82,157 @@
 .painel-logo {
   width: 120px;
   height: auto;
-  margin: 40px auto 15px auto;
+  margin: 0 auto 5px auto;
 }
 .painel-titulo {
-  margin: 0 auto 30px auto;
+  margin: 0 auto 15px auto;
   color: #003366;
   font-size: 1.8rem;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #e0e0e0;
 }
 
-/* --- Seção de Avisos do PEI --- */
+/* =======================================================
+   AVISOS DE PENDÊNCIAS (DESTAQUE APRIMORADO)
+   ======================================================= */
 .aviso-card {
-  padding: 15px;
+  padding: 18px; /* Aumentado */
   border-radius: 12px;
-  margin-bottom: 25px;
+  margin-bottom: 15px;
   text-align: left;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
   border: 1px solid;
 }
 .aviso-card h3 {
   margin: 0 0 10px 0;
-  font-size: 1.2em;
+  font-size: 1.3em;
 }
-.aviso-card p {
-  margin: 0;
-  font-size: 1em;
-}
+
+/* Aviso de ALERTA (Pendências) - ALTO IMPACTO */
 .aviso-alerta {
   background-color: #fff4e5;
   border-color: #ffd1a8;
   color: #a0522d;
+  border-left: 8px solid #ff8800; /* Borda laranja forte */
+  box-shadow: 0 6px 15px rgba(255, 136, 0, 0.25); /* Sombra de alerta */
 }
+.aviso-alerta h3 {
+  color: #ff8800; /* Título laranja */
+}
+
+/* Outros Avisos */
 .aviso-sucesso {
   background-color: #e6f2f0;
   border-color: #b2d8d1;
   color: #1d7168;
+  border-left: 8px solid #2e7d32;
 }
 .aviso-erro {
   background-color: #ffeaea;
   border-color: #ffb2b2;
   color: #b71c1c;
+  border-left: 8px solid #d32f2f;
 }
 .aviso-info {
   background-color: #e8f4fa;
   border-color: #b8e0f2;
   color: #004085;
 }
+
+/* Botão de DETALHES */
 .botao-detalhes {
-  background-color: #005b96;
+  background-color: #00264d;
   color: #fff;
-  padding: 8px 15px;
+  padding: 10px 20px;
   border: none;
-  border-radius: 6px;
-  font-size: 0.9em;
+  border-radius: 8px;
+  font-size: 1em;
   cursor: pointer;
-  margin-top: 10px;
-  transition: background-color 0.3s ease;
+  margin-top: 15px;
+  font-weight: 700;
+  transition: all 0.2s ease;
+  box-shadow: 0 3px 6px rgba(0, 38, 77, 0.3);
 }
 .botao-detalhes:hover {
-  background-color: #004a7a;
+  background-color: #005b96;
+  box-shadow: 0 4px 8px rgba(0, 38, 77, 0.4);
+}
+.botao-detalhes:active {
+  background-color: #001a33;
+  transform: translateY(1px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
-/* --- Botões de Ação --- */
-.botoes-primarios {
+/* =======================================================
+   NAVEGAÇÃO POR ABAS
+   ======================================================= */
+.painel-tabs-nav {
   display: flex;
-  flex-direction: column;
-  gap: 15px;
-  margin-bottom: 30px;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  border-bottom: 2px solid #e0e0e0;
+  margin-bottom: 15px;
 }
+.tab-button {
+  flex-grow: 1;
+  padding: 10px 15px;
+  border: none;
+  background: none;
+  font-size: 1em;
+  font-weight: 500;
+  cursor: pointer;
+  color: #666;
+  border-bottom: 3px solid transparent;
+  transition: color 0.3s, border-bottom 0.3s;
+  max-width: 180px;
+}
+.tab-button.active {
+  color: #00264d;
+  font-weight: 600;
+  border-bottom: 3px solid #005b96;
+}
+
+/* =======================================================
+   CONTEÚDO DAS ABAS (Botões Empilhados - Corrigido)
+   ======================================================= */
+.painel-tabs-content {
+  display: flex;
+  flex-direction: column; /* CORREÇÃO: Força o empilhamento vertical */
+  gap: 15px;
+  padding: 10px 0;
+}
+
 .painel-botao {
   background-color: #00264d;
   color: #fff;
-  padding: 12px;
+  padding: 15px;
   border: none;
   border-radius: 8px;
   font-size: 16px;
   font-weight: bold;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: background-color 0.3s ease, transform 0.1s;
+  width: 100%; /* Ocupa toda a largura */
 }
 .painel-botao:hover {
   background-color: #005b96;
+  transform: scale(1.005);
 }
 
+/* --- AÇÕES SECUNDÁRIAS (Inferior) --- */
 .botoes-secundarios {
   display: flex;
   justify-content: center;
   gap: 15px;
-  margin-top: 20px;
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #e0e0e0;
 }
+
+/* Estilos Trocar Escola e Sair (manutenção) */
 .botao-trocar-escola,
 .painel-botao-sair {
+  /* ... (Estilos mantidos) ... */
   padding: 10px 15px;
   border-radius: 8px;
   font-size: 14px;
@@ -180,9 +246,6 @@
   background-color: #f1f1f1;
   color: #333;
   border: 1px solid #ddd;
-}
-.botao-trocar-escola:hover {
-  background-color: #e0e0e0;
 }
 .painel-botao-sair {
   background-color: #e63946;

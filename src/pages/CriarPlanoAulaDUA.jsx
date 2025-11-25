@@ -118,8 +118,7 @@ const DUASection = ({
       </button>
       {!planoPreenchido && (
         <p className="aviso-ia">
-          Preencha a **Turma**, **Tema** e **Objetivo Curricular** para
-          habilitar a IA.
+          Preencha a Turma, Tema e Objetivo Curricular para habilitar a IA.
         </p>
       )}
 

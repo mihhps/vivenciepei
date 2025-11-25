@@ -59,12 +59,15 @@ const getUsuarioLogado = () => {
       user?.escolas && typeof user.escolas === "object"
         ? Object.keys(user.escolas)
         : [];
-    const turmasPadronizadas = turmas.map((t) => normalizarTurma(t));
+    // Assegura que as turmas lidas do localStorage sejam normalizadas
+    const turmasPadronizadas = turmas
+      .map((t) => normalizarTurma(t))
+      .filter((t) => t);
 
     return {
       ...user,
       perfil: user.perfil?.toLowerCase()?.trim(),
-      turmas: turmasPadronizadas,
+      turmas: turmasPadronizadas, // Esta array será usada para filtrar os alunos
       escolasVinculadasIds,
     };
   } catch (e) {
@@ -72,8 +75,6 @@ const getUsuarioLogado = () => {
     return {};
   }
 };
-
-const perfisComAcessoAmplo = ["desenvolvedor", "seme", "gestao", "aee"];
 
 export function useAlunos() {
   const [alunos, setAlunos] = useState([]);
@@ -83,15 +84,19 @@ export function useAlunos() {
   const [userId, setUserId] = useState(null);
   const [appId, setAppId] = useState(null);
 
+  // Obtém as turmas do professor logado (e outros dados)
   const usuarioLogado = useMemo(() => getUsuarioLogado(), []);
 
-  // ✅ CORREÇÃO: Pega o estado completo do hook useUserSchool, incluindo o canViewAllSchools
+  // Pega o estado completo do hook useUserSchool
   const { userSchoolId, isLoadingUserSchool, canViewAllSchools } =
     useUserSchool();
 
+  // ------------------------------------
+  // 1. Lógica de Autenticação
+  // ------------------------------------
   useEffect(() => {
     const authInstance = getAuth(app);
-    let unsubscribe = null; // A variável agora está fora da função para ser acessível no retorno
+    let unsubscribe = null;
 
     const setupAuth = async () => {
       unsubscribe = onAuthStateChanged(authInstance, async (user) => {
@@ -113,14 +118,15 @@ export function useAlunos() {
     setAppId(typeof __app_id !== "undefined" ? __app_id : "default-app-id");
 
     return () => {
-      // ✅ CORREÇÃO: Verifica se a variável unsubscribe não é nula antes de chamá-la
       if (unsubscribe) {
         unsubscribe();
       }
     };
-  }, []); // Dependência vazia, roda apenas uma vez
+  }, []);
 
-  // ✅ CORREÇÃO: Lógica de busca de alunos
+  // ------------------------------------
+  // 2. Lógica de Busca de Alunos (Com Filtro de Turma)
+  // ------------------------------------
   useEffect(() => {
     const fetchAlunos = async () => {
       setCarregando(true);
@@ -133,29 +139,54 @@ export function useAlunos() {
 
       try {
         const firestore = getFirestore(app);
-        let q;
+        const alunoCollection = collection(firestore, "alunos");
+        let q = null; // Inicializa a query como null
 
-        // ✅ LÓGICA DE BUSCA: Lida com perfis que veem todas as escolas ou uma única
+        // Se o usuário tem acesso a todas as escolas (desenvolvedor, SEME, etc.)
         if (canViewAllSchools) {
-          q = collection(firestore, "alunos");
-        } else if (userSchoolId) {
-          q = query(
-            collection(firestore, "alunos"),
-            where("escolaId", "==", userSchoolId)
-          );
+          q = alunoCollection; // Busca todos sem filtros
+        }
+        // Se o usuário tem acesso restrito (professor) E tem um ID de escola
+        else if (userSchoolId) {
+          const filtros = [];
+
+          // FILTRO OBRIGATÓRIO 1: Filtrar por escola
+          filtros.push(where("escolaId", "==", userSchoolId));
+
+          // FILTRO 2: Filtrar por turmas se o professor estiver associado a elas
+          const turmasDoProfessor = usuarioLogado.turmas;
+
+          if (turmasDoProfessor && turmasDoProfessor.length > 0) {
+            // O operador 'in' (onde o campo 'turma' do aluno está em uma das turmas do professor)
+            // IMPORTANTE: A lista de turmas não pode ter mais de 10 itens para o operador 'in'.
+            // Além disso, o campo 'turma' no Firestore precisa estar salvo no mesmo formato
+            // que as turmas normalizadas (ex: "5º Ano A").
+            filtros.push(where("turma", "in", turmasDoProfessor));
+          } else {
+            // Se o usuário é restrito (não canViewAllSchools) e não tem turmas associadas,
+            // não deve ver nenhum aluno.
+            setAlunos([]);
+            setCarregando(false);
+            return;
+          }
+
+          q = query(alunoCollection, ...filtros);
         } else {
-          // Se o perfil não tem acesso a todas e não tem ID de escola, retorna uma lista vazia
+          // Usuário restrito sem ID de escola definido. Não deve carregar alunos.
           setAlunos([]);
           setCarregando(false);
           return;
         }
 
-        const querySnapshot = await getDocs(q);
-        const alunosData = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setAlunos(alunosData);
+        // Se a query foi montada (q não é null)
+        if (q) {
+          const querySnapshot = await getDocs(q);
+          const alunosData = querySnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+          setAlunos(alunosData);
+        }
       } catch (error) {
         console.error("Erro ao buscar alunos:", error);
         setErro("Não foi possível carregar a lista de alunos.");
@@ -165,7 +196,13 @@ export function useAlunos() {
     };
 
     fetchAlunos();
-  }, [authReady, isLoadingUserSchool, userSchoolId, canViewAllSchools]); // Re-executa a busca quando as dependências mudam
+  }, [
+    authReady,
+    isLoadingUserSchool,
+    userSchoolId,
+    canViewAllSchools,
+    usuarioLogado.turmas,
+  ]); // Adicionada a dependência das turmas
 
   return { alunos, carregando, erro };
 }

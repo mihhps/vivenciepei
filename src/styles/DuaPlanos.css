@@ -146,6 +146,9 @@ fieldset legend {
   box-sizing: border-box;
   font-size: 1rem;
   transition: border-color 0.3s, box-shadow 0.3s;
+
+  /* === CORREÇÃO: GARANTE QUE O TEXTO DIGITADO SEJA VISÍVEL === */
+  color: #343a40;
 }
 
 .form-group input[type="text"]:focus,
@@ -160,6 +163,36 @@ fieldset legend {
   resize: vertical;
   min-height: 100px;
 }
+
+/* === CORREÇÃO: ESTILOS PARA O PLACEHOLDER (TEXTO DE DICA) === */
+.form-group input::placeholder,
+.form-group textarea::placeholder,
+.filter-select::placeholder {
+  color: #a0a0a0; /* Cinza claro para a dica */
+}
+
+/* Prefixo Webkit (Chrome, Safari) */
+.form-group input::-webkit-input-placeholder,
+.form-group textarea::-webkit-input-placeholder,
+.filter-select::-webkit-input-placeholder {
+  color: #a0a0a0;
+}
+
+/* Prefixo Mozilla (Firefox) */
+.form-group input::-moz-placeholder,
+.form-group textarea::-moz-placeholder,
+.filter-select::-moz-placeholder {
+  color: #a0a0a0;
+  opacity: 1; /* Necessário para Firefox */
+}
+
+/* Prefixo Microsoft (IE 10+) */
+.form-group input:-ms-input-placeholder,
+.form-group textarea:-ms-input-placeholder,
+.filter-select:-ms-input-placeholder {
+  color: #a0a0a0;
+}
+/* ============================================================= */
 
 .form-group-row {
   display: flex;

@@ -2,15 +2,27 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import { getAuth, signOut } from "firebase/auth";
+// Presumindo que 'db' e 'storage' são exportados de '../firebase'
 import { db, storage } from "../firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { doc, updateDoc } from "firebase/firestore";
 import TrocarEscola from "../components/TrocarEscola";
 import { verificarPrazosPEI } from "../src/services/peiStatusChecker";
 
-// Importe o novo arquivo de estilo
 import "react-toastify/dist/ReactToastify.css";
 import "../styles/PainelProfessor.css";
+
+// ====================================================================
+// Componentes Auxiliares
+// ====================================================================
+const BotaoPainel = ({ texto, destino }) => {
+  const navigate = useNavigate();
+  return (
+    <button className="painel-botao" onClick={() => navigate(destino)}>
+      {texto}
+    </button>
+  );
+};
 
 const CameraIcon = () => (
   <svg height="12" width="12" viewBox="0 0 24 24" fill="white">
@@ -19,6 +31,9 @@ const CameraIcon = () => (
   </svg>
 );
 
+// ====================================================================
+// Componente Principal
+// ====================================================================
 export default function PainelProfessor() {
   const navigate = useNavigate();
   const [usuarioLogado, setUsuarioLogado] = useState(null);
@@ -26,6 +41,7 @@ export default function PainelProfessor() {
   const [carregandoAvisos, setCarregandoAvisos] = useState(true);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
+  const [abaAtiva, setAbaAtiva] = useState("pei");
 
   const carregarAvisos = useCallback(async () => {
     setCarregandoAvisos(true);
@@ -74,8 +90,10 @@ export default function PainelProfessor() {
       const usuarioAtualizado = { ...usuarioLogado, photoURL };
       setUsuarioLogado(usuarioAtualizado);
       localStorage.setItem("usuarioLogado", JSON.stringify(usuarioAtualizado));
+      toast.success("Foto de perfil atualizada com sucesso!");
     } catch (error) {
       console.error("Erro no upload da foto:", error);
+      toast.error("Falha ao atualizar a foto de perfil.");
     } finally {
       setUploading(false);
     }
@@ -146,12 +164,21 @@ export default function PainelProfessor() {
     <div className="painel-page-container">
       <ToastContainer position="bottom-right" autoClose={3000} />
       <div className="painel-card">
+        {/* === 1. PERFIL E FOTO === */}
         <div className="user-profile-top-corner">
           <div className="avatar-container">
             <img
-              src={usuarioLogado?.photoURL || "/avatar-padrao.png"}
+              src={
+                usuarioLogado?.photoURL ||
+                "https://placehold.co/100x100/A0C3FF/ffffff?text=User"
+              }
               alt="Foto do perfil"
               className="avatar-imagem"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src =
+                  "https://placehold.co/100x100/A0C3FF/ffffff?text=User";
+              }}
             />
             <button
               className="avatar-botao-editar"
@@ -178,38 +205,83 @@ export default function PainelProfessor() {
           src="/logo-vivencie.png"
           alt="Logo Vivencie PEI"
           className="painel-logo"
+          onError={(e) => {
+            e.target.onerror = null;
+            e.target.src =
+              "https://placehold.co/150x50/3498db/ffffff?text=Logo+PEI";
+          }}
         />
         <h1 className="painel-titulo">Painel do Professor</h1>
 
+        {/* === 2. AVISOS/PENDÊNCIAS (Alto Destaque) === */}
         {exibirResumoAvisos()}
 
-        <div className="botoes-primarios">
+        {/* === 3. NAVEGAÇÃO DE ABAS === */}
+        <div className="painel-tabs-nav">
           <button
-            className="painel-botao"
-            onClick={() => navigate("/criar-pei")}
+            className={`tab-button ${abaAtiva === "pei" ? "active" : ""}`}
+            onClick={() => setAbaAtiva("pei")}
           >
-            Criar PEI
+            PEI
           </button>
           <button
-            className="painel-botao"
-            onClick={() => navigate("/ver-avaliacoes")}
+            className={`tab-button ${
+              abaAtiva === "avaliacoes" ? "active" : ""
+            }`}
+            onClick={() => setAbaAtiva("avaliacoes")}
           >
-            Ver Avaliações Iniciais
+            Avaliações
           </button>
           <button
-            className="painel-botao"
-            onClick={() => navigate("/visualizar-interesses")}
+            className={`tab-button ${
+              abaAtiva === "planejamento" ? "active" : ""
+            }`}
+            onClick={() => setAbaAtiva("planejamento")}
           >
-            Ver Avaliações de Interesses
-          </button>
-          <button
-            className="painel-botao"
-            onClick={() => navigate("/prazos-professor")}
-          >
-            Ver Prazos Anuais do PEI
+            Planejamento
           </button>
         </div>
 
+        {/* === 4. CONTEÚDO DAS ABAS (Botões Empilhados) === */}
+        <div className="painel-tabs-content">
+          {abaAtiva === "pei" && (
+            <>
+              <BotaoPainel texto="Criar PEI" destino="/criar-pei" />
+              <BotaoPainel
+                texto="Ver Prazos Anuais do PEI"
+                destino="/prazos-professor"
+              />
+            </>
+          )}
+
+          {abaAtiva === "avaliacoes" && (
+            <>
+              <BotaoPainel
+                texto="Ver Avaliações Iniciais"
+                destino="/ver-avaliacoes"
+              />
+              <BotaoPainel
+                texto="Ver Avaliações de Interesses"
+                destino="/visualizar-interesses"
+              />
+            </>
+          )}
+
+          {abaAtiva === "planejamento" && (
+            <>
+              <BotaoPainel
+                texto="Estúdio de Adaptação de Conteúdo (IA)"
+                destino="/selecionar-aluno-adaptacao"
+              />
+              <BotaoPainel
+                texto="Criar Plano de Aula DUA"
+                destino="/criar-plano-dua"
+              />
+            </>
+          )}
+        </div>
+
+        {/* === 5. AÇÕES INFERIORES === */}
         <div className="botoes-secundarios">
           <TrocarEscola className="botao-trocar-escola" />
           <button onClick={handleSair} className="painel-botao-sair">
