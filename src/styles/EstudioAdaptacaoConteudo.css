@@ -1,0 +1,645 @@
+/* src/styles/EstudioAdaptacaoConteudo.css */
+
+/* ======================================================= */
+/* 🎨 TEMA MODERNO & VARIÁVEIS */
+/* ======================================================= */
+:root {
+  /* Paleta Moderna e Vibrante */
+  --cor-primary: #2563eb; /* Azul Royal Vibrante */
+  --cor-primary-dark: #1e40af; /* Azul Escuro Profundo */
+  --cor-accent: #06b6d4; /* Ciano Moderno */
+  --cor-success: #10b981; /* Verde Esmeralda */
+  --cor-warning: #f59e0b; /* Âmbar */
+  --cor-danger: #ef4444; /* Vermelho Suave */
+
+  /* Superfícies */
+  --bg-app: #f3f4f6; /* Cinza muito claro (fundo global) */
+  --bg-panel: #ffffff; /* Branco Puro */
+  --bg-input: #f9fafb; /* Fundo de inputs */
+
+  /* Tipografia e Bordas */
+  --text-main: #1f2937; /* Cinza Chumbo */
+  --text-muted: #6b7280; /* Cinza Médio */
+  --border-radius: 16px; /* Bordas bem arredondadas */
+  --border-radius-sm: 8px;
+
+  /* Efeitos */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif; /* Fonte moderna */
+  color: var(--text-main);
+  background-color: var(--bg-app);
+}
+
+.container-adaptacao {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 40px;
+  min-height: 100vh;
+}
+
+/* ======================================================= */
+/* 🏷️ CABEÇALHO (CORREÇÃO DA CENTRALIZAÇÃO) */
+/* ======================================================= */
+.card-header {
+  display: grid;
+  /* O Segredo: 1fr (esquerda) - auto (meio) - 1fr (direita) */
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  margin-bottom: 40px;
+  position: relative;
+}
+
+.titulo-principal {
+  color: var(--text-main);
+  font-size: 1.8rem;
+  font-weight: 800; /* Extra bold */
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: center; /* Garante alinhamento no centro da célula do grid */
+  text-align: center;
+}
+
+/* Botões do cabeçalho alinhados nas extremidades */
+.card-header .botao-voltar {
+  justify-self: start;
+}
+.card-header .botao-secundario {
+  justify-self: end;
+}
+
+/* ======================================================= */
+/* 🔘 BOTÕES MODERNOS (PILL SHAPE) */
+/* ======================================================= */
+button {
+  font-family: inherit;
+}
+
+.botao-base,
+.botao-voltar,
+.botao-secundario,
+.botao-gerar-adaptacao,
+.botao-salvar-adaptacao,
+.botao-salvar-perfil {
+  border: none;
+  border-radius: 50px; /* Formato de Pílula */
+  cursor: pointer;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: var(--transition);
+  padding: 10px 20px;
+  font-size: 0.95rem;
+}
+
+/* Botões Outline (Voltar/Secundário) */
+.botao-voltar,
+.botao-secundario {
+  background: white;
+  color: var(--text-muted);
+  border: 1px solid #e5e7eb;
+  box-shadow: var(--shadow-sm);
+}
+.botao-voltar:hover,
+.botao-secundario:hover {
+  border-color: var(--cor-primary);
+  color: var(--cor-primary);
+  transform: translateY(-1px);
+}
+
+/* Botão Principal (Gerar) */
+.botao-gerar-adaptacao {
+  background: linear-gradient(
+    135deg,
+    var(--cor-primary) 0%,
+    var(--cor-primary-dark) 100%
+  );
+  color: white;
+  padding: 16px;
+  font-size: 1.1rem;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  margin: 20px 0 40px 0;
+  width: 100%;
+}
+.botao-gerar-adaptacao:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+}
+
+/* Botão Salvar (Final) */
+.botao-salvar-adaptacao {
+  background: linear-gradient(135deg, var(--cor-danger) 0%, #dc2626 100%);
+  color: white;
+  width: 100%;
+  padding: 14px;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+.botao-salvar-adaptacao:hover:not(:disabled) {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+}
+
+/* Botão Upload Bonito */
+.botao-upload-arquivo {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  padding: 16px;
+  background-color: white;
+  color: var(--cor-primary);
+  border: 2px dashed #cbd5e1;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-weight: 600;
+  transition: var(--transition);
+}
+.botao-upload-arquivo:hover {
+  border-color: var(--cor-primary);
+  background-color: #eff6ff;
+}
+
+/* ======================================================= */
+/* 📄 LAYOUT E CARDS (GLASSMORPHISM SUAVE) */
+/* ======================================================= */
+.grid-adaptacao {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 40px;
+  align-items: start;
+}
+
+.painel-contexto,
+.painel-resultado-completo {
+  background: var(--bg-panel);
+  border-radius: 24px; /* Mais arredondado */
+  padding: 30px;
+  box-shadow: var(--shadow-lg); /* Sombra flutuante */
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.painel-contexto {
+  position: sticky;
+  top: 30px;
+  /* Efeito fosco se o navegador suportar */
+  backdrop-filter: blur(10px);
+}
+
+/* Fieldsets Modernos (Sem borda, só separação visual) */
+fieldset {
+  border: none;
+  padding: 0;
+  margin-bottom: 30px;
+  background: transparent;
+}
+legend {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+}
+
+/* Inputs e Textareas Modernos */
+textarea,
+input[type="text"] {
+  width: 100%;
+  padding: 12px 16px;
+  background-color: var(--bg-input);
+  border: 2px solid transparent; /* Borda invisível até focar */
+  border-radius: var(--border-radius-sm);
+  color: var(--text-main);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  font-family: inherit;
+  transition: var(--transition);
+  resize: vertical;
+}
+
+textarea:focus,
+input[type="text"]:focus {
+  outline: none;
+  background-color: white;
+  border-color: var(--cor-primary);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+}
+
+.contador-texto {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 6px;
+  text-align: right;
+}
+.upload-separator {
+  text-align: center;
+  margin: 15px 0;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* ======================================================= */
+/* ✅ OPÇÕES E CARDS DE RESULTADO */
+/* ======================================================= */
+.opcoes-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.checkbox-opcao {
+  display: flex;
+  align-items: center;
+  padding: 15px;
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-main);
+}
+.checkbox-opcao:hover {
+  border-color: var(--cor-primary);
+  background-color: #eff6ff;
+}
+.checkbox-opcao input {
+  margin-right: 12px;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--cor-primary);
+}
+
+/* Grade de Resultados */
+.titulo-grade {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 25px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.adaptacao-grade {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 25px;
+  margin-bottom: 40px;
+}
+
+.adaptacao-card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid #f3f4f6;
+  box-shadow: var(--shadow-md);
+  transition: var(--transition);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.adaptacao-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Cores das Bordas Superiores dos Cards (Mais elegante) */
+.adaptacao-card.level-1 {
+  border-top: 6px solid var(--cor-primary);
+}
+.adaptacao-card.level-2 {
+  border-top: 6px solid var(--cor-success);
+}
+.adaptacao-card.level-3 {
+  border-top: 6px solid var(--cor-warning);
+}
+.adaptacao-card.level-4 {
+  border-top: 6px solid var(--cor-accent);
+}
+
+.card-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.card-preview {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 15px;
+  height: 180px; /* Altura fixa */
+  overflow-y: auto;
+  font-size: 0.9rem;
+  color: #475569;
+  margin-bottom: 20px;
+  border: 1px solid #e2e8f0;
+}
+
+.card-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: auto;
+}
+
+/* Botões Pequenos dos Cards */
+.botao-card-usar-base,
+.botao-card-copiar,
+.botao-card-finalizar-direto {
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  border-radius: 8px;
+  color: white;
+  flex: 1;
+}
+.botao-card-usar-base {
+  background-color: var(--cor-primary);
+}
+.botao-card-usar-base:hover:not(:disabled) {
+  background-color: var(--cor-primary-dark);
+}
+
+.botao-card-copiar {
+  background-color: #94a3b8;
+  flex: 0;
+} /* Botão menor */
+.botao-card-copiar:hover:not(:disabled) {
+  background-color: #64748b;
+}
+
+.botao-card-finalizar-direto {
+  background-color: var(--cor-success);
+}
+.botao-card-finalizar-direto:hover:not(:disabled) {
+  background-color: #059669;
+}
+
+/* ======================================================= */
+/* 🛠️ ÁREA DE EDIÇÃO FINAL */
+/* ======================================================= */
+.fieldset-edicao-final {
+  margin-top: 40px;
+  background: white;
+  padding: 30px;
+  border-radius: 24px;
+  border: 2px solid var(--cor-danger); /* Mantendo destaque vermelho mas suave */
+  box-shadow: var(--shadow-lg);
+}
+
+.container-edicao-grid {
+  display: grid;
+  grid-template-columns: 3fr 1fr;
+  gap: 30px;
+}
+
+/* Guia Estratégico */
+.guia-estrategico-box {
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  padding: 20px;
+  border-radius: 12px;
+  margin-top: 25px;
+}
+.guia-estrategico-box h4 {
+  color: #b45309;
+  margin-top: 0;
+}
+
+/* Termômetro */
+.termometro-container {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: var(--shadow-md);
+  border: 1px solid #e5e7eb;
+}
+
+/* Feedback Flutuante */
+.mensagem-erro,
+.mensagem-sucesso {
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 25px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: var(--shadow-sm);
+}
+.mensagem-erro {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+.mensagem-sucesso {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+
+.spin-button {
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* ======================================================= */
+/* 📱 RESPONSIVIDADE */
+/* ======================================================= */
+@media (max-width: 1200px) {
+  .grid-adaptacao {
+    grid-template-columns: 1fr;
+  }
+  .painel-contexto {
+    position: static;
+    margin-bottom: 30px;
+  }
+  .card-header {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    text-align: center;
+    justify-items: center;
+  }
+  .titulo-principal {
+    order: -1;
+  } /* Título sempre no topo no mobile */
+}
+
+@media (max-width: 768px) {
+  .opcoes-grid,
+  .adaptacao-grade,
+  .container-edicao-grid {
+    grid-template-columns: 1fr;
+  }
+  .container-adaptacao {
+    padding: 20px;
+  }
+  .card-actions button {
+    width: 100%;
+    margin-bottom: 5px;
+  }
+}
+
+/* ======================================================= */
+/* 🖨️ IMPRESSÃO (Mantida e Ajustada) */
+/* ======================================================= */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #area-impressao-temporaria,
+  #area-impressao-temporaria * {
+    visibility: visible;
+  }
+  #area-impressao-temporaria {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 2cm;
+    background: white !important;
+    color: black !important;
+  }
+  .layout-leitura-amigavel {
+    font-family: "Verdana", sans-serif !important;
+    font-size: 16pt !important;
+    line-height: 1.8 !important;
+    text-align: justify;
+  }
+  .layout-flashcards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    font-size: 18pt;
+    text-align: center;
+  }
+  .layout-flashcards div {
+    border: 2px dashed #000;
+    padding: 30px;
+    border-radius: 0;
+    page-break-inside: avoid;
+    min-height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+/* ======================================================= */
+/* CORREÇÃO DE CONTRASTE NO CABEÇALHO AZUL */
+/* ======================================================= */
+
+/* Título Principal Branco */
+.titulo-principal {
+  color: #ffffff !important; /* Força o branco */
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Adiciona uma sombra suave para destacar mais */
+}
+
+/* Botões do Cabeçalho (Voltar e Mudar Aluno) em Branco */
+.card-header .botao-voltar,
+.card-header .botao-secundario {
+  color: #ffffff !important;
+  border-color: rgba(
+    255,
+    255,
+    255,
+    0.6
+  ) !important; /* Borda branca semitransparente */
+  background-color: rgba(
+    255,
+    255,
+    255,
+    0.1
+  ) !important; /* Fundo branco sutilmente transparente */
+}
+
+/* Efeito Hover nos Botões do Cabeçalho */
+.card-header .botao-voltar:hover,
+.card-header .botao-secundario:hover {
+  background-color: #ffffff !important;
+  color: var(--cor-primary-dark) !important; /* Cor escura ao passar o mouse */
+  border-color: #ffffff !important;
+}
+
+.escola-ativa-bar,
+.escola-ativa-bar strong {
+  color: #ffffff !important;
+}
+/* ======================================================= */
+/* 🛠️ BARRA DE AÇÕES (CORREÇÃO DE ALINHAMENTO) */
+/* ======================================================= */
+
+/* Container que segura os botões de Exportar e Salvar na mesma linha */
+.barra-acoes-footer {
+  display: flex;
+  justify-content: space-between; /* Exportar na esq, Salvar na dir */
+  align-items: center;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb; /* Linha divisória sutil */
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+/* Grupo dos botões de exportação (Esq) */
+.grupo-exportar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.label-exportar {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--cor-principal);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Ajuste fino no botão salvar para ele não ficar gigante */
+.barra-acoes-footer .botao-salvar-adaptacao {
+  width: auto; /* Ocupa só o espaço necessário */
+  padding-left: 30px;
+  padding-right: 30px;
+  margin: 0; /* Remove margens antigas */
+}
+
+/* Responsividade: No celular, empilha tudo */
+@media (max-width: 768px) {
+  .barra-acoes-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .barra-acoes-footer .botao-salvar-adaptacao {
+    width: 100%;
+  }
+}

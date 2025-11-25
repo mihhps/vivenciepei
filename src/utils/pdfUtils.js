@@ -215,13 +215,17 @@ export async function drawDocumentHeader(
     [`Data de Nasc.: ${dataNascTexto}`, `Turma: ${aluno?.turma || "-"}`, ""],
     [
       {
-        content: `Data da Avaliação Inicial: ${formatarData(avaliacaoInfo?.dataAvaliacao) || "-"}`,
+        content: `Data da Avaliação Inicial: ${
+          formatarData(avaliacaoInfo?.dataAvaliacao) || "-"
+        }`,
         colSpan: 3,
       },
     ],
     [
       {
-        content: `Próxima Avaliação: ${formatarData(avaliacaoInfo?.proximaAvaliacao) || "-"}`,
+        content: `Próxima Avaliação: ${
+          formatarData(avaliacaoInfo?.proximaAvaliacao) || "-"
+        }`,
         colSpan: 3,
       },
     ],

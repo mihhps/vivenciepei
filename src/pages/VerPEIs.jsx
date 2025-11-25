@@ -724,7 +724,7 @@ export default function VerPEIs() {
                                       })
                                     }
                                   >
-                                    Editar
+                                    Atualizar
                                   </button>
                                   <button
                                     style={estilos.excluir}

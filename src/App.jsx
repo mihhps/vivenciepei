@@ -17,7 +17,7 @@ import EscolaAtual from "./components/EscolaAtual";
 import PrivateRoute from "./components/PrivateRoute";
 import CorrigirTurmas from "./pages/CorrigirTurmas";
 
-// --- PÁGINAS COM LAZY-LOADING (COM EXTENSÕES PADRONIZADAS) ---
+// --- PÁGINAS COM LAZY-LOADING (COMPLETO) ---
 const AcompanhamentoAEE = lazy(() => import("./pages/AcompanhamentoAEE.jsx"));
 const AcompanhamentoGestao = lazy(() =>
   import("./pages/AcompanhamentoGestao.jsx")
@@ -85,9 +85,22 @@ const VisualizarAvaliacaoInteressesPage = lazy(() =>
   import("./pages/VisualizarAvaliacaoInteressesPage.jsx")
 );
 const VisualizarPei = lazy(() => import("./pages/VisualizarPei.jsx"));
-// 💡 NOVO: Importe o Gerenciador de Convites
 const GerenciadorConvites = lazy(() =>
   import("./pages/GerenciadorConvites.jsx")
+);
+
+// 💡 NOVAS ROTAS DUA (Lazy Loading)
+const CriarPlanoAulaDUA = lazy(() => import("./pages/CriarPlanoAulaDUA.jsx"));
+const VerPlanosAulaDUA = lazy(() => import("./pages/VerPlanosAulaDUA.jsx"));
+const VisualizarPlanoDUA = lazy(() => import("./pages/VisualizarPlanoDUA.jsx"));
+const EditarPlanoDUA = lazy(() => import("./pages/EditarPlanoDUA.jsx"));
+
+// 🚀 NOVAS ROTAS DE ADAPTAÇÃO (Lazy Loading)
+const EstudioAdaptacaoConteudo = lazy(() =>
+  import("./pages/EstudioAdaptacaoConteudo.jsx")
+);
+const SelecionarAlunoAdaptacao = lazy(() =>
+  import("./pages/SelecionarAlunoAdaptacao.jsx")
 );
 
 // Configuração do PDF.js Worker
@@ -131,9 +144,32 @@ function AppContent() {
               <Route path="/painel-aee" element={<PainelAee />} />
               <Route path="/painel-professor" element={<PainelProfessor />} />
               <Route path="/painel-dev" element={<PainelDev />} />
-              {/* 💡 NOVO: Rota para o Gerenciador de Convites */}
+              {/* Rota para o Gerenciador de Convites */}
               <Route path="/admin/convites" element={<GerenciadorConvites />} />
 
+              {/* 💡 ROTAS DUA - COMPLETAS (CRUD) */}
+              <Route path="/criar-plano-dua" element={<CriarPlanoAulaDUA />} />
+              <Route path="/ver-planos-aula" element={<VerPlanosAulaDUA />} />
+              <Route
+                path="/visualizar-plano-dua/:id"
+                element={<VisualizarPlanoDUA />}
+              />
+              <Route
+                path="/editar-plano-dua/:id"
+                element={<EditarPlanoDUA />}
+              />
+
+              {/* 🚀 NOVAS ROTAS DO ESTÚDIO DE ADAPTAÇÃO INTELIGENTE (EAI) (CORRETO) */}
+              <Route
+                path="/selecionar-aluno-adaptacao"
+                element={<SelecionarAlunoAdaptacao />}
+              />
+              <Route
+                path="/adaptar/:alunoId"
+                element={<EstudioAdaptacaoConteudo />}
+              />
+
+              {/* --- ROTAS DE CADASTRO E GESTÃO --- */}
               <Route path="/cadastrar-aluno" element={<CadastroAluno />} />
               <Route path="/editar-aluno/:id" element={<EditarAluno />} />
               <Route path="/cadastro-usuario" element={<CadastrarUsuario />} />
@@ -148,6 +184,8 @@ function AppContent() {
               <Route path="/corrigir-turmas" element={<CorrigirTurmas />} />
               <Route path="/relatorios-aluno" element={<RelatoriosPage />} />
               <Route path="/ver-alunos" element={<VerAlunos />} />
+
+              {/* --- ROTAS DE AVALIAÇÃO --- */}
               <Route path="/avaliacao-inicial" element={<AvaliacaoInicial />} />
               <Route path="/ver-avaliacoes" element={<VerAvaliacoes />} />
               <Route path="/avaliacao/:id" element={<VerAvaliacao />} />
@@ -169,8 +207,6 @@ function AppContent() {
                 path="/nova-avaliacao-0a3"
                 element={<AvaliacaoInicial0a3Page />}
               />
-              <Route path="/criar-pei-0a3" element={<CriarPEI0a3 />} />
-              <Route path="/criar-pei-0a3/:alunoId" element={<CriarPEI0a3 />} />
               <Route
                 path="/selecionar-aluno-para-interesses"
                 element={<SelecionarAlunoParaInteresses />}
@@ -187,9 +223,16 @@ function AppContent() {
                 path="/visualizar-interesses/:alunoId"
                 element={<VisualizarAvaliacaoInteressesPage />}
               />
+
+              {/* --- ROTAS DE PEI E ACOMPANHAMENTO --- */}
+              <Route path="/criar-pei-0a3" element={<CriarPEI0a3 />} />
+              <Route path="/criar-pei-0a3/:alunoId" element={<CriarPEI0a3 />} />
               <Route path="/criar-pei" element={<CriarPei />} />
               <Route path="/ver-peis" element={<VerPeis />} />
+
+              {/* Rota de Edição original (mantida) */}
               <Route path="/editar-pei/:id" element={<EditarPei />} />
+
               <Route path="/continuar-pei/:id" element={<ContinuarPei />} />
               <Route path="/visualizar-pei/:id" element={<VisualizarPei />} />
               <Route

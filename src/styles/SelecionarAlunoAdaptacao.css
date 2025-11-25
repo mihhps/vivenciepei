@@ -1,0 +1,163 @@
+/* src/styles/SelecionarAlunoAdaptacao.css */
+
+.selecao-container {
+  max-width: 900px;
+  margin: 30px auto;
+  padding: 20px;
+}
+
+.selecao-card {
+  background-color: #ffffff;
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.selecao-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 25px;
+}
+
+.selecao-title {
+  color: #1d3557;
+  font-size: 1.6rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.selecao-descricao {
+  color: #6c757d;
+  margin-bottom: 30px;
+  padding: 10px;
+  border-left: 3px solid #457b9d;
+  background-color: #f0f8ff;
+}
+
+/* Seletor Rápido */
+.selecao-seletor-aluno {
+  margin-bottom: 20px;
+}
+
+.selecao-label {
+  display: block;
+  font-weight: 600;
+  color: #34495e;
+  margin-bottom: 8px;
+}
+
+.selecao-select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  font-size: 1rem;
+  background-color: #f8f9fa;
+}
+
+/* Separador */
+.selecao-separator {
+  text-align: center;
+  margin: 30px 0;
+  font-weight: bold;
+  color: #a0a0a0;
+  position: relative;
+}
+.selecao-separator::before,
+.selecao-separator::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 40%;
+  height: 1px;
+  background: #e0e0e0;
+}
+.selecao-separator::before {
+  left: 0;
+}
+.selecao-separator::after {
+  right: 0;
+}
+
+/* Busca */
+.selecao-busca-aluno {
+  margin-bottom: 20px;
+}
+
+.selecao-input-busca {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  font-size: 1rem;
+}
+
+/* Lista de Alunos */
+.selecao-lista-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.aluno-item-adaptacao {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  background-color: #fcfcfc;
+  transition: box-shadow 0.2s;
+}
+
+.aluno-item-adaptacao:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.aluno-info-adaptacao {
+  flex-grow: 1;
+}
+
+.aluno-nome-adaptacao {
+  display: block;
+  font-weight: 700;
+  color: #1d3557;
+  font-size: 1.1rem;
+  margin-bottom: 3px;
+}
+
+.aluno-detalhe-adaptacao {
+  font-size: 0.9rem;
+  color: #495057;
+}
+
+.botao-iniciar-estudio {
+  background-color: #457b9d;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.botao-iniciar-estudio:hover {
+  background-color: #396781;
+}
+
+.selecao-info-message {
+  text-align: center;
+  padding: 20px;
+  color: #6c757d;
+  font-style: italic;
+  border: 1px dashed #ced4da;
+  border-radius: 6px;
+  margin-top: 20px;
+}

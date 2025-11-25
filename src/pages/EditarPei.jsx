@@ -409,6 +409,8 @@ function EditarPei() {
 
         const area = metaPrincipal.area;
         const manualKey = `${area}-${habilidade.replace(/[^a-zA-Z0-9-]/g, "")}`;
+
+        // --- LÓGICA DE ESTRATÉGIAS (MODIFICADA) ---
         const estrategiasSalvas = normalizarEstrategias(
           metaDoProfessor?.estrategiasSelecionadas ||
             metaDoProfessor?.estrategias ||
@@ -419,17 +421,32 @@ function EditarPei() {
             ?.estrategias
         );
         const selectedStrategiesForThisPei = new Set(estrategiasSalvas);
-        const availableSuggestedStrategies = suggestedStrategiesFromMap.filter(
-          (estrat) =>
-            !estrategiasJaEmUsoGlobalmente.has(estrat) ||
-            selectedStrategiesForThisPei.has(estrat)
-        );
+
         const selectedSuggestedFromSaved = estrategiasSalvas.filter((saved) =>
           suggestedStrategiesFromMap.includes(saved)
         );
         const manualSavedStrategies = estrategiasSalvas.filter(
           (saved) => !suggestedStrategiesFromMap.includes(saved)
         );
+
+        // Estratégias do mapa que estão disponíveis (não em uso globalmente OU já selecionadas aqui)
+        const availableSuggestedStrategies = suggestedStrategiesFromMap.filter(
+          (estrat) =>
+            !estrategiasJaEmUsoGlobalmente.has(estrat) ||
+            selectedStrategiesForThisPei.has(estrat)
+        );
+
+        // ✅ COMBINAÇÃO FINAL DE ESTRATÉGIAS DE OPÇÃO (Filtradas + Manuais Salvas)
+        const todasAsEstrategiasDeOpcao = Array.from(
+          new Set([
+            ...availableSuggestedStrategies, // Estratégias do mapa (filtradas)
+            ...manualSavedStrategies, // Estratégias manuais salvas (devem ser opções)
+          ])
+        ).filter(Boolean); // Remove vazios
+
+        // --- FIM DA LÓGICA DE ESTRATÉGIAS ---
+
+        // --- LÓGICA DE OBJETIVOS (MODIFICADA) ---
         const objetivosBase = metaDoPeiBase?.objetivos || {
           longoPrazo: metaDoPeiBase?.objetivo || "",
           curtoPrazo:
@@ -452,17 +469,50 @@ function EditarPei() {
             estruturaPEIMap[habilidade]?.[metaPrincipal.nivelAlmejado]
               ?.objetivo || "",
         };
+
+        // 1. Sugestões de Mapa para o Nível Almejado Atual
+        const objMapaCurto =
+          objetivosCurtoPrazoMap[habilidade]?.[metaPrincipal.nivelAlmejado];
+        const objMapaMedio =
+          objetivosMedioPrazoMap[habilidade]?.[metaPrincipal.nivelAlmejado];
+        const objMapaLongo =
+          estruturaPEIMap[habilidade]?.[metaPrincipal.nivelAlmejado]?.objetivo;
+
+        // 2. ✅ Sugestões de Mapa para o Nível Almejado do PEI Base (para ver opções originais)
+        const objBaseMapaCurto =
+          objetivosCurtoPrazoMap[habilidade]?.[metaDoPeiBase?.nivelAlmejado];
+        const objBaseMapaMedio =
+          objetivosMedioPrazoMap[habilidade]?.[metaDoPeiBase?.nivelAlmejado];
+        const objBaseMapaLongo =
+          estruturaPEIMap[habilidade]?.[metaDoPeiBase?.nivelAlmejado]?.objetivo;
+
         const todosOsObjetivosDestaMeta = {
           curtoPrazo: Array.from(
-            new Set([objetivosDoProfessor.curtoPrazo, objetivosBase.curtoPrazo])
+            new Set([
+              objetivosDoProfessor.curtoPrazo,
+              objetivosBase.curtoPrazo,
+              objMapaCurto,
+              objBaseMapaCurto, // ✅ NOVO
+            ])
           ).filter(Boolean),
           medioPrazo: Array.from(
-            new Set([objetivosDoProfessor.medioPrazo, objetivosBase.medioPrazo])
+            new Set([
+              objetivosDoProfessor.medioPrazo,
+              objetivosBase.medioPrazo,
+              objMapaMedio,
+              objBaseMapaMedio, // ✅ NOVO
+            ])
           ).filter(Boolean),
           longoPrazo: Array.from(
-            new Set([objetivosDoProfessor.longoPrazo, objetivosBase.longoPrazo])
+            new Set([
+              objetivosDoProfessor.longoPrazo,
+              objetivosBase.longoPrazo,
+              objMapaLongo,
+              objBaseMapaLongo, // ✅ NOVO
+            ])
           ).filter(Boolean),
         };
+        // --- FIM DA LÓGICA DE OBJETIVOS ---
 
         objetivosParaSelecao[manualKey] = {
           curtoPrazo: Array.from(
@@ -481,7 +531,7 @@ function EditarPei() {
         peiAgrupadoPorArea[area].push({
           ...metaPrincipal,
           objetivos: todosOsObjetivosDestaMeta,
-          estrategias: availableSuggestedStrategies,
+          estrategias: todasAsEstrategiasDeOpcao, // ✅ Estratégias completas
           estrategiasSelecionadas: estrategiasSalvas,
         });
         entradaInicial[manualKey] = {

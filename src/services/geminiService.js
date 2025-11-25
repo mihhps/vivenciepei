@@ -2,16 +2,17 @@ import { db } from "../firebase";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 
 // CHAVE DE API: Mantenha aqui, pois é o único arquivo que faz as chamadas.
+// Certifique-se de que a chave está definida no seu arquivo .env do Vite
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
 // *************************************************************
-// * CORREÇÃO CRÍTICA: MODELO ATUALIZADO E ESTÁVEL (gemini-2.5-flash) *
+// * MODELO ATUALIZADO E ESTÁVEL *
 // *************************************************************
 const MODEL_NAME = "gemini-2.5-flash";
 const API_BASE_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${GEMINI_API_KEY}`;
 
 // Versão unificada do cache
-const CACHE_VERSION = "v25"; // Aumentado para limpar o cache após a mudança do modelo
+const CACHE_VERSION = "v26"; // Versão atualizada para refletir a nova estratégia de sugestões
 
 // --- FUNÇÕES DE AUXÍLIO ---
 
@@ -26,14 +27,14 @@ const LEGENDA_NIVEIS = {
 };
 
 const PERFIS_GERAIS = [
-  "gestao", // Já incluso
+  "gestao",
   "orientacao",
   "orientador_pedagogico",
-  "desenvolvedor", // Já incluso
+  "desenvolvedor",
   "diretor",
   "diretor_adjunto",
   "aee",
-  "seme", // Já incluso
+  "seme",
   "professor regente",
   "professor de suporte",
 ];
@@ -79,7 +80,7 @@ async function callGeminiApi(prompt, config, context) {
   const result = await response.json();
   const textResponse = result.candidates?.[0]?.content?.parts?.[0]?.text;
 
-  // NOVO BLOCO DE VERIFICAÇÃO ROBUSTO (contra respostas vazias/bloqueadas)
+  // BLOCO DE VERIFICAÇÃO ROBUSTO
   if (!textResponse) {
     const safetyReason = result.candidates?.[0]?.finishReason;
     const safetyBlock = result.promptFeedback?.blockReason;
@@ -100,17 +101,299 @@ async function callGeminiApi(prompt, config, context) {
   return textResponse;
 }
 
-// --- CORREÇÃO CRÍTICA 2: FUNÇÃO EXPORTADA PARA O usePlanoAEE.js ---
+// ==========================================================
+// ==== FUNÇÃO DE ADAPTAÇÃO DE CONTEÚDO (NOVO FOCO: SUGESTÕES) ====
+// ==========================================================
 
 /**
- * Função genérica para geração de Quebra-Gelo, Finalização e Atividade Principal
- * usando os prompts já definidos no usePlanoAEE.
- *
- * @param {string} tipo - Tipo de sugestão ('atividadePrincipal', 'quebraGelo', 'finalizacao').
- * @param {string} prompt - O prompt específico gerado no usePlanoAEE.
- * @param {string} systemInstruction - Instrução de sistema para a IA.
- * @returns {Promise<string>} O texto bruto da resposta da IA.
+ * Gera sugestões de adaptação e palavras-chave para um texto ou material original,
+ * focando em um formato conciso e estratégico para o professor.
+ * @param {object} adaptacaoInput - Objeto contendo texto, laudo, dificuldades e opções.
+ * @returns {Promise<object>} Objeto contendo sugestões de adaptação (lista),
+ * palavras-chave para pictogramas e sugestão de formato.
  */
+export async function gerarAdaptacaoMaterial(adaptacaoInput) {
+  const context = "SugestoesAdaptacao";
+
+  // 1. EXTRAÇÃO E GARANTIA DE TIPO
+  const textoOriginal = String(adaptacaoInput.texto || "");
+  const alunoInfo = {
+    diagnostico: adaptacaoInput.laudo || "Não informado",
+    dificuldades: adaptacaoInput.dificuldades || "Nenhuma especificada",
+  };
+  const opcoes = adaptacaoInput.opcoes || {}; // Mantemos as opções como contexto
+
+  if (textoOriginal.trim().length < 50) {
+    throw new Error("O texto para análise deve ter no mínimo 50 caracteres.");
+  }
+
+  // Monta a string de adaptação baseada nas opções (agora como contexto para a IA)
+  let contextoAdaptacao = [];
+  if (opcoes.simplificarLinguagem)
+    contextoAdaptacao.push("Linguagem: Simplificação e vocabulário reduzido.");
+  if (opcoes.inserirPictogramas)
+    contextoAdaptacao.push(
+      "Apoio Visual: Necessidade de uso de pictogramas ou imagens."
+    );
+  if (opcoes.transformarAvaliacao)
+    contextoAdaptacao.push(
+      "Avaliação: Transformar questões abertas em múltipla escolha."
+    );
+  if (opcoes.ajustarFormato)
+    contextoAdaptacao.push(
+      "Formato: Considerar ajustes de fonte, tamanho e espaçamento (pedir sugestão no JSON)."
+    );
+
+  if (contextoAdaptacao.length === 0) {
+    contextoAdaptacao.push(
+      "Nenhuma opção específica, focar em clareza e acessibilidade gerais."
+    );
+  }
+
+  const prompt = `
+        Você é um consultor de educação inclusiva. Sua tarefa é analisar o texto/atividade original e, com base nas informações do aluno e nos requisitos de adaptação, gerar **sugestões práticas** de como o professor pode modificar a atividade.
+
+        **Informações do Aluno para Contexto (Foco de Adaptação):**
+        - Diagnóstico Principal: ${alunoInfo.diagnostico}
+        - Dificuldades Chave: ${alunoInfo.dificuldades}
+
+        **Contexto de Adaptação Solicitado:**
+        * ${contextoAdaptacao.join("\n* ")}
+        
+        **Texto/Atividade Original a ser Analisada:**
+        ---
+        ${textoOriginal}
+        ---
+
+        **Requisitos de Saída (OBRIGATÓRIO):**
+        1. **sugestoesAdaptacao**: Crie uma lista com EXATAMENTE 7 sugestões concisas, práticas e acionáveis sobre como o professor deve adaptar a atividade original (ex: "Reduza o número de opções de múltipla escolha para 3" ou "Use massinha para simular ferramentas da pré-história").
+        2. **palavrasChavePictogramas**: Crie uma lista de 15 palavras-chave mais relevantes do texto para que o professor possa buscar pictogramas e apoiar visualmente o conteúdo.
+        3. **sugestaoFormato**: Gere uma sugestão de formato (fonte, espaçamento, cor) se a opção correspondente foi marcada.
+
+        **Formato de Saída (ESTRITAMENTE OBRIGATÓRIO):**
+        A resposta deve ser um **JSON puro** (sem blocos de código markdown) com a seguinte estrutura:
+
+        {
+          "sugestoesAdaptacao": ["Sugestão prática 1", "Sugestão prática 2", "...", "Sugestão prática 7"],
+          "palavrasChavePictogramas": ["palavra1", "palavra2", "palavra3", "...", "palavra15"],
+          "sugestaoFormato": "Dicas de fonte (Ex: OpenDyslexic), tamanho (Ex: 14pt) e espaçamento."
+        }
+
+        Gere a resposta agora, focando na utilidade e estabilidade.
+    `;
+
+  // 2. CONFIGURAÇÃO DA CHAMADA (MAX_TOKENS reduzido pela simplicidade da resposta)
+  const config = {
+    temperature: 0.7,
+    maxOutputTokens: 4096, // Resposta mais curta e estável
+    responseMimeType: "application/json",
+  };
+
+  const textResponse = await callGeminiApi(prompt, config, context);
+
+  // 3. Lógica de Parse
+  let parsedResponse;
+  try {
+    // Tenta limpar e analisar o JSON
+    parsedResponse = JSON.parse(textResponse.replace(/```json\n?|\n?```/g, ""));
+  } catch (e) {
+    console.error(
+      `Falha ao PARSEAR a resposta da IA (${context}). Resposta bruta:`,
+      textResponse,
+      e
+    );
+    throw new Error(
+      `A IA retornou um formato de texto inesperado. Não foi possível exibir as sugestões. (${context})`
+    );
+  }
+
+  // 4. Retorno (Retorna apenas os campos necessários)
+  return {
+    // Renomeando a chave interna para o nome esperado no frontend (pictogramas)
+    pictogramas: Array.isArray(parsedResponse.palavrasChavePictogramas)
+      ? parsedResponse.palavrasChavePictogramas
+      : [],
+    sugestoesAdaptacao: Array.isArray(parsedResponse.sugestoesAdaptacao)
+      ? parsedResponse.sugestoesAdaptacao
+      : ["Erro ao processar as sugestões. Verifique o prompt."],
+    sugestaoFormato: parsedResponse.sugestaoFormato || null,
+
+    // Campos anteriores agora são vazios, mas mantidos no retorno para não quebrar componentes que esperam eles
+    textoAdaptadoHTML: "",
+    textoAdaptado: "",
+  };
+}
+
+// ==========================================================
+// ==== FUNÇÃO DUA PARA PLANO DE AULA GERAL DE TURMA (Restante do arquivo) ====
+// ==========================================================
+
+/**
+ * Gera SUGESTÕES DE ESTRATÉGIAS DUA para um PLANO DE AULA GERAL DE TURMA (COM CACHE).
+ */
+export async function getSugestaoPlanoAulaDUA(
+  conteudoTema,
+  objetivoBNCC,
+  turmaInfo,
+  disciplinaProfessor,
+  forceRefresh = false
+) {
+  const context = "PlanoAulaDUA";
+  const disciplinaParaIA = normalizarDisciplinaParaIA(disciplinaProfessor);
+
+  // 1. CHAVE DE CACHE
+  const cacheKey =
+    `${CACHE_VERSION}-dua-turma-${turmaInfo}-${disciplinaParaIA}-${objetivoBNCC}-${conteudoTema}`
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9-]/g, "_");
+  const cacheRef = doc(db, "geminiCache", cacheKey);
+
+  // Lógica de Cache (Leitura)
+  if (!forceRefresh) {
+    try {
+      const cacheSnap = await getDoc(cacheRef);
+      if (cacheSnap.exists()) {
+        return JSON.parse(
+          cacheSnap.data().response.replace(/```json\n?|\n?```/g, "")
+        );
+      }
+    } catch (error) {
+      console.error(`Erro ao ler cache (${context}):`, error);
+    }
+  }
+
+  // 2. PROMPT
+  const prompt = `
+        Você é um especialista em Desenho Universal para a Aprendizagem (DUA) e BNCC. Sua tarefa é gerar sugestões de estratégias de ensino para um Plano de Aula INCLUSIVO, que elimine barreiras de aprendizado para TODOS os alunos da turma.
+        
+        **Foco da Aula:**
+        Turma: "${turmaInfo}" (${disciplinaParaIA})
+        Tema/Conteúdo: "${conteudoTema}"
+        Objetivo Curricular Central (BNCC/Geral): "${objetivoBNCC}"
+        
+        **Requisitos de Saída (Foco DUA):**
+        1. Gere **6 a 8 sugestões específicas, práticas e de fácil aplicação** para cada um dos 3 Princípios do DUA.
+        2. As sugestões devem ser GERAIS e aplicáveis a qualquer aluno da turma (foco na remoção de barreiras, não em adaptação individual).
+        3. A saída deve ser um **JSON puro** (sem blocos de código markdown) com a seguinte estrutura:
+
+        {
+          "representacao": ["Sugestão 1: Múltiplas formas de apresentar o conteúdo (Ex: Vídeo com legenda e material tátil).", ...],
+          "acaoExpressao": ["Sugestão 1: Múltiplas formas de o aluno demonstrar o aprendizado (Ex: Resposta oral, digital ou escrita).", ...],
+          "engajamento": ["Sugestão 1: Múltiplas formas de motivar o aluno (Ex: Dar opção de escolha do colega de grupo e tema de pesquisa).", ...]
+        }
+        
+        Gere as sugestões agora.
+    `;
+
+  // 3. CONFIGURAÇÃO DA CHAMADA
+  const config = {
+    temperature: 0.9,
+    maxOutputTokens: 16384,
+    responseMimeType: "application/json",
+  };
+
+  const textResponse = await callGeminiApi(prompt, config, context);
+
+  // 4. LÓGICA DE PARSE E CACHE
+  let parsedResponse;
+  try {
+    parsedResponse = JSON.parse(textResponse.replace(/```json\n?|\n?```/g, ""));
+  } catch (e) {
+    console.error(
+      `Falha ao PARSEAR a resposta da IA (${context}). Resposta bruta:`,
+      textResponse,
+      e
+    );
+    throw new Error(
+      `A IA retornou um formato de texto inesperado (${context}).`
+    );
+  }
+
+  try {
+    await setDoc(cacheRef, {
+      response: textResponse,
+      createdAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error(`Falha ao SALVAR no cache (${context}).`, error);
+  }
+
+  return parsedResponse;
+}
+
+// ==========================================================
+// ==== FUNÇÕES EXPORTADAS RESTANTES (Restante do arquivo) ====
+// ==========================================================
+
+export async function generateDraftReport(alunoInfo, criadorNome) {
+  const context = "DraftReport";
+
+  const prompt = `Aja como um(a) psicopedagogo(a) experiente, mas sensível. Sua tarefa é gerar um rascunho de relatório pedagógico (máximo 4 parágrafos) focado na comunicação com a família.
+O relatório deve ter uma linguagem que utilize **termos pedagógicos essenciais**, mas que seja imediatamente **clara, acessível e acolhedora** para os pais/responsáveis.
+
+O foco deve ser em: 
+1. Apresentação inicial do aluno (dados e diagnóstico) com foco no seu potencial.
+2. Descrição objetiva de uma área de observação primária, usando linguagem clara.
+3. Sugestão de uma meta de desenvolvimento simples, que a família possa apoiar em casa.
+
+**Informações do Aluno:**
+- Nome: ${alunoInfo.nome}
+- Turma: ${alunoInfo.turma}
+- Nascimento: ${alunoInfo.nascimento}
+- Diagnóstico: ${alunoInfo.diagnostico || "Não informado"}
+- Professor(a): ${criadorNome}
+
+**Instruções de Estilo:**
+- Mantenha um **tom formal, profissional, mas altamente acessível**.
+- **Evite jargões excessivos** ou palavras que exijam conhecimento técnico aprofundado.
+- Responda APENAS com o texto corrido do relatório.
+- Proíba o uso de títulos ou subtítulos.
+`;
+
+  // Configuração para texto corrido e objetivo
+  const config = {
+    temperature: 0.6, // Menos criativo, mais factual
+    maxOutputTokens: 16384,
+  };
+
+  return await callGeminiApi(prompt, config, context);
+}
+
+export async function reviewReportText(textoOriginal) {
+  const context = "ReviewReport";
+
+  // Aplica a mesma proteção para o trim()
+  const textoSeguro = String(textoOriginal || "");
+
+  if (textoSeguro.trim().length < 20) {
+    throw new Error(
+      "Texto insuficiente (mínimo de 20 caracteres) para a revisão da IA."
+    );
+  }
+
+  const prompt = `Você é um editor pedagógico. Sua tarefa é revisar o seguinte relatório de observação, transformando-o em um documento profissional, formal e com linguagem técnica adequada (pedagógica/psicopedagógica).
+Mantenha a essência e os fatos descritos no texto original, mas corrija erros gramaticais, melhore a fluidez e utilize terminologia apropriada.
+
+**Texto a ser revisado:**
+---
+${textoSeguro}
+---
+
+**Instruções:**
+- Retorne APENAS o texto revisado e formatado (parágrafos fluidos).
+- Mantenha o tom objetivo e profissional.
+`;
+
+  // Configuração para alta fidelidade ao texto (temp baixa)
+  const config = {
+    temperature: 0.3,
+    maxOutputTokens: 16384,
+  };
+
+  return await callGeminiApi(prompt, config, context);
+}
+
 export async function generateSugestoesAEE(tipo, prompt, systemInstruction) {
   const context = `AEE_${tipo}`;
 
@@ -131,16 +414,9 @@ export async function generateSugestoesAEE(tipo, prompt, systemInstruction) {
     ? `${systemInstruction}\n\n${prompt}`
     : prompt;
 
-  // Reutiliza a sua função centralizada para a chamada da API
-  // Não usa cache aqui, pois a lógica de cache está no usePlanoAEE.js
   return await callGeminiApi(finalPrompt, config, context);
 }
 
-// --- FUNÇÕES EXPORTADAS RESTANTES (Mantidas para compatibilidade) ---
-
-/**
- * Gera SUGESTÕES DE ESTRATÉGIAS para uma habilidade específica (COM CACHE).
- */
 export async function getSugestaoEstrategiasPEI(
   aluno,
   meta,
@@ -220,9 +496,6 @@ export async function getSugestaoEstrategiasPEI(
   return Array.isArray(parsedResponse) ? parsedResponse : [parsedResponse];
 }
 
-/**
- * Gera uma SUGESTÃO DE ATIVIDADE para UMA ESTRATÉGIA ESPECÍFICA (COM CACHE).
- */
 export async function getSugestaoAtividadeParaEstrategia(
   aluno,
   estrategia,
@@ -254,7 +527,7 @@ export async function getSugestaoAtividadeParaEstrategia(
   }
 
   const prompt = `Sua tarefa é criar 5 sugestões de atividades objetivas, criativas e de acordo com a realidade escolar, descrevendo com detalhes a ação do profissional.
-- As atividades devem aplicar diretamente a estratégia: "${estrategiaTexto}". - O texto de cada atividade deve ser uma instrução para o professor. - Os atendimentos sao indivíduais.
+- As atividades devem aplicar diretamente a estratégia: "${estrategiaTexto}". - Os atendimentos sao indivíduais.
 - Responda APENAS com uma lista de 5 strings em formato JSON.`;
 
   const config = {
@@ -292,11 +565,6 @@ export async function getSugestaoAtividadeParaEstrategia(
   return parsedResponse;
 }
 
-// --- ATENÇÃO: As funções a seguir (Plano, Quebra-Gelo, Finalização) não estavam sendo chamadas/causando erro no CriarPEI.jsx, mas são mantidas corrigidas ---
-
-/**
- * Gera uma SUGESTÃO DE PLANO DE ATIVIDADE COMPLETA (COM CACHE).
- */
 export async function getSugestaoAtividadePEI(
   aluno,
   meta,
@@ -419,7 +687,7 @@ export async function getSugestaoQuebraGelo(
 - O texto deve ser uma instrução para o professor, não para o aluno.
 - Responda APENAS com o texto da atividade, em formato de texto corrido.`;
 
-  const config = { maxOutputTokens: 8192 }; // Aumentado para garantir espaço
+  const config = { maxOutputTokens: 8192 };
   const textResponse = await callGeminiApi(prompt, config, context);
 
   try {
@@ -433,9 +701,6 @@ export async function getSugestaoQuebraGelo(
   return textResponse.trim();
 }
 
-/**
- * Gera uma SUGESTÃO DE ATIVIDADE DE FINALIZAÇÃO (COM CACHE).
- */
 export async function getSugestaoFinalizacao(
   aluno,
   disciplinaProfessor,
@@ -468,7 +733,7 @@ export async function getSugestaoFinalizacao(
 - O texto deve ser uma instrução para o professor, não para o aluno.
 - Responda APENAS com o texto da atividade, em formato de texto corrido.`;
 
-  const config = { maxOutputTokens: 8192 }; // Aumentado para garantir espaço
+  const config = { maxOutputTokens: 8192 };
   const textResponse = await callGeminiApi(prompt, config, context);
 
   try {

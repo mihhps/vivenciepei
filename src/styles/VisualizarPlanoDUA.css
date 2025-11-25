@@ -1,0 +1,527 @@
+/* =========================================================================
+   VARIÁVEIS DE COR E ESTILO (DESIGN SOFISTICADO E COESO)
+   ========================================================================= */
+
+:root {
+  /* Cores DUA (Diretrizes CAST) */
+  --cor-representacao: #503d81; /* Roxo Escuro */
+  --fundo-representacao: #f2eefa; /* Roxo Pastel */
+  --cor-acao-expressao: #2a72b0; /* Azul Escuro */
+  --fundo-acao-expressao: #eaf3fb; /* Azul Pastel */
+  --cor-engajamento: #198038; /* Verde Escuro */
+  --fundo-engajamento: #ebf6ee; /* Verde Pastel */
+
+  /* Cores de Recurso e Observação */
+  --cor-recursos: #e67e22; /* Laranja Sólido (Atenção/Lista) */
+  --fundo-recursos: #fef7ec; /* Laranja Claro */
+  --cor-observacoes: #34495e; /* Cinza Escuro (Reflexão/Notas) */
+  --fundo-observacoes: #f4f6f8; /* Cinza Muito Claro */
+
+  /* Cores de Base Ajustadas */
+  --cor-principal-suave: #2c3e50; /* Cinza azulado escuro para títulos */
+  --cor-texto-principal: #343a40;
+  --cor-texto-secundario: #6c757d;
+  --fundo-pagina: #f8f9fa;
+  --sombra-card: 0 5px 15px rgba(0, 0, 0, 0.08);
+  --borda-clara: #e9ecef;
+}
+
+/* =========================================================================
+   LAYOUT E ESTILOS GERAIS DA PÁGINA
+   ========================================================================= */
+
+body {
+  background-color: var(--fundo-pagina);
+  font-family: "Inter", "Poppins", "Arial", sans-serif;
+  color: var(--cor-texto-secundario);
+}
+
+.container-plano-dua.visualizacao {
+  max-width: 1100px;
+  margin: 40px auto;
+  padding: 35px 45px;
+  background-color: #ffffff;
+  border-radius: 18px;
+  box-shadow: var(--sombra-card);
+  transition: all 0.3s ease;
+}
+
+/* Títulos Principais */
+.titulo-principal {
+  font-size: 2.8rem;
+  color: var(--cor-principal-suave);
+  border-bottom: 2px solid var(--borda-clara);
+  padding-bottom: 20px;
+  margin-top: 25px;
+  margin-bottom: 25px;
+  font-weight: 700;
+}
+
+.subtitulo-contexto {
+  font-style: italic;
+  color: var(--cor-texto-secundario);
+  margin-bottom: 45px;
+  font-size: 1.05rem;
+}
+
+/* Títulos das Seções (h2) */
+.secao-detalhe h2 {
+  font-size: 2rem;
+  color: var(--cor-principal-suave);
+  margin-top: 0;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--borda-clara);
+  font-weight: 600;
+}
+
+/* Estilo de Card para Seções */
+.secao-detalhe {
+  margin-bottom: 45px;
+  padding: 30px;
+  background-color: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--borda-clara);
+}
+
+/* =========================================================================
+   SEÇÃO 1: INFORMAÇÕES GERAIS (Layout de Badges/Tags com ajuste)
+   ========================================================================= */
+
+.detalhes-grid {
+  /* Define o layout principal para 3 colunas */
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px 30px;
+  margin-bottom: 30px;
+}
+
+.detalhes-grid > div {
+  /* Estilo padrão de badge para Turma, Data, Duração */
+  background-color: #f8f9fa;
+  border: 1px solid var(--borda-clara);
+  border-radius: 10px;
+  padding: 15px 20px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+/* NOVO: Regra para o Tema/Conteúdo */
+.item-conteudo-longo {
+  /* Faz o item ocupar todas as 3 colunas, garantindo o alinhamento dos outros */
+  grid-column: 1 / -1;
+
+  /* Mantém o estilo visual do badge */
+  background-color: #f8f9fa;
+  border: 1px solid var(--borda-clara);
+  border-radius: 10px;
+  padding: 15px 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+}
+
+.detalhes-grid > div:hover,
+.item-conteudo-longo:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.detalhes-grid strong,
+.item-conteudo-longo strong {
+  color: var(--cor-principal-suave);
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+  letter-spacing: 0.5px;
+}
+
+.detalhes-grid span.valor,
+.item-conteudo-longo span.valor {
+  color: var(--cor-texto-principal);
+  font-weight: 500;
+  font-size: 1.1rem;
+  line-height: 1.4;
+}
+
+/* Bloco BNCC */
+.bloco-bncc {
+  background-color: #e9f5ff;
+  border-left: 6px solid #4a90e2;
+  padding: 20px;
+  margin: 20px 0 0 0;
+  font-size: 1.05rem;
+  color: var(--cor-texto-principal);
+  border-radius: 8px;
+  line-height: 1.6;
+  font-style: italic;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* =========================================================================
+   SEÇÃO 3: RECURSOS E OBSERVAÇÕES (SEPARADOS E COLORIDOS)
+   ========================================================================= */
+
+/* Onde o JSX deve ter a classe "secao-recursos-observacoes" */
+.secao-recursos-observacoes {
+  display: flex;
+  gap: 30px;
+}
+
+.bloco-item-recurso,
+.bloco-item-observacao {
+  flex: 1;
+  padding: 25px;
+  border-radius: 14px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+}
+
+/* --- BLOCO RECURSOS (Laranja) --- */
+.bloco-item-recurso {
+  background-color: var(--fundo-recursos);
+  border: 1px solid var(--cor-recursos);
+}
+
+.bloco-item-recurso h3 {
+  font-size: 1.35rem;
+  color: var(--cor-recursos);
+  font-weight: 700;
+  border-bottom: 2px solid var(--cor-recursos);
+  padding-bottom: 8px;
+  margin-bottom: 15px;
+}
+
+/* --- BLOCO OBSERVAÇÕES (Cinza Escuro) --- */
+.bloco-item-observacao {
+  background-color: var(--fundo-observacoes);
+  border: 1px solid var(--cor-observacoes);
+}
+
+.bloco-item-observacao h3 {
+  font-size: 1.35rem;
+  color: var(--cor-observacoes);
+  font-weight: 700;
+  border-bottom: 2px solid var(--cor-observacoes);
+  padding-bottom: 8px;
+  margin-bottom: 15px;
+}
+
+/* Estilo do Conteúdo dentro dos blocos coloridos */
+.conteudo-bloco {
+  line-height: 1.7;
+  color: var(--cor-texto-principal);
+  padding: 5px;
+}
+
+/* =========================================================================
+   SEÇÃO 2: DUA (Cores por Princípio)
+   ========================================================================= */
+
+.dua-container-visualizacao {
+  margin-top: 45px;
+}
+
+.dua-principio {
+  padding: 30px;
+  margin-bottom: 30px;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+}
+
+.dua-principio:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.dua-principio h3 {
+  font-size: 1.55rem;
+  margin-top: 0;
+  padding-bottom: 12px;
+  font-weight: 700;
+  border-bottom: 2px solid;
+  opacity: 0.9;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dua-principio ul {
+  list-style: none;
+  padding-left: 0;
+  margin-top: 20px;
+}
+
+.dua-principio li {
+  background-color: #ffffff;
+  padding: 15px 20px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  border-left: 6px solid;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  line-height: 1.6;
+  color: var(--cor-texto-principal);
+  transition: all 0.2s ease-in-out;
+}
+
+.dua-principio li:hover {
+  background-color: #fcfcfc;
+  transform: translateX(8px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* --- 1. REPRESENTAÇÃO (Roxo) --- */
+.dua-principio:nth-child(2) {
+  background-color: var(--fundo-representacao);
+  border-color: var(--cor-representacao);
+}
+.dua-principio:nth-child(2) h3 {
+  color: var(--cor-representacao);
+  border-bottom-color: var(--cor-representacao);
+}
+.dua-principio:nth-child(2) li {
+  border-left-color: var(--cor-representacao);
+}
+
+/* --- 2. AÇÃO E EXPRESSÃO (Azul) --- */
+.dua-principio:nth-child(3) {
+  background-color: var(--fundo-acao-expressao);
+  border-color: var(--cor-acao-expressao);
+}
+.dua-principio:nth-child(3) h3 {
+  color: var(--cor-acao-expressao);
+  border-bottom-color: var(--cor-acao-expressao);
+}
+.dua-principio:nth-child(3) li {
+  border-left-color: var(--cor-acao-expressao);
+}
+
+/* --- 3. ENGAJAMENTO (Verde) --- */
+.dua-principio:nth-child(4) {
+  background-color: var(--fundo-engajamento);
+  border-color: var(--cor-engajamento);
+}
+.dua-principio:nth-child(4) h3 {
+  color: var(--cor-engajamento);
+  border-bottom-color: var(--cor-engajamento);
+}
+.dua-principio:nth-child(4) li {
+  border-left-color: var(--cor-engajamento);
+}
+
+/* Estilo para lista vazia */
+.dua-principio li.vazio {
+  background-color: #fff0f0;
+  color: #dc3545;
+  border-left-color: #dc3545;
+  font-style: italic;
+  box-shadow: none;
+  transform: none;
+}
+.dua-principio li.vazio:hover {
+  background-color: #fff0f0;
+}
+
+/* =========================================================================
+   HEADER E BOTÕES MODERNOS
+   ========================================================================= */
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 25px;
+  margin-bottom: 35px;
+  border-bottom: 1px solid var(--borda-clara);
+}
+
+.botoes-acao-detalhe {
+  display: flex;
+  gap: 15px;
+}
+
+/* Base de Botões */
+.botao-voltar,
+.botao-secundario,
+.acao-delete {
+  padding: 12px 22px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 1.05rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+}
+
+.botao-voltar {
+  background-color: #7f8c8d;
+  color: white;
+}
+.botao-voltar:hover {
+  background-color: #616e72;
+  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.2);
+}
+
+.botao-secundario {
+  /* Usando o verde de engajamento */
+  background-color: var(--cor-engajamento); /* Verde Escuro */
+  color: white; /* Texto Branco para contraste */
+  /* Remove a sombra se não for a intenção */
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+}
+
+.botao-secundario:hover:not(:disabled) {
+  /* Escurece um pouco o verde no hover */
+  background-color: #156d31;
+}
+
+.acao-delete {
+  background-color: #e74c3c;
+  color: white;
+}
+.acao-delete:hover:not(:disabled) {
+  background-color: #c0392b;
+}
+
+/* Ícones dos Botões */
+.botao-voltar svg,
+.botao-secundario svg,
+.acao-delete svg {
+  margin-right: 8px;
+  font-size: 1.1em;
+}
+/* =========================================================================
+   ESTILO PERSONALIZADO DO BOTÃO DE EDITAR (AZUL)
+   ========================================================================= */
+
+.botao-editar {
+  /* Usando uma cor de ação/modificação (um azul) */
+  background-color: #3498db;
+  color: white; /* Cor do texto */
+}
+
+.botao-editar:hover:not(:disabled) {
+  /* Escurece no hover */
+  background-color: #2980b9;
+}
+/* =========================================================================
+   ESTADOS (Carregando e Erro)
+   ========================================================================= */
+
+.loading-state,
+.mensagem-erro {
+  text-align: center;
+  padding: 60px;
+  font-size: 1.3rem;
+  border-radius: 14px;
+  margin: 60px auto;
+  box-shadow: var(--sombra-card);
+}
+
+.loading-state {
+  color: #3498db;
+  background-color: #ebf5fb;
+}
+
+.mensagem-erro {
+  color: #e74c3c;
+  background-color: #fdeded;
+  border: 1px solid #e74c3c;
+}
+
+.icon-spin {
+  animation: spin 1s linear infinite;
+  margin-right: 12px;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* =========================================================================
+   MEDIA QUERIES (RESPONSIVIDADE)
+   ========================================================================= */
+
+@media (max-width: 992px) {
+  .container-plano-dua.visualizacao {
+    margin: 25px;
+    padding: 30px;
+  }
+
+  .detalhes-grid {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+  }
+}
+
+@media (max-width: 768px) {
+  .card-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 15px;
+  }
+
+  .botoes-acao-detalhe {
+    width: 100%;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .botao-secundario,
+  .acao-delete {
+    flex-grow: 1;
+    justify-content: center;
+    padding: 10px 15px;
+    font-size: 0.95rem;
+  }
+
+  .botao-voltar {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .titulo-principal {
+    font-size: 2.2rem;
+  }
+
+  .secao-recursos-observacoes {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .secao-detalhe h2 {
+    font-size: 1.6rem;
+  }
+
+  .dua-principio h3 {
+    font-size: 1.35rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .detalhes-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .container-plano-dua.visualizacao {
+    padding: 20px;
+    margin: 15px;
+  }
+
+  .secao-detalhe {
+    padding: 20px;
+  }
+}

@@ -9,13 +9,13 @@ export const perfilRedirectMap = {
   [PERFIS.GESTAO]: "/painel-gestao",
   [PERFIS.AEE]: "/painel-aee",
   [PERFIS.PROFESSOR]: "/painel-professor",
-  [PERFIS.SEME]: "/painel-seme", // <-- MUDANÇA FEITA AQUI
+  [PERFIS.SEME]: "/painel-seme",
   [PERFIS.DIRETOR]: "/painel-gestao",
   [PERFIS.DIRETOR_ADJUNTO]: "/painel-gestao",
   [PERFIS.ORIENTADOR_PEDAGOGICO]: "/painel-gestao",
 };
 
-// ========== GRUPOS DE PERMISSÃO (ORDEM CORRIGIDA) ==========
+// ========== GRUPOS DE PERMISSÃO ==========
 
 const ADMINISTRADORES = [
   PERFIS.GESTAO,
@@ -48,7 +48,7 @@ const TODOS = [
   PERFIS.ORIENTADOR_PEDAGOGICO,
 ];
 
-// ========== PERMISSÕES POR ROTA ==========
+// ========== PERMISSÕES POR ROTA (CORREÇÃO APLICADA AQUI!) ==========
 export const AUTORIZACAO_ROTAS = {
   // --- Painéis ---
   "/painel-dev": [PERFIS.DESENVOLVEDOR],
@@ -60,7 +60,11 @@ export const AUTORIZACAO_ROTAS = {
     PERFIS.SEME,
   ],
   "/painel-aee": [PERFIS.AEE, PERFIS.GESTAO, PERFIS.DESENVOLVEDOR],
-  "/painel-seme": GESTORES_PEDAGOGICOS, // <-- Você pode adicionar uma permissão específica aqui, se desejar.
+  "/painel-seme": GESTORES_PEDAGOGICOS,
+
+  // --- Rotas de Planos de Aula DUA ---
+  "/criar-plano-dua": TODOS,
+  "/visualizar-plano-dua/:id": TODOS,
 
   // --- Admin: Cadastros e Vinculações ---
   "/cadastrar-aluno": ADMINISTRADORES,
@@ -107,4 +111,16 @@ export const AUTORIZACAO_ROTAS = {
   "/visualizar-interesses/:alunoId": TODOS,
   "/observacoes-aluno/:peiId": TODOS,
   "/reavaliacao/:alunoId": TODOS,
+
+  // --- ROTAS DE ADAPTAÇÃO DE CONTEÚDO (CORREÇÃO APLICADA AQUI!) ---
+  "/selecionar-aluno-adaptacao": [
+    PERFIS.AEE,
+    PERFIS.PROFESSOR,
+    PERFIS.DESENVOLVEDOR,
+  ],
+  // Garante o matchPath para a rota dinâmica do estúdio
+  "/adaptar/:alunoId": [PERFIS.AEE, PERFIS.PROFESSOR, PERFIS.DESENVOLVEDOR],
+
+  // --- Outras rotas comuns ---
+  "/perfil": TODOS,
 };

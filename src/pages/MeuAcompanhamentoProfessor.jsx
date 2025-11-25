@@ -1,5 +1,3 @@
-// src/pages/MeuAcompanhamentoProfessor.jsx
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { db } from "../firebase";
@@ -15,7 +13,6 @@ import BotaoVoltar from "../components/BotaoVoltar";
 import Loader from "../components/Loader";
 import { useAuth } from "../context/AuthContext";
 import styled from "styled-components";
-// Importação do ícone de quebra-cabeça
 import { FaPuzzlePiece } from "react-icons/fa";
 
 // --- FUNÇÃO PARA IDENTIFICAR ALUNOS COM TEA ---
@@ -265,6 +262,9 @@ export default function MeuAcompanhamentoProfessor() {
             );
             const peiSnap = await getDocs(qPei);
 
+            // --- NOVO: Variável para guardar o ID do Documento PEI ---
+            let peiDocId = null;
+
             let statusPeiGeral = "Não iniciado";
             let statusRevisao1 = "N/A";
             let statusRevisao2 = "N/A";
@@ -302,25 +302,27 @@ export default function MeuAcompanhamentoProfessor() {
               )
                 statusRevisao2 = "Atrasado (PEI não criado)";
             } else {
-              const peiData = peiSnap.docs[0].data();
+              const peiDoc = peiSnap.docs[0]; // Referencia o doc
+              const peiData = peiDoc.data();
+              peiDocId = peiDoc.id; // <-- CAPTURA O ID DO DOCUMENTO PEI
 
               const dataCriacaoPei =
                 peiData?.dataCriacao instanceof Date
                   ? peiData.dataCriacao
                   : peiData?.dataCriacao?.toDate instanceof Function
-                    ? peiData.dataCriacao.toDate()
-                    : typeof peiData.dataCriacao === "string"
-                      ? new Date(peiData.dataCriacao)
-                      : null;
+                  ? peiData.dataCriacao.toDate()
+                  : typeof peiData.dataCriacao === "string"
+                  ? new Date(peiData.dataCriacao)
+                  : null;
 
               dataUltimaAtualizacaoPei =
                 peiData?.dataUltimaRevisao instanceof Date
                   ? peiData.dataUltimaRevisao
                   : peiData?.dataUltimaRevisao?.toDate instanceof Function
-                    ? peiData.dataUltimaRevisao.toDate()
-                    : typeof peiData.dataUltimaRevisao === "string"
-                      ? new Date(peiData.dataUltimaRevisao)
-                      : null;
+                  ? peiData.dataUltimaRevisao.toDate()
+                  : typeof peiData.dataUltimaRevisao === "string"
+                  ? new Date(peiData.dataUltimaRevisao)
+                  : null;
 
               dataUltimaAtualizacaoPei =
                 dataUltimaAtualizacaoPei || dataCriacaoPei;
@@ -423,6 +425,7 @@ export default function MeuAcompanhamentoProfessor() {
                 ? formatDate(dataUltimaAtualizacaoPei)
                 : "N/A",
               isAtrasadoRealmente: isAtrasadoRealmenteLocal,
+              peiDocId, // <-- NOVO CAMPO RETORNADO
             };
           })
         );
@@ -494,17 +497,29 @@ export default function MeuAcompanhamentoProfessor() {
                     <span>{aluno.dataUltimaAtualizacaoPei}</span>
                   </StatusItem>
                 </StatusSection>
-                {aluno.statusPeiGeral.includes("Atrasado - Sem PEI") && (
+
+                {/* LÓGICA DE BOTÃO CORRIGIDA PARA USAR O peiDocId */}
+                {(aluno.statusPeiGeral.includes("Atrasado - Sem PEI") ||
+                  aluno.isAtrasadoRealmente) && (
                   <AcaoButton
-                    onClick={() =>
-                      navigate("/criar-pei", {
-                        state: { alunoParaSelecionar: aluno },
-                      })
-                    }
+                    onClick={() => {
+                      // Se o PEI já foi criado, usa o ID do documento PEI para edição
+                      if (aluno.peiDocId) {
+                        navigate(`/editar-pei/${aluno.peiDocId}`);
+                      } else {
+                        // Se não existe, navega para criação
+                        navigate("/criar-pei", {
+                          state: { alunoParaSelecionar: aluno },
+                        });
+                      }
+                    }}
                   >
-                    Criar PEI
+                    {aluno.statusPeiGeral.includes("Atrasado - Sem PEI")
+                      ? "Criar PEI"
+                      : "Atualizar PEI"}
                   </AcaoButton>
                 )}
+                {/* FIM DA LÓGICA DE BOTÃO CORRIGIDA */}
               </StudentCard>
             ))}
           </CardGrid>

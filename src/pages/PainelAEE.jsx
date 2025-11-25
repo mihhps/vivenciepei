@@ -16,6 +16,7 @@ const CameraIcon = () => (
 export default function PainelAee() {
   const navigate = useNavigate();
   const [usuarioLogado, setUsuarioLogado] = useState(null);
+  // Defino 'pei' como aba inicial, mas altere para 'alunos' ou 'planejamento' se preferir.
   const [abaAtiva, setAbaAtiva] = useState("alunos");
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
@@ -105,6 +106,7 @@ export default function PainelAee() {
         />
         <h1 className="painel-titulo">Painel AEE</h1>
 
+        {/* --- NAVEGAÇÃO DE ABAS ATUALIZADA --- */}
         <div className="painel-tabs-nav">
           <button
             className={`tab-button ${abaAtiva === "alunos" ? "active" : ""}`}
@@ -127,12 +129,21 @@ export default function PainelAee() {
             PEI
           </button>
           <button
+            className={`tab-button ${
+              abaAtiva === "planejamento" ? "active" : ""
+            }`}
+            onClick={() => setAbaAtiva("planejamento")}
+          >
+            Planejamento
+          </button>
+          <button
             className={`tab-button ${abaAtiva === "gestao" ? "active" : ""}`}
             onClick={() => setAbaAtiva("gestao")}
           >
             Gestão
           </button>
         </div>
+        {/* --- FIM DA NAVEGAÇÃO DE ABAS ATUALIZADA --- */}
 
         <div className="painel-tabs-content">
           {abaAtiva === "alunos" && (
@@ -169,12 +180,38 @@ export default function PainelAee() {
             </>
           )}
 
+          {/* --- CONTEÚDO DA ABA PEI (Limpo) --- */}
           {abaAtiva === "pei" && (
             <>
               <BotaoPainel texto="Criar PEI" destino="/criar-pei" />
               <BotaoPainel texto="Ver PEIs" destino="/ver-peis" />
             </>
           )}
+          {/* --- FIM DO CONTEÚDO DA ABA PEI --- */}
+
+          {/* --- CONTEÚDO DA NOVA ABA PLANEJAMENTO - BOTÃO ADICIONADO AQUI --- */}
+          {abaAtiva === "planejamento" && (
+            <>
+              <BotaoPainel
+                texto="Estúdio de Adaptação de Conteúdo (IA)"
+                destino="/selecionar-aluno-adaptacao"
+              />
+              <BotaoPainel
+                texto="Criar Plano de Aula DUA"
+                destino="/criar-plano-dua"
+              />
+              <BotaoPainel
+                texto="Ver Planos de Aula DUA"
+                destino="/ver-planos-aula"
+              />
+              {/* Se houver outros planejamentos (como planos de curso, etc.) adicione aqui */}
+              <BotaoPainel
+                texto="Acompanhamento AEE"
+                destino="/acompanhamento-aee-selecao"
+              />
+            </>
+          )}
+          {/* --- FIM DO CONTEÚDO DA NOVA ABA PLANEJAMENTO --- */}
 
           {abaAtiva === "gestao" && (
             <>
@@ -195,7 +232,7 @@ export default function PainelAee() {
                     destino="/acompanhamento-prazos-pei"
                   />
                 )}
-            </> /* ===== CORREÇÃO AQUI: Esta tag estava faltando ===== */
+            </>
           )}
         </div>
 

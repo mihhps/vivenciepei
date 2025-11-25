@@ -19,6 +19,12 @@ import { useAlunos } from "../hooks/useAlunos";
 import { gerarPDFRelatorioIndividual } from "../utils/gerarPDFRelatorios";
 import { FaFilePdf, FaEdit, FaTrash, FaEye, FaTimes } from "react-icons/fa";
 
+// 🆕 Importa as novas funções do serviço de IA
+import {
+  generateDraftReport,
+  reviewReportText,
+} from "../services/geminiService";
+
 import "../styles/RelatoriosPage.css";
 
 const RelatoriosPage = () => {
@@ -38,6 +44,9 @@ const RelatoriosPage = () => {
   const [sucesso, setSucesso] = useState(null);
   const [editingRelatorio, setEditingRelatorio] = useState(null);
   const [modalContent, setModalContent] = useState(null);
+
+  // 🆕 NOVO STATE: Para controlar o estado de carregamento da IA
+  const [gerandoIA, setGerandoIA] = useState(false);
 
   useEffect(() => {
     if (!selectedAlunoId) {
@@ -141,6 +150,68 @@ const RelatoriosPage = () => {
     }
   };
 
+  // 🆕 FUNÇÃO IA: Gerar rascunho
+  const handleGerarRascunhoIA = async () => {
+    if (!selectedAlunoId || !alunoInfo) {
+      setError("Selecione um aluno para gerar o rascunho.");
+      return;
+    }
+    if (relatorioText.trim()) {
+      const confirm = window.confirm(
+        "O campo de relatório não está vazio. Deseja substituí-lo pelo rascunho gerado pela IA?"
+      );
+      if (!confirm) return;
+    }
+
+    setGerandoIA(true);
+    setError(null);
+    setSucesso(null);
+
+    const criadorNome = user.nome || user.email.split("@")[0] || "Professor(a)";
+
+    try {
+      const iaText = await generateDraftReport(alunoInfo, criadorNome);
+
+      setRelatorioText(iaText);
+      setSucesso(
+        "Rascunho de relatório gerado pela IA. Por favor, revise e personalize."
+      );
+    } catch (err) {
+      console.error("Erro ao gerar IA:", err);
+      setError(
+        `Erro ao gerar rascunho: ${err.message || "Verifique o serviço."}`
+      );
+    } finally {
+      setGerandoIA(false);
+    }
+  };
+
+  // 🆕 FUNÇÃO IA: Revisar texto
+  const handleRevisarTextoIA = async () => {
+    if (!relatorioText.trim()) {
+      setError(
+        "Escreva algo no relatório para que a IA possa revisar e formalizar."
+      );
+      return;
+    }
+    setGerandoIA(true);
+    setError(null);
+    setSucesso(null);
+    try {
+      const iaText = await reviewReportText(relatorioText);
+
+      setRelatorioText(iaText);
+      setSucesso("Relatório revisado e formalizado pela IA.");
+    } catch (err) {
+      console.error("Erro ao revisar IA:", err);
+      setError(
+        `Erro ao revisar o texto: ${err.message || "Verifique o serviço."}`
+      );
+    } finally {
+      setGerandoIA(false);
+    }
+  };
+
   const handleEdit = (relatorio) => {
     setEditingRelatorio(relatorio);
     setRelatorioText(relatorio.texto);
@@ -225,7 +296,7 @@ const RelatoriosPage = () => {
             value={selectedAlunoId}
             onChange={(e) => setSelectedAlunoId(e.target.value)}
             className="relatorios-select"
-            disabled={carregandoAlunos}
+            disabled={carregandoAlunos || gerandoIA}
           >
             <option value="">
               {carregandoAlunos ? "Carregando alunos..." : "Selecione um aluno"}
@@ -274,18 +345,47 @@ const RelatoriosPage = () => {
                 rows="8"
                 className="relatorios-textarea"
                 required
+                disabled={gerandoIA} // 🆕 Desabilita durante o processamento da IA
               ></textarea>
             </div>
+
+            {/* 🆕 BOTÕES DE ASSISTÊNCIA DA IA */}
+            <div className="relatorios-botoes-ia">
+              <button
+                type="button"
+                onClick={handleGerarRascunhoIA}
+                className="relatorios-botao-ia rascunho"
+                disabled={gerandoIA || loading} // ⚠️ Permitido mesmo com texto, mas o user será perguntado
+                title="Gera um rascunho de relatório inicial com base nas informações do aluno."
+              >
+                {gerandoIA && !relatorioText.trim()
+                  ? "Gerando Rascunho..."
+                  : "Gerar Rascunho com IA"}
+              </button>
+              <button
+                type="button"
+                onClick={handleRevisarTextoIA}
+                className="relatorios-botao-ia revisao"
+                disabled={gerandoIA || loading || !relatorioText.trim()} // Desabilita se não houver texto para revisar
+                title="Revisa e formaliza o texto já escrito no relatório."
+              >
+                {gerandoIA && relatorioText.trim()
+                  ? "Revisando..."
+                  : "Revisar e Formalizar com IA"}
+              </button>
+            </div>
+            {/* FIM DOS BOTÕES IA */}
+
             <button
               type="submit"
               className="relatorios-botao-salvar"
-              disabled={loading}
+              disabled={loading || gerandoIA} // 🆕 Desabilita se a IA estiver rodando
             >
-              {loading
-                ? "Salvando..."
+              {loading || gerandoIA
+                ? "Processando..."
                 : editingRelatorio
-                  ? "Salvar Edição"
-                  : "Salvar Relatório"}
+                ? "Salvar Edição"
+                : "Salvar Relatório"}
             </button>
           </form>
         )}

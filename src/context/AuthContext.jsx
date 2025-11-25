@@ -7,7 +7,6 @@ import {
 import { doc, getDoc } from "firebase/firestore";
 
 // Linha 10: Importa as instâncias 'auth' e 'db' do seu arquivo central.
-// ESTE É O ÚNICO LUGAR ONDE 'auth' e 'db' DEVEM SER DECLARADOS.
 import { auth, db } from "../firebase";
 
 // Variáveis globais
@@ -31,44 +30,24 @@ export function AuthProvider({ children }) {
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [appIdentifier] = useState(appId);
 
-  // Remova daqui qualquer linha que diga "const auth = ..." ou "const db = ..."
-  // se ela foi adicionada antes, pois isso causaria o conflito.
-
   useEffect(() => {
-    const setupAuth = async () => {
-      try {
-      } catch (error) {
-        // O erro auth/admin-restricted-operation é logado AQUI
-        console.error("[AuthContext] Falha na autenticação inicial:", error);
-
-        if (error.code === "auth/invalid-custom-token") {
-          try {
-            await signInAnonymously(auth);
-          } catch (anonError) {
-            console.error(
-              "[AuthContext] Falha no fallback anônimo:",
-              anonError
-            );
-          }
-        }
-      }
-    };
-
-    if (!auth.currentUser) {
-      setupAuth();
-    }
+    // Flag para garantir que as operações de sign-in inicial só ocorram uma vez
+    let isInitialCheck = true;
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      // 1. Inicia o Carregamento do Perfil
+      setIsLoadingProfile(true);
+
       if (user) {
+        // Usuário AUTENTICADO
         setCurrentUser(user);
         setUserId(user.uid);
-        setIsLoadingProfile(true);
 
         try {
           // 🛑 ESSENCIAL: Recarrega o token para obter os claims ('perfil')
           await user.getIdTokenResult(true);
 
-          // Usa a instância 'db' importada
+          // Carrega o Perfil do Firestore
           const userDocRef = doc(db, "usuarios", user.uid);
           const userDocSnap = await getDoc(userDocRef);
 
@@ -79,6 +58,7 @@ export function AuthProvider({ children }) {
               email: user.email,
               ...data,
               id: userDocSnap.id,
+              perfil: data.perfil?.toLowerCase()?.trim(),
               turmas: data.turmas || {},
               escolas: data.escolas || {},
             });
@@ -98,19 +78,49 @@ export function AuthProvider({ children }) {
           console.error("[AuthContext] Erro ao carregar perfil:", error);
           setUserProfileData(null);
         } finally {
+          // 2. Finaliza o Carregamento do Perfil
           setIsLoadingProfile(false);
         }
-        setIsAuthReady(true);
       } else {
-        // Lógica de logout
-        setCurrentUser(null);
-        setUserId(null);
-        setUserProfileData(null);
-        setIsLoadingProfile(false);
+        // Usuário NÃO AUTENTICADO
+
+        // Tenta sign-in customizado na primeira verificação
+        if (isInitialCheck) {
+          if (initialAuthToken) {
+            try {
+              await signInWithCustomToken(auth, initialAuthToken);
+              // O onAuthStateChanged será acionado novamente com o usuário logado.
+            } catch (error) {
+              console.error(
+                "[AuthContext] Falha no token customizado, tentando anônimo:",
+                error
+              );
+              await signInAnonymously(auth);
+            }
+          } else {
+            // Tenta login anônimo como fallback, se não houver token customizado
+            await signInAnonymously(auth);
+          }
+        }
+
+        // Lógica de logout (apenas se a primeira verificação já tiver ocorrido)
+        if (!isInitialCheck || !initialAuthToken) {
+          setCurrentUser(null);
+          setUserId(null);
+          setUserProfileData(null);
+          setIsLoadingProfile(false); // Finaliza o carregamento do perfil
+        }
+      }
+
+      // 3. Finaliza a Verificação de Autenticação na primeira passagem
+      if (isInitialCheck) {
         setIsAuthReady(true);
+        isInitialCheck = false;
       }
     });
+
     return () => unsubscribe();
+    // initialAuthToken é a única dependência externa relevante
   }, [initialAuthToken]);
 
   const value = {
@@ -126,6 +136,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={value}>
+      {/* CORREÇÃO: Renderiza os filhos apenas quando AMBOS os estados de carregamento estiverem prontos */}
       {isAuthReady && !isLoadingProfile ? (
         children
       ) : (

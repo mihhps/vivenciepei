@@ -1,0 +1,521 @@
+/* ================================================= */
+/* CSS: CRIAR e VER (Listagem) Planos Aula DUA */
+/* Paleta: Azul Marinho Escuro (#1d3557), Azul Suave (#457b9d), Ciano (#2a9d8f) */
+/* ================================================= */
+
+/* 1. ESTILOS GERAIS DO CONTAINER */
+.container-plano-dua,
+.container-ver-planos-dua {
+  max-width: 1200px;
+  margin: 20px auto;
+  padding: 30px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(29, 53, 87, 0.12);
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.titulo-principal {
+  color: #1d3557; /* AZUL MARINHO ESCURO */
+  border-bottom: 2px solid #e0e0e0;
+  padding-bottom: 15px;
+  margin-bottom: 30px;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+/* 2. ESTILOS DOS BOTÕES (Cores Novas) */
+.botao-principal,
+.botao-secundario,
+.botao-salvar-plano,
+.botao-adicionar,
+.acao-view,
+.acao-delete {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.25s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* BOTÃO PRINCIPAL: Azul Suave */
+.botao-principal {
+  background-color: #457b9d;
+  color: white;
+}
+.botao-principal:hover:not(:disabled) {
+  background-color: #1d3557;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+}
+
+.botao-secundario {
+  background-color: #6c757d;
+  color: white;
+}
+.botao-secundario:hover:not(:disabled) {
+  background-color: #5a6268;
+  transform: translateY(-1px);
+}
+
+/* BOTÃO SALVAR: Ciano */
+.botao-salvar-plano {
+  background-color: #2a9d8f;
+  color: white;
+  font-size: 1.2rem;
+  width: 100%;
+  justify-content: center;
+  margin-top: 40px;
+  margin-bottom: 25px;
+}
+.botao-salvar-plano:hover:not(:disabled) {
+  background-color: #1e7a6f;
+  transform: scale(1.02);
+  box-shadow: 0 4px 10px rgba(42, 157, 143, 0.4);
+}
+
+/* Desabilitado */
+.botao-principal:disabled,
+.botao-secundario:disabled,
+.botao-salvar-plano:disabled,
+.botao-gerar-ia:disabled,
+.botao-adicionar:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* 3. ESTILOS DO FORMULÁRIO (CriarPlanoAulaDUA.jsx) */
+.seletor-turma-contexto {
+  margin-bottom: 30px;
+}
+
+fieldset {
+  border: 1px solid #e0e0e0;
+  padding: 20px 25px;
+  margin-bottom: 35px;
+  border-radius: 10px;
+  background-color: #ffffff;
+  transition: border-color 0.3s;
+}
+fieldset:focus-within {
+  border-color: #457b9d;
+}
+
+fieldset legend {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #1d3557;
+  padding: 0 10px;
+  margin-left: -5px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+.form-group label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #343a40;
+}
+
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group input[type="date"],
+.form-group textarea,
+.filter-select {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #ced4da;
+  border-radius: 8px;
+  box-sizing: border-box;
+  font-size: 1rem;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.form-group input[type="text"]:focus,
+.form-group textarea:focus,
+.filter-select:focus {
+  border-color: #457b9d;
+  box-shadow: 0 0 0 3px rgba(69, 123, 157, 0.25);
+  outline: none;
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.form-group-row {
+  display: flex;
+  gap: 30px;
+}
+.form-group-row > .form-group,
+.form-group-half {
+  flex: 1;
+}
+
+/* Seções DUA E IA */
+.subtitulo-dua {
+  font-size: 1.6rem;
+  color: #1d3557;
+  margin-bottom: 20px;
+  border-left: 5px solid #457b9d;
+  padding-left: 15px;
+  font-weight: 600;
+}
+
+.dua-section {
+  position: relative;
+  padding-top: 60px;
+}
+
+.info-text {
+  font-size: 0.9rem;
+  color: #78909c;
+  margin-bottom: 15px;
+}
+
+.botao-gerar-ia {
+  position: absolute;
+  top: 20px;
+  right: 25px;
+  background-color: #ffb300;
+  color: #343a40;
+  padding: 8px 18px;
+  font-weight: 700;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  text-transform: none;
+}
+.botao-gerar-ia:hover:not(:disabled) {
+  background-color: #ff9800;
+  transform: translateY(-1px);
+}
+
+.aviso-ia {
+  color: #c0392b;
+  font-size: 0.95rem;
+  margin-bottom: 20px;
+  padding: 10px;
+  border-left: 4px solid #c0392b;
+  background-color: #ffdddd;
+  border-radius: 6px;
+}
+
+.loading-ia {
+  text-align: center;
+  color: #457b9d;
+  font-weight: 600;
+  margin: 25px 0;
+  font-size: 1.1rem;
+}
+.icon-spin {
+  animation: spin 1s linear infinite;
+  margin-right: 10px;
+  font-size: 1.2em;
+}
+
+/* Checkboxes DUA */
+.dua-checkboxes {
+  border: 1px dashed #cfd8dc;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 25px;
+  background-color: #f8f8f8;
+}
+
+.dua-item {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.dua-item input[type="checkbox"] {
+  margin-top: 5px;
+  margin-right: 12px;
+  min-width: 20px;
+  min-height: 20px;
+  accent-color: #457b9d;
+}
+
+.dua-item label {
+  flex: 1;
+  font-weight: 400;
+  color: #333;
+}
+
+.tag-ia {
+  background-color: #e6f0f5;
+  color: #457b9d;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  margin-left: 10px;
+  font-weight: 600;
+  text-transform: none;
+}
+
+/* Adição Manual */
+.dua-manual-add {
+  display: flex;
+  gap: 15px;
+  margin-top: 20px;
+  align-items: flex-end;
+}
+.dua-manual-add textarea {
+  flex: 1;
+  min-height: 50px;
+  resize: none;
+  align-self: center;
+}
+.botao-adicionar {
+  background-color: #457b9d;
+  color: white;
+  padding: 10px 15px;
+  text-transform: none;
+}
+.botao-adicionar:hover {
+  background-color: #1d3557;
+}
+
+/* Estilo para os títulos dos princípios */
+.dua-principio-selector h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-size: 1.2em;
+  color: #1d3557;
+  border-left: 3px solid #457b9d;
+  padding-left: 10px;
+  font-weight: 600;
+}
+
+/* Estilo para a caixa que contém as opções de um princípio DUA */
+.dua-principio-selector {
+  margin-bottom: 20px;
+  padding: 15px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background-color: #ffffff;
+}
+
+/* Garante que os rótulos de checkbox fiquem lado a lado */
+.dua-principio-selector label.checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 25px;
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+
+/* O input do checkbox */
+.dua-principio-selector input[type="checkbox"] {
+  margin-right: 10px;
+  transform: scale(1.1);
+}
+
+/* 4. ESTILOS DA TABELA (Listagem) */
+/* **IMPORTANTE:** Estilos de tabela e ações de visualização/edição/deleção foram mantidos aqui */
+
+.tabela-container-dua {
+  overflow-x: auto;
+  margin-top: 30px;
+}
+
+.tabela-container-dua table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.tabela-container-dua th,
+.tabela-container-dua td {
+  padding: 14px 18px;
+  text-align: left;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+/* CABEÇALHO DA TABELA: Usa o Azul Marinho Escuro */
+.tabela-container-dua th {
+  background-color: #1d3557;
+  color: white;
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.tabela-container-dua tr:hover {
+  background-color: #f7f7f7;
+  box-shadow: inset 3px 0 0 0 #457b9d;
+}
+
+.titulo-coluna {
+  font-weight: 600;
+  color: #343a40;
+}
+
+/* Coluna de Ações da Tabela */
+.acoes-coluna {
+  width: 140px;
+  text-align: center;
+}
+
+.acao-view,
+.acao-delete {
+  padding: 9px 12px;
+  margin: 0 5px;
+  border-radius: 6px;
+  text-transform: none;
+}
+
+.acao-view {
+  background-color: #457b9d;
+  color: white;
+}
+.acao-view:hover {
+  background-color: #1d3557;
+  transform: translateY(-1px);
+}
+
+.acao-delete {
+  background-color: #e74c3c;
+  color: white;
+}
+.acao-delete:hover {
+  background-color: #c0392b;
+  transform: translateY(-1px);
+}
+
+/* Estados Vazios ou de Carregamento */
+.loading-state,
+.empty-state {
+  text-align: center;
+  padding: 50px;
+  border: 1px dashed #cfd8dc;
+  border-radius: 8px;
+  margin-top: 25px;
+  color: #757575;
+  background-color: #ffffff;
+}
+.loading-state .icon-spin {
+  font-size: 1.8rem;
+  display: block;
+  margin: 0 auto 15px;
+  color: #457b9d;
+}
+
+/* 5. RESPONSIVIDADE (MOBILE-FIRST) da listagem e formulário */
+@media (max-width: 768px) {
+  .container-plano-dua,
+  .container-ver-planos-dua {
+    padding: 15px;
+  }
+  .titulo-principal {
+    font-size: 1.6rem;
+    margin-bottom: 20px;
+  }
+  .form-group-row {
+    flex-direction: column;
+    gap: 0;
+  }
+  .dua-section {
+    padding-top: 15px;
+  }
+
+  .botao-gerar-ia {
+    position: static;
+    width: 100%;
+    justify-content: center;
+    margin-bottom: 20px;
+    margin-top: 10px;
+    right: auto;
+    left: auto;
+  }
+
+  /* Transformação da Tabela para Cartões (Responsividade) */
+  .tabela-container-dua table,
+  .tabela-container-dua thead,
+  .tabela-container-dua tbody,
+  .tabela-container-dua th,
+  .tabela-container-dua td,
+  .tabela-container-dua tr {
+    display: block;
+  }
+
+  .tabela-container-dua thead tr {
+    position: absolute;
+    top: -9999px;
+    left: -9999px;
+  }
+
+  .tabela-container-dua tr {
+    border: 1px solid #e0e0e0;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+  .tabela-container-dua tr:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .tabela-container-dua td {
+    border: none;
+    border-bottom: 1px solid #f0f0f0;
+    position: relative;
+    padding-left: 50%;
+    text-align: right;
+    font-size: 0.95rem;
+  }
+
+  .tabela-container-dua td:last-child {
+    border-bottom: none;
+  }
+
+  .tabela-container-dua td:before {
+    content: attr(data-label);
+    position: absolute;
+    left: 0;
+    width: 45%;
+    padding-left: 15px;
+    font-weight: 600;
+    text-align: left;
+    color: #495057;
+  }
+
+  .acoes-coluna {
+    text-align: right;
+    padding-top: 15px;
+    padding-bottom: 15px;
+    width: auto;
+  }
+}
+
+/* Animação de Spin */
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}

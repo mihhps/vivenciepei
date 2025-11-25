@@ -1,3 +1,20 @@
+/* ========================================================== */
+/* ==== CSS Original (Com variáveis de cor) ==== */
+/* ========================================================== */
+
+/* Variáveis de cor (Exemplo - ajuste conforme seu tema) */
+:root {
+  --bg-background: #f4f7f6;
+  --bg-card: #ffffff;
+  --bg-input: #f9f9f9;
+  --text-primary: #333333;
+  --text-secondary: #6c757d;
+  --text-light: #ffffff;
+  --border-color: #e0e0e0;
+  --color-primary: #1e847f; /* Seu verde principal */
+  --color-accent: #457b9d; /* Azul para destaque/IA */
+}
+
 .relatorios-container {
   display: flex;
   justify-content: center;
@@ -258,66 +275,73 @@
 .modal-body {
   flex-grow: 1;
 }
-/* NOVO: Estilos do Modal */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.6);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background-color: #ffffff;
-  border-radius: 12px;
-  padding: 20px;
-  max-width: 700px;
-  width: 90%;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-  position: relative;
-  max-height: 90vh;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid #eee;
-  padding-bottom: 10px;
-  margin-bottom: 15px;
-}
-
-.modal-header h3 {
-  margin: 0;
-  font-size: 1.2em;
-}
-
-.modal-close-btn {
-  background: none;
-  border: none;
-  font-size: 1.5em;
-  cursor: pointer;
-  color: #888;
-}
-
-.modal-close-btn:hover {
-  color: #555;
-}
-
-.modal-body {
-  flex-grow: 1;
-}
 
 .modal-body .relatorio-texto-modal {
   white-space: pre-wrap !important; /* Adicione !important se necessário */
   line-height: 1.6;
   font-family: inherit;
+}
+
+/* ========================================================== */
+/* ==== NOVOS ESTILOS: ASSISTÊNCIA DE RELATÓRIOS POR IA ==== */
+/* ========================================================== */
+
+/* Container que envolve os dois botões de IA */
+.relatorios-botoes-ia {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+  margin-bottom: 5px;
+}
+
+/* Estilo Base para os Botões de IA */
+.relatorios-botao-ia {
+  flex: 1;
+  padding: 10px 15px;
+  font-size: 0.95em;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 1. Estilo para Geração de Rascunho (Ação Primária de IA) */
+.relatorios-botao-ia.rascunho {
+  /* Cor de Destaque (Azul-claro) */
+  background-color: var(--color-accent);
+  color: var(--text-light);
+}
+
+.relatorios-botao-ia.rascunho:hover:not(:disabled) {
+  background-color: #3f7b9e;
+}
+
+/* 2. Estilo para Revisão de Texto (Ação Secundária de IA) */
+.relatorios-botao-ia.revisao {
+  /* Estilo Outline: Borda na cor principal do sistema */
+  background-color: transparent;
+  color: var(--color-primary);
+  border: 2px solid var(--color-primary);
+}
+
+.relatorios-botao-ia.revisao:hover:not(:disabled) {
+  /* Preenche no hover */
+  background-color: var(--color-primary);
+  color: var(--text-light);
+}
+
+/* Estilo para quando a IA está processando (Disabled) */
+.relatorios-botao-ia:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Garantir que o botão Salvar mantenha seu espaçamento de topo */
+.relatorios-botao-salvar {
+  /* mantém o estilo original, mas repete a definição de margem para clareza */
+  margin-top: 15px;
 }
