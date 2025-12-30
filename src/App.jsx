@@ -16,6 +16,7 @@ import RecuperarSenha from "./pages/RecuperarSenha";
 import EscolaAtual from "./components/EscolaAtual";
 import PrivateRoute from "./components/PrivateRoute";
 import CorrigirTurmas from "./pages/CorrigirTurmas";
+import RelatorioConferencia from "./pages/RelatorioConferencia";
 
 // --- PÁGINAS COM LAZY-LOADING (COMPLETO) ---
 const AcompanhamentoAEE = lazy(() => import("./pages/AcompanhamentoAEE.jsx"));
@@ -223,7 +224,10 @@ function AppContent() {
                 path="/visualizar-interesses/:alunoId"
                 element={<VisualizarAvaliacaoInteressesPage />}
               />
-
+              <Route
+                path="/admin/relatorio-conferencia"
+                element={<RelatorioConferencia />}
+              />
               {/* --- ROTAS DE PEI E ACOMPANHAMENTO --- */}
               <Route path="/criar-pei-0a3" element={<CriarPEI0a3 />} />
               <Route path="/criar-pei-0a3/:alunoId" element={<CriarPEI0a3 />} />
@@ -291,7 +295,12 @@ function AppContent() {
 export default function App() {
   return (
     <AuthProvider>
-      <Router>
+      <Router
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
         <AppContent />
       </Router>
     </AuthProvider>

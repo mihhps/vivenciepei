@@ -1,0 +1,217 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800;900&display=swap");
+
+.turma-page-container {
+  height: 100vh;
+  width: 100vw;
+  background: #0f172a;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  overflow: hidden;
+}
+
+.turma-main-card {
+  background: #ffffff;
+  border-radius: 40px;
+  width: 100%;
+  max-width: 1100px;
+  height: 85vh;
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+}
+
+/* LADO ESQUERDO */
+.turma-form-side {
+  padding: 40px;
+  background: #f8fafc;
+  border-right: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.form-header h2 {
+  font-size: 2rem;
+  font-weight: 900;
+  color: #1e293b;
+  margin: 0;
+}
+.input-group {
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.input-group label {
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+.input-group input,
+.input-group select {
+  padding: 14px;
+  border-radius: 12px;
+  border: 2px solid #e2e8f0;
+  font-family: inherit;
+}
+
+.btn-salvar-turma {
+  padding: 18px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 18px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+/* LADO DIREITO (LISTAGEM COM ROLAGEM) */
+.turma-list-side {
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.turmas-scroll-area {
+  flex: 1;
+  overflow-y: auto !important;
+  padding-right: 10px;
+  margin-top: 20px;
+}
+
+.turmas-visual-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 15px;
+}
+
+.turma-item-card {
+  background: #f8fafc;
+  padding: 20px;
+  border-radius: 20px;
+  border: 1px solid #f1f5f9;
+  position: relative;
+}
+
+.turma-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.turma-details strong {
+  display: block;
+  font-size: 1.1rem;
+  color: #1e293b;
+}
+.turma-details span {
+  color: #3b82f6;
+  font-weight: 800;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+
+.turma-actions {
+  display: flex;
+  gap: 8px;
+}
+.turma-actions button {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 5px 8px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.turma-actions button:hover {
+  background: #fee2e2;
+  border-color: #ef4444;
+}
+
+/* MODO EDIÇÃO INLINE */
+.edit-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.edit-mode input,
+.edit-mode select {
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #3b82f6;
+  font-family: inherit;
+}
+.edit-actions {
+  display: flex;
+  gap: 10px;
+}
+.btn-confirm {
+  background: #22c55e;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  flex: 1;
+  padding: 8px;
+  cursor: pointer;
+}
+.btn-cancel {
+  background: #64748b;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  flex: 1;
+  padding: 8px;
+  cursor: pointer;
+}
+
+/* SCROLLBAR */
+.turmas-scroll-area::-webkit-scrollbar {
+  width: 6px;
+}
+.turmas-scroll-area::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+/* Correção da Logo no Empty State */
+.fade-logo {
+  width: 120px !important; /* Força o tamanho pequeno */
+  height: auto;
+  opacity: 0.1; /* Deixa ela bem clarinha, quase transparente */
+  margin-bottom: 20px;
+  filter: grayscale(
+    100%
+  ); /* Opcional: deixa ela cinza para não brigar com as cores */
+  pointer-events: none; /* Garante que ela não atrapalhe cliques */
+}
+
+.empty-state-list {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: #94a3b8;
+  text-align: center;
+  padding: 40px;
+}
+.btn-migrar-turmas {
+  margin-top: 15px;
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px dashed #166534;
+  padding: 12px;
+  border-radius: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-migrar-turmas:hover {
+  background: #dcfce7;
+}

@@ -1,0 +1,67 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800;900&display=swap");
+
+.view-container-premium {
+  min-height: 100vh;
+  background: #f8fafc;
+  padding: 40px 5%;
+  font-family: "Plus Jakarta Sans", sans-serif;
+}
+
+.pagina-card {
+  max-width: 950px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 32px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+  border: 1px solid #f1f5f9;
+  overflow: hidden;
+}
+
+.header-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 24px 32px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.titulo-centro {
+  grid-column: 2;
+  text-align: center;
+}
+
+.titulo-centro h1 {
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: #0f172a;
+  margin: 0;
+}
+
+/* Estilo para as seções de respostas */
+.sessao-respostas {
+  padding: 32px;
+}
+
+.pergunta-bloco {
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #f8fafc;
+}
+
+.pergunta-label {
+  display: block;
+  font-weight: 800;
+  color: #64748b;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.resposta-texto {
+  background: #f8fafc;
+  padding: 16px;
+  border-radius: 16px;
+  color: #1e293b;
+  font-weight: 600;
+  line-height: 1.6;
+}

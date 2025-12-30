@@ -2,38 +2,25 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import { getAuth, signOut } from "firebase/auth";
-// Presumindo que 'db' e 'storage' são exportados de '../firebase'
 import { db, storage } from "../firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { doc, updateDoc } from "firebase/firestore";
 import TrocarEscola from "../components/TrocarEscola";
+import HeaderSistema from "../components/HeaderSistema"; // Importado
 import { verificarPrazosPEI } from "../src/services/peiStatusChecker";
 
 import "react-toastify/dist/ReactToastify.css";
 import "../styles/PainelProfessor.css";
 
-// ====================================================================
-// Componentes Auxiliares
-// ====================================================================
 const BotaoPainel = ({ texto, destino }) => {
   const navigate = useNavigate();
   return (
-    <button className="painel-botao" onClick={() => navigate(destino)}>
+    <button className="btn-acao" onClick={() => navigate(destino)}>
       {texto}
     </button>
   );
 };
 
-const CameraIcon = () => (
-  <svg height="12" width="12" viewBox="0 0 24 24" fill="white">
-    <path d="M4 4h3l2-2h6l2 2h3a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2zm8 14a5 5 0 100-10 5 5 0 000 10z" />
-    <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" />
-  </svg>
-);
-
-// ====================================================================
-// Componente Principal
-// ====================================================================
 export default function PainelProfessor() {
   const navigate = useNavigate();
   const [usuarioLogado, setUsuarioLogado] = useState(null);
@@ -47,27 +34,23 @@ export default function PainelProfessor() {
     setCarregandoAvisos(true);
     const userData = localStorage.getItem("usuarioLogado");
     if (!userData) {
-      toast.error("Sessão não encontrada.");
       navigate("/login");
       return;
     }
-
     const currentUser = JSON.parse(userData);
     setUsuarioLogado(currentUser);
 
-    if (currentUser.perfil !== "professor" || !currentUser.id) {
-      setAvisosPEI({ erro: "Perfil inválido ou ID não encontrado." });
-      setCarregandoAvisos(false);
-      return;
-    }
-
     try {
-      const anoLetivoAtual = new Date().getFullYear();
-      const status = await verificarPrazosPEI(anoLetivoAtual, currentUser.id);
+      // Pega o exercício do localStorage para os prazos baterem com o ano selecionado
+      const anoExercicio =
+        localStorage.getItem("anoExercicio") || new Date().getFullYear();
+      const status = await verificarPrazosPEI(
+        Number(anoExercicio),
+        currentUser.id
+      );
       setAvisosPEI(status);
     } catch (error) {
-      console.error("Erro ao verificar prazos PEI:", error);
-      setAvisosPEI({ erro: "Falha ao verificar prazos dos PEIs." });
+      setAvisosPEI({ erro: "Erro ao verificar prazos." });
     } finally {
       setCarregandoAvisos(false);
     }
@@ -81,212 +64,192 @@ export default function PainelProfessor() {
     const file = event.target.files[0];
     if (!file || !usuarioLogado) return;
     setUploading(true);
-    const storageRef = ref(storage, `fotos-perfil/${usuarioLogado.uid}`);
+    const uid = usuarioLogado.uid || usuarioLogado.id;
+    const storageRef = ref(storage, `fotos-perfil/${uid}`);
     try {
       await uploadBytes(storageRef, file);
       const photoURL = await getDownloadURL(storageRef);
-      const userDocRef = doc(db, "usuarios", usuarioLogado.uid);
+      const userDocRef = doc(db, "usuarios", uid);
       await updateDoc(userDocRef, { photoURL });
       const usuarioAtualizado = { ...usuarioLogado, photoURL };
       setUsuarioLogado(usuarioAtualizado);
       localStorage.setItem("usuarioLogado", JSON.stringify(usuarioAtualizado));
-      toast.success("Foto de perfil atualizada com sucesso!");
+      toast.success("Foto atualizada!");
+      window.location.reload(); // Recarrega para atualizar a foto no Header também
     } catch (error) {
-      console.error("Erro no upload da foto:", error);
-      toast.error("Falha ao atualizar a foto de perfil.");
+      toast.error("Erro no upload.");
     } finally {
       setUploading(false);
     }
   };
 
-  const handleAvatarClick = () => {
-    fileInputRef.current.click();
-  };
-
   const handleSair = async () => {
-    try {
-      await signOut(getAuth());
-      localStorage.removeItem("usuarioLogado");
-      toast.success("Você saiu com sucesso!");
-      navigate("/login");
-    } catch (error) {
-      toast.error("Erro ao sair.");
-    }
-  };
-
-  const exibirResumoAvisos = () => {
-    if (carregandoAvisos) {
-      return (
-        <div className="aviso-card aviso-info">
-          <p>Verificando prazos dos PEIs...</p>
-        </div>
-      );
-    }
-    if (!avisosPEI) return null;
-
-    const { statusGeral, mensagem, erro } = avisosPEI;
-
-    if (erro) {
-      return (
-        <div className="aviso-card aviso-erro">
-          <p>Erro: {erro}</p>
-        </div>
-      );
-    }
-    if (mensagem) {
-      return (
-        <div className="aviso-card aviso-info">
-          <p>{mensagem}</p>
-        </div>
-      );
-    }
-    if (statusGeral === "Atrasado") {
-      return (
-        <div className="aviso-card aviso-alerta">
-          <h3>Atenção: PEIs com Pendências!</h3>
-          <button
-            className="botao-detalhes"
-            onClick={() => navigate(`/meu-acompanhamento-pei`)}
-          >
-            Ver Detalhes
-          </button>
-        </div>
-      );
-    }
-    return (
-      <div className="aviso-card aviso-sucesso">
-        <p>Parabéns! Todos os PEIs de seus alunos estão em dia.</p>
-      </div>
-    );
+    await signOut(getAuth());
+    localStorage.removeItem("usuarioLogado");
+    navigate("/login");
   };
 
   return (
     <div className="painel-page-container">
       <ToastContainer position="bottom-right" autoClose={3000} />
+
       <div className="painel-card">
-        {/* === 1. PERFIL E FOTO === */}
-        <div className="user-profile-top-corner">
-          <div className="avatar-container">
-            <img
-              src={
-                usuarioLogado?.photoURL ||
-                "https://placehold.co/100x100/A0C3FF/ffffff?text=User"
-              }
-              alt="Foto do perfil"
-              className="avatar-imagem"
-              onError={(e) => {
-                e.target.onerror = null;
-                e.target.src =
-                  "https://placehold.co/100x100/A0C3FF/ffffff?text=User";
-              }}
-            />
-            <button
-              className="avatar-botao-editar"
-              onClick={handleAvatarClick}
-              disabled={uploading}
-            >
-              {uploading ? "..." : <CameraIcon />}
-            </button>
-            <input
-              type="file"
-              accept="image/*"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              style={{ display: "none" }}
-            />
-          </div>
-          <div className="user-text">
-            <span>Bem-vindo, </span>
-            <strong>{usuarioLogado?.nome || "Professor"}</strong>
-          </div>
-        </div>
-
-        <img
-          src="/logo-vivencie.png"
-          alt="Logo Vivencie PEI"
-          className="painel-logo"
-          onError={(e) => {
-            e.target.onerror = null;
-            e.target.src =
-              "https://placehold.co/150x50/3498db/ffffff?text=Logo+PEI";
-          }}
-        />
-        <h1 className="painel-titulo">Painel do Professor</h1>
-
-        {/* === 2. AVISOS/PENDÊNCIAS (Alto Destaque) === */}
-        {exibirResumoAvisos()}
-
-        {/* === 3. NAVEGAÇÃO DE ABAS === */}
-        <div className="painel-tabs-nav">
-          <button
-            className={`tab-button ${abaAtiva === "pei" ? "active" : ""}`}
-            onClick={() => setAbaAtiva("pei")}
-          >
+        {/* LADO ESQUERDO: MARCA IMPONENTE */}
+        <div className="brand-section">
+          <img
+            src="/logo-vivencie.png"
+            className="painel-logo"
+            alt="Vivencie PEI"
+          />
+          <h1 className="painel-titulo">
+            Vivencie
+            <br />
             PEI
-          </button>
-          <button
-            className={`tab-button ${
-              abaAtiva === "avaliacoes" ? "active" : ""
-            }`}
-            onClick={() => setAbaAtiva("avaliacoes")}
-          >
-            Avaliações
-          </button>
-          <button
-            className={`tab-button ${
-              abaAtiva === "planejamento" ? "active" : ""
-            }`}
-            onClick={() => setAbaAtiva("planejamento")}
-          >
-            Planejamento
-          </button>
+          </h1>
         </div>
 
-        {/* === 4. CONTEÚDO DAS ABAS (Botões Empilhados) === */}
-        <div className="painel-tabs-content">
-          {abaAtiva === "pei" && (
-            <>
-              <BotaoPainel texto="Criar PEI" destino="/criar-pei" />
-              <BotaoPainel
-                texto="Ver Prazos Anuais do PEI"
-                destino="/prazos-professor"
-              />
-            </>
+        {/* LADO DIREITO: OPERACIONAL */}
+        <div
+          className="actions-section"
+          style={{ position: "relative", paddingTop: "70px" }}
+        >
+          {/* SELETOR DE EXERCÍCIO (IPM) */}
+          <HeaderSistema usuario={usuarioLogado} />
+
+          {/* ÁREA DE IDENTIDADE SIMPLIFICADA (Apenas funcionalidade de troca) */}
+
+          {/* Notificação de Pendência */}
+          {!carregandoAvisos && avisosPEI?.statusGeral === "Atrasado" && (
+            <div
+              className="alerta-pendencia-container"
+              style={{ margin: "0 40px 20px" }}
+            >
+              <div
+                className="alerta-pendencia"
+                style={{
+                  background: "#fffbeb",
+                  padding: "12px 20px",
+                  borderRadius: "15px",
+                  border: "1px solid #fef3c7",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <p
+                  style={{
+                    fontSize: "0.9rem",
+                    fontWeight: "700",
+                    color: "#92400e",
+                    margin: 0,
+                  }}
+                >
+                  ⚠️ Pendências no PEI (
+                  {localStorage.getItem("anoExercicio") || "Atual"})
+                </p>
+                <button
+                  style={{
+                    background: "#d97706",
+                    color: "white",
+                    border: "none",
+                    padding: "6px 15px",
+                    borderRadius: "10px",
+                    fontWeight: "800",
+                    cursor: "pointer",
+                  }}
+                  onClick={() => navigate("/meu-acompanhamento-pei")}
+                >
+                  Detalhes
+                </button>
+              </div>
+            </div>
           )}
 
-          {abaAtiva === "avaliacoes" && (
-            <>
-              <BotaoPainel
-                texto="Ver Avaliações Iniciais"
-                destino="/ver-avaliacoes"
-              />
-              <BotaoPainel
-                texto="Ver Avaliações de Interesses"
-                destino="/visualizar-interesses"
-              />
-            </>
-          )}
+          {/* NAVEGAÇÃO DE ABAS */}
+          <div className="tabs-container">
+            <button
+              className={`tab-item ${abaAtiva === "pei" ? "active" : ""}`}
+              onClick={() => setAbaAtiva("pei")}
+            >
+              PEI
+            </button>
+            <button
+              className={`tab-item ${
+                abaAtiva === "avaliacoes" ? "active" : ""
+              }`}
+              onClick={() => setAbaAtiva("avaliacoes")}
+            >
+              AVALIAÇÕES
+            </button>
+            <button
+              className={`tab-item ${
+                abaAtiva === "planejamento" ? "active" : ""
+              }`}
+              onClick={() => setAbaAtiva("planejamento")}
+            >
+              PLANEJAMENTO
+            </button>
+          </div>
 
-          {abaAtiva === "planejamento" && (
-            <>
-              <BotaoPainel
-                texto="Estúdio de Adaptação de Conteúdo (IA)"
-                destino="/selecionar-aluno-adaptacao"
-              />
-              <BotaoPainel
-                texto="Criar Plano de Aula DUA"
-                destino="/criar-plano-dua"
-              />
-            </>
-          )}
-        </div>
+          {/* CONTEÚDO DINÂMICO */}
+          <div className="grid-acoes">
+            {abaAtiva === "pei" && (
+              <>
+                <button
+                  className="btn-acao"
+                  onClick={() => navigate("/criar-pei")}
+                >
+                  Criar Novo PEI
+                </button>
+                <button
+                  className="btn-acao"
+                  onClick={() => navigate("/prazos-professor")}
+                >
+                  Prazos Anuais
+                </button>
+              </>
+            )}
+            {abaAtiva === "avaliacoes" && (
+              <>
+                <button
+                  className="btn-acao"
+                  onClick={() => navigate("/ver-avaliacoes")}
+                >
+                  Iniciais
+                </button>
+                <button
+                  className="btn-acao"
+                  onClick={() => navigate("/visualizar-interesses")}
+                >
+                  Interesses
+                </button>
+              </>
+            )}
+            {abaAtiva === "planejamento" && (
+              <>
+                <button
+                  className="btn-acao"
+                  onClick={() => navigate("/selecionar-aluno-adaptacao")}
+                >
+                  IA Adaptação
+                </button>
+                <button
+                  className="btn-acao"
+                  onClick={() => navigate("/criar-plano-dua")}
+                >
+                  Plano DUA
+                </button>
+              </>
+            )}
+          </div>
 
-        {/* === 5. AÇÕES INFERIORES === */}
-        <div className="botoes-secundarios">
-          <TrocarEscola className="botao-trocar-escola" />
-          <button onClick={handleSair} className="painel-botao-sair">
-            Sair
-          </button>
+          {/* RODAPÉ */}
+          <div className="painel-footer">
+            <TrocarEscola />
+            <button onClick={handleSair} className="btn-sair">
+              Sair do Sistema
+            </button>
+          </div>
         </div>
       </div>
     </div>

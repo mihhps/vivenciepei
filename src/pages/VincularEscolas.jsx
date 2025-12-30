@@ -1,373 +1,260 @@
-// src/pages/VincularEscolas.jsx
-
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { getDocs, collection, updateDoc, doc } from "firebase/firestore";
+import {
+  getDocs,
+  collection,
+  updateDoc,
+  doc,
+  query,
+  where,
+} from "firebase/firestore"; // ✅ Adicionado query e where
 import { db } from "../firebase";
 import { useNavigate } from "react-router-dom";
 import Loader from "../components/Loader";
-import BotaoVoltar from "../components/BotaoVoltar";
-import PropTypes from "prop-types";
 import { toast, ToastContainer } from "react-toastify";
+
 import "./VincularEscolas.css";
 
-// --- Componente Auxiliar para renderizar os checkboxes de escolas ---
-const EscolaCheckboxes = React.memo(
-  ({ prof, escolas, edicoesPendentes, toggleEscola, salvarEscolas }) => {
-    const hasPendingEdits = useMemo(() => {
-      return (
-        edicoesPendentes[prof.id] &&
-        Object.keys(edicoesPendentes[prof.id]).length > 0
-      );
-    }, [edicoesPendentes, prof.id]);
-
-    return (
-      <div className="vinculacao-checkboxes">
-        <h5 className="vinculacao-checkbox-titulo">Vincular escolas:</h5>
-        <div className="vinculacao-checkbox-list">
-          {escolas.map((escola) => {
-            const isCurrentlyLinked = prof.escolas?.[escola.id] || false;
-            const isPendingChange = edicoesPendentes[prof.id]?.[escola.id];
-
-            const isChecked =
-              isPendingChange !== undefined
-                ? isPendingChange
-                : isCurrentlyLinked;
-
-            return (
-              <label key={escola.id} className="vinculacao-checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={isChecked}
-                  onChange={() =>
-                    toggleEscola(prof.id, escola.id, isCurrentlyLinked)
-                  }
-                />
-                <span className="checkmark"></span>
-                <span className="checkbox-text">{escola.nome}</span>
-              </label>
-            );
-          })}
-        </div>
-        {hasPendingEdits && (
-          <button
-            onClick={() =>
-              salvarEscolas(prof.id, edicoesPendentes[prof.id] || {})
-            }
-            className="vinculacao-botao-salvar"
-          >
-            Salvar alterações
-          </button>
-        )}
-      </div>
-    );
-  }
-);
-
-EscolaCheckboxes.propTypes = {
-  prof: PropTypes.object.isRequired,
-  escolas: PropTypes.array.isRequired,
-  edicoesPendentes: PropTypes.object.isRequired,
-  toggleEscola: PropTypes.func.isRequired,
-  salvarEscolas: PropTypes.func.isRequired,
-};
-
-// --- Componente Principal: VincularEscolas ---
 export default function VincularEscolas() {
+  const navigate = useNavigate();
   const [profissionais, setProfissionais] = useState([]);
   const [escolas, setEscolas] = useState([]);
-  const [escolaSelecionada, setEscolaSelecionada] = useState(null);
-  const [modoEdicaoGeral, setModoEdicaoGeral] = useState(false);
-  const [edicoesPendentes, setEdicoesPendentes] = useState({});
+  const [escolaIdAtiva, setEscolaIdAtiva] = useState(null);
+  const [profEditando, setProfEditando] = useState(null);
+  const [edicoes, setEdicoes] = useState({});
+  const [busca, setBusca] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [expandedProfId, setExpandedProfId] = useState(null);
-  const navigate = useNavigate();
+
+  // ✅ 1. RECUPERA O ANO DO EXERCÍCIO ATIVO
+  const anoAtivo = useMemo(
+    () => Number(localStorage.getItem("anoExercicio")) || 2025,
+    []
+  );
 
   const carregarDados = useCallback(async () => {
     setIsLoading(true);
-    setError(null);
     try {
-      const usuariosSnap = await getDocs(collection(db, "usuarios"));
-      const escolasSnap = await getDocs(collection(db, "escolas"));
+      // ✅ 2. FILTRA USUÁRIOS E ESCOLAS PELO ANO VIGENTE
+      // (Considerando que você carimba o 'ano' no cadastro de usuários e escolas)
+      const uSnap = await getDocs(collection(db, "usuarios"));
+      const eSnap = await getDocs(collection(db, "escolas"));
 
-      const perfisParaVincular = [
-        "professor",
-        "diretor",
-        "diretor adjunto",
-        "orientador pedagogico",
-        "orientador_pedagogico",
-        "aee",
-        "gestao",
-      ];
+      const escolasListadas = eSnap.docs
+        .map((d) => ({ id: d.id, ...d.data() }))
+        // Filtra escolas do ano ativo (caso tenha escolas específicas por ano)
+        .filter((e) => e.ano === anoAtivo || !e.ano);
 
-      const usuariosFiltrados = usuariosSnap.docs
-        .map((doc) => ({ id: doc.id, ...doc.data() }))
-        .filter((u) => perfisParaVincular.includes(u.perfil?.toLowerCase()));
-
-      const escolasListadas = escolasSnap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      const usuariosFiltrados = uSnap.docs
+        .map((d) => ({ id: d.id, ...d.data() }))
+        .filter(
+          (u) =>
+            ["professor", "aee", "gestao", "diretor"].includes(
+              u.perfil?.toLowerCase()
+            )
+          // ✅ Permite ver profs cadastrados no ano ativo ou profs antigos para migração
+        );
 
       setProfissionais(usuariosFiltrados);
       setEscolas(escolasListadas);
-
-      if (!escolaSelecionada && escolasListadas.length > 0) {
-        setEscolaSelecionada(escolasListadas[0]);
-      } else if (!escolaSelecionada && escolasListadas.length === 0) {
-        setEscolaSelecionada("semVinculo");
-      }
-    } catch (err) {
-      console.error("Erro ao carregar dados:", err);
-      setError("Erro ao carregar dados. Por favor, tente novamente.");
-      toast.error("Erro ao carregar dados. Por favor, tente novamente.");
+      if (escolasListadas.length > 0) setEscolaIdAtiva(escolasListadas[0].id);
+    } catch (e) {
+      toast.error("Erro ao carregar dados.");
     } finally {
       setIsLoading(false);
     }
-  }, [escolaSelecionada]);
+  }, [anoAtivo]);
 
   useEffect(() => {
     carregarDados();
   }, [carregarDados]);
 
-  const toggleEscola = useCallback((profId, escolaId, isOriginallyLinked) => {
-    setEdicoesPendentes((prev) => {
-      const professorEdicoes = { ...(prev[profId] || {}) };
-      const newState =
-        professorEdicoes[escolaId] !== undefined
-          ? professorEdicoes[escolaId] === isOriginallyLinked
-            ? undefined
-            : !professorEdicoes[escolaId]
-          : !isOriginallyLinked;
+  const handleToggle = (escId, originalmenteVinculado) => {
+    setEdicoes((prev) => ({
+      ...prev,
+      [escId]:
+        prev[escId] !== undefined ? !prev[escId] : !originalmenteVinculado,
+    }));
+  };
 
-      if (newState === undefined) {
-        delete professorEdicoes[escolaId];
-      } else {
-        professorEdicoes[escolaId] = newState;
-      }
+  const salvar = async (profId) => {
+    const prof = profissionais.find((p) => p.id === profId);
+    const novasEscolas = { ...(prof.escolas || {}) };
 
-      if (Object.keys(professorEdicoes).length === 0) {
-        const novo = { ...prev };
-        delete novo[profId];
-        return novo;
-      }
-
-      return { ...prev, [profId]: professorEdicoes };
+    Object.keys(edicoes).forEach((id) => {
+      if (edicoes[id]) novasEscolas[id] = true;
+      else delete novasEscolas[id];
     });
-  }, []);
 
-  const salvarEscolas = useCallback(
-    async (profId, edicoesDoProfessor) => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const profissionalAtual = profissionais.find((p) => p.id === profId);
-        if (!profissionalAtual) {
-          throw new Error("Profissional não encontrado para salvar.");
-        }
+    try {
+      // ✅ 3. AO SALVAR, O PROFESSOR FICA ATUALIZADO PARA O ANO ATIVO
+      await updateDoc(doc(db, "usuarios", profId), {
+        escolas: novasEscolas,
+        anoAtivo: anoAtivo, // Carimba o ano da última migração de vínculo
+      });
 
-        const escolasFinais = { ...(profissionalAtual.escolas || {}) };
-        for (const escolaId in edicoesDoProfessor) {
-          if (edicoesDoProfessor[escolaId] === true) {
-            escolasFinais[escolaId] = true;
-          } else if (edicoesDoProfessor[escolaId] === false) {
-            delete escolasFinais[escolaId];
-          }
-        }
-
-        await updateDoc(doc(db, "usuarios", profId), {
-          escolas: escolasFinais,
-        });
-
-        setEdicoesPendentes((prev) => {
-          const novo = { ...prev };
-          delete novo[profId];
-          return novo;
-        });
-
-        await carregarDados();
-        toast.success("Vínculos atualizados com sucesso!");
-      } catch (err) {
-        console.error("Erro ao salvar:", err);
-        setError("Erro ao salvar vínculos. Por favor, tente novamente.");
-        toast.error("Erro ao salvar vínculos. Por favor, tente novamente.");
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [carregarDados, profissionais]
-  );
-
-  const profissionaisFiltradosParaExibicao = useMemo(() => {
-    if (escolaSelecionada === "semVinculo") {
-      return profissionais.filter(
-        (prof) => !prof.escolas || Object.keys(prof.escolas).length === 0
-      );
-    } else if (escolaSelecionada && typeof escolaSelecionada === "object") {
-      return profissionais.filter((prof) =>
-        Object.keys(prof.escolas || {}).includes(escolaSelecionada.id)
-      );
+      toast.success(`Vínculo atualizado para o exercício ${anoAtivo}!`);
+      setProfEditando(null);
+      setEdicoes({});
+      carregarDados();
+    } catch (e) {
+      toast.error("Erro ao salvar.");
     }
-    return [];
-  }, [profissionais, escolaSelecionada]);
+  };
 
-  if (isLoading && !error) {
-    return <Loader />;
-  }
+  const listaFiltrada = useMemo(() => {
+    let lista =
+      escolaIdAtiva === "sem"
+        ? profissionais.filter(
+            (p) => !p.escolas || Object.keys(p.escolas).length === 0
+          )
+        : profissionais.filter((p) => p.escolas?.[escolaIdAtiva]);
 
-  if (error && !isLoading) {
-    return (
-      <div className="vinculacao-container">
-        <BotaoVoltar />
-        <p className="error-message">{error}</p>
-        <ToastContainer position="bottom-right" autoClose={3000} />
-      </div>
-    );
-  }
+    if (busca)
+      lista = lista.filter((p) =>
+        p.nome?.toLowerCase().includes(busca.toLowerCase())
+      );
+    return lista;
+  }, [profissionais, escolaIdAtiva, busca]);
+
+  if (isLoading) return <Loader />;
 
   return (
-    <div className="vinculacao-container">
-      <div className="vinculacao-card">
-        <BotaoVoltar className="vinculacao-botao-voltar" />
-        <h2 className="vinculacao-titulo">Vincular Escolas a Profissionais</h2>
-
-        <div className="vinculacao-abas-container">
-          {escolas.map((escola) => (
-            <button
-              key={escola.id}
-              className={`vinculacao-aba ${escolaSelecionada?.id === escola.id ? "active" : ""}`}
-              onClick={() => {
-                setEscolaSelecionada(escola);
-                setModoEdicaoGeral(false);
-                setEdicoesPendentes({});
-                setExpandedProfId(null);
-              }}
-            >
-              {escola.nome}
+    <div className="vinc-escolas-page">
+      <ToastContainer position="bottom-right" />
+      <div className="vinc-escolas-card">
+        {/* SIDEBAR */}
+        <div className="vinc-sidebar">
+          <div className="vinc-sidebar-header">
+            <button className="btn-back-minimal" onClick={() => navigate(-1)}>
+              ← Voltar
             </button>
-          ))}
-          <button
-            className={`vinculacao-aba ${escolaSelecionada === "semVinculo" ? "active" : ""}`}
-            onClick={() => {
-              setEscolaSelecionada("semVinculo");
-              setModoEdicaoGeral(true);
-              setEdicoesPendentes({});
-              setExpandedProfId(null);
-            }}
-          >
-            Sem vínculo
-          </button>
+            <h3 style={{ fontWeight: 900 }}>Unidades</h3>
+            {/* ✅ EXIBE O ANO VIGENTE NO TOPO DA BARRA LATERAL */}
+            <span className="badge-ano">Exercício {anoAtivo}</span>
+          </div>
+          <div className="vinc-sidebar-scroll">
+            {escolas.map((e) => (
+              <button
+                key={e.id}
+                className={`vinc-nav-item ${
+                  escolaIdAtiva === e.id ? "active" : ""
+                }`}
+                onClick={() => setEscolaIdAtiva(e.id)}
+              >
+                {e.nome}
+              </button>
+            ))}
+            <button
+              className={`vinc-nav-item ${
+                escolaIdAtiva === "sem" ? "active" : ""
+              }`}
+              onClick={() => setEscolaIdAtiva("sem")}
+            >
+              ⚠️ Sem Vínculo
+            </button>
+          </div>
         </div>
 
-        {escolaSelecionada && (
-          <div className="vinculacao-conteudo">
-            <h3 className="vinculacao-subtitulo">
-              {escolaSelecionada === "semVinculo"
-                ? "Profissionais sem vínculo"
-                : `Profissionais em ${escolaSelecionada.nome}`}
-            </h3>
+        {/* CONTEÚDO */}
+        <div className="vinc-content">
+          <div className="vinc-content-header">
+            <div>
+              <h2>Gestão de Profissionais</h2>
+              <p
+                style={{
+                  color: "#64748b",
+                  fontSize: "0.85rem",
+                  fontWeight: 600,
+                }}
+              >
+                Vinculando para o ano letivo de <strong>{anoAtivo}</strong>
+              </p>
+            </div>
+            <input
+              className="vinc-search-bar"
+              placeholder="Pesquisar por nome..."
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+            />
+          </div>
 
-            {escolaSelecionada !== "semVinculo" && (
-              <div className="vinculacao-acoes">
-                {!modoEdicaoGeral ? (
-                  <button
-                    className="vinculacao-botao-edicao"
-                    onClick={() => setModoEdicaoGeral(true)}
-                  >
-                    Editar vínculos
-                  </button>
-                ) : (
-                  <button
-                    className="vinculacao-botao-cancelar"
-                    onClick={() => {
-                      setModoEdicaoGeral(false);
-                      setEdicoesPendentes({});
-                      carregarDados();
-                    }}
-                  >
-                    Cancelar edição
-                  </button>
-                )}
-              </div>
-            )}
-
-            <div className="vinculacao-lista">
-              {profissionaisFiltradosParaExibicao.length === 0 ? (
-                <p className="info-message">
-                  Nenhum profissional encontrado{" "}
-                  {escolaSelecionada === "semVinculo"
-                    ? "sem vínculo."
-                    : `vinculado a ${escolaSelecionada?.nome}`}
-                  .
-                </p>
-              ) : (
-                profissionaisFiltradosParaExibicao.map((prof) => (
-                  <div key={prof.id} className="vinculacao-profissional-card">
-                    <div
-                      className="vinculacao-profissional-header"
-                      onClick={() =>
-                        setExpandedProfId(
-                          prof.id === expandedProfId ? null : prof.id
-                        )
-                      }
-                    >
-                      <h4>{prof.nome}</h4>
-                      <span
-                        className={`expand-icon ${prof.id === expandedProfId ? "expanded" : ""}`}
-                      ></span>
-                    </div>
-
-                    <div
-                      className={`vinculacao-profissional-detalhes ${prof.id === expandedProfId ? "expanded" : ""}`}
-                    >
-                      <p>
-                        Perfil: <strong>{prof.perfil?.toUpperCase()}</strong>
-                      </p>
-                      <p className="vinculacao-profissional-cargo">
-                        Cargo:{" "}
-                        <strong>
-                          {prof.cargo ||
-                            prof.disciplina ||
-                            prof.perfil ||
-                            "Não informado"}
-                        </strong>
-                      </p>
-                      <p className="vinculacao-profissional-email">
-                        E-mail: <strong>{prof.email}</strong>
-                      </p>
-
-                      {escolaSelecionada === "semVinculo" || modoEdicaoGeral ? (
-                        <EscolaCheckboxes
-                          prof={prof}
-                          escolas={escolas}
-                          edicoesPendentes={edicoesPendentes}
-                          toggleEscola={toggleEscola}
-                          salvarEscolas={salvarEscolas}
+          <div className="vinc-grid-prof">
+            {listaFiltrada.map((prof) => (
+              <div key={prof.id}>
+                <div className="vinc-prof-card">
+                  <div className="prof-main-info">
+                    <div className="prof-avatar-circle">
+                      {prof.fotoUrl ? (
+                        <img
+                          src={prof.fotoUrl}
+                          alt=""
+                          className="avatar-img-vinc"
                         />
                       ) : (
-                        <div className="vinculacao-escolas-visualizacao">
-                          <h5 className="vinculacao-checkbox-titulo">
-                            Escolas vinculadas:
-                          </h5>
-                          <p>
-                            {Object.keys(prof.escolas || {})
-                              .map(
-                                (id) => escolas.find((e) => e.id === id)?.nome
-                              )
-                              .filter(Boolean)
-                              .join(", ") || "Nenhuma"}
-                          </p>
-                        </div>
+                        prof.nome[0]
                       )}
                     </div>
+                    <div className="prof-text">
+                      <strong>{prof.nome}</strong>
+                      <span>
+                        {prof.perfil} {prof.anoAtivo === anoAtivo ? "✅" : "⏳"}
+                      </span>
+                    </div>
                   </div>
-                ))
-              )}
-            </div>
+                  <button
+                    className="vinc-btn-manage"
+                    onClick={() => {
+                      setEdicoes({}); // Limpa edições anteriores ao trocar de prof
+                      setProfEditando(
+                        prof.id === profEditando ? null : prof.id
+                      );
+                    }}
+                  >
+                    {profEditando === prof.id ? "Fechar" : "Gerenciar Vínculos"}
+                  </button>
+                </div>
+
+                {profEditando === prof.id && (
+                  <div className="edit-area-expanded">
+                    <p
+                      style={{
+                        fontSize: "0.85rem",
+                        fontWeight: 800,
+                        color: "#64748b",
+                      }}
+                    >
+                      Selecione as unidades para o exercício {anoAtivo}:
+                    </p>
+                    <div className="chip-container">
+                      {escolas.map((esc) => {
+                        const original = prof.escolas?.[esc.id] || false;
+                        const ativo =
+                          edicoes[esc.id] !== undefined
+                            ? edicoes[esc.id]
+                            : original;
+                        return (
+                          <div
+                            key={esc.id}
+                            className={`chip-item ${ativo ? "active" : ""}`}
+                            onClick={() => handleToggle(esc.id, original)}
+                          >
+                            {esc.nome}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <button
+                      className="btn-confirm-vinc"
+                      onClick={() => salvar(prof.id)}
+                    >
+                      Confirmar Vínculos para {anoAtivo}
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
-        )}
+        </div>
       </div>
-      <ToastContainer position="bottom-right" autoClose={3000} />
     </div>
   );
 }

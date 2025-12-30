@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from "react"; // ✅ Adicione useEffect
+import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { auth, db } from "../firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
-import { useAuth } from "../context/AuthContext"; // ✅ Adicione o useAuth
-
 import { PERFIS } from "../config/constants";
+
+// Importando o novo estilo Jakarta
+import "../styles/LoginJakarta.css";
+
 export default function Login() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
@@ -14,276 +16,153 @@ export default function Login() {
   const [erro, setErro] = useState("");
   const navigate = useNavigate();
 
-  const handleLogin = async () => {
+  // Limpeza inicial de segurança
+  useEffect(() => {
+    localStorage.removeItem("usuarioLogado");
+    localStorage.removeItem("escolaAtiva");
+  }, []);
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
     setErro("");
     if (!email || !senha) {
-      setErro("Por favor, preencha e-mail e senha.");
+      setErro("Por favor, preencha todos os campos.");
       return;
     }
 
     setLoading(true);
 
     try {
-      // Tenta autenticar o usuário com o e-mail e senha fornecidos
       const cred = await signInWithEmailAndPassword(auth, email.trim(), senha);
       const user = cred.user;
 
-      // Busca os dados do perfil do usuário no Firestore
       const usuarioRef = doc(db, "usuarios", user.uid);
       const usuarioSnap = await getDoc(usuarioRef);
 
       if (!usuarioSnap.exists()) {
-        setErro(
-          "Usuário autenticado, mas dados não encontrados no sistema. Contate o suporte."
-        );
+        setErro("Dados não encontrados no sistema. Contate o suporte.");
         setLoading(false);
         return;
       }
 
-      const usuarioDataDoFirestore = usuarioSnap.data();
-      const usuarioCompletoParaSalvar = {
-        ...usuarioDataDoFirestore,
+      const usuarioData = usuarioSnap.data();
+      const usuarioCompleto = {
+        ...usuarioData,
         uid: user.uid,
         email: user.email,
         id: usuarioSnap.id,
-        turmas: usuarioDataDoFirestore.turmas || {},
-        escolas: usuarioDataDoFirestore.escolas || {},
+        turmas: usuarioData.turmas || {},
+        escolas: usuarioData.escolas || {},
       };
 
-      // Salva os dados do usuário no Local Storage
-      localStorage.setItem(
-        "usuarioLogado",
-        JSON.stringify(usuarioCompletoParaSalvar)
-      );
+      localStorage.setItem("usuarioLogado", JSON.stringify(usuarioCompleto));
 
-      // Redireciona o usuário com base no perfil encontrado
-      switch (usuarioCompletoParaSalvar.perfil) {
-        // Redireciona perfis de gestão para o mesmo painel
+      switch (usuarioCompleto.perfil) {
         case PERFIS.GESTAO:
         case PERFIS.DIRETOR:
         case PERFIS.DIRETOR_ADJUNTO:
         case PERFIS.ORIENTADOR_PEDAGOGICO:
-          navigate("/painel-gestao", {
-            state: { usuario: usuarioCompletoParaSalvar },
-          });
+          navigate("/painel-gestao");
           break;
-
         case PERFIS.SEME:
-          navigate("/painel-seme", {
-            // <-- AJUSTE A ROTA PARA O PAINEL CORRETO
-            state: { usuario: usuarioCompletoParaSalvar },
-          });
+          navigate("/painel-seme");
           break;
-
         case PERFIS.AEE:
-          navigate("/painel-aee", {
-            state: { usuario: usuarioCompletoParaSalvar },
-          });
+          navigate("/painel-aee");
           break;
         case PERFIS.PROFESSOR: {
-          const escolasObj = usuarioCompletoParaSalvar.escolas;
-          const escolaIds = Object.keys(escolasObj);
-
+          const escolaIds = Object.keys(usuarioCompleto.escolas);
           if (escolaIds.length === 0) {
-            setErro("Este professor não está vinculado a nenhuma escola.");
+            setErro("Vínculo com escola não encontrado.");
             setLoading(false);
           } else if (escolaIds.length === 1) {
             localStorage.setItem("escolaAtiva", JSON.stringify(escolaIds[0]));
-            navigate("/painel-professor", {
-              state: { usuario: usuarioCompletoParaSalvar },
-            });
+            navigate("/painel-professor");
           } else {
             localStorage.setItem(
               "escolasDisponiveis",
               JSON.stringify(escolaIds)
             );
-            navigate("/selecionar-escola", {
-              state: { usuario: usuarioCompletoParaSalvar },
-            });
+            navigate("/selecionar-escola");
           }
           break;
         }
         case PERFIS.DESENVOLVEDOR:
-          navigate("/painel-dev", {
-            state: { usuario: usuarioCompletoParaSalvar },
-          });
+          navigate("/painel-dev");
           break;
         default:
-          setErro("Perfil de usuário desconhecido. Contate o suporte.");
-          setTimeout(() => navigate("/"), 2000);
+          setErro("Perfil desconhecido.");
           break;
       }
     } catch (error) {
-      console.error("Erro no login:", error);
-      if (
-        error.code === "auth/invalid-credential" ||
-        error.code === "auth/user-not-found" ||
-        error.code === "auth/wrong-password"
-      ) {
-        setErro("E-mail ou senha incorretos. Verifique e tente novamente.");
-      } else {
-        setErro(
-          "Ocorreu um erro inesperado no login. Tente novamente mais tarde."
-        );
-      }
+      console.error("Login Error:", error.code);
+      setErro("E-mail ou senha incorretos.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={estilos.container}>
-      <div style={estilos.card}>
-        <img
-          src="/logo-vivencie.png"
-          alt="Logo Vivencie PEI"
-          style={estilos.logo}
-        />
-        <h2 style={estilos.titulo}>Login</h2>
+    <div className="login-container">
+      <div className="login-card">
+        <img src="/logo-vivencie.png" alt="Logo" className="login-logo" />
+        <h2 className="login-titulo">Vivencie PEI</h2>
+        <p className="login-subtitulo">Acesse sua conta para continuar</p>
 
-        <input
-          type="email"
-          placeholder="E-mail"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          style={estilos.input}
-          disabled={loading}
-        />
+        <form onSubmit={handleLogin}>
+          {erro && <div className="erro-alerta">{erro}</div>}
 
-        <div style={estilos.senhaWrapper}>
           <input
-            type={mostrarSenha ? "text" : "password"}
-            placeholder="Senha"
-            value={senha}
-            onChange={(e) => setSenha(e.target.value)}
-            style={{ ...estilos.input, marginBottom: 0 }}
+            type="email"
+            placeholder="E-mail profissional"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="login-input"
             disabled={loading}
           />
-          <button
-            type="button"
-            onClick={() => setMostrarSenha(!mostrarSenha)}
-            style={estilos.botaoMostrar}
-            disabled={loading}
-          >
-            {mostrarSenha ? "Ocultar" : "Mostrar"}
+
+          <div className="senha-wrapper">
+            <input
+              type={mostrarSenha ? "text" : "password"}
+              placeholder="Sua senha"
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              className="login-input"
+              disabled={loading}
+            />
+            <button
+              type="button"
+              onClick={() => setMostrarSenha(!mostrarSenha)}
+              className="btn-mostrar-senha"
+            >
+              {mostrarSenha ? "Ocultar" : "Mostrar"}
+            </button>
+          </div>
+
+          <button type="submit" className="btn-entrar" disabled={loading}>
+            {loading ? "Autenticando..." : "Entrar na Plataforma"}
           </button>
+        </form>
+
+        <div className="links-container">
+          <p className="texto-apoio">
+            <span
+              style={{ cursor: "pointer" }}
+              onClick={() => !loading && navigate("/recuperar-senha")}
+              className="link-minimal"
+            >
+              Esqueceu sua senha?
+            </span>
+          </p>
+
+          <p className="texto-apoio">
+            Novo por aqui?{" "}
+            <Link to="/cadastro-professor" className="link-minimal">
+              Cadastre-se como Professor
+            </Link>
+          </p>
         </div>
-
-        {erro && <p style={estilos.mensagemErro}>{erro}</p>}
-
-        <button style={estilos.botao} onClick={handleLogin} disabled={loading}>
-          {loading ? "Entrando..." : "Entrar"}
-        </button>
-
-        <p
-          style={{
-            marginTop: "10px",
-            color: "#1d3557",
-            cursor: loading ? "default" : "pointer",
-            opacity: loading ? 0.6 : 1,
-          }}
-          onClick={() => !loading && navigate("/recuperar-senha")}
-        >
-          Esqueceu a senha?
-        </p>
-
-        <p style={{ marginTop: 20 }}>
-          Tem um código de acesso?{" "}
-          <Link
-            to="/cadastro-professor"
-            style={{
-              color: "#1d3557",
-              cursor: loading ? "default" : "pointer",
-              fontWeight: "bold",
-              textDecoration: "none",
-              opacity: loading ? 0.6 : 1,
-              pointerEvents: loading ? "none" : "auto",
-            }}
-          >
-            Faça seu cadastro de Professor aqui.
-          </Link>
-        </p>
       </div>
     </div>
   );
 }
-
-const estilos = {
-  container: {
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    minHeight: "100vh",
-    width: "100vw",
-    background: "linear-gradient(to bottom, #00264d, #005b96)",
-    fontFamily: "'Segoe UI', sans-serif",
-    padding: "20px 0",
-  },
-  card: {
-    backgroundColor: "#fff",
-    padding: "30px 40px",
-    borderRadius: "20px",
-    boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
-    width: "100%",
-    maxWidth: "400px",
-    textAlign: "center",
-  },
-  logo: {
-    width: "100px",
-    marginBottom: "15px",
-    // ESTILOS ADICIONADOS PARA GARANTIR A CENTRALIZAÇÃO
-    marginLeft: "auto",
-    marginRight: "auto",
-  },
-  titulo: {
-    fontSize: "22px",
-    marginBottom: "25px",
-    color: "#1d3557",
-  },
-  input: {
-    width: "100%",
-    padding: "12px 15px",
-    marginBottom: "18px",
-    borderRadius: "8px",
-    border: "1px solid #ccc",
-    fontSize: "15px",
-    boxSizing: "border-box",
-  },
-  senhaWrapper: {
-    position: "relative",
-    marginBottom: "18px",
-  },
-  botaoMostrar: {
-    position: "absolute",
-    top: "50%",
-    right: "12px",
-    transform: "translateY(-50%)",
-    background: "none",
-    border: "none",
-    color: "#1976d2",
-    cursor: "pointer",
-    fontSize: "14px",
-    padding: "5px",
-  },
-  botao: {
-    width: "100%",
-    padding: "12px",
-    backgroundColor: "#1d3557",
-    color: "#fff",
-    fontSize: "16px",
-    borderRadius: "8px",
-    border: "none",
-    cursor: "pointer",
-    transition: "background-color 0.2s ease",
-  },
-  mensagemErro: {
-    color: "#D32F2F",
-    backgroundColor: "#FFEBEE",
-    border: "1px solid #D32F2F",
-    borderRadius: "6px",
-    padding: "10px",
-    marginBottom: "15px",
-    fontSize: "14px",
-    textAlign: "center",
-  },
-};

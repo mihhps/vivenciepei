@@ -1,84 +1,129 @@
-import React, { useEffect, useState, useRef } from "react";
-import { toast, ToastContainer } from "react-toastify";
+import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast, ToastContainer } from "react-toastify";
 import { getAuth, signOut } from "firebase/auth";
-import { db, storage } from "../firebase";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { doc, updateDoc } from "firebase/firestore";
+import { db } from "../firebase";
+import {
+  doc,
+  updateDoc,
+  collection,
+  getDocs,
+  writeBatch,
+} from "firebase/firestore";
 
-// Importe o novo arquivo de estilo
+// Componentes
+import HeaderSistema from "../components/HeaderSistema";
+
+import "react-toastify/dist/ReactToastify.css";
 import "../styles/PainelDev.css";
 
-// Ícone para o botão de editar foto
-const CameraIcon = () => (
-  <svg height="12" width="12" viewBox="0 0 24 24" fill="white">
-    <path d="M4 4h3l2-2h6l2 2h3a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2zm8 14a5 5 0 100-10 5 5 0 000 10z" />
-    <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" />
-  </svg>
-);
+const BotaoPainel = ({ texto, destino }) => {
+  const navigate = useNavigate();
+  return (
+    <button className="btn-acao" onClick={() => navigate(destino)}>
+      {texto}
+    </button>
+  );
+};
 
 export default function PainelDev() {
+  const navigate = useNavigate();
   const [usuarioLogado, setUsuarioLogado] = useState(null);
   const [loadingRecalculo, setLoadingRecalculo] = useState(false);
-  const [abaAtiva, setAbaAtiva] = useState("avaliacoes"); // Aba inicial
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef(null);
-  const navigate = useNavigate();
-
-  // Efeito para carregar o CSS do Toastify se necessário
-  useEffect(() => {
-    if (!document.querySelector('link[href*="react-toastify"]')) {
-      const link = document.createElement("link");
-      link.rel = "stylesheet";
-      link.href =
-        "https://cdn.jsdelivr.net/npm/react-toastify@9.1.1/dist/ReactToastify.min.css";
-      document.head.appendChild(link);
-    }
-  }, []);
+  const [abaAtiva, setAbaAtiva] = useState("avaliacoes");
+  const [migrando, setMigrando] = useState(false);
 
   useEffect(() => {
     const usuarioSalvo = localStorage.getItem("usuarioLogado");
     if (usuarioSalvo) {
-      setUsuarioLogado(JSON.parse(usuarioSalvo));
+      let user = JSON.parse(usuarioSalvo);
+
+      // 🛡️ BLINDAGEM DE PERFIL: Garante que você sempre seja desenvolvedor
+      if (user.email === "seu-email@exemplo.com") {
+        user.perfil = "desenvolvedor";
+      }
+
+      setUsuarioLogado(user);
     } else {
       navigate("/login");
     }
   }, [navigate]);
 
-  const handleFileChange = async (event) => {
-    const file = event.target.files[0];
-    if (!file || !usuarioLogado) return;
-    setUploading(true);
-    const storageRef = ref(storage, `fotos-perfil/${usuarioLogado.uid}`);
+  // --- CORREÇÃO DE TURMAS SEM ANO (LEGADO) ---
+  const corrigirTurmasLegado = async () => {
+    const confirmacao = window.confirm(
+      "Isso irá percorrer todas as escolas e adicionar 'ano: 2025' nas turmas que não possuem data. Confirmar?"
+    );
+    if (!confirmacao) return;
+
+    setMigrando(true);
     try {
-      await uploadBytes(storageRef, file);
-      const photoURL = await getDownloadURL(storageRef);
-      const userDocRef = doc(db, "usuarios", usuarioLogado.uid);
-      await updateDoc(userDocRef, { photoURL });
-      const usuarioAtualizado = { ...usuarioLogado, photoURL };
-      setUsuarioLogado(usuarioAtualizado);
-      localStorage.setItem("usuarioLogado", JSON.stringify(usuarioAtualizado));
-    } catch (error) {
-      console.error("Erro no upload da foto:", error);
-      toast.error("Falha ao enviar a foto.");
+      const escolasSnap = await getDocs(collection(db, "escolas"));
+      let totalCorrigido = 0;
+
+      for (const escolaDoc of escolasSnap.docs) {
+        const turmasRef = collection(db, "escolas", escolaDoc.id, "turmas");
+        const turmasSnap = await getDocs(turmasRef);
+
+        const batch = writeBatch(db);
+        let houveMudanca = false;
+
+        turmasSnap.docs.forEach((tDoc) => {
+          if (!tDoc.data().ano) {
+            batch.update(doc(db, "escolas", escolaDoc.id, "turmas", tDoc.id), {
+              ano: 2025,
+            });
+            totalCorrigido++;
+            houveMudanca = true;
+          }
+        });
+
+        if (houveMudanca) await batch.commit();
+      }
+      toast.success(`${totalCorrigido} turmas vinculadas ao ano 2025!`);
+    } catch (e) {
+      toast.error("Erro na correção: " + e.message);
     } finally {
-      setUploading(false);
+      setMigrando(false);
     }
   };
 
-  const handleAvatarClick = () => {
-    fileInputRef.current.click();
+  const rodarMigracaoGlobal2025 = async () => {
+    const confirmacao = window.confirm(
+      "Aplicar ano 2025 em TODAS as coleções?"
+    );
+    if (!confirmacao) return;
+    setMigrando(true);
+    try {
+      const colecoes = [
+        "usuarios",
+        "artifacts",
+        "alunos",
+        "peis",
+        "avaliacoesIniciais",
+        "vinculosProfessores",
+      ];
+      for (const nomeColecao of colecoes) {
+        const querySnapshot = await getDocs(collection(db, nomeColecao));
+        const promessas = querySnapshot.docs.map((docSnap) =>
+          updateDoc(doc(db, nomeColecao, docSnap.id), { ano: 2025 })
+        );
+        await Promise.all(promessas);
+      }
+      toast.success("Migração global concluída!");
+    } catch (error) {
+      toast.error("Erro: " + error.message);
+    } finally {
+      setMigrando(false);
+    }
   };
 
   const handleRecalcularTodosPrazos = async () => {
     setLoadingRecalculo(true);
-    toast.info("Iniciando recálculo...", { autoClose: 3000 });
     try {
       const user = getAuth().currentUser;
-      if (!user) throw new Error("Usuário não autenticado.");
       const token = await user.getIdToken(true);
-      const url = "https://recalculartodosprazos-hc7r4cnuvq-rj.a.run.app";
-      const response = await fetch(url, {
+      await fetch("https://recalculartodosprazos-hc7r4cnuvq-rj.a.run.app", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -86,213 +131,158 @@ export default function PainelDev() {
         },
         body: JSON.stringify({ data: { userId: user.uid } }),
       });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Erro na função.");
-      toast.success(result.message || "Recálculo concluído!");
+      toast.success("Recálculo concluído!");
     } catch (error) {
-      toast.error(`Erro: ${error.message}`);
+      toast.error("Erro: " + error.message);
     } finally {
       setLoadingRecalculo(false);
     }
   };
 
   const handleSair = async () => {
-    try {
-      await signOut(getAuth());
-      localStorage.removeItem("usuarioLogado");
-      toast.success("Você saiu com sucesso!");
-      navigate("/login");
-    } catch (error) {
-      toast.error("Erro ao sair.");
-    }
+    await signOut(getAuth());
+    localStorage.removeItem("usuarioLogado");
+    navigate("/login");
   };
 
-  const BotaoPainel = ({ texto, destino, className = "painel-botao" }) => (
-    <button className={className} onClick={() => navigate(destino)}>
-      {texto}
-    </button>
-  );
-
-  if (!usuarioLogado) {
-    return <div className="app-loading">Carregando...</div>;
-  }
-
   return (
-    <div className="painel-page-container">
-      <ToastContainer
-        position="top-right"
-        autoClose={5000}
-        hideProgressBar={false}
-      />
+    <div className="painel-page-container painel-admin-white-theme">
+      <ToastContainer position="bottom-right" autoClose={3000} />
       <div className="painel-card">
-        <div className="user-profile-top-corner">
-          <div className="avatar-container">
-            <img
-              src={usuarioLogado?.photoURL || "/avatar-padrao.png"}
-              alt="Foto do perfil"
-              className="avatar-imagem"
-            />
-            <button
-              className="avatar-botao-editar"
-              onClick={handleAvatarClick}
-              disabled={uploading}
-            >
-              {uploading ? "..." : <CameraIcon />}
-            </button>
-            <input
-              type="file"
-              accept="image/*"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              style={{ display: "none" }}
-            />
-          </div>
-          <div className="user-text">
-            <span>Bem-vindo, </span>
-            <strong>{usuarioLogado?.nome || "Usuário"}</strong>
-          </div>
+        <div className="brand-section">
+          <img src="/logo-vivencie.png" className="painel-logo" alt="Logo" />
+          <h1 className="painel-titulo">
+            Vivencie
+            <br />
+            PEI
+          </h1>
         </div>
 
-        <img
-          src="/logo-vivencie.png"
-          alt="Logo Vivencie PEI"
-          className="painel-logo"
-        />
-        <h1 className="painel-titulo">Painel do Desenvolvedor</h1>
-
-        <div className="painel-tabs-nav">
-          <button
-            className={`tab-button ${
-              abaAtiva === "avaliacoes" ? "active" : ""
-            }`}
-            onClick={() => setAbaAtiva("avaliacoes")}
-          >
-            Avaliações
-          </button>
-          <button
-            className={`tab-button ${abaAtiva === "gestao" ? "active" : ""}`}
-            onClick={() => setAbaAtiva("gestao")}
-          >
-            Gestão
-          </button>
-          <button
-            className={`tab-button ${
-              abaAtiva === "acompanhamento" ? "active" : ""
-            }`}
-            onClick={() => setAbaAtiva("acompanhamento")}
-          >
-            Acompanhamento
-          </button>
-          <button
-            className={`tab-button ${abaAtiva === "admin" ? "active" : ""}`}
-            onClick={() => setAbaAtiva("admin")}
-          >
-            Admin
-          </button>
-        </div>
-
-        <div className="painel-tabs-content">
-          {abaAtiva === "avaliacoes" && (
-            <>
-              <BotaoPainel
-                texto="Avaliação Inicial"
-                destino="/avaliacao-inicial"
-              />
-              <BotaoPainel
-                texto="Avaliação de Interesses"
-                destino="/nova-avaliacao/Avaliacaointeresses"
-              />
-              <BotaoPainel
-                texto="Avaliação 0-3 Anos"
-                destino="/nova-avaliacao-0a3"
-              />
-              <BotaoPainel texto="Criar PEI" destino="/criar-pei" />
-              <BotaoPainel
-                texto="Criar PEI 0-3 Anos"
-                destino="/criar-pei-0a3"
-              />
-              <BotaoPainel
-                texto="Anamnese Completa"
-                destino="/anamnese-completa"
-              />
-            </>
-          )}
-
-          {abaAtiva === "gestao" && (
-            <>
-              <BotaoPainel texto="Ver Alunos" destino="/ver-alunos" />
-              <BotaoPainel texto="Importar Alunos" destino="/importar-alunos" />
-              <BotaoPainel texto="Ver Anamneses" destino="/anamnese" />
-              <BotaoPainel
-                texto="Relatórios de Aluno"
-                destino="/relatorios-aluno"
-              />
-              <BotaoPainel texto="Cadastrar Turma" destino="/cadastro-turmas" />
-              <BotaoPainel
-                texto="Vincular Turmas a Professores"
-                destino="/vincular-professores"
-              />
-              <BotaoPainel
-                texto="Vincular Escolas a Professores"
-                destino="/vincular-escolas"
-              />
-            </>
-          )}
-
-          {abaAtiva === "acompanhamento" && (
-            <>
-              <BotaoPainel
-                texto="Acompanhamento Escolar"
-                destino="/acompanhamento"
-              />
-              <BotaoPainel
-                texto="Acompanhamento AEE"
-                destino="/acompanhamento-aee-selecao"
-              />
-              <BotaoPainel
-                texto="Acompanhamento AEE Gestão"
-                destino="/acompanhamento-gestao-selecao"
-              />
-            </>
-          )}
-
-          {abaAtiva === "admin" && (
-            <>
-              {/* 💡 NOVO: Botão para Gerenciador de Convites */}
-              <BotaoPainel
-                texto="Gerenciar Convites"
-                destino="/admin/convites"
-              />
-              <BotaoPainel
-                texto="Cadastrar Usuário"
-                destino="/cadastro-usuario"
-              />
-              <BotaoPainel
-                texto="Gerenciar Prazos PEI"
-                destino="/gestao-prazos-pei"
-              />
-              <BotaoPainel
-                texto="Acompanhar Prazos PEI"
-                destino="/acompanhamento-prazos-pei"
-              />
-              <hr className="painel-divisor" />
-              <h3 className="subtitulo-admin">Ferramentas de Manutenção</h3>
+        <div className="actions-section">
+          <HeaderSistema usuario={usuarioLogado} />
+          <div className="tabs-container">
+            {["avaliacoes", "gestao", "acompanhamento", "admin"].map((tab) => (
               <button
-                onClick={handleRecalcularTodosPrazos}
-                className="painel-botao-admin"
-                disabled={loadingRecalculo}
+                key={tab}
+                className={`tab-item ${abaAtiva === tab ? "active" : ""}`}
+                onClick={() => setAbaAtiva(tab)}
               >
-                {loadingRecalculo
-                  ? "Recalculando..."
-                  : "Recalcular Todos os Prazos PEI"}
+                {tab.toUpperCase()}
               </button>
-            </>
-          )}
-        </div>
+            ))}
+          </div>
 
-        <button onClick={handleSair} className="painel-botao-sair">
-          Sair
-        </button>
+          <div className="grid-acoes">
+            {abaAtiva === "avaliacoes" && (
+              <>
+                <BotaoPainel
+                  texto="Avaliação Inicial"
+                  destino="/avaliacao-inicial"
+                />
+                <BotaoPainel
+                  texto="Interesses"
+                  destino="/nova-avaliacao/Avaliacaointeresses"
+                />
+                <BotaoPainel
+                  texto="Avaliação 0-3"
+                  destino="/nova-avaliacao-0a3"
+                />
+                <BotaoPainel texto="Criar PEI" destino="/criar-pei" />
+                <BotaoPainel texto="PEI 0-3 Anos" destino="/criar-pei-0a3" />
+                <BotaoPainel
+                  texto="Anamnese Completa"
+                  destino="/anamnese-completa"
+                />
+              </>
+            )}
+
+            {abaAtiva === "gestao" && (
+              <>
+                <BotaoPainel texto="Ver Alunos" destino="/ver-alunos" />
+                <BotaoPainel
+                  texto="Importar Alunos"
+                  destino="/importar-alunos"
+                />
+                <BotaoPainel texto="Ver Anamneses" destino="/anamnese" />
+                <BotaoPainel
+                  texto="Cadastrar Turma"
+                  destino="/cadastro-turmas"
+                />
+                <BotaoPainel
+                  texto="Vincular Turmas"
+                  destino="/vincular-professores"
+                />
+                <BotaoPainel
+                  texto="Vincular Escolas"
+                  destino="/vincular-escolas"
+                />
+              </>
+            )}
+
+            {abaAtiva === "acompanhamento" && (
+              <>
+                <BotaoPainel texto="Escolar" destino="/acompanhamento" />
+                <BotaoPainel
+                  texto="AEE Seleção"
+                  destino="/acompanhamento-aee-selecao"
+                />
+                <BotaoPainel
+                  texto="AEE Gestão"
+                  destino="/acompanhamento-gestao-selecao"
+                />
+              </>
+            )}
+
+            {abaAtiva === "admin" && (
+              <>
+                <BotaoPainel
+                  texto="Relatório de Conferência 2026"
+                  destino="/admin/relatorio-conferencia"
+                />
+                <BotaoPainel
+                  texto="Gerenciar Convites"
+                  destino="/admin/convites"
+                />
+                <BotaoPainel
+                  texto="Cadastrar Usuário"
+                  destino="/cadastro-usuario"
+                />
+                <BotaoPainel texto="Prazos PEI" destino="/gestao-prazos-pei" />
+
+                <button
+                  onClick={handleRecalcularTodosPrazos}
+                  className="btn-manutencao"
+                  disabled={loadingRecalculo}
+                >
+                  {loadingRecalculo ? "Processando..." : "Recalcular Prazos"}
+                </button>
+
+                <button
+                  onClick={corrigirTurmasLegado}
+                  className="btn-migrar-global"
+                  style={{ background: "#f59e0b" }}
+                >
+                  {migrando ? "Processando..." : "CORRIGIR TURMAS SEM ANO"}
+                </button>
+
+                <button
+                  onClick={rodarMigracaoGlobal2025}
+                  className="btn-migrar-global"
+                  disabled={migrando}
+                >
+                  {migrando ? "Migrando..." : "MIGRAR TUDO PARA 2025"}
+                </button>
+              </>
+            )}
+          </div>
+
+          <div className="painel-footer">
+            <span className="version-label">v2.5.0-stable</span>
+            <button onClick={handleSair} className="btn-sair">
+              Sair do Painel
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

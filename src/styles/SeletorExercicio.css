@@ -1,0 +1,35 @@
+.seletor-exercicio-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 5px 15px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.label-exercicio {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #94a3b8;
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.select-exercicio {
+  background: transparent;
+  color: white;
+  border: none;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-weight: 900;
+  font-size: 1rem;
+  cursor: pointer;
+  outline: none;
+}
+
+.select-exercicio option {
+  background: #0f172a;
+  color: white;
+}

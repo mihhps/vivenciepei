@@ -1,0 +1,72 @@
+.header-sistema-ipm {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 30px;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.seletor-exercicio-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #f1f5f9;
+  padding: 6px 15px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+}
+
+.label-exercicio {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #475569;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.select-ano-exercicio {
+  background: transparent;
+  border: none;
+  color: #0f172a;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  outline: none;
+}
+
+.user-profile-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-text {
+  display: flex;
+  flex-direction: column;
+  text-align: right;
+}
+
+.user-name-header {
+  color: #0f172a;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+.user-perfil-header {
+  color: #64748b;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.img-perfil-header,
+.icon-perfil-header {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  color: #3b82f6;
+}

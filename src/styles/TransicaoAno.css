@@ -1,0 +1,130 @@
+.transicao-page {
+  height: 100vh;
+  width: 100vw;
+  background: #0f172a;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  font-family: "Plus Jakarta Sans", sans-serif;
+}
+
+.transicao-card {
+  background: white;
+  border-radius: 40px;
+  padding: 50px;
+  width: 100%;
+  max-width: 1000px;
+  box-shadow: 0 50px 100px rgba(0, 0, 0, 0.5);
+}
+
+.transicao-header {
+  text-align: center;
+  margin-bottom: 50px;
+}
+.rotate-icon {
+  font-size: 3rem;
+  color: #3b82f6;
+  margin-bottom: 20px;
+  animation: spin 10s linear infinite;
+}
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.transicao-header h1 {
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.transicao-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 25px;
+}
+
+.step-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 30px;
+  border-radius: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+}
+
+.step-num {
+  position: absolute;
+  top: -15px;
+  left: 20px;
+  background: #3b82f6;
+  color: white;
+  padding: 5px 15px;
+  border-radius: 10px;
+  font-weight: 900;
+}
+
+.step-icon {
+  font-size: 2.5rem;
+  color: #3b82f6;
+  margin-bottom: 20px;
+}
+.step-box h3 {
+  font-weight: 800;
+  color: #1e293b;
+  margin-bottom: 15px;
+}
+.step-box p {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.step-box input {
+  width: 100%;
+  padding: 10px;
+  border-radius: 10px;
+  border: 2px solid #e2e8f0;
+  margin-bottom: 15px;
+  font-family: inherit;
+  text-align: center;
+}
+
+.btn-danger {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  width: 100%;
+}
+.btn-primary {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  width: 100%;
+}
+
+.badge-ano {
+  background: #dcfce7;
+  color: #15803d;
+  padding: 5px 15px;
+  border-radius: 20px;
+  font-weight: 800;
+  font-size: 0.8rem;
+}

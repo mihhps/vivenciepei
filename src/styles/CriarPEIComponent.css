@@ -1,524 +1,198 @@
-/* src/styles/CriarPEIComponent.css - VERSÃO COMPLETA E CORRIGIDA */
+/* src/styles/CriarPEIComponent.css - VERSÃO FINAL PREMIUM */
 
-/* ==================================== */
-/* 1. VARIÁVEIS CSS (CUSTOM PROPERTIES) */
-/* ==================================== */
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
+
 :root {
-  /* Cores Principais */
-  --color-primary: #1d3557; /* Azul Escuro */
-  --color-secondary: #457b9d; /* Azul Médio */
-  --color-tertiary: #2a9d8f; /* Verde Água (para sucesso/botões) */
-  --color-error: #e63946; /* Vermelho */
-  --color-ia-start: #6a11cb; /* Roxo */
-  --color-ia-end: #2575fc; /* Azul Brilhante */
-
-  /* Cores de Fundo */
-  --bg-page: #1d3557; /* Fundo azul escuro */
-  --bg-card: #ffffff;
-  --bg-selector: #f1f1f1;
-  --bg-meta: #f9f9f9;
-  --bg-button-neutral: #f0f0f0;
-  --bg-success-light: #e6fff2;
-  --bg-error-light: #ffe6e6;
-  --bg-info-light: #e7f3fe;
-  --bg-objective: #e8f5e9;
-
-  /* Cores de Texto */
-  --text-primary: var(--color-primary);
-  --text-light: #fff;
-  --text-neutral: #666;
-  --text-dark-green: #388e3c;
-  --text-dark-blue: #0d47a1;
-
-  /* Bordas */
-  --border-color-default: #ccc;
-  --border-color-meta: #ddd;
-  --border-color-objective: #4caf50;
-  --border-color-info: #2196f3;
-
-  /* Espaçamentos */
-  --space-xs: 8px;
-  --space-sm: 10px;
-  --space-md: 15px;
-  --space-lg: 20px;
-  --space-xl: 30px;
-
-  /* Tamanhos de Fonte */
-  --font-size-xs: 12px;
-  --font-size-sm: 14px;
-  --font-size-md: 16px;
-  --font-size-lg: 18px;
-  --font-size-xl: 20px;
-  --font-size-title: 26px;
-
-  /* Border Radius */
-  --radius-xs: 3px;
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-xl: 12px;
-  --radius-card: 16px;
-  --radius-button: 20px;
-
-  /* Sombras */
-  --shadow-card: 0 4px 15px rgba(0, 0, 0, 0.1);
-  --shadow-ia-button: 0 4px 15px rgba(0, 0, 0, 0.2);
-  --shadow-ia-button-hover: 0 6px 20px rgba(0, 0, 0, 0.3);
-
-  /* Fontes e Transições */
-  --font-family-base: "Segoe UI", sans-serif;
-  --transition-fast: 0.2s ease-in-out;
-  --transition-normal: 0.3s ease;
-  --color-primary-rgb: 29, 53, 87;
-  --color-objetivo-curto-border: #f59e0b;
-  --bg-objetivo-curto: #fef3c7;
-  --text-objetivo-curto: #b45309;
-
-  /* Médio Prazo (Tons de Azul) */
-  --color-objetivo-medio-border: #3b82f6;
-  --bg-objetivo-medio: #dbeafe;
-  --text-objetivo-medio: #1e40af;
-
-  /* Longo Prazo (Reutilizando os tons de Verde originais) */
-  --color-objetivo-longo-border: var(--border-color-objective);
-  --bg-objetivo-longo: var(--bg-objective);
-  --text-objetivo-longo: var(--text-dark-green);
+  --brand-deep: #0f172a;
+  --brand-primary: #1e293b;
+  --brand-accent: #3b82f6;
+  --brand-success: #10b981;
+  --brand-ai: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+  --slate-50: #f8fafc;
+  --slate-200: #e2e8f0;
+  --slate-400: #94a3b8;
+  --slate-600: #475569;
+  --slate-900: #0f172a;
+  --glass-effect: rgba(255, 255, 255, 0.95);
+  --shadow-soft: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
 }
 
-/* ================== */
-/* 2. ESTILOS GERAIS  */
-/* ================== */
 body {
   margin: 0;
-  padding: 30px 0; /* Adicionado padding para espaço no topo e base */
-  font-family: "Segoe UI", sans-serif;
-  background: linear-gradient(to bottom right, #1d3557, #457b9d);
-  box-sizing: border-box;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  background-color: var(--brand-deep);
+  background-image: radial-gradient(
+      at 0% 0%,
+      rgba(59, 130, 246, 0.1) 0,
+      transparent 40%
+    ),
+    radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.08) 0, transparent 40%);
+  min-height: 100vh;
 }
 
 .container {
-  width: 100%;
-  min-height: 100vh;
-  padding: 40px 20px; /* Espaçamento vertical e horizontal */
-  box-sizing: border-box;
   display: flex;
   justify-content: center;
-  align-items: flex-start; /* Alinha o card no topo do container */
+  padding: 60px 20px;
 }
 
 .card {
-  background-color: #ffffff;
+  background: var(--glass-effect);
+  backdrop-filter: blur(12px);
+  border-radius: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  padding: 48px;
+  width: 100%;
   max-width: 900px;
-  width: 100%;
-  padding: 30px;
-  margin: 0 auto; /* Centraliza horizontalmente o card no fluxo */
-  border-radius: 16px;
-  box-sizing: border-box;
-  filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.2));
 }
 
-.titulo {
-  text-align: center;
-  color: var(--text-primary);
-  margin-bottom: var(--space-lg);
-  font-size: var(--font-size-title);
-  font-weight: 600;
-}
-
-.form-label {
-  display: block;
-  margin: var(--space-md) 0 var(--space-xs) 0;
-  font-weight: bold;
-  color: var(--text-primary);
-}
-
-.textarea-form {
-  width: 100%;
-  min-height: 80px;
-  padding: var(--space-sm);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-color-default);
-  font-size: var(--font-size-sm);
-  resize: vertical;
-  box-sizing: border-box;
-  font-family: var(--font-family-base);
-}
-
-.info-text {
-  text-align: center;
-  font-style: italic;
-  color: var(--text-dark-blue);
-  background-color: var(--bg-info-light);
-  border-left: 4px solid var(--border-color-info);
-  padding: var(--space-md);
-  margin: var(--space-lg) 0;
-  border-radius: var(--radius-sm);
-}
-
-/* ================================= */
-/* 3. HEADER E SELETORES DE ALUNO/ÁREA */
-/* ================================= */
+/* --- CABEÇALHO (CORREÇÃO DO BOTÃO ESQUISITO) --- */
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--space-lg);
+  margin-bottom: 40px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--slate-200);
 }
 
+.titulo-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.titulo {
+  font-size: 2.2rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--slate-900);
+  margin: 0;
+}
+
+.botao-ver-peis {
+  background-color: var(--slate-100);
+  color: var(--slate-600);
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border: 1px solid var(--slate-200);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.botao-ver-peis:hover {
+  background-color: var(--slate-200);
+  color: var(--brand-deep);
+  transform: translateY(-1px);
+}
+
+/* --- SELETORES E FORMULÁRIO --- */
 .seletor-aluno {
-  margin-bottom: var(--space-xl);
-  background-color: var(--bg-selector);
-  padding: var(--space-lg);
-  border-radius: var(--radius-xl);
+  background: white;
+  padding: 32px;
+  border-radius: 24px;
+  border: 1px solid var(--slate-200);
+  box-shadow: var(--shadow-soft);
+  margin-bottom: 30px;
+}
+
+.form-label {
+  display: block;
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: var(--slate-400);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 12px;
 }
 
 .filter-select {
   width: 100%;
-  padding: var(--space-sm);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-color-default);
-  background-color: var(--bg-card);
-  font-size: var(--font-size-md);
-  box-sizing: border-box;
+  padding: 16px 20px;
+  border-radius: 14px;
+  border: 2px solid var(--slate-200);
+  background: var(--slate-50);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--brand-primary);
+  outline: none;
+  transition: all 0.2s ease;
 }
 
+.filter-select:focus {
+  border-color: var(--brand-accent);
+  background: white;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+/* --- BOTÕES DE ÁREA (CHIPS) --- */
 .area-buttons-container {
   display: flex;
+  gap: 8px;
   flex-wrap: wrap;
-  gap: var(--space-xs);
-  margin-bottom: var(--space-md);
+  margin-bottom: 30px;
 }
 
 .area-button {
-  padding: var(--space-sm) var(--space-md);
-  border-radius: var(--radius-button);
-  border: none;
-  background-color: var(--bg-button-neutral);
+  padding: 10px 20px;
+  border-radius: 100px;
+  border: 1px solid var(--slate-200);
+  background: white;
+  color: var(--slate-600);
+  font-weight: 600;
+  font-size: 0.85rem;
   cursor: pointer;
-  transition: all var(--transition-normal);
-  font-size: var(--font-size-sm);
-  font-weight: 500;
-  flex-grow: 1;
+  transition: all 0.2s ease;
 }
 
 .area-button-ativa {
-  background-color: var(--color-primary);
-  color: var(--text-light);
-  font-weight: bold;
+  background: var(--brand-accent) !important;
+  color: white !important;
+  border-color: var(--brand-accent);
+  box-shadow: 0 8px 15px rgba(59, 130, 246, 0.25);
 }
 
-/* =========================== */
-/* 4. COMPONENTE: METAS / PEI  */
-/* =========================== */
-.section-content {
-  margin-top: var(--space-lg);
-}
-
-.meta-card {
-  background: var(--bg-meta);
-  border: 1px solid var(--border-color-meta);
-  border-radius: var(--radius-xl);
-  padding: var(--space-lg);
-  margin-bottom: var(--space-lg);
-}
-
-.meta-card h3 {
-  color: var(--text-primary);
-  margin: 0 0 var(--space-xs) 0;
-  font-size: var(--font-size-lg);
-  border-bottom: 1px solid #eee;
-  padding-bottom: var(--space-xs);
-}
-
-.meta-card p {
-  margin-bottom: var(--space-xs);
-  font-size: var(--font-size-sm);
-}
-
-/* --- ESTILO DINÂMICO DOS OBJETIVOS --- */
-.meta-objective {
-  /* Estilos comuns a todos */
-  padding: var(--space-sm) var(--space-md);
-  margin: var(--space-sm) 0 var(--space-md) 0;
-  border-radius: var(--radius-sm);
-  font-style: italic;
-  border-left: 4px solid; /* A cor será definida pelas classes específicas abaixo */
-  transition: all 0.3s ease; /* Transição suave entre as cores */
-}
-
-/* Estilo para Curto Prazo (Amarelo) */
-.meta-objective.curtoPrazo {
-  background-color: var(--bg-objetivo-curto);
-  border-color: var(--color-objetivo-curto-border);
-  color: var(--text-objetivo-curto);
-}
-
-/* Estilo para Médio Prazo (Azul) */
-.meta-objective.medioPrazo {
-  background-color: var(--bg-objetivo-medio);
-  border-color: var(--color-objetivo-medio-border);
-  color: var(--text-objetivo-medio);
-}
-
-/* Estilo para Longo Prazo (Verde) */
-.meta-objective.longoPrazo {
-  background-color: var(--bg-objetivo-longo);
-  border-color: var(--color-objetivo-longo-border);
-  color: var(--text-objetivo-longo);
-}
-
-.meta-fieldset {
-  border: 1px solid var(--border-color-default);
-  border-radius: var(--radius-md);
-  padding: var(--space-md);
-  margin-top: var(--space-lg);
-}
-
-.meta-fieldset legend {
-  font-weight: bold;
-  color: var(--text-primary);
-  padding: 0 var(--space-xs);
-}
-
-/* ================================== */
-/* 5. CHECKBOX DE ESTRATÉGIAS         */
-/* ================================== */
-.checkbox-container {
-  display: flex;
-  align-items: flex-start;
-  margin-bottom: var(--space-xs);
-  cursor: pointer;
-  position: relative;
-  user-select: none;
-  font-size: var(--font-size-sm);
-  line-height: 1.4;
-  gap: var(--space-sm);
-}
-
-.checkbox-container input[type="checkbox"] {
-  position: absolute;
-  opacity: 0;
-  height: 0;
-  width: 0;
-}
-
-.checkmark {
-  display: block;
-  flex-shrink: 0;
-  height: 18px;
-  width: 18px;
-  background-color: var(--bg-button-neutral);
-  border: 1px solid var(--border-color-default);
-  border-radius: var(--radius-xs);
-  transition: all var(--transition-fast);
-  margin-top: 2px;
-  position: relative;
-}
-
-.checkmark:after {
-  content: "";
-  position: absolute;
-  display: none;
-  left: 6px;
-  top: 3px;
-  width: 5px;
-  height: 10px;
-  border: solid var(--text-light);
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
-}
-
-.checkbox-container input[type="checkbox"]:checked ~ .checkmark:after {
-  display: block;
-}
-
-.checkbox-container input[type="checkbox"]:checked ~ .checkmark {
-  background-color: var(--color-primary);
-  border-color: var(--color-primary);
-}
-
-/* ======================================== */
-/* 6. BOTÃO DA IA (PARA ESTRATÉGIAS)      */
-/* ======================================== */
-.ia-sugestao-container {
-  margin: var(--space-lg) 0;
-  border-top: 1px dashed var(--border-color-default);
-  padding-top: var(--space-lg);
-  text-align: center;
-}
-
+/* --- BOTÃO IA --- */
 .botao-ia {
-  background: linear-gradient(
-    45deg,
-    var(--color-ia-start),
-    var(--color-ia-end)
-  );
-  color: var(--text-light);
+  background: var(--brand-ai);
+  color: white;
   border: none;
-  border-radius: var(--radius-button);
-  padding: var(--space-sm) var(--space-lg);
-  font-size: var(--font-size-sm);
-  font-weight: bold;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xs);
-  box-shadow: var(--shadow-ia-button);
-  transition: all var(--transition-normal);
-  transform: translateY(0);
-}
-
-.botao-ia:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-ia-button-hover);
-}
-
-.botao-ia:disabled {
-  opacity: 0.7;
-  cursor: wait;
-  background: var(--color-secondary);
-}
-
-/* ============================================== */
-/* 7. ESTILOS PARA BRAINSTORM DE ATIVIDADES       */
-/* ============================================== */
-.titulo-secao-atividade {
-  font-size: var(--font-size-xl);
-  color: var(--text-primary);
-  margin-bottom: var(--space-xs);
-  text-align: center;
-}
-
-.lista-brainstorm {
-  margin-bottom: var(--space-xl);
-  border: 1px solid #eee;
-  border-radius: var(--radius-lg);
-  padding: var(--space-md);
-}
-
-.item-brainstorm {
-  padding: var(--space-md) 0;
-  border-bottom: 1px solid #e0e0e0;
-}
-.item-brainstorm:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.estrategia-texto {
-  font-size: var(--font-size-sm);
-  line-height: 1.5;
-  margin-bottom: var(--space-md);
-}
-
-.botao-ia-pequeno {
-  background: linear-gradient(
-    45deg,
-    var(--color-ia-start),
-    var(--color-ia-end)
-  );
-  color: var(--text-light);
-  border: none;
-  border-radius: var(--radius-sm);
-  padding: var(--space-xs) var(--space-md);
-  font-size: var(--font-size-xs);
-  font-weight: bold;
-  cursor: pointer;
-  transition: all var(--transition-normal);
-}
-.botao-ia-pequeno:hover:not(:disabled) {
-  transform: scale(1.05);
-  box-shadow: var(--shadow-ia-button);
-}
-.botao-ia-pequeno:disabled {
-  opacity: 0.7;
-  cursor: wait;
-}
-
-.sugestao-individual-container {
-  margin-top: var(--space-md);
+  padding: 18px 32px;
+  border-radius: 18px;
+  font-weight: 700;
   display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
-
-.textarea-sugestao {
-  width: 100%;
-  padding: var(--space-sm);
-  border-radius: var(--radius-sm);
-  border: 1px solid #dcdcdc;
-  background-color: #f8f9fa;
-  font-size: var(--font-size-sm);
-  resize: none;
-  box-sizing: border-box;
-  font-family: var(--font-family-base);
-}
-
-.botao-incluir {
-  background-color: var(--color-tertiary);
-  color: var(--text-light);
-  border: none;
-  padding: var(--space-xs) var(--space-md);
-  border-radius: var(--radius-sm);
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
   cursor: pointer;
-  font-weight: 500;
-  align-self: flex-end;
-  transition: background-color var(--transition-fast);
-}
-.botao-incluir:hover {
-  background-color: #217e75;
+  box-shadow: 0 10px 25px rgba(168, 85, 247, 0.3);
+  transition: var(--transition);
 }
 
-/* =========================== */
-/* 8. BOTÕES GERAIS E MENSAGENS*/
-/* =========================== */
-.botao-voltar,
-.botao-ver-peis,
-.botao-salvar {
-  padding: var(--space-sm) var(--space-md);
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-sm);
-  font-weight: bold;
-  cursor: pointer;
-  transition: background-color var(--transition-fast);
+.botao-ia:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 30px rgba(168, 85, 247, 0.4);
 }
 
+/* --- BOTÃO VOLTAR --- */
 .botao-voltar {
-  background-color: var(--bg-button-neutral);
-  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  color: var(--slate-400);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  margin-bottom: 8px;
 }
 
-.botao-ver-peis,
-.botao-salvar {
-  background-color: var(--color-tertiary);
-  color: var(--text-light);
-}
-
-.botao-salvar {
-  padding: var(--space-md) var(--space-lg);
-  font-size: var(--font-size-md);
-  display: block;
-  margin: var(--space-xl) auto 0;
-}
-
-.mensagem-erro,
-.mensagem-sucesso {
-  margin: var(--space-md) 0;
-  text-align: center;
-  font-weight: bold;
-  padding: var(--space-sm);
-  border-radius: var(--radius-md);
-  border: 1px solid;
-}
-
-.mensagem-erro {
-  color: var(--color-error);
-  background-color: var(--bg-error-light);
-  border-color: var(--color-error);
-}
-
-.mensagem-sucesso {
-  color: var(--text-success);
-  background-color: var(--bg-success-light);
-  border-color: var(--text-success);
+.botao-voltar:hover {
+  color: var(--brand-accent);
 }

@@ -4,69 +4,73 @@ import { getAuth, signOut } from "firebase/auth";
 import { db, storage } from "../firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { doc, updateDoc } from "firebase/firestore";
-
-// Importe o novo arquivo de estilo
-import "../styles/PainelGestao.css";
 import { toast, ToastContainer } from "react-toastify";
 
-const CameraIcon = () => (
-  <svg height="12" width="12" viewBox="0 0 24 24" fill="white">
-    <path d="M4 4h3l2-2h6l2 2h3a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2zm8 14a5 5 0 100-10 5 5 0 000 10z" />
-    <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" />
-  </svg>
-);
+// Componentes
+import TrocarEscola from "../components/TrocarEscola";
+import HeaderSistema from "../components/HeaderSistema";
+
+// Estilos
+import "react-toastify/dist/ReactToastify.css";
+import "../styles/PainelGestao.css";
+
+const BotaoPainel = ({ texto, destino }) => {
+  const navigate = useNavigate();
+  return (
+    <button className="btn-acao" onClick={() => navigate(destino)}>
+      {texto}
+    </button>
+  );
+};
 
 export default function PainelGestao() {
   const navigate = useNavigate();
   const [usuarioLogado, setUsuarioLogado] = useState(null);
-  const [abaAtiva, setAbaAtiva] = useState("alunos"); // Aba inicial
+  const [abaAtiva, setAbaAtiva] = useState("alunos");
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
     const userData = localStorage.getItem("usuarioLogado");
     if (userData) {
-      try {
-        const user = JSON.parse(userData);
-        setUsuarioLogado(user);
-      } catch (e) {
-        console.error("Erro ao parsear dados do usuário:", e);
-      }
+      setUsuarioLogado(JSON.parse(userData));
     }
   }, []);
 
   const handleFileChange = async (event) => {
     const file = event.target.files[0];
     if (!file || !usuarioLogado) return;
+
     setUploading(true);
-    const storageRef = ref(storage, `fotos-perfil/${usuarioLogado.uid}`);
+    const uid = usuarioLogado.uid || usuarioLogado.id;
+    const storageRef = ref(storage, `fotos-perfil/${uid}`);
+
     try {
       await uploadBytes(storageRef, file);
       const photoURL = await getDownloadURL(storageRef);
-      const userDocRef = doc(db, "usuarios", usuarioLogado.uid);
+      const userDocRef = doc(db, "usuarios", uid);
+
       await updateDoc(userDocRef, { photoURL });
+
       const usuarioAtualizado = { ...usuarioLogado, photoURL };
       setUsuarioLogado(usuarioAtualizado);
       localStorage.setItem("usuarioLogado", JSON.stringify(usuarioAtualizado));
+      toast.success("Foto de perfil atualizada!");
     } catch (error) {
-      console.error("Erro no upload da foto:", error);
+      console.error(error);
+      toast.error("Erro ao fazer upload da foto.");
     } finally {
       setUploading(false);
     }
-  };
-
-  const handleAvatarClick = () => {
-    fileInputRef.current.click();
   };
 
   const handleSair = async () => {
     try {
       await signOut(getAuth());
       localStorage.removeItem("usuarioLogado");
-      toast.success("Você saiu com sucesso!");
       navigate("/login");
     } catch (error) {
-      toast.error("Erro ao sair.");
+      toast.error("Erro ao sair do sistema.");
     }
   };
 
@@ -78,161 +82,162 @@ export default function PainelGestao() {
     "diretor adjunto",
     "orientador pedagógico",
   ];
+
   const perfilUsuarioFormatado = usuarioLogado?.perfil?.toLowerCase();
   const ID_DE_ALUNO_PARA_TESTE = "Avaliacaointeresses";
-
-  const BotaoPainel = ({ texto, destino }) => (
-    <button className="painel-botao" onClick={() => navigate(destino)}>
-      {texto}
-    </button>
-  );
 
   return (
     <div className="painel-page-container">
       <ToastContainer position="top-right" autoClose={3000} />
+
       <div className="painel-card">
-        <div className="user-profile-top-corner">
-          <div className="avatar-container">
-            <img
-              src={usuarioLogado?.photoURL || "/avatar-padrao.png"}
-              alt="Foto do perfil"
-              className="avatar-imagem"
-            />
-            <button
-              className="avatar-botao-editar"
-              onClick={handleAvatarClick}
-              disabled={uploading}
-            >
-              {uploading ? "..." : <CameraIcon />}
-            </button>
+        {/* LADO ESQUERDO: BRANDING */}
+        <div className="brand-section">
+          <img
+            src="/logo-vivencie.png"
+            className="painel-logo"
+            alt="Vivencie PEI"
+          />
+          <h1 className="painel-titulo">
+            Vivencie
+            <br />
+            PEI
+          </h1>
+        </div>
+
+        {/* LADO DIREITO: OPERACIONAL */}
+        <div className="actions-section">
+          {/* SELETOR DE EXERCÍCIO (PADRÃO IPM) */}
+          <HeaderSistema usuario={usuarioLogado} />
+
+          {/* PERFIL DO USUÁRIO */}
+          <div
+            className="header-wrapper"
+            onClick={() => fileInputRef.current.click()}
+          >
+            <div className="avatar-container">
+              <img
+                src={
+                  usuarioLogado?.photoURL ||
+                  "https://placehold.co/100x100/3b82f6/ffffff?text=User"
+                }
+                className={`avatar ${uploading ? "uploading" : ""}`}
+                alt="Avatar"
+              />
+              <div className="avatar-overlay">Trocar Foto</div>
+            </div>
+
+            <div className="user-text-group">
+              <h3 className="user-name">{usuarioLogado?.nome || "Gestor"}</h3>
+              <p className="escola-tag">
+                {usuarioLogado?.escolaNome || "Painel Administrativo"}
+              </p>
+            </div>
+
             <input
               type="file"
-              accept="image/*"
               ref={fileInputRef}
-              onChange={handleFileChange}
               style={{ display: "none" }}
+              onChange={handleFileChange}
+              accept="image/*"
             />
           </div>
-          <div className="user-text">
-            <span>Bem-vindo, </span>
-            <strong>{usuarioLogado?.nome || "Usuário"}</strong>
+
+          {/* NAVEGAÇÃO DE ABAS */}
+          <div className="tabs-container">
+            {["alunos", "avaliacoes", "pei", "gestao"].map((tab) => (
+              <button
+                key={tab}
+                className={`tab-item ${abaAtiva === tab ? "active" : ""}`}
+                onClick={() => setAbaAtiva(tab)}
+              >
+                {tab.toUpperCase()}
+              </button>
+            ))}
+          </div>
+
+          {/* GRADE DE AÇÕES */}
+          <div className="grid-acoes">
+            {abaAtiva === "alunos" && (
+              <>
+                <BotaoPainel
+                  texto="Cadastrar Aluno"
+                  destino="/cadastrar-aluno"
+                />
+                <BotaoPainel texto="Ver Alunos" destino="/ver-alunos" />
+                <BotaoPainel
+                  texto="Importar Alunos"
+                  destino="/importar-alunos"
+                />
+              </>
+            )}
+
+            {abaAtiva === "avaliacoes" && (
+              <>
+                <BotaoPainel
+                  texto="Avaliação Inicial"
+                  destino="/avaliacao-inicial"
+                />
+                <BotaoPainel
+                  texto="Anamnese Completa"
+                  destino="/anamnese-completa"
+                />
+                <BotaoPainel texto="Ver Anamneses" destino="/anamnese" />
+                <BotaoPainel
+                  texto="Interesses"
+                  destino={`/nova-avaliacao/${ID_DE_ALUNO_PARA_TESTE}`}
+                />
+                <BotaoPainel texto="Relatórios" destino="/relatorios-aluno" />
+              </>
+            )}
+
+            {abaAtiva === "pei" && (
+              <>
+                <BotaoPainel texto="Criar PEI" destino="/criar-pei" />
+                <BotaoPainel texto="Ver PEIs" destino="/ver-peis" />
+              </>
+            )}
+
+            {abaAtiva === "gestao" && (
+              <>
+                <BotaoPainel
+                  texto="Gerenciar Convites"
+                  destino="/admin/convites"
+                />
+                <BotaoPainel
+                  texto="Planos AEE"
+                  destino="/acompanhamento-gestao-selecao"
+                />
+                <BotaoPainel
+                  texto="Cadastrar Usuários"
+                  destino="/cadastro-usuario"
+                />
+                <BotaoPainel
+                  texto="Vincular Professores"
+                  destino="/vincular-professores"
+                />
+                <BotaoPainel texto="Prazos PEI" destino="/gestao-prazos-pei" />
+                {usuarioLogado &&
+                  perfisComAcessoAcompanhamento.includes(
+                    perfilUsuarioFormatado
+                  ) && (
+                    <BotaoPainel
+                      texto="Acompanhar Prazos"
+                      destino="/acompanhamento-prazos-pei"
+                    />
+                  )}
+              </>
+            )}
+          </div>
+
+          {/* RODAPÉ DO PAINEL */}
+          <div className="painel-footer">
+            <TrocarEscola />
+            <button onClick={handleSair} className="btn-sair">
+              Sair do Sistema
+            </button>
           </div>
         </div>
-
-        <img
-          src="/logo-vivencie.png"
-          alt="Logo Vivencie PEI"
-          className="painel-logo"
-        />
-        <h1 className="painel-titulo">Painel da Gestão</h1>
-
-        <div className="painel-tabs-nav">
-          <button
-            className={`tab-button ${abaAtiva === "alunos" ? "active" : ""}`}
-            onClick={() => setAbaAtiva("alunos")}
-          >
-            Alunos
-          </button>
-          <button
-            className={`tab-button ${
-              abaAtiva === "avaliacoes" ? "active" : ""
-            }`}
-            onClick={() => setAbaAtiva("avaliacoes")}
-          >
-            Avaliações
-          </button>
-          <button
-            className={`tab-button ${abaAtiva === "pei" ? "active" : ""}`}
-            onClick={() => setAbaAtiva("pei")}
-          >
-            PEI
-          </button>
-          <button
-            className={`tab-button ${abaAtiva === "gestao" ? "active" : ""}`}
-            onClick={() => setAbaAtiva("gestao")}
-          >
-            Gestão
-          </button>
-        </div>
-
-        <div className="painel-tabs-content">
-          {abaAtiva === "alunos" && (
-            <>
-              <BotaoPainel texto="Cadastrar Aluno" destino="/cadastrar-aluno" />
-              <BotaoPainel texto="Ver Alunos" destino="/ver-alunos" />
-              <BotaoPainel texto="Importar Alunos" destino="/importar-alunos" />
-            </>
-          )}
-
-          {abaAtiva === "avaliacoes" && (
-            <>
-              <BotaoPainel
-                texto="Avaliação Inicial"
-                destino="/avaliacao-inicial"
-              />
-              <BotaoPainel
-                texto="Anamnese Completa"
-                destino="/anamnese-completa"
-              />
-              <BotaoPainel texto="Ver Anamneses" destino="/anamnese" />
-              <BotaoPainel
-                texto="Avaliação de Interesses"
-                destino={`/nova-avaliacao/${ID_DE_ALUNO_PARA_TESTE}`}
-              />
-              <BotaoPainel
-                texto="Relatórios do Aluno"
-                destino="/relatorios-aluno"
-              />
-            </>
-          )}
-
-          {abaAtiva === "pei" && (
-            <>
-              <BotaoPainel texto="Criar PEI" destino="/criar-pei" />
-              <BotaoPainel texto="Ver PEIs" destino="/ver-peis" />
-            </>
-          )}
-
-          {abaAtiva === "gestao" && (
-            <>
-              {/* 💡 NOVO: Botão para Gerenciador de Convites */}
-              <BotaoPainel
-                texto="Gerenciar Convites"
-                destino="/admin/convites"
-              />
-              {/* ===== BOTÃO ADICIONADO AQUI (Acompanhar Planos AEE) ===== */}
-              <BotaoPainel
-                texto="Acompanhar Planos AEE"
-                destino="/acompanhamento-gestao-selecao"
-              />
-              <BotaoPainel
-                texto="Cadastrar Usuários"
-                destino="/cadastro-usuario"
-              />
-              <BotaoPainel
-                texto="Vincular Turmas a Professores"
-                destino="/vincular-professores"
-              />
-              <BotaoPainel
-                texto="Gerenciar Prazos PEI"
-                destino="/gestao-prazos-pei"
-              />
-              {usuarioLogado &&
-                perfisComAcessoAcompanhamento.includes(
-                  perfilUsuarioFormatado
-                ) && (
-                  <BotaoPainel
-                    texto="Acompanhamento de Prazos PEI"
-                    destino="/acompanhamento-prazos-pei"
-                  />
-                )}
-            </>
-          )}
-        </div>
-
-        <button onClick={handleSair} className="painel-botao-sair">
-          Sair
-        </button>
       </div>
     </div>
   );

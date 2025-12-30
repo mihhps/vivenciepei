@@ -1,0 +1,281 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap");
+
+.ver-alunos-container {
+  padding: 40px;
+  max-width: 1400px;
+  margin: 0 auto;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  background-color: #f8fafc;
+  min-height: 100vh;
+}
+
+.ver-alunos-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 40px;
+}
+
+.header-title-group h1 {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+.header-title-group p {
+  color: #64748b;
+  margin: 5px 0 0 0;
+}
+
+.btn-novo-aluno {
+  background-color: #3b82f6;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 16px;
+  border: none;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3);
+  transition: transform 0.2s;
+}
+
+.btn-novo-aluno:hover {
+  transform: translateY(-2px);
+}
+
+.escolas-tabs-scroll {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 30px;
+  overflow-x: auto;
+  padding-bottom: 10px;
+}
+
+.tab-escola {
+  padding: 10px 20px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  color: #64748b;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tab-escola.active {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.busca-aluno-wrapper {
+  position: relative;
+  margin-bottom: 40px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+}
+
+.busca-aluno-wrapper input {
+  width: 100%;
+  padding: 16px 16px 16px 50px;
+  border-radius: 20px;
+  border: 2px solid #e2e8f0;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.busca-aluno-wrapper input:focus {
+  border-color: #3b82f6;
+}
+
+.alunos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 25px;
+}
+
+.aluno-card-moderno {
+  background: white;
+  border-radius: 32px; /* ✅ Padrão Jakarta */
+  padding: 24px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border: 1px solid #f1f5f9;
+}
+
+.aluno-avatar-wrapper {
+  position: relative;
+  width: 80px;
+  height: 80px;
+}
+
+.aluno-avatar-wrapper img,
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  border-radius: 24px;
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  background: #eff6ff;
+  color: #3b82f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.tea-badge {
+  position: absolute;
+  bottom: -5px;
+  right: -5px;
+  background: #0ea5e9;
+  color: white;
+  padding: 6px;
+  border-radius: 50%;
+  font-size: 0.8rem;
+  border: 3px solid white;
+}
+
+.aluno-turma-tag {
+  background: #f1f5f9;
+  color: #475569;
+  padding: 4px 12px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.aluno-card-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin: 20px 0;
+  padding: 20px 0;
+  border-top: 1px solid #f1f5f9;
+}
+
+.detail-item label {
+  display: block;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.detail-item span {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.detail-item.full {
+  grid-column: span 2;
+}
+
+.aluno-card-footer {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-edit {
+  flex: 1;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 10px;
+  border-radius: 12px;
+  font-weight: 700;
+  color: #475569;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-del {
+  background: #fef2f2;
+  color: #ef4444;
+  border: 1px solid #fee2e2;
+  padding: 10px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+/* Botão de Migração no Header */
+.btn-abrir-migracao {
+  background: #f0f9ff;
+  color: #0369a1;
+  border: 2px dashed #0369a1;
+  padding: 8px 16px;
+  border-radius: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  margin-top: 5px;
+}
+
+/* Modal e Lista de Seleção (Igual ao dos Profs) */
+.modal-migracao-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.85);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.modal-migracao-card {
+  background: white;
+  padding: 30px;
+  border-radius: 28px;
+  width: 90%;
+  max-width: 550px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.lista-selecao-migracao {
+  flex: 1;
+  overflow-y: auto;
+  margin: 20px 0;
+  border: 1px solid #f1f5f9;
+  border-radius: 16px;
+  background: #f8fafc;
+}
+
+.item-selecao {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 12px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  cursor: pointer;
+}
+
+.aluno-info-mini {
+  display: flex;
+  flex-direction: column;
+}
+
+.aluno-info-mini span {
+  font-size: 0.8rem;
+  color: #64748b;
+}

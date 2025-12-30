@@ -1,257 +1,177 @@
-/* src/pages/VincularProfessoresTurmas.css */
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800;900&display=swap");
 
-:root {
-  --background-color: #f0f2f5;
-  --card-background: #ffffff;
-  --text-primary: #1d3557;
-  --text-secondary: #457b9d;
-  --border-color: #e0e0e0;
-  --shadow-color: rgba(0, 0, 0, 0.1);
-  --success-color: #2a9d8f;
-  --warning-color: #ffc107;
-  --error-color: #e63946;
-  --font-family: "Segoe UI", sans-serif;
-  --transition-speed: 0.3s ease;
-}
-
-body {
-  margin: 0;
-  background-color: var(--background-color);
-  font-family: var(--font-family);
-}
-
-.vinculacao-container {
+.vinculacao-page-container {
+  height: 100vh;
+  width: 100vw;
+  background: #0f172a;
   display: flex;
   justify-content: center;
-  align-items: flex-start;
-  min-height: 100vh;
-  padding: 30px;
-  box-sizing: border-box;
+  align-items: center;
+  padding: 20px;
+  overflow: hidden; /* Impede scroll no corpo do site */
 }
 
-.vinculacao-card {
-  background-color: var(--card-background);
-  border-radius: 16px;
-  box-shadow: 0 4px 12px var(--shadow-color);
-  padding: 30px;
+.vinculacao-main-card {
+  background: #ffffff;
+  border-radius: 32px;
   width: 100%;
-  max-width: 900px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.vinculacao-titulo {
-  text-align: center;
-  color: var(--text-primary);
-  font-size: 2rem;
-  margin: 0;
-}
-
-/* Container que envolve a lista de cards */
-.vinculacao-lista {
+  max-width: 1100px;
+  height: 85vh; /* Altura fixa para forçar o scroll interno */
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 20px;
+  grid-template-columns: 340px 1fr;
+  box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.5);
+  overflow: hidden; /* Mantém tudo dentro do card */
 }
 
-.vinculacao-profissional-card {
-  background-color: #f8f9fa;
-  border-radius: 10px;
-  border: 1px solid var(--border-color);
+/* SIDEBAR ESQUERDA */
+.prof-sidebar {
+  background: #f8fafc;
+  border-right: 1px solid #e2e8f0;
   display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  transition: all var(--transition-speed);
+  flex-direction: column; /* Organiza header e lista verticalmente */
+  height: 100%;
+  min-height: 0;
 }
 
-.vinculacao-profissional-card:hover {
-  box-shadow: 0 4px 12px var(--shadow-color);
+.sidebar-header {
+  padding: 20px;
+  background: #fff;
+  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0; /* Não deixa o header sumir ou encolher */
 }
 
-.vinculacao-profissional-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px 20px;
-  cursor: pointer;
-  background-color: #e9ecef;
-  border-bottom: 1px solid var(--border-color);
-  transition: background-color var(--transition-speed);
+.sidebar-header h3 {
+  margin: 10px 0;
+  font-weight: 800;
+  color: #1e293b;
 }
 
-.vinculacao-profissional-header:hover {
-  background-color: #ced4da;
+.search-box input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #f1f5f9;
+  font-size: 0.85rem;
 }
 
-.vinculacao-profissional-header h4 {
-  margin: 0;
-  color: var(--text-primary);
-  font-size: 1rem;
-  font-weight: 600;
-}
-
-.expand-icon {
-  width: 20px;
-  height: 20px;
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%231d3557" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-down"><polyline points="6 9 12 15 18 9"></polyline></svg>');
-  background-repeat: no-repeat;
-  background-position: center;
-  transition: transform var(--transition-speed);
-}
-
-.expand-icon.expanded {
-  transform: rotate(180deg);
-}
-
-.vinculacao-profissional-detalhes {
-  padding: 0 20px;
-  max-height: 0;
-  overflow: hidden;
-  transition:
-    max-height 0.4s ease-out,
-    padding 0.4s ease-out;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.vinculacao-profissional-detalhes.expanded {
-  max-height: 500px;
-  padding: 15px 20px;
-}
-
-.vinculacao-profissional-detalhes p {
-  margin: 0;
-  font-size: 0.9rem;
-  color: #6c757d;
-}
-
-.vinculacao-turmas {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 15px;
-  padding-top: 10px;
-  border-top: 1px solid #dee2e6;
-}
-
-.vinculacao-checkbox-titulo {
-  font-size: 1rem;
-  font-weight: 600;
-  margin: 0;
-  color: var(--text-primary);
-}
-
-.vinculacao-turmas-scroll {
-  max-height: 200px;
-  overflow-y: auto;
-  padding-right: 10px;
-}
-
-.vinculacao-checkbox-list-container {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-.vinculacao-checkbox-label {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  font-size: 0.95rem;
-  user-select: none;
-  position: relative;
-  padding-left: 28px;
-  min-height: 20px;
-  line-height: 1.2;
-}
-
-.vinculacao-checkbox-label input[type="checkbox"] {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  cursor: pointer;
-}
-
-.vinculacao-checkbox-label .checkmark {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 20px;
-  width: 20px;
-  background-color: #eee;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  transition:
-    background-color 0.2s,
-    border-color 0.2s;
-  flex-shrink: 0;
-}
-
-.vinculacao-checkbox-label .checkmark::after {
-  content: "";
-  position: absolute;
-  display: none;
-  left: 6px;
-  top: 2px;
-  width: 5px;
-  height: 10px;
-  border: solid white;
-  border-width: 0 3px 3px 0;
-  transform: rotate(45deg);
-}
-
-.vinculacao-checkbox-label input[type="checkbox"]:checked ~ .checkmark {
-  background-color: var(--text-primary);
-  border-color: var(--text-primary);
-}
-
-.vinculacao-checkbox-label input[type="checkbox"]:checked ~ .checkmark::after {
+/* FOCO AQUI: O SCROLL REAL */
+.prof-list-scroll {
+  flex: 1; /* Ocupa o restante do espaço */
+  overflow-y: auto !important; /* ATIVA O SCROLL VERTICAL */
+  padding: 15px;
+  min-height: 0; /* Hack para o Flexbox entender o scroll */
   display: block;
 }
 
-.vinculacao-checkbox-label:hover .checkmark {
-  background-color: #ccc;
-}
-
-.vinculacao-botao-salvar {
-  background-color: var(--success-color);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  padding: 10px 15px;
-  font-size: 1rem;
+.prof-item-card {
+  padding: 15px;
+  background: #fff;
+  border-radius: 14px;
+  margin-bottom: 10px;
   cursor: pointer;
-  transition: background-color var(--transition-speed);
-  margin-top: 15px;
+  border: 2px solid transparent;
+  transition: 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
-.vinculacao-botao-salvar:hover {
-  background-color: #217d72;
+.prof-item-card.active {
+  border-color: #3b82f6;
+  background: #eff6ff;
 }
 
-.info-message {
+.prof-name {
+  display: block;
+  font-weight: 800;
+  color: #1e293b;
+  font-size: 0.9rem;
+}
+.prof-perfil-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #3b82f6;
+  background: #dbeafe;
+  padding: 2px 8px;
+  border-radius: 6px;
+  display: inline-block;
+  margin-top: 5px;
+}
+
+/* CONTEÚDO DIREITA */
+.vinculo-content {
+  padding: 40px;
+  overflow-y: auto; /* Scroll caso haja muitas turmas */
+  height: 100%;
+  min-height: 0;
+}
+
+.turmas-selection-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.turma-checkbox-card {
+  padding: 15px;
+  border: 2px solid #f1f5f9;
+  border-radius: 14px;
   text-align: center;
-  color: #6c757d;
-  font-style: italic;
-  margin: 20px 0;
+  cursor: pointer;
+  font-weight: 800;
+  transition: 0.2s;
 }
 
-@media (max-width: 768px) {
-  .vinculacao-card {
-    padding: 20px;
-  }
-  .vinculacao-titulo {
-    font-size: 1.5rem;
-  }
-  .vinculacao-lista {
-    grid-template-columns: 1fr;
-  }
-  .vinculacao-checkbox-list-container {
-    grid-template-columns: 1fr;
-  }
+.turma-checkbox-card input {
+  display: none;
+}
+.turma-checkbox-card.checked {
+  background: #3b82f6;
+  color: #fff;
+  border-color: #3b82f6;
+}
+
+.btn-salvar-vinculo {
+  width: 100%;
+  margin-top: 30px;
+  background: #3b82f6;
+  color: #fff;
+  padding: 18px;
+  border-radius: 18px;
+  border: none;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.btn-voltar-minimal {
+  background: transparent;
+  border: none;
+  color: #3b82f6;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* Barra de rolagem estilizada para ficar visível */
+.prof-list-scroll::-webkit-scrollbar,
+.vinculo-content::-webkit-scrollbar {
+  width: 8px;
+}
+.prof-list-scroll::-webkit-scrollbar-thumb,
+.vinculo-content::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+.empty-state {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: #94a3b8;
+}
+.bg-logo-fade {
+  width: 100px;
+  opacity: 0.1;
+  margin-bottom: 20px;
 }

@@ -96,9 +96,7 @@ body {
   cursor: pointer;
   font-size: 1em;
   font-weight: 600;
-  transition:
-    background-color 0.2s ease,
-    transform 0.1s ease;
+  transition: background-color 0.2s ease, transform 0.1s ease;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
 }
 
@@ -191,9 +189,7 @@ body {
   border: 1px solid #ced4da;
   font-size: 1em;
   box-sizing: border-box;
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .text-input:focus {
@@ -255,11 +251,7 @@ body {
   justify-content: center;
   opacity: 0.6; /* Mais transparente quando não selecionado */
   cursor: pointer;
-  transition:
-    opacity 0.2s,
-    outline 0.2s,
-    transform 0.2s,
-    box-shadow 0.2s;
+  transition: opacity 0.2s, outline 0.2s, transform 0.2s, box-shadow 0.2s;
   user-select: none; /* Impede seleção de texto */
   border: 1px solid rgba(0, 0, 0, 0.1); /* Borda sutil */
   position: relative; /* Para posicionar o input escondido */
@@ -306,9 +298,7 @@ body {
   font-size: 1.3em; /* Fonte maior */
   font-weight: bold;
   cursor: pointer;
-  transition:
-    background-color 0.2s ease,
-    transform 0.1s ease,
+  transition: background-color 0.2s ease, transform 0.1s ease,
     box-shadow 0.2s ease;
   margin-top: 40px; /* Mais margem superior */
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Sombra para o botão */
@@ -435,9 +425,7 @@ hr {
   border-radius: 8px;
   font-weight: 600; /* Semibold */
   cursor: pointer;
-  transition:
-    background-color 0.3s ease,
-    transform 0.1s ease;
+  transition: background-color 0.3s ease, transform 0.1s ease;
   margin-left: 15px; /* Espaçamento do botão de voltar */
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
 }
@@ -475,9 +463,7 @@ hr {
   color: #fff;
   border-radius: 50%; /* Torna o botão redondo */
   cursor: pointer;
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease; /* Efeitos de transição */
+  transition: transform 0.2s ease, box-shadow 0.2s ease; /* Efeitos de transição */
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 

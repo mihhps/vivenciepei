@@ -1,320 +1,277 @@
-/* src/pages/VincularEscolas.css */
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800;900&display=swap");
 
-:root {
-  --background-color: #f0f2f5;
-  --card-background: #ffffff;
-  --text-primary: #1d3557;
-  --text-secondary: #457b9d;
-  --border-color: #e0e0e0;
-  --shadow-color: rgba(0, 0, 0, 0.1);
-  --success-color: #2a9d8f;
-  --warning-color: #ffc107;
-  --error-color: #e63946;
-  --font-family: "Segoe UI", sans-serif;
-  --transition-speed: 0.3s ease;
-}
-
-body {
-  margin: 0;
-  background-color: var(--background-color);
-  font-family: var(--font-family);
-}
-
-.vinculacao-container {
+.vinc-escolas-page {
+  height: 100vh;
+  width: 100vw;
+  background: #0f172a;
   display: flex;
   justify-content: center;
-  align-items: flex-start;
-  min-height: 100vh;
-  padding: 30px;
-  box-sizing: border-box;
-}
-
-.vinculacao-card {
-  background-color: var(--card-background);
-  border-radius: 16px;
-  box-shadow: 0 4px 12px var(--shadow-color);
-  padding: 30px;
-  width: 100%;
-  max-width: 900px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.vinculacao-botao-voltar {
-  align-self: flex-start;
-}
-
-.vinculacao-titulo {
-  text-align: center;
-  color: var(--text-primary);
-  font-size: 2rem;
-  margin: 0;
-}
-
-.vinculacao-abas-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 25px;
-}
-
-.vinculacao-aba {
-  background-color: #e9ecef;
-  border: 1px solid transparent;
-  border-radius: 20px;
-  padding: 10px 20px;
-  cursor: pointer;
-  font-weight: 500;
-  color: var(--text-primary);
-  transition: all var(--transition-speed);
-}
-
-.vinculacao-aba.active,
-.vinculacao-aba:hover {
-  background-color: var(--text-primary);
-  color: var(--card-background);
-  border-color: var(--text-primary);
-}
-
-.vinculacao-conteudo {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.vinculacao-subtitulo {
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-  margin: 0;
-}
-
-.vinculacao-acoes {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.vinculacao-lista {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 20px;
-}
-
-.vinculacao-profissional-card {
-  background-color: #f8f9fa;
-  border-radius: 10px;
-  border: 1px solid var(--border-color);
-  display: flex;
-  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  font-family: "Plus Jakarta Sans", sans-serif;
   overflow: hidden;
-  transition: all var(--transition-speed);
 }
 
-.vinculacao-profissional-card:hover {
-  box-shadow: 0 4px 12px var(--shadow-color);
+.vinc-escolas-card {
+  background: #ffffff;
+  border-radius: 40px;
+  width: 100%;
+  max-width: 1200px;
+  height: 85vh;
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  box-shadow: 0 50px 100px -20px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
 }
 
-.vinculacao-profissional-header {
+/* SIDEBAR REFINADA */
+.vinc-sidebar {
+  background: #f8fafc;
+  border-right: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.vinc-sidebar-header {
+  padding: 30px;
+}
+.btn-back-minimal {
+  background: #eff6ff;
+  color: #3b82f6;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 10px;
+  font-weight: 800;
+  cursor: pointer;
+  margin-bottom: 20px;
+}
+
+.vinc-nav-item {
+  width: 90%;
+  margin: 0 auto 8px;
+  text-align: left;
+  padding: 15px 20px;
+  border-radius: 16px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.vinc-nav-item:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+.vinc-nav-item.active {
+  background: #3b82f6;
+  color: white;
+  box-shadow: 0 10px 20px -5px rgba(59, 130, 246, 0.4);
+}
+
+/* LISTA DE PROFISSIONAIS (ESTILO CLEAN) */
+.vinc-content {
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.vinc-content-header h2 {
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: -1px;
+}
+
+.vinc-search-bar {
+  width: 100%;
+  padding: 16px 20px;
+  border-radius: 16px;
+  border: 2px solid #f1f5f9;
+  margin: 20px 0;
+  font-size: 1rem;
+}
+
+.vinc-grid-prof {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 10px;
+}
+
+/* CARD DO PROFISSIONAL - ESTILO "LIST ITEM" */
+.vinc-prof-card {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 20px;
-  cursor: pointer;
-  background-color: #e9ecef;
-  border-bottom: 1px solid var(--border-color);
-  transition: background-color var(--transition-speed);
+  padding: 20px;
+  border-bottom: 1px solid #f1f5f9;
+  transition: 0.2s;
+  border-radius: 20px;
+  margin-bottom: 5px;
 }
 
-.vinculacao-profissional-header:hover {
-  background-color: #ced4da;
+.vinc-prof-card:hover {
+  background: #f8fafc;
 }
 
-.vinculacao-profissional-header h4 {
-  margin: 0;
-  color: var(--text-primary);
-  font-size: 1rem;
-  font-weight: 600;
-}
-
-.vinculacao-profissional-header .expand-icon {
-  width: 20px;
-  height: 20px;
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%231d3557" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-down"><polyline points="6 9 12 15 18 9"></polyline></svg>');
-  background-repeat: no-repeat;
-  background-position: center;
-  transition: transform var(--transition-speed);
-}
-
-.vinculacao-profissional-header .expand-icon.expanded {
-  transform: rotate(180deg);
-}
-
-.vinculacao-profissional-detalhes {
-  padding: 0 20px;
-  max-height: 0;
-  overflow: hidden;
-  transition:
-    max-height 0.4s ease-out,
-    padding 0.4s ease-out;
+.prof-main-info {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  align-items: center;
+  gap: 15px;
 }
-
-.vinculacao-profissional-detalhes.expanded {
-  max-height: 500px;
-  padding: 15px 20px;
-}
-
-.vinculacao-profissional-detalhes p {
-  margin: 0;
-  font-size: 0.9rem;
-  color: #6c757d;
-}
-
-.vinculacao-profissional-detalhes strong {
-  color: var(--text-primary);
-}
-
-.vinculacao-checkboxes {
+.prof-avatar-circle {
+  width: 45px;
+  height: 45px;
+  background: #dbeafe;
+  color: #3b82f6;
+  border-radius: 50%;
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 1.2rem;
 }
 
-.vinculacao-checkbox-titulo {
-  font-size: 1rem;
-  font-weight: 600;
-  margin: 0;
-  color: var(--text-primary);
-}
-
-.vinculacao-checkbox-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-/* Oculta o checkbox nativo */
-.vinculacao-checkbox-label input[type="checkbox"] {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  cursor: pointer;
-}
-
-/* Estilo do checkmark customizado */
-.vinculacao-checkbox-label .checkmark {
-  display: inline-block;
-  width: 18px;
-  height: 18px;
-  border: 2px solid var(--text-secondary);
-  border-radius: 4px;
-  background-color: #fff;
-  position: relative;
-  margin-right: 10px;
-  transition:
-    background-color 0.2s,
-    border-color 0.2s;
-  flex-shrink: 0; /* Impede que o checkmark encolha */
-}
-
-/* Estilo do V quando marcado */
-.vinculacao-checkbox-label .checkmark::after {
-  content: "";
-  position: absolute;
-  display: none;
-  left: 5px;
-  top: 1px;
-  width: 5px;
-  height: 10px;
-  border: solid white;
-  border-width: 0 3px 3px 0;
-  transform: rotate(45deg);
-}
-
-.vinculacao-checkbox-label input[type="checkbox"]:checked ~ .checkmark {
-  background-color: var(--text-primary);
-  border-color: var(--text-primary);
-}
-
-.vinculacao-checkbox-label input[type="checkbox"]:checked ~ .checkmark::after {
+.prof-text strong {
   display: block;
+  color: #1e293b;
+  font-size: 1.1rem;
 }
-
-.vinculacao-checkbox-label:hover .checkmark {
-  background-color: #ccc;
-}
-
-.vinculacao-botao-edicao,
-.vinculacao-botao-cancelar {
-  border: none;
-  border-radius: 6px;
-  padding: 10px 15px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all var(--transition-speed);
-}
-
-.vinculacao-botao-edicao {
-  background-color: var(--text-secondary);
-  color: white;
-}
-
-.vinculacao-botao-edicao:hover {
-  background-color: #38647a;
-}
-
-.vinculacao-botao-cancelar {
-  background-color: var(--error-color);
-  color: white;
-}
-
-.vinculacao-botao-cancelar:hover {
-  background-color: #c02d3a;
-}
-
-.vinculacao-botao-salvar {
-  background-color: var(--success-color);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  padding: 8px 12px;
+.prof-text span {
+  color: #94a3b8;
   font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* BOTÕES DE VÍNCULO (MENORES E MAIS ELEGANTES) */
+.vinc-btn-manage {
+  background: #f1f5f9;
+  color: #475569;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-weight: 800;
   cursor: pointer;
-  transition: background-color var(--transition-speed);
+  transition: 0.2s;
+}
+
+.vinc-btn-manage:hover {
+  background: #3b82f6;
+  color: white;
+}
+
+/* MODAL OU ÁREA DE EDIÇÃO EXPANSÍVEL */
+.edit-area-expanded {
+  background: #f8fafc;
+  padding: 20px;
+  border-radius: 20px;
+  margin: 10px 0 20px;
+  border: 1px dashed #cbd5e1;
+}
+
+.chip-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-top: 15px;
 }
-
-.vinculacao-botao-salvar:hover {
-  background-color: #217d72;
+.chip-item {
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: 2px solid #e2e8f0;
+  background: white;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.chip-item.active {
+  border-color: #3b82f6;
+  color: #3b82f6;
+  background: #eff6ff;
 }
 
-.info-message {
-  text-align: center;
-  color: #6c757d;
-  font-style: italic;
+.btn-confirm-vinc {
+  margin-top: 15px;
+  width: 100%;
+  padding: 12px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.modal-migracao-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-migracao-card {
+  background: white;
+  padding: 32px;
+  border-radius: 24px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+}
+
+.lista-selecao-migracao {
+  max-height: 300px;
+  overflow-y: auto;
   margin: 20px 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px;
 }
 
-@media (max-width: 768px) {
-  .vinculacao-card {
-    padding: 20px;
-  }
-  .vinculacao-titulo {
-    font-size: 1.5rem;
-  }
-  .vinculacao-abas-container {
-    flex-direction: column;
-  }
-  .vinculacao-lista {
-    grid-template-columns: 1fr;
-  }
-  .vinculacao-acoes {
-    justify-content: center;
-  }
+.item-selecao {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  cursor: pointer;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.btn-confirmar-migracao {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.btn-abrir-migracao {
+  background: #f8fafc;
+  color: #3b82f6;
+  border: 2px dashed #3b82f6;
+  padding: 8px 16px;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.badge-ano-ok {
+  background: #dcfce7;
+  color: #15803d;
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 800;
 }

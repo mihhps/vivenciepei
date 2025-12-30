@@ -1,0 +1,166 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800;900&display=swap");
+
+.convite-page-container {
+  height: 100vh;
+  width: 100vw;
+  background: #0f172a;
+  background-image: radial-gradient(
+    at 0% 0%,
+    rgba(59, 130, 246, 0.15) 0,
+    transparent 50%
+  );
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  font-family: "Plus Jakarta Sans", sans-serif;
+}
+
+.convite-card {
+  background: #ffffff;
+  border-radius: 40px;
+  width: 100%;
+  max-width: 500px;
+  padding: 50px;
+  box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.6);
+  text-align: center;
+  position: relative;
+}
+
+.convite-header {
+  margin-bottom: 35px;
+}
+
+.btn-back-minimal {
+  position: absolute;
+  top: 30px;
+  left: 30px;
+  background: #f1f5f9;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 12px;
+  font-weight: 800;
+  color: #3b82f6;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+}
+
+.icon-circle {
+  width: 70px;
+  height: 70px;
+  background: #eff6ff;
+  color: #3b82f6;
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  margin: 0 auto 20px;
+}
+
+.convite-card h1 {
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: #0f172a;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.convite-card p {
+  color: #64748b;
+  font-size: 0.95rem;
+  margin-top: 10px;
+  line-height: 1.5;
+}
+
+.btn-gerar-main {
+  width: 100%;
+  padding: 18px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-weight: 800;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: 0.3s;
+  box-shadow: 0 10px 20px -5px rgba(59, 130, 246, 0.4);
+}
+
+.btn-gerar-main:hover {
+  background: #2563eb;
+  transform: translateY(-2px);
+}
+
+/* ÁREA DO RESULTADO */
+.resultado-codigo-box {
+  margin-top: 35px;
+  padding: 25px;
+  background: #f8fafc;
+  border-radius: 24px;
+  border: 2px dashed #e2e8f0;
+  text-align: left;
+}
+
+.resultado-codigo-box label {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #94a3b8;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  display: block;
+}
+
+.codigo-display {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+}
+
+.font-mono {
+  font-family: "Courier New", Courier, monospace;
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: 2px;
+}
+
+.btn-copy {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  padding: 8px 15px;
+  border-radius: 10px;
+  font-weight: 800;
+  color: #3b82f6;
+  cursor: pointer;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.instrucao-p {
+  font-size: 0.8rem !important;
+  color: #94a3b8 !important;
+  margin-top: 15px !important;
+}
+
+/* ESTADO DE ERRO */
+.error-state h1 {
+  color: #ef4444;
+  margin-top: 15px;
+}
+.btn-voltar-premium {
+  margin-top: 25px;
+  padding: 12px 30px;
+  background: #1e293b;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}

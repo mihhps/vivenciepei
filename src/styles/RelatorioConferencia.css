@@ -1,0 +1,123 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap");
+
+.relatorio-container {
+  padding: 40px;
+  background: #0f172a; /* Fundo escuro igual ao seu sistema */
+  min-height: 100vh;
+  font-family: "Plus Jakarta Sans", sans-serif;
+}
+
+.relatorio-card {
+  background: #ffffff;
+  border-radius: 32px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px;
+  box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.5);
+}
+
+.relatorio-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  border-bottom: 2px solid #f1f5f9;
+  padding-bottom: 20px;
+}
+
+.relatorio-header h2 {
+  color: #1e293b;
+  font-weight: 800;
+  font-size: 1.8rem;
+  margin: 0;
+}
+
+.btn-voltar-relatorio {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.btn-voltar-relatorio:hover {
+  background: #2563eb;
+  transform: translateY(-2px);
+}
+
+/* Estilização da Tabela */
+.tabela-wrapper {
+  overflow-x: auto;
+}
+
+.tabela-conferencia {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 8px; /* Espaço entre as linhas */
+}
+
+.tabela-conferencia th {
+  text-align: left;
+  padding: 15px;
+  color: #94a3b8;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tabela-conferencia tr {
+  transition: 0.2s;
+}
+
+.tabela-conferencia td {
+  padding: 18px 15px;
+  background: #f8fafc;
+  color: #1e293b;
+  font-size: 0.9rem;
+}
+
+/* Arredondar cantos das linhas */
+.tabela-conferencia td:first-child {
+  border-radius: 12px 0 0 12px;
+}
+.tabela-conferencia td:last-child {
+  border-radius: 0 12px 12px 0;
+}
+
+.tabela-conferencia tr:hover td {
+  background: #f1f5f9;
+}
+
+/* Badges e Status */
+.badge-cargo {
+  background: #dbeafe;
+  color: #1e40af;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: inline-block;
+}
+
+.status-migrado {
+  font-size: 1.2rem;
+}
+
+.turmas-list {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.no-turmas {
+  color: #ef4444;
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+
+/* Linha de alerta para quem não tem turma */
+.row-alerta td {
+  background: #fff1f2 !important;
+}

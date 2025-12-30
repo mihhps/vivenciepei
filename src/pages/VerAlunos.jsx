@@ -1,6 +1,4 @@
-// src/pages/VerAlunos.jsx
-
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { db } from "../firebase";
 import {
   collection,
@@ -11,601 +9,380 @@ import {
   where,
   getDoc,
   orderBy,
+  writeBatch,
 } from "firebase/firestore";
 import {
   FaPencilAlt,
   FaTrashAlt,
   FaPlus,
   FaPuzzlePiece,
-  FaUserCircle,
-} from "react-icons/fa"; // NOVO: FaUserCircle
+  FaSearch,
+  FaRocket,
+} from "react-icons/fa";
 import Loader from "../components/Loader";
 import { useNavigate } from "react-router-dom";
+import { toast, ToastContainer } from "react-toastify";
 
-// --- Funções Auxiliares (sem alterações) ---
-const getLocalStorageSafe = (key, defaultValue = null) => {
-  try {
-    const item = localStorage.getItem(key);
-    if (item === null || item === undefined || item === "undefined") {
-      return defaultValue;
-    }
-    return JSON.parse(item);
-  } catch (error) {
-    console.error(`Erro ao parsear ${key} do localStorage:`, error);
-    return defaultValue;
+import "../styles/VerAlunos.css";
+
+const calcularIdade = (data) => {
+  if (!data) return "N/A";
+  const hoje = new Date();
+  const nasc = new Date(data);
+  let idade = hoje.getFullYear() - nasc.getFullYear();
+  if (
+    hoje.getMonth() < nasc.getMonth() ||
+    (hoje.getMonth() === nasc.getMonth() && hoje.getDate() < nasc.getDate())
+  )
+    idade--;
+  return idade;
+};
+
+const sugerirProximaTurma = (turmaAtual) => {
+  if (!turmaAtual) return "";
+  const turmas = {
+    "Pré I": "Pré II",
+    "Pré II": "1º Ano",
+    "1º Ano": "2º Ano",
+    "2º Ano": "3º Ano",
+    "3º Ano": "4º Ano",
+    "4º Ano": "5º Ano",
+  };
+  for (const [chave, valor] of Object.entries(turmas)) {
+    if (turmaAtual.includes(chave)) return turmaAtual.replace(chave, valor);
   }
-};
-
-const calcularIdade = (dataNascimento) => {
-  if (!dataNascimento) return "N/A";
-  try {
-    const parts = dataNascimento.split("-");
-    if (parts.length !== 3) return "Data inválida";
-    const [ano, mes, dia] = parts.map(Number);
-    const nascimento = new Date(ano, mes - 1, dia);
-    if (isNaN(nascimento.getTime())) return "Data inválida";
-    const hoje = new Date();
-    let idade = hoje.getFullYear() - nascimento.getFullYear();
-    const m = hoje.getMonth() - nascimento.getMonth();
-    if (m < 0 || (m === 0 && hoje.getDate() < nascimento.getDate())) idade--;
-    return idade >= 0 ? idade : "N/A";
-  } catch (e) {
-    console.error("Erro ao calcular idade para:", dataNascimento, e);
-    return "N/A";
-  }
-};
-
-const verificaTea = (diagnostico) => {
-  if (!diagnostico) return false;
-  const diagnosticoLowerCase = diagnostico.toLowerCase();
-  const palavrasChave = ["tea", "autismo", "espectro autista"];
-  return palavrasChave.some((palavra) =>
-    diagnosticoLowerCase.includes(palavra)
-  );
-};
-
-// --- Estilos JSX (ADICIONADO ESTILOS DA FOTO E NOVO LAYOUT DO CARD) ---
-const styles = {
-  container: {
-    minHeight: "100vh",
-    background: "#f1f8fc",
-    padding: "40px 20px",
-    boxSizing: "border-box",
-  },
-  content: {
-    maxWidth: "1200px",
-    margin: "0 auto",
-  },
-  header: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  title: {
-    color: "#1d3557",
-  },
-  buttonPrimary: {
-    background: "#1d3557",
-    color: "#fff",
-    padding: "10px 20px",
-    borderRadius: "8px",
-    border: "none",
-    fontSize: "16px",
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    cursor: "pointer",
-    transition: "background-color 0.3s ease",
-  },
-  schoolFilter: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: "10px",
-    marginBottom: 30,
-  },
-  schoolButton: (active) => ({
-    padding: "10px 16px",
-    borderRadius: "20px",
-    border: active ? "2px solid #1d3557" : "1px solid #ccc",
-    background: active ? "#1d3557" : "#fff",
-    color: active ? "#fff" : "#1d3557",
-    fontWeight: active ? "bold" : "normal",
-    cursor: "pointer",
-    transition: "all 0.3s ease",
-  }),
-  studentGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-    gap: "20px",
-    justifyContent: "flex-start",
-  },
-  // NOVO LAYOUT DO CARD
-  studentCard: {
-    background: "#fff",
-    borderRadius: "10px",
-    boxShadow: "0 2px 10px rgba(0,0,0,0.08)",
-    padding: "20px",
-    boxSizing: "border-box",
-    display: "flex",
-    flexDirection: "column",
-  },
-  // NOVOS ESTILOS PARA FOTO/PLACEHOLDER
-  photoContainer: {
-    width: "70px",
-    height: "70px",
-    borderRadius: "50%",
-    overflow: "hidden",
-    marginRight: "15px",
-    flexShrink: 0,
-    border: "2px solid #457b9d",
-    backgroundColor: "#e0f2ff", // Cor de fundo se não houver foto
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  photo: {
-    width: "100%",
-    height: "100%",
-    objectFit: "cover",
-  },
-  photoPlaceholder: {
-    fontSize: "2.5em",
-    color: "#457b9d",
-  },
-  infoWrapper: {
-    display: "flex",
-    alignItems: "flex-start",
-    marginBottom: "15px",
-  },
-  details: {
-    flexGrow: 1,
-  },
-  actionButtons: {
-    marginTop: "auto",
-    paddingTop: "10px",
-    display: "flex",
-    gap: 10,
-    justifyContent: "flex-end", // Alinhar botões à direita
-  },
-  editButton: {
-    background: "#457b9d",
-    color: "#fff",
-    border: "none",
-    padding: "8px 12px",
-    borderRadius: "5px",
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    transition: "background-color 0.3s ease",
-  },
-  deleteButton: {
-    background: "#e63946",
-    color: "#fff",
-    border: "none",
-    padding: "8px 12px",
-    borderRadius: "5px",
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    transition: "background-color 0.3s ease",
-  },
+  return turmaAtual;
 };
 
 export default function VerAlunos() {
-  // ... (Componente principal e lógica de carregamento, mantida inalterada)
-
   const navigate = useNavigate();
-
   const [alunos, setAlunos] = useState([]);
   const [escolas, setEscolas] = useState([]);
-  const [escolaSelecionada, setEscolaSelecionada] = useState(null);
+  const [escolaSelecionada, setEscolaSelecionada] = useState(
+    localStorage.getItem("ultimaEscolaSelecionada")
+  );
+  const [busca, setBusca] = useState("");
   const [loading, setLoading] = useState(true);
-  const [loadingSalvar, setLoadingSalvar] = useState(false);
-  const [error, setError] = useState(null);
 
-  const [escolasPermitidasParaUsuario, setEscolasPermitidasParaUsuario] =
-    useState([]);
+  const [mostrarModalMigracao, setMostrarModalMigracao] = useState(false);
+  const [alunosAnterior, setAlunosAnterior] = useState([]);
+  const [selecionados, setSelecionados] = useState([]);
 
-  const usuario = useMemo(() => getLocalStorageSafe("usuarioLogado", {}), []);
+  const ANO_ATUAL = 2025;
+  const PROXIMO_ANO = 2026;
 
-  const podeEditar = useMemo(
-    () =>
-      ["gestao", "aee", "desenvolvedor", "diretor", "seme"].includes(
-        usuario?.perfil?.toLowerCase()
-      ),
-    [usuario?.perfil]
+  const usuario = useMemo(
+    () => JSON.parse(localStorage.getItem("usuarioLogado") || "{}"),
+    []
   );
 
-  const handleVoltar = useCallback(() => {
-    const perfil = usuario?.perfil?.toLowerCase();
-    switch (perfil) {
-      case "desenvolvedor":
-        navigate("/painel-dev");
-        break;
-      case "gestao":
-      case "diretor":
-      case "diretor adjunto":
-      case "orientador pedagógico":
-        navigate("/painel-gestao");
-        break;
-      case "seme":
-        navigate("/painel-seme");
-        break;
-      case "aee":
-        navigate("/painel-aee");
-        break;
-      case "professor":
-        navigate("/painel-professor");
-        break;
-      default:
-        navigate("/");
+  // ✅ FUNÇÃO PARA VOLTAR AO PAINEL CORRETO (Quebra o looping)
+  const voltarHome = () => {
+    const perfil = usuario.perfil?.toLowerCase();
+    if (perfil === "professor") {
+      navigate("/painel-professor");
+    } else {
+      navigate("/painel-gestao");
     }
-  }, [navigate, usuario]);
+  };
 
-  const carregarTodosOsDados = useCallback(async () => {
+  const carregarDados = useCallback(async () => {
     setLoading(true);
-    setError(null);
     try {
-      if (!usuario?.uid) {
-        setError(
-          "Você não está logado ou seus dados de login estão incompletos."
-        );
-        setLoading(false);
-        return;
-      }
+      const anoVisualizacao =
+        Number(localStorage.getItem("anoExercicio")) || ANO_ATUAL;
 
-      const escolasSnap = await getDocs(collection(db, "escolas"));
-      const escolasListadas = escolasSnap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setEscolas(escolasListadas);
+      const eSnap = await getDocs(collection(db, "escolas"));
+      const eList = eSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      setEscolas(eList);
 
-      let tempEscolasPermitidas = [];
-      let tempTurmasPermitidas = [];
-      const perfilUsuario = usuario.perfil?.toLowerCase();
+      let idParaCarregar = escolaSelecionada;
 
-      // Bloco 1: Usuários que veem APENAS escolas vinculadas
-      if (
-        [
-          "gestao",
-          "diretor",
-          "diretor adjunto",
-          "orientador pedagógico",
-          "aee",
-          "professor",
-        ].includes(perfilUsuario)
-      ) {
-        const userDocRef = doc(db, "usuarios", usuario.uid);
-        const userDocSnap = await getDoc(userDocRef);
-
-        if (!userDocSnap.exists()) {
-          throw new Error(
-            "Documento do usuário não encontrado no banco de dados."
-          );
-        }
-        const userData = userDocSnap.data();
-
-        if (!userData.escolas || Object.keys(userData.escolas).length === 0) {
-          throw new Error(
-            `Você não está vinculado a nenhuma escola. Por favor, verifique seus vínculos.`
-          );
-        }
-        tempEscolasPermitidas = Object.keys(userData.escolas);
-
-        if (
-          (perfilUsuario === "aee" || perfilUsuario === "professor") &&
-          userData.turmas
-        ) {
-          tempTurmasPermitidas = Object.keys(userData.turmas);
-        }
-      }
-      // Bloco 2: Usuários que veem TODAS as escolas
-      else if (["desenvolvedor", "seme"].includes(perfilUsuario)) {
-        tempEscolasPermitidas = escolasListadas.map((e) => e.id);
-      }
-      // Bloco 3: Acesso negado para os demais
-      else {
-        setError("Seu perfil não tem permissão para visualizar alunos.");
-        setLoading(false);
-        return;
-      }
-
-      let escolaAtualmenteSelecionada = escolaSelecionada;
-      if (!escolaAtualmenteSelecionada && tempEscolasPermitidas.length > 0) {
-        escolaAtualmenteSelecionada = tempEscolasPermitidas[0];
-        setEscolaSelecionada(escolaAtualmenteSelecionada);
-      }
-
-      setEscolasPermitidasParaUsuario(tempEscolasPermitidas);
-
-      let alunosParaExibir = [];
-      if (escolaAtualmenteSelecionada) {
-        localStorage.setItem(
-          "escolaAtiva",
-          JSON.stringify(escolaAtualmenteSelecionada)
-        );
-
-        if (perfilUsuario === "aee" && tempTurmasPermitidas.length > 0) {
-          const turmaChunks = [];
-          for (let i = 0; i < tempTurmasPermitidas.length; i += 10) {
-            turmaChunks.push(tempTurmasPermitidas.slice(i, i + 10));
-          }
-
-          const promises = turmaChunks.map((chunk) => {
-            const qAlunosChunk = query(
-              collection(db, "alunos"),
-              where("escolaId", "==", escolaAtualmenteSelecionada),
-              where("turma", "in", chunk)
-            );
-            return getDocs(qAlunosChunk);
-          });
-
-          const snapshots = await Promise.all(promises);
-          const fetchedAlunosMap = new Map();
-          snapshots.forEach((snapshot) => {
-            snapshot.docs.forEach((docSnap) => {
-              if (!fetchedAlunosMap.has(docSnap.id)) {
-                fetchedAlunosMap.set(docSnap.id, {
-                  id: docSnap.id,
-                  ...docSnap.data(),
-                  isTea: verificaTea(docSnap.data().diagnostico),
-                });
-              }
-            });
-          });
-
-          alunosParaExibir = Array.from(fetchedAlunosMap.values()).sort(
-            (a, b) => a.nome.localeCompare(b.nome)
-          );
+      if (!idParaCarregar) {
+        const perfil = usuario.perfil?.toLowerCase();
+        if (["desenvolvedor", "seme"].includes(perfil)) {
+          idParaCarregar = eList[0]?.id;
         } else {
-          const qAlunos = query(
-            collection(db, "alunos"),
-            where("escolaId", "==", escolaAtualmenteSelecionada),
-            orderBy("nome")
-          );
-          const alunosSnap = await getDocs(qAlunos);
-          alunosParaExibir = alunosSnap.docs.map((docSnap) => ({
-            id: docSnap.id,
-            ...docSnap.data(),
-            isTea: verificaTea(docSnap.data().diagnostico),
-          }));
+          const uDoc = await getDoc(doc(db, "usuarios", usuario.uid));
+          idParaCarregar = Object.keys(uDoc.data()?.escolas || {})[0];
         }
+        setEscolaSelecionada(idParaCarregar);
+        localStorage.setItem("ultimaEscolaSelecionada", idParaCarregar);
       }
 
-      setAlunos(alunosParaExibir);
+      if (idParaCarregar) {
+        const q = query(
+          collection(db, "alunos"),
+          where("escolaId", "==", idParaCarregar),
+          where("ano", "==", anoVisualizacao),
+          orderBy("nome")
+        );
+        const aSnap = await getDocs(q);
+        setAlunos(aSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+
+        const qMigrar = query(
+          collection(db, "alunos"),
+          where("escolaId", "==", idParaCarregar),
+          where("ano", "==", ANO_ATUAL)
+        );
+        const mSnap = await getDocs(qMigrar);
+        setAlunosAnterior(mSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      }
     } catch (e) {
-      console.error("Fatal error loading all data:", e);
-      setError(
-        e.message || "Falha ao carregar dados. Por favor, tente novamente."
-      );
+      console.error("Erro:", e);
+      toast.error("Erro ao carregar dados.");
     } finally {
       setLoading(false);
     }
-  }, [usuario, escolaSelecionada]);
+  }, [usuario.uid, usuario.perfil, escolaSelecionada]);
 
   useEffect(() => {
-    carregarTodosOsDados();
-  }, [carregarTodosOsDados]);
+    carregarDados();
+  }, [carregarDados]);
 
-  const handleExcluir = useCallback(
-    async (idAluno) => {
-      if (loadingSalvar) return;
-      if (
-        !window.confirm(
-          "Tem certeza que deseja excluir este aluno? Esta ação não pode ser desfeita."
-        )
-      ) {
-        return;
-      }
-      setLoadingSalvar(true);
-      try {
-        await deleteDoc(doc(db, "alunos", idAluno));
-        await carregarTodosOsDados();
-      } catch (error) {
-        console.error("Erro ao excluir aluno:", error);
-        setError("Erro ao excluir aluno. Por favor, tente novamente.");
-      } finally {
-        setLoadingSalvar(false);
-      }
-    },
-    [loadingSalvar, carregarTodosOsDados]
-  );
+  const trocarEscola = (id) => {
+    setEscolaSelecionada(id);
+    localStorage.setItem("ultimaEscolaSelecionada", id);
+  };
 
-  if (loading) {
-    return <Loader />;
-  }
-
-  if (error) {
-    return (
-      <div style={styles.container}>
-        <button
-          onClick={handleVoltar}
-          style={{
-            background: "none",
-            border: "1px solid #ccc",
-            padding: "8px 15px",
-            borderRadius: "5px",
-            cursor: "pointer",
-            marginBottom: "20px",
-            alignSelf: "flex-start",
-            color: "#1d3557",
-            fontWeight: "bold",
-          }}
-        >
-          Voltar
-        </button>
-        <p
-          style={{
-            color: "red",
-            backgroundColor: "white",
-            padding: "20px",
-            borderRadius: "8px",
-            textAlign: "center",
-            marginTop: "50px",
-          }}
-        >
-          {error}
-        </p>
-      </div>
+  const toggleSelecionar = (id) => {
+    setSelecionados((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
     );
-  }
+  };
+
+  const executarMigracao = async () => {
+    setLoading(true);
+    const batch = writeBatch(db);
+    selecionados.forEach((id) => {
+      const alunoOriginal = alunosAnterior.find((a) => a.id === id);
+      const novaTurma = sugerirProximaTurma(alunoOriginal?.turma);
+      const docRef = doc(db, "alunos", id);
+      batch.update(docRef, {
+        ano: PROXIMO_ANO,
+        turma: novaTurma,
+      });
+    });
+
+    try {
+      await batch.commit();
+      toast.success(`${selecionados.length} alunos migrados e avançados!`);
+      setMostrarModalMigracao(false);
+      setSelecionados([]);
+      carregarDados();
+    } catch (e) {
+      toast.error("Erro na migração.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const alunosFiltrados = useMemo(() => {
+    return alunos.filter((a) =>
+      a.nome?.toLowerCase().includes(busca.toLowerCase())
+    );
+  }, [alunos, busca]);
+
+  const handleExcluir = async (id, nome) => {
+    if (!window.confirm(`Excluir o aluno ${nome}?`)) return;
+    try {
+      await deleteDoc(doc(db, "alunos", id));
+      toast.success("Aluno removido.");
+      carregarDados();
+    } catch (e) {
+      toast.error("Erro ao excluir.");
+    }
+  };
+
+  if (loading) return <Loader />;
 
   return (
-    <div style={styles.container}>
-      <div style={styles.content}>
-        <button
-          onClick={handleVoltar}
-          style={{
-            background: "none",
-            border: "1px solid #ccc",
-            padding: "8px 15px",
-            borderRadius: "5px",
-            cursor: "pointer",
-            marginBottom: "20px",
-            alignSelf: "flex-start",
-            color: "#1d3557",
-            fontWeight: "bold",
-          }}
-        >
-          Voltar
-        </button>
+    <div className="ver-alunos-container">
+      <ToastContainer position="bottom-right" />
 
-        <div style={styles.header}>
-          <h2 style={styles.title}>Alunos Cadastrados</h2>
-          {podeEditar && (
-            <button
-              onClick={() => navigate("/cadastrar-aluno")}
-              style={styles.buttonPrimary}
-              disabled={loadingSalvar}
-            >
-              <FaPlus /> Novo Aluno
-            </button>
-          )}
+      {/* MODAL DE MIGRAÇÃO */}
+      {mostrarModalMigracao && (
+        <div className="modal-migracao-overlay">
+          <div className="modal-migracao-card">
+            <div className="modal-header">
+              <h3 style={{ margin: 0, color: "#0f172a" }}>
+                Migrar e Avançar de Série
+              </h3>
+              <p style={{ color: "#64748b", fontSize: "0.9rem" }}>
+                Selecione quem continuará na rede em {PROXIMO_ANO}
+              </p>
+            </div>
+            <div className="lista-selecao-migracao">
+              {alunosAnterior.length === 0 ? (
+                <p style={{ padding: "20px", textAlign: "center" }}>
+                  Nenhum aluno de {ANO_ATUAL} encontrado.
+                </p>
+              ) : (
+                alunosAnterior.map((a) => (
+                  <label key={a.id} className="item-selecao">
+                    <input
+                      type="checkbox"
+                      checked={selecionados.includes(a.id)}
+                      onChange={() => toggleSelecionar(a.id)}
+                    />
+                    <div className="aluno-info-mini">
+                      <strong style={{ color: "#1e293b" }}>{a.nome}</strong>
+                      <span>
+                        {a.turma} →{" "}
+                        <b style={{ color: "#3b82f6" }}>
+                          {sugerirProximaTurma(a.turma)}
+                        </b>
+                      </span>
+                    </div>
+                  </label>
+                ))
+              )}
+            </div>
+            <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
+              <button
+                className="btn-edit"
+                onClick={() => setMostrarModalMigracao(false)}
+              >
+                Cancelar
+              </button>
+              <button
+                className="btn-novo-aluno"
+                style={{ flex: 1, margin: 0 }}
+                onClick={executarMigracao}
+                disabled={selecionados.length === 0}
+              >
+                Confirmar Avanço ({selecionados.length})
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="ver-alunos-header-actions">
+        <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
+          {/* ✅ BOTÃO CORRIGIDO: Agora chama voltarHome() */}
+          <button
+            className="tab-escola"
+            onClick={voltarHome}
+            style={{ padding: "8px 16px" }}
+          >
+            ← Início
+          </button>
+          <div className="header-title-group">
+            <h1>Alunos Cadastrados</h1>
+            <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+              <p>
+                Exercício{" "}
+                <strong>
+                  {localStorage.getItem("anoExercicio") || "2025"}
+                </strong>
+              </p>
+              <button
+                className="btn-abrir-migracao"
+                onClick={() => setMostrarModalMigracao(true)}
+              >
+                <FaRocket size={12} /> Migrar e Avançar
+              </button>
+            </div>
+          </div>
         </div>
 
-        {escolasPermitidasParaUsuario.length > 1 && (
-          <div style={styles.schoolFilter}>
-            {escolas
-              .filter((escola) =>
-                escolasPermitidasParaUsuario.includes(escola.id)
-              )
-              .map((escola) => (
-                <button
-                  key={escola.id}
-                  onClick={() => setEscolaSelecionada(escola.id)}
-                  style={styles.schoolButton(escolaSelecionada === escola.id)}
-                >
-                  {escola.nome}
-                </button>
-              ))}
-          </div>
-        )}
+        <button
+          className="btn-novo-aluno"
+          onClick={() => navigate("/cadastrar-aluno")}
+        >
+          <FaPlus /> Novo Aluno
+        </button>
+      </div>
 
-        {escolaSelecionada && (
-          <div
-            style={{
-              marginBottom: "20px",
-              padding: "10px",
-              backgroundColor: "#e0e0e0",
-              borderRadius: "8px",
-              textAlign: "left",
-            }}
+      <div className="escolas-tabs-scroll">
+        {escolas.map((e) => (
+          <button
+            key={e.id}
+            className={`tab-escola ${
+              escolaSelecionada === e.id ? "active" : ""
+            }`}
+            onClick={() => trocarEscola(e.id)}
           >
-            <strong>Escola Visualizada:</strong>{" "}
-            {escolas.find((e) => e.id === escolaSelecionada)?.nome || "N/A"}
-          </div>
-        )}
+            {e.nome}
+          </button>
+        ))}
+      </div>
 
-        {alunos.length === 0 ? (
-          <p
-            style={{
-              fontStyle: "italic",
-              color: "#555",
-              marginTop: "20px",
-              textAlign: "center",
-            }}
-          >
-            Nenhum aluno cadastrado para a escola selecionada ou seus vínculos.
-          </p>
-        ) : (
-          <div style={styles.studentGrid}>
-            {alunos.map((aluno) => (
-              <div key={aluno.id} style={styles.studentCard}>
-                {/* --- NOVO BLOCO: FOTO E DETALHES --- */}
-                <div style={styles.infoWrapper}>
-                  {/* FOTO/PLACEHOLDER */}
-                  <div style={styles.photoContainer}>
-                    {aluno.fotoUrl ? (
-                      <img
-                        src={aluno.fotoUrl}
-                        alt={`Foto de ${aluno.nome}`}
-                        style={styles.photo}
-                      />
-                    ) : (
-                      <FaUserCircle style={styles.photoPlaceholder} />
-                    )}
+      <div className="busca-aluno-wrapper">
+        <FaSearch className="search-icon" />
+        <input
+          type="text"
+          placeholder="Pesquisar aluno por nome..."
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+        />
+      </div>
+
+      <div className="alunos-grid">
+        {alunosFiltrados.map((aluno) => (
+          <div key={aluno.id} className="aluno-card-moderno">
+            <div className="aluno-card-top">
+              <div className="aluno-avatar-wrapper">
+                {aluno.fotoUrl ? (
+                  <img src={aluno.fotoUrl} alt={aluno.nome} />
+                ) : (
+                  <div className="avatar-placeholder">
+                    {aluno.nome ? aluno.nome[0] : "?"}
                   </div>
-
-                  {/* DETALHES PRINCIPAIS */}
-                  <div style={styles.details}>
-                    <h4 style={{ marginBottom: 5, color: "#1d3557" }}>
-                      {aluno.nome}
-                    </h4>
-                    <p style={{ fontSize: "0.9em", color: "#4a5568" }}>
-                      <strong>Idade:</strong> {calcularIdade(aluno.nascimento)}{" "}
-                      anos
-                    </p>
-                    <p style={{ fontSize: "0.9em", color: "#4a5568" }}>
-                      <strong>Turma:</strong> {aluno.turma || "N/A"}
-                    </p>
-                    <p style={{ fontSize: "0.9em", color: "#4a5568" }}>
-                      <strong>Turno:</strong> {aluno.turno || "N/A"}
-                    </p>
-                  </div>
-                </div>
-
-                {/* INFORMAÇÕES SECUNDÁRIAS ABAIXO DA FOTO */}
-                <p>
-                  <strong>Diagnóstico:</strong> {aluno.diagnostico || "N/A"}
-                </p>
-
-                {aluno.isTea && (
-                  <FaPuzzlePiece
-                    style={{
-                      fontSize: "1.2em",
-                      color: "#29ABE2",
-                      marginTop: "5px",
-                    }}
-                    title="Aluno com TEA"
-                  />
                 )}
-                {podeEditar && (
-                  <div style={styles.actionButtons}>
-                    <button
-                      onClick={() => navigate(`/editar-aluno/${aluno.id}`)}
-                      style={styles.editButton}
-                      disabled={loadingSalvar}
-                    >
-                      <FaPencilAlt />
-                    </button>
-                    <button
-                      onClick={() => handleExcluir(aluno.id)}
-                      style={styles.deleteButton}
-                      disabled={loadingSalvar}
-                    >
-                      <FaTrashAlt />
-                    </button>
+                {aluno.diagnostico?.toLowerCase().includes("tea") && (
+                  <div className="tea-badge" title="Aluno com TEA">
+                    <FaPuzzlePiece />
                   </div>
                 )}
               </div>
-            ))}
+              <div className="aluno-main-info">
+                <h3>{aluno.nome}</h3>
+                <span className="aluno-turma-tag">
+                  {aluno.turma || "Sem Turma"}
+                </span>
+              </div>
+            </div>
+
+            <div className="aluno-card-details">
+              <div className="detail-item">
+                <label>Idade</label>
+                <span>{calcularIdade(aluno.nascimento)} anos</span>
+              </div>
+              <div className="detail-item">
+                <label>Turno</label>
+                <span>{aluno.turno || "N/A"}</span>
+              </div>
+              <div className="detail-item full">
+                <label>Diagnóstico</label>
+                <p>{aluno.diagnostico || "Não informado"}</p>
+              </div>
+            </div>
+
+            <div className="aluno-card-footer">
+              <button
+                className="btn-edit"
+                onClick={() => navigate(`/editar-aluno/${aluno.id}`)}
+              >
+                <FaPencilAlt /> Editar
+              </button>
+              <button
+                className="btn-del"
+                onClick={() => handleExcluir(aluno.id, aluno.nome)}
+              >
+                <FaTrashAlt />
+              </button>
+            </div>
           </div>
-        )}
+        ))}
       </div>
+
+      {alunosFiltrados.length === 0 && (
+        <div style={{ textAlign: "center", padding: "50px", color: "#64748b" }}>
+          <p>Nenhum aluno encontrado para os critérios selecionados.</p>
+        </div>
+      )}
     </div>
   );
 }

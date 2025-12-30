@@ -350,6 +350,11 @@ export default function CriarPEI() {
   const navigate = useNavigate();
   const location = useLocation();
   const { erro, mensagemSucesso, exibirMensagem } = useMessageSystem();
+  // Pega o ano selecionado no seletor global (rodapé)
+  const anoAtivo = useMemo(
+    () => Number(localStorage.getItem("anoExercicio")) || 2025,
+    []
+  );
 
   const { userSchoolId, userSchoolData, isLoadingUserSchool, userSchoolError } =
     useUserSchool();
@@ -446,11 +451,13 @@ export default function CriarPEI() {
         }
         alunosQuery = query(
           collection(db, "alunos"),
-          where("turma", "in", turmasDoProfessor)
+          where("turma", "in", turmasDoProfessor),
+          where("ano", "==", anoAtivo) // ✅ NOVO FILTRO
         );
         peisQuery = query(
           collection(db, "peis"),
-          where("criadorId", "==", usuarioLogado.email)
+          where("criadorId", "==", usuarioLogado.email),
+          where("anoLetivo", "==", anoAtivo) // ✅ NOVO FILTRO
         );
       } else {
         setAlunos([]);
@@ -492,6 +499,7 @@ export default function CriarPEI() {
     userSchoolId,
     userSchoolData,
     perfisComAcessoAmplo,
+    anoAtivo,
   ]);
 
   useEffect(() => {
@@ -515,6 +523,7 @@ export default function CriarPEI() {
         let qUltimaAvaliacao = query(
           collection(db, "avaliacoesIniciais"),
           where("alunoId", "==", aluno.id),
+          where("ano", "==", anoAtivo), // ✅ GARANTE QUE O PEI SEJA BASEADO NA AVALIAÇÃO DO ANO ATIVO
           orderBy("dataCriacao", "desc"),
           limit(1)
         );
@@ -673,11 +682,11 @@ export default function CriarPEI() {
         setCarregando(false);
         return;
       }
-      const currentYear = new Date().getFullYear();
+      // Substitua o currentYear pelo anoAtivo
       const qExisting = query(
         collection(db, "peis"),
         where("alunoId", "==", alunoSelecionado.id),
-        where("anoLetivo", "==", currentYear),
+        where("anoLetivo", "==", anoAtivo), // ✅ USA O ANO DO SELETOR
         where("criadorId", "==", usuarioLogado.email),
         limit(1)
       );
@@ -690,7 +699,7 @@ export default function CriarPEI() {
         criadorId: usuarioLogado.email || "",
         criadorPerfil: usuarioLogado.perfil || "",
         escolaId: alunoSelecionado.escolaId,
-        anoLetivo: currentYear,
+        anoLetivo: anoAtivo,
       };
       if (!snapExisting.empty) {
         const peiDocRef = snapExisting.docs[0].ref;

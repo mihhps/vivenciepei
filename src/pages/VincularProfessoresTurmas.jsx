@@ -1,368 +1,325 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { db } from "../firebase";
 import {
   collection,
   getDocs,
-  updateDoc,
   doc,
   query,
   where,
-  setDoc,
+  updateDoc,
 } from "firebase/firestore";
-import BotaoVoltar from "../components/BotaoVoltar";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Loader from "../components/Loader";
 import { useUserSchool } from "../hooks/useUserSchool";
 import { useNavigate } from "react-router-dom";
-import { PERFIS } from "../config/constants";
 
 import "./VincularProfessoresTurmas.css";
 
-// FUNÇÃO DE PADRONIZAÇÃO (permanece igual)
-const normalizarTurma = (turma) => {
-  if (typeof turma !== "string" || turma.trim() === "") return null;
-  const palavrasPadrao = {
-    pré: "Pré",
-    pe: "Pré",
-    i: "I",
-    ii: "II",
-    a: "A",
-    b: "B",
-    ano: "Ano",
-  };
-  const partes = turma.trim().toLowerCase().split(" ");
-  const partesCorrigidas = partes.map((palavra) => {
-    if (palavrasPadrao[palavra]) return palavrasPadrao[palavra];
-    if (palavra.length > 0 && !["de", "do", "da"].includes(palavra)) {
-      return palavra[0].toUpperCase() + palavra.substr(1);
-    }
-    return palavra;
-  });
-  return partesCorrigidas.join(" ");
-};
+// Lista exata de cargos e disciplinas
+const LISTA_CARGOS = [
+  "Professor Regente",
+  "Professor de Suporte",
+  "Aee",
+  "Língua Portuguesa",
+  "Matemática",
+  "História",
+  "Arte",
+  "Geografia",
+  "Educação Física",
+  "Ciências",
+  "Inglês",
+  "Ensino Religioso",
+  "Contação de Histórias",
+  "Comunicação e Linguagem",
+];
+
+const normalizarTurma = (turma) =>
+  typeof turma === "string" ? turma.trim().toUpperCase() : "";
 
 export default function VincularProfessoresTurmas() {
+  const navigate = useNavigate();
   const [profissionais, setProfissionais] = useState([]);
   const [turmas, setTurmas] = useState([]);
   const [selecionado, setSelecionado] = useState(null);
-  const [turmasSelecionadas, setTurmasSelecionadas] = useState([]);
+  const [vincTurmas, setVincTurmas] = useState({});
+  const [cargosSelecionados, setCargosSelecionados] = useState([]);
   const [carregandoDados, setCarregandoDados] = useState(true);
-  const [erro, setErro] = useState(null);
-  const [expandedProfId, setExpandedProfId] = useState(null);
+  const [busca, setBusca] = useState("");
 
-  const { userSchoolData, isLoadingUserSchool, userSchoolId, userSchoolError } =
-    useUserSchool();
+  const { userSchoolData, isLoadingUserSchool, userSchoolId } = useUserSchool();
+  const anoAtivo = Number(localStorage.getItem("anoExercicio")) || 2025;
 
-  const exibirMensagem = useCallback((tipo, texto) => {
-    if (tipo === "erro") toast.error(texto);
-    else if (tipo === "sucesso") toast.success(texto);
-  }, []);
+  // ✅ FUNÇÃO PARA VOLTAR SEM LOOPING
+  const handleVoltar = useCallback(() => {
+    const perfil = userSchoolData?.perfil?.toLowerCase() || "";
+    if (perfil.includes("professor")) {
+      navigate("/painel-professor");
+    } else {
+      navigate("/painel-gestao");
+    }
+  }, [navigate, userSchoolData]);
 
   const carregarProfissionais = useCallback(async () => {
     setCarregandoDados(true);
-    setErro(null);
-    const perfilUsuario = userSchoolData?.perfil?.toLowerCase();
-    const userSchoolIdParaQuery = userSchoolId;
-    if (
-      !userSchoolIdParaQuery &&
-      !["seme", "desenvolvedor"].includes(perfilUsuario)
-    ) {
-      exibirMensagem(
-        "erro",
-        "Sua conta não está vinculada a uma escola para carregar profissionais."
-      );
-      setProfissionais([]);
-      setCarregandoDados(false);
-      return;
-    }
     try {
-      const perfisParaVincular = [
-        PERFIS.PROFESSOR,
-        PERFIS.AEE,
-        PERFIS.ORIENTADOR_PEDAGOGICO,
-        PERFIS.DIRETOR,
-        PERFIS.DIRETOR_ADJUNTO,
-        PERFIS.GESTAO,
-      ].map((p) => p.toLowerCase());
-      let profissionaisQuery;
-      if (["seme", "desenvolvedor"].includes(perfilUsuario)) {
-        profissionaisQuery = query(
-          collection(db, "usuarios"),
-          where("perfil", "in", perfisParaVincular)
-        );
-      } else {
-        profissionaisQuery = query(
-          collection(db, "usuarios"),
-          where("perfil", "in", perfisParaVincular),
-          where(`escolas.${userSchoolIdParaQuery}`, "==", true)
-        );
-      }
-      const profissionaisSnap = await getDocs(profissionaisQuery);
-      const fetchedProfissionais = profissionaisSnap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setProfissionais(fetchedProfissionais);
+      const q = query(
+        collection(db, "usuarios"),
+        where("anoAtivo", "==", anoAtivo)
+      );
+      const snap = await getDocs(q);
+      setProfissionais(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
     } catch (err) {
-      console.error("Erro ao carregar dados:", err);
-      exibirMensagem("erro", "Erro ao carregar dados. Tente novamente.");
+      toast.error("Erro ao carregar profissionais.");
     } finally {
       setCarregandoDados(false);
     }
-  }, [userSchoolData, userSchoolId, exibirMensagem]);
+  }, [anoAtivo]);
 
   useEffect(() => {
-    if (!isLoadingUserSchool && userSchoolData) {
-      carregarProfissionais();
-    }
+    if (!isLoadingUserSchool && userSchoolData) carregarProfissionais();
   }, [isLoadingUserSchool, userSchoolData, carregarProfissionais]);
 
-  const carregarTurmas = useCallback(
-    async (escolaId) => {
-      if (!escolaId) {
-        setTurmas([]);
-        return;
-      }
-      try {
-        const alunosQuery = query(
-          collection(db, "alunos"),
-          where("escolaId", "==", escolaId)
-        );
-        const snap = await getDocs(alunosQuery);
-        const turmasSet = new Set();
-        snap.docs.forEach((doc) => {
-          const aluno = doc.data();
-          if (aluno.turma) {
-            const nomeTurmaPadronizado = normalizarTurma(aluno.turma);
-            if (nomeTurmaPadronizado) turmasSet.add(nomeTurmaPadronizado);
-          }
-        });
-        setTurmas(Array.from(turmasSet).sort((a, b) => a.localeCompare(b)));
-      } catch (err) {
-        console.error("Erro ao carregar turmas:", err);
-        exibirMensagem("erro", "Erro ao carregar turmas. Tente novamente.");
-        setTurmas([]);
-      }
-    },
-    [exibirMensagem]
-  );
+  const selecionarProf = async (prof) => {
+    setSelecionado(prof);
 
-  const handleSelecionarProfissional = useCallback(
-    async (prof) => {
-      setSelecionado(prof);
-      const escolasIds = Object.keys(prof.escolas || {});
-      const primeiraEscolaId = escolasIds[0];
+    const cargoBanco = (prof.cargo || "").toLowerCase();
+    const perfilBanco = (prof.perfil || "").toLowerCase();
+    const infoCombinada = `${cargoBanco} ${perfilBanco}`;
 
-      if (!primeiraEscolaId) {
-        exibirMensagem(
-          "erro",
-          `O profissional ${prof.nome} não está vinculado a nenhuma escola.`
-        );
-        setTurmas([]);
-      } else {
-        await carregarTurmas(primeiraEscolaId);
-      }
-
-      const turmasObj = prof.turmas || {};
-      const turmasMarcadas = Object.keys(turmasObj)
-        .filter((t) => turmasObj[t])
-        .map((t) => normalizarTurma(t));
-      setTurmasSelecionadas(turmasMarcadas);
-    },
-    [carregarTurmas, exibirMensagem]
-  );
-
-  const handleToggleTurma = useCallback((turma) => {
-    setTurmasSelecionadas((prev) => {
-      const turmaNormalizada = normalizarTurma(turma);
-      if (prev.includes(turmaNormalizada)) {
-        return prev.filter((t) => t !== turmaNormalizada);
-      }
-      return [...prev, turmaNormalizada];
+    const encontrados = LISTA_CARGOS.filter((itemLista) => {
+      const itemMin = itemLista.toLowerCase();
+      return infoCombinada.includes(itemMin) || itemMin.includes(infoCombinada);
     });
-  }, []);
 
-  const handleSalvar = async () => {
-    if (!selecionado) {
-      exibirMensagem("erro", "Selecione um profissional antes de salvar.");
-      return;
+    if (encontrados.length === 0 && perfilBanco === "professor") {
+      encontrados.push("Professor Regente");
     }
 
-    // --- ALTERAÇÃO AQUI: ADICIONANDO ORIENTADOR_PEDAGOGICO NA LÓGICA DE GESTÃO ---
-    const perfisSemTurmas = [
-      PERFIS.DIRETOR,
-      PERFIS.DIRETOR_ADJUNTO,
-      PERFIS.GESTAO,
-      PERFIS.ORIENTADOR_PEDAGOGICO, // Adicionado aqui
-    ].map((p) => p.toLowerCase());
-    const perfilAtual = selecionado.perfil?.toLowerCase();
+    setCargosSelecionados(encontrados);
 
-    if (perfisSemTurmas.includes(perfilAtual)) {
-      exibirMensagem(
-        "erro",
-        `O perfil de ${selecionado.perfil} já tem acesso a todas as turmas da escola. Não é necessário vincular.`
+    const escolaId = Object.keys(prof.escolas || {})[0] || userSchoolId;
+    if (escolaId) {
+      const qT = query(
+        collection(db, "escolas", escolaId, "turmas"),
+        where("ano", "==", anoAtivo)
       );
-      setSelecionado(null);
-      setTurmasSelecionadas([]);
-      setExpandedProfId(null);
-      return;
+      const snapT = await getDocs(qT);
+      setTurmas(snapT.docs.map((d) => normalizarTurma(d.data().nome)).sort());
+    }
+
+    const campoTurmasAno = `turmas_${anoAtivo}`;
+    setVincTurmas(prof[campoTurmasAno] || {});
+  };
+
+  const toggleCargo = (cargo) => {
+    setCargosSelecionados((prev) =>
+      prev.includes(cargo) ? prev.filter((c) => c !== cargo) : [...prev, cargo]
+    );
+  };
+
+  const toggleTurma = (turma) => {
+    setVincTurmas((prev) => {
+      const novo = { ...prev };
+      novo[turma] ? delete novo[turma] : (novo[turma] = true);
+      return novo;
+    });
+  };
+
+  const salvar = async () => {
+    if (cargosSelecionados.length === 0) {
+      return toast.warning("Selecione ao menos um cargo/disciplina.");
     }
 
     try {
       setCarregandoDados(true);
-      const turmasObj = {};
-      turmasSelecionadas.forEach((turma) => {
-        turmasObj[turma] = true;
+      const campoTurmasAno = `turmas_${anoAtivo}`;
+      const perfilFinal = cargosSelecionados.join(", ");
+
+      await updateDoc(doc(db, "usuarios", selecionado.id), {
+        [campoTurmasAno]: vincTurmas,
+        perfil: perfilFinal,
+        cargo: perfilFinal,
       });
 
-      await setDoc(
-        doc(db, "usuarios", selecionado.id),
-        { turmas: turmasObj },
-        { merge: true }
-      );
-
-      const profissionaisAtualizados = profissionais.map((p) =>
-        p.id === selecionado.id ? { ...p, turmas: turmasObj } : p
-      );
-      setProfissionais(profissionaisAtualizados);
-
-      exibirMensagem("sucesso", "Vínculo de turmas atualizado com sucesso!");
-
+      toast.success(`Dados de ${selecionado.nome} atualizados com sucesso!`);
+      carregarProfissionais();
       setSelecionado(null);
-      setTurmasSelecionadas([]);
-      setExpandedProfId(null);
-    } catch (error) {
-      console.error("Erro ao salvar turmas:", error);
-      if (error.code === "permission-denied") {
-        exibirMensagem(
-          "erro",
-          "Permissão negada. Verifique as regras de segurança do Firestore."
-        );
-      } else {
-        exibirMensagem("erro", "Erro ao salvar turmas. Tente novamente.");
-      }
+    } catch (e) {
+      toast.error("Erro ao salvar alterações.");
     } finally {
       setCarregandoDados(false);
     }
   };
 
   if (isLoadingUserSchool || carregandoDados) return <Loader />;
-  if (userSchoolError) {
-    return (
-      <div className="vinculacao-container erro">
-        <div className="vinculacao-card">
-          <BotaoVoltar />
-          <p className="error-message">{userSchoolError}</p>
-        </div>
-        <ToastContainer position="bottom-right" autoClose={3000} />
-      </div>
-    );
-  }
 
   return (
-    <div className="vinculacao-container">
-      <div className="vinculacao-card">
-        <BotaoVoltar />
-        <h2 className="vinculacao-titulo">Vincular Profissionais às Turmas</h2>
-        <div className="vinculacao-lista">
-          {profissionais.length === 0 ? (
-            <p className="info-message">Nenhum profissional encontrado.</p>
-          ) : (
-            profissionais.map((prof) => {
-              const perfilLower = prof.perfil?.toLowerCase();
-              // --- ALTERAÇÃO AQUI: ADICIONANDO ORIENTADOR_PEDAGOGICO NA LÓGICA DE GESTÃO ---
-              const isGestao = [
-                "diretor",
-                "diretor_adjunto",
-                "gestao",
-                "orientador_pedagogico", // Adicionado aqui
-              ].includes(perfilLower);
-              return (
-                <div key={prof.id} className="vinculacao-profissional-card">
-                  <div
-                    className="vinculacao-profissional-header"
-                    onClick={() => {
-                      const nextId =
-                        prof.id === expandedProfId ? null : prof.id;
-                      setExpandedProfId(nextId);
-                      if (nextId) {
-                        handleSelecionarProfissional(prof);
-                      } else {
-                        setSelecionado(null);
-                      }
-                    }}
-                  >
-                    <h4>{prof.nome}</h4>
-                    <span
-                      className={`expand-icon ${prof.id === expandedProfId ? "expanded" : ""}`}
-                    ></span>
-                  </div>
-                  <div
-                    className={`vinculacao-profissional-detalhes ${prof.id === expandedProfId ? "expanded" : ""}`}
-                  >
-                    <p>
-                      Perfil: <strong>{prof.perfil?.toUpperCase()}</strong>
-                    </p>
-                    <p className="vinculacao-profissional-cargo">
-                      Cargo:{" "}
-                      <strong>
-                        {prof.cargo || prof.disciplina || "Não informado"}
-                      </strong>
-                    </p>
-                    <p className="vinculacao-profissional-email">
-                      E-mail: <strong>{prof.email}</strong>
-                    </p>
-                    {!isGestao ? (
-                      <div className="vinculacao-turmas">
-                        <h5 className="vinculacao-checkbox-titulo">
-                          Turmas disponíveis:
-                        </h5>
-                        <div className="vinculacao-turmas-scroll">
-                          <div className="vinculacao-checkbox-list-container">
-                            {turmas.length > 0 ? (
-                              turmas.map((turma) => (
-                                <label
-                                  key={turma}
-                                  className="vinculacao-checkbox-label"
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={turmasSelecionadas.includes(turma)}
-                                    onChange={() => handleToggleTurma(turma)}
-                                  />
-                                  <span className="checkmark"></span>
-                                  <span className="checkbox-text">{turma}</span>
-                                </label>
-                              ))
-                            ) : (
-                              <p className="info-message">
-                                Nenhuma turma encontrada para esta escola.
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="info-message">
-                        Este profissional já tem acesso a todas as turmas da
-                        escola.
-                      </p>
-                    )}
-                    <button
-                      onClick={handleSalvar}
-                      className="vinculacao-botao-salvar"
-                      disabled={carregandoDados}
-                    >
-                      Salvar Vínculo
-                    </button>
-                  </div>
+    <div className="vinculacao-page-container">
+      <ToastContainer position="bottom-right" />
+      <div className="vinculacao-main-card">
+        <div className="prof-sidebar">
+          <div className="sidebar-header">
+            <button className="btn-voltar-minimal" onClick={handleVoltar}>
+              ← Início
+            </button>
+            <h3 style={{ marginTop: "10px" }}>Profissionais {anoAtivo}</h3>
+            <input
+              type="text"
+              placeholder="Buscar por nome..."
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+            />
+          </div>
+          <div className="prof-list-scroll">
+            {profissionais
+              .filter((p) =>
+                p.nome?.toLowerCase().includes(busca.toLowerCase())
+              )
+              .map((prof) => (
+                <div
+                  key={prof.id}
+                  className={`prof-item-card ${
+                    selecionado?.id === prof.id ? "active" : ""
+                  }`}
+                  onClick={() => selecionarProf(prof)}
+                >
+                  <span className="prof-name">{prof.nome}</span>
+                  <span className="prof-perfil-badge">
+                    {prof.perfil || prof.cargo}
+                  </span>
                 </div>
-              );
-            })
+              ))}
+          </div>
+        </div>
+
+        <div className="vinculo-content">
+          {selecionado ? (
+            <div className="editor-container">
+              <div className="header-edicao">
+                <h2>Configuração de Atuação</h2>
+                <p>
+                  Profissional: <strong>{selecionado.nome}</strong>
+                </p>
+              </div>
+
+              <div
+                className="cargo-selection-area"
+                style={{
+                  background: "#f0f9ff",
+                  padding: "20px",
+                  borderRadius: "20px",
+                  border: "1px solid #bae6fd",
+                  marginBottom: "25px",
+                }}
+              >
+                <label
+                  style={{
+                    fontWeight: "800",
+                    fontSize: "0.8rem",
+                    color: "#0369a1",
+                    display: "block",
+                    marginBottom: "15px",
+                  }}
+                >
+                  DISCIPLINAS E CARGOS (Múltipla Seleção):
+                </label>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns:
+                      "repeat(auto-fill, minmax(200px, 1fr))",
+                    gap: "10px",
+                  }}
+                >
+                  {LISTA_CARGOS.map((cargo) => (
+                    <label
+                      key={cargo}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "10px",
+                        fontSize: "0.75rem",
+                        fontWeight: "700",
+                        cursor: "pointer",
+                        padding: "12px",
+                        background: cargosSelecionados.includes(cargo)
+                          ? "#3b82f6"
+                          : "#fff",
+                        color: cargosSelecionados.includes(cargo)
+                          ? "#fff"
+                          : "#475569",
+                        borderRadius: "12px",
+                        border: "1px solid #e2e8f0",
+                        transition: "0.2s",
+                        boxShadow: cargosSelecionados.includes(cargo)
+                          ? "0 4px 6px -1px rgba(59, 130, 246, 0.3)"
+                          : "none",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={cargosSelecionados.includes(cargo)}
+                        onChange={() => toggleCargo(cargo)}
+                        style={{ cursor: "pointer" }}
+                      />
+                      {cargo}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <label
+                style={{
+                  fontWeight: "800",
+                  fontSize: "0.8rem",
+                  color: "#475569",
+                  display: "block",
+                  marginBottom: "10px",
+                }}
+              >
+                VINCULAR ÀS TURMAS DE {anoAtivo}:
+              </label>
+              <div className="turmas-selection-grid">
+                {turmas.length > 0 ? (
+                  turmas.map((turma) => (
+                    <label
+                      key={turma}
+                      className={`turma-checkbox-card ${
+                        vincTurmas[turma] ? "checked" : ""
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={!!vincTurmas[turma]}
+                        onChange={() => toggleTurma(turma)}
+                      />
+                      <span>{turma}</span>
+                    </label>
+                  ))
+                ) : (
+                  <p style={{ color: "#94a3b8", fontSize: "0.8rem" }}>
+                    Nenhuma turma oficial encontrada para {anoAtivo}.
+                  </p>
+                )}
+              </div>
+
+              <button className="btn-salvar-vinculo" onClick={salvar}>
+                Confirmar Atuação em {anoAtivo}
+              </button>
+            </div>
+          ) : (
+            <div className="empty-state">
+              <img
+                src="/logo-vivencie.png"
+                alt="Logo"
+                className="bg-logo-fade"
+              />
+              <p>Selecione um profissional para gerenciar cargos e turmas.</p>
+            </div>
           )}
         </div>
-        <ToastContainer position="bottom-right" autoClose={3000} />
       </div>
     </div>
   );

@@ -1,202 +1,130 @@
-/* --- Estilo da Página e Container Principal --- */
-.painel-page-container {
+/* BLINDAGEM DO TEMA BRANCO */
+.painel-admin-white-theme.painel-page-container {
+  background-color: #f1f5f9 !important;
   min-height: 100vh;
-  width: 100%;
-  background-color: #1d3557;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 40px 20px;
-  box-sizing: border-box;
-  font-family: "Segoe UI", sans-serif;
-}
-
-/* --- Card Principal do Painel --- */
-.painel-card {
-  background-color: white;
-  padding: 40px;
-  border-radius: 20px;
-  box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
-  width: 100%;
-  max-width: 500px;
-  text-align: center;
-  position: relative;
-}
-
-/* --- Perfil do Usuário no Canto Esquerdo --- */
-.user-profile-top-corner {
-  position: absolute;
-  top: 25px;
-  left: 30px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.user-text {
-  text-align: left;
-  color: #666;
-  font-size: 0.9rem;
-  white-space: nowrap;
-}
-.user-text strong {
-  color: #1d3557;
-  font-size: 1rem;
-  font-weight: 600;
-}
-.avatar-container {
-  position: relative;
-  width: 42px;
-  height: 42px;
-  flex-shrink: 0;
-}
-.avatar-imagem {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid #e0e0e0;
-}
-.avatar-botao-editar {
-  position: absolute;
-  bottom: -3px;
-  right: -3px;
-  background-color: #1d3557;
-  color: white;
-  border: 2px solid white;
-  border-radius: 50%;
-  width: 20px;
-  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  transition: background-color 0.3s;
+  padding: 20px;
+  font-family: "Plus Jakarta Sans", sans-serif;
 }
 
-/* --- Logo e Título --- */
-.painel-logo {
-  width: 120px;
-  height: auto;
-  margin: 40px auto 15px auto;
-}
-.painel-titulo {
-  margin: 0 auto 30px auto;
-  color: #1d3557;
-  font-size: 1.8rem;
-}
-
-/* --- Abas de Navegação --- */
-.painel-tabs-nav {
+.painel-admin-white-theme .painel-card {
+  background: #ffffff !important;
   display: flex;
-  justify-content: space-around;
-  border-bottom: 2px solid #eee;
-  margin-bottom: 25px;
-}
-.tab-button {
-  padding: 10px;
-  border: none;
-  background-color: transparent;
-  color: #6c757d;
-  font-size: 15px;
-  font-weight: 500;
-  cursor: pointer;
-  border-bottom: 3px solid transparent;
-  transition: all 0.2s ease;
-  flex: 1;
-}
-.tab-button.active {
-  color: #1d3557;
-  border-bottom-color: #1d3557;
-  font-weight: bold;
-}
-.tab-button:not(.active):hover {
-  color: #457b9d;
+  width: 100%;
+  max-width: 1100px;
+  border-radius: 40px;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+  min-height: 700px;
 }
 
-/* --- Conteúdo das Abas e Botões --- */
-.painel-tabs-content {
+.painel-admin-white-theme .brand-section {
+  flex: 0.7;
+  background-color: #f8fafc;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  min-height: 280px; /* Altura ajustada para o conteúdo */
-  animation: fadeIn 0.4s ease;
-}
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.painel-botao {
-  padding: 12px 24px;
-  background-color: #1d3557;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: bold;
-  width: 100%;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-.painel-botao:hover {
-  background-color: #457b9d;
-}
-
-/* --- Botões Específicos (Admin, Sair) --- */
-.painel-divisor {
-  margin: 10px 0;
-  border: 1px solid #eee;
-  border-top: none;
-}
-.subtitulo-admin {
-  color: #1d3557;
-  margin-bottom: 10px;
-  text-align: left;
-  font-size: 1rem;
-}
-.painel-botao-admin {
-  padding: 12px 24px;
-  background-color: #e63946;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: bold;
-  width: 100%;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-.painel-botao-admin:disabled {
-  background-color: #f1faee;
-  color: #a8dadc;
-  cursor: not-allowed;
-}
-.painel-botao-sair {
-  padding: 12px 24px;
-  background-color: #a8dadc;
-  color: #1d3557;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: bold;
-  width: 100%;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-  margin-top: 20px;
-}
-.painel-botao-sair:hover {
-  background-color: #f1faee;
-}
-
-.app-loading {
-  display: flex;
-  justify-content: center;
   align-items: center;
-  height: 100vh;
-  font-size: 1.5rem;
+  justify-content: center;
+  padding: 40px;
+  border-right: 1px solid #f1f5f9;
+}
+
+.painel-admin-white-theme .painel-logo {
+  width: 140px;
+  margin-bottom: 20px;
+}
+
+.painel-admin-white-theme .painel-titulo {
+  color: #0f172a;
+  font-size: 2.2rem;
+  font-weight: 800;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.painel-admin-white-theme .actions-section {
+  flex: 2;
+  padding: 40px 60px;
+  background: white !important;
+  display: flex;
+  flex-direction: column;
+}
+
+.painel-admin-white-theme .tabs-container {
+  display: flex;
+  gap: 10px;
+  margin: 20px 0 30px 0;
+  border-bottom: 2px solid #f1f5f9;
+  padding-bottom: 10px;
+}
+
+.painel-admin-white-theme .tab-item {
+  background: none;
+  border: none;
+  padding: 10px 15px;
+  font-weight: 700;
+  color: #94a3b8;
+  cursor: pointer;
+}
+
+.painel-admin-white-theme .tab-item.active {
+  color: #3b82f6;
+  border-bottom: 2px solid #3b82f6;
+}
+
+.painel-admin-white-theme .grid-acoes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.painel-admin-white-theme .btn-acao {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  padding: 20px;
+  border-radius: 20px;
+  font-weight: 700;
+  color: #1e293b;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.painel-admin-white-theme .btn-acao:hover {
+  border-color: #3b82f6;
+  background: #f0f9ff;
+}
+
+.painel-admin-white-theme .btn-manutencao,
+.painel-admin-white-theme .btn-migrar-global {
+  padding: 15px;
+  border-radius: 15px;
+  border: none;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.painel-admin-white-theme .btn-migrar-global {
+  background: #059669;
   color: white;
+}
+
+.painel-admin-white-theme .painel-footer {
+  margin-top: auto;
+  padding-top: 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.painel-admin-white-theme .btn-sair {
+  background: #fef2f2;
+  color: #ef4444;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
 }

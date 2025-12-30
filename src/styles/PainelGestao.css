@@ -1,164 +1,202 @@
-/* --- Estilo da Página e Container Principal --- */
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800;900&display=swap");
+
 .painel-page-container {
-  min-height: 100vh;
-  width: 100%;
-  background-color: #1d3557;
+  height: 100vh;
+  width: 100vw;
+  background: #0f172a;
+  background-image: radial-gradient(
+    at 0% 0%,
+    rgba(59, 130, 246, 0.15) 0,
+    transparent 50%
+  );
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 40px 20px;
-  box-sizing: border-box;
-  font-family: "Segoe UI", sans-serif;
+  padding: 20px;
+  font-family: "Plus Jakarta Sans", sans-serif;
 }
 
-/* --- Card Principal do Painel --- */
 .painel-card {
-  background-color: white;
-  padding: 40px;
-  border-radius: 20px;
-  box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
+  background: #ffffff;
+  border-radius: 40px;
   width: 100%;
-  max-width: 500px;
-  text-align: center;
-  position: relative;
+  max-width: 1100px;
+  height: 85vh;
+  display: flex; /* Flex para separar Brand de Actions */
+  box-shadow: 0 50px 100px -20px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
 }
 
-/* --- Perfil do Usuário no Canto Esquerdo --- */
-.user-profile-top-corner {
-  position: absolute;
-  top: 25px;
-  left: 30px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.user-text {
-  text-align: left;
-  color: #666;
-  font-size: 0.9rem;
-  white-space: nowrap;
-}
-.user-text strong {
-  color: #1d3557;
-  font-size: 1rem;
-  font-weight: 600;
-}
-.avatar-container {
-  position: relative;
-  width: 42px;
-  height: 42px;
-  flex-shrink: 0;
-}
-.avatar-imagem {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid #e0e0e0;
-}
-.avatar-botao-editar {
-  position: absolute;
-  bottom: -3px;
-  right: -3px;
-  background-color: #1d3557;
-  color: white;
-  border: 2px solid white;
-  border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-/* --- Logo e Título --- */
-.painel-logo {
-  width: 120px;
-  height: auto;
-  margin: 40px auto 15px auto;
-}
-.painel-titulo {
-  margin: 0 auto 30px auto;
-  color: #1d3557;
-  font-size: 1.8rem;
-}
-
-/* --- Abas de Navegação --- */
-.painel-tabs-nav {
-  display: flex;
-  justify-content: space-around;
-  border-bottom: 2px solid #eee;
-  margin-bottom: 25px;
-}
-.tab-button {
-  padding: 10px;
-  border: none;
-  background-color: transparent;
-  color: #6c757d;
-  font-size: 15px;
-  font-weight: 500;
-  cursor: pointer;
-  border-bottom: 3px solid transparent;
-  transition: all 0.2s ease;
-  flex: 1;
-}
-.tab-button.active {
-  color: #1d3557;
-  border-bottom-color: #1d3557;
-  font-weight: bold;
-}
-.tab-button:not(.active):hover {
-  color: #457b9d;
-}
-
-/* --- Conteúdo das Abas e Botões --- */
-.painel-tabs-content {
+/* LADO ESQUERDO - MARCA */
+.brand-section {
+  width: 300px;
+  background: #1e293b;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  min-height: 150px; /* Altura ajustada para o conteúdo */
-  animation: fadeIn 0.4s ease;
-}
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.painel-botao {
-  padding: 12px 24px;
-  background-color: #1d3557;
+  justify-content: center;
+  align-items: center;
   color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: bold;
-  width: 100%;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-.painel-botao:hover {
-  background-color: #457b9d;
+  text-align: center;
+  padding: 40px;
 }
 
-.painel-botao-sair {
-  padding: 12px 24px;
-  background-color: #a8dadc;
-  color: #1d3557;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: bold;
-  width: 100%;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-  margin-top: 20px;
+.painel-logo {
+  width: 120px;
+  margin-bottom: 20px;
+  filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.3));
 }
-.painel-botao-sair:hover {
-  background-color: #f1faee;
+
+.painel-titulo {
+  font-size: 2.2rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -1px;
+}
+
+/* LADO DIREITO - OPERACIONAL (Onde o Header IPM está) */
+.actions-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0; /* HeaderSistema já tem padding */
+  background: white;
+  overflow-y: auto;
+}
+
+/* Estilização do Header que inserimos */
+.header-wrapper {
+  padding: 20px 40px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.2s;
+}
+
+.header-wrapper:hover {
+  background: #f8fafc;
+}
+
+.avatar-container {
+  position: relative;
+  width: 70px;
+  height: 70px;
+}
+
+.avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 22px;
+  object-fit: cover;
+  border: 3px solid #3b82f6;
+}
+
+.avatar-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(59, 130, 246, 0.8);
+  border-radius: 22px;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 800;
+  opacity: 0;
+  transition: 0.3s;
+}
+
+.avatar-container:hover .avatar-overlay {
+  opacity: 1;
+}
+
+.user-name {
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: #0f172a;
+  margin: 0;
+}
+.escola-tag {
+  color: #64748b;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+/* ABAS */
+.tabs-container {
+  padding: 20px 40px;
+  display: flex;
+  gap: 10px;
+}
+
+.tab-item {
+  padding: 10px 20px;
+  border-radius: 12px;
+  border: none;
+  background: #f1f5f9;
+  color: #64748b;
+  font-weight: 800;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.tab-item.active {
+  background: #3b82f6;
+  color: white;
+}
+
+/* BOTÕES DE AÇÃO */
+.grid-acoes {
+  padding: 0 40px 40px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.btn-acao {
+  padding: 20px;
+  background: #ffffff;
+  border: 2px solid #f1f5f9;
+  border-radius: 20px;
+  color: #1e293b;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+  transition: 0.3s;
+  font-size: 0.95rem;
+}
+
+.btn-acao:hover {
+  border-color: #3b82f6;
+  background: #eff6ff;
+  transform: translateY(-3px);
+  color: #3b82f6;
+}
+
+/* RODAPÉ */
+.painel-footer {
+  margin-top: auto;
+  padding: 30px 40px;
+  background: #f8fafc;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.btn-sair {
+  background: #fef2f2;
+  color: #ef4444;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.btn-sair:hover {
+  background: #fee2e2;
 }
