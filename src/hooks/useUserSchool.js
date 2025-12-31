@@ -1,4 +1,5 @@
 import { useState, useEffect, useContext, useCallback } from "react";
+// Imports do Firebase mantidos
 import {
   doc,
   getDoc,
@@ -6,7 +7,7 @@ import {
   getDocs,
   query,
   where,
-} from "firebase/firestore"; // Mantidos para compatibilidade, embora não usados aqui
+} from "firebase/firestore";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
@@ -27,44 +28,42 @@ export const useUserSchool = () => {
 
   const navigate = useNavigate();
 
-  // Função de tratamento de erro memorizada
   const handleFetchError = useCallback(
     (message, consoleError, showToast = true) => {
       console.error(`[useUserSchool ERROR] ${consoleError}`);
       setUserSchoolData(null);
       setUserSchoolId(null);
       setUserSchoolError(message);
-      setIsLoadingUserSchool(false); // Garante que o estado de carregamento termine
+      setIsLoadingUserSchool(false);
       if (showToast) {
         toast.error(message);
       }
     },
-    [] // Dependências vazias para garantir que esta função nunca mude
+    []
   );
 
   useEffect(() => {
-    // 1. Checagem inicial de estado
+    // 1. Checagem inicial
     if (!isAuthReady || isLoadingProfile) {
       setIsLoadingUserSchool(true);
       return;
     }
 
-    // 2. Checagem de autenticação (Redirecionamento)
+    // 2. Checagem de autenticação
     if (!authUserProfileData) {
       handleFetchError(
-        "Você precisa estar logado para acessar esta funcionalidade.",
-        "Usuário não autenticado ou perfil não carregado após AuthContext pronto. Redirecionando para login.",
+        "Você precisa estar logado.",
+        "Usuário não autenticado.",
         true
       );
       navigate("/login");
       return;
     }
 
-    // 3. Início do processo de determinação de escola
+    // 3. Lógica Principal
     setUserSchoolError(null);
 
     const fetchData = async () => {
-      // Inicia o carregamento (Define a flag, que será redefinida no fim)
       setIsLoadingUserSchool(true);
 
       try {
@@ -86,7 +85,7 @@ export const useUserSchool = () => {
           PERFIS.PROFESSOR,
         ].map((p) => p.toLowerCase());
 
-        // Lógica de determinação de escola
+        // --- LÓGICA DE DECISÃO ---
         if (perfisSemEscola.includes(perfilUsuario)) {
           canViewAll = true;
         } else if (perfisComMultiplasEscolas.includes(perfilUsuario)) {
@@ -95,15 +94,41 @@ export const useUserSchool = () => {
             typeof userData.escolas === "object" &&
             Object.keys(userData.escolas).length > 0
           ) {
-            // Seleciona a primeira escola vinculada como padrão
-            determinedSchoolId = Object.keys(userData.escolas)[0];
+            // ============================================================
+            // 🔥 CORREÇÃO DA HIERARQUIA DE RESPEITO AQUI 🔥
+            // ============================================================
+
+            const escolasDoUsuario = Object.keys(userData.escolas);
+            const escolhaSalva = localStorage.getItem("escolaId");
+
+            // 1. Verifica se existe escolha salva E se o usuário realmente tem acesso a ela
+            if (escolhaSalva && escolasDoUsuario.includes(escolhaSalva)) {
+              console.log(
+                ">>> [useUserSchool] Respeitando escolha manual do LocalStorage:",
+                escolhaSalva
+              );
+              determinedSchoolId = escolhaSalva;
+            } else {
+              // 2. Se não tiver escolha (ou for inválida), usa a primeira do banco (Padrão)
+              console.log(
+                ">>> [useUserSchool] Usando escola padrão do banco (Fallback):",
+                escolasDoUsuario[0]
+              );
+              determinedSchoolId = escolasDoUsuario[0];
+            }
+
+            // Atualiza o localStorage para garantir sincronia caso tenha caído no padrão
+            if (determinedSchoolId) {
+              localStorage.setItem("escolaId", determinedSchoolId);
+            }
+
+            // ============================================================
           } else {
             handleFetchError(
-              "Sua conta não está vinculada a uma escola. Contate o suporte.",
-              "ID da escola não encontrado no documento do usuário para perfil que requer escola.",
+              "Conta sem vínculo escolar.",
+              "Objeto 'escolas' vazio ou inexistente.",
               true
             );
-            // Retorna aqui para evitar a execução das linhas seguintes
             setIsLoadingUserSchool(false);
             return;
           }
@@ -111,7 +136,7 @@ export const useUserSchool = () => {
 
         const turmas = userData.turmas || {};
 
-        // 4. ATUALIZAÇÃO CONSOLIDADA DOS ESTADOS
+        // 4. Atualiza Estados
         setUserSchoolId(determinedSchoolId);
         setCanViewAllSchools(canViewAll);
         setUserSchoolData({
@@ -120,19 +145,13 @@ export const useUserSchool = () => {
           turmas: turmas,
         });
 
-        // 5. CORREÇÃO PRINCIPAL: SÓ FINALIZA O CARREGAMENTO APÓS TODOS OS ESTADOS MUDAREM
         setIsLoadingUserSchool(false);
-
-        console.log(
-          `[useUserSchool] Finalizado o carregamento com sucesso. Dados definidos:`
-        );
       } catch (error) {
         handleFetchError(
-          `Não foi possível processar suas informações de usuário. Tente novamente. Erro: ${error.message}`,
-          `Erro ao processar dados do usuário do AuthContext: ${error.message}`,
+          `Erro ao processar dados: ${error.message}`,
+          `Erro no try/catch: ${error.message}`,
           true
         );
-        // O handleFetchError já chama setIsLoadingUserSchool(false)
       }
     };
 
@@ -144,10 +163,7 @@ export const useUserSchool = () => {
     isLoadingProfile,
     navigate,
     handleFetchError,
-    // Remover todas as dependências de estado do próprio hook, como userSchoolId, etc.
   ]);
-
-  // Remover o segundo useEffect que apenas logava o estado, pois ele é redundante e pode adicionar complexidade.
 
   return {
     userSchoolData,

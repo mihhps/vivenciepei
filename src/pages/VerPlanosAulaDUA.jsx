@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { db } from "../firebase"; // Presume que você tem este import
+import { db } from "../firebase";
 import {
   collection,
   query,
@@ -10,97 +10,83 @@ import {
   orderBy,
 } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
-import { FaTrash, FaEye, FaPlus, FaUsers, FaSync } from "react-icons/fa";
+import {
+  FaTrash,
+  FaEye,
+  FaPlus,
+  FaSearch,
+  FaLayerGroup,
+  FaCalendarAlt,
+  FaChalkboardTeacher,
+  FaRegFrownOpen,
+  FaArrowLeft,
+  FaSpinner,
+} from "react-icons/fa";
 import "../styles/DuaPlanos.css";
 
-// =========================================================================
-// ATENÇÃO: SIMULAÇÃO DE HOOKS E COMPONENTES PARA ESTE ARQUIVO
-// Substitua estes por seus componentes e hooks reais, como BotaoVoltar
-// =========================================================================
-const BotaoVoltar = () => {
-  const navigate = useNavigate();
-  return (
-    <button
-      className="botao-voltar"
-      onClick={() => navigate(-1)}
-      aria-label="Voltar"
-    >
-      <FaUsers /> Meus Painéis
-    </button>
-  );
-};
-
+// --- SISTEMA DE FEEDBACK (TOAST) ---
 const useMessageSystem = () => {
-  const [erro, setErro] = useState(null);
-  const [mensagemSucesso, setMensagemSucesso] = useState(null);
-
+  const [feedback, setFeedback] = useState({ type: null, msg: null });
   const exibirMensagem = (tipo, msg) => {
-    if (tipo === "erro") {
-      setErro(msg);
-      setMensagemSucesso(null);
-    } else if (tipo === "sucesso") {
-      setMensagemSucesso(msg);
-      setErro(null);
-    }
-    setTimeout(() => {
-      setErro(null);
-      setMensagemSucesso(null);
-    }, 6000);
+    setFeedback({ type: tipo, msg });
+    setTimeout(() => setFeedback({ type: null, msg: null }), 4000);
   };
-
-  return { exibirMensagem, erro, mensagemSucesso };
+  return { exibirMensagem, feedback };
 };
-// =========================================================================
-
-// ----------------------------------------------------------------------
-// COMPONENTE PRINCIPAL: VerPlanosAulaDUA
-// ----------------------------------------------------------------------
 
 export default function VerPlanosAulaDUA() {
   const [planos, setPlanos] = useState([]);
+  const [busca, setBusca] = useState("");
   const [carregando, setCarregando] = useState(true);
   const navigate = useNavigate();
-  const { exibirMensagem, erro, mensagemSucesso } = useMessageSystem();
+  const { exibirMensagem, feedback } = useMessageSystem();
 
-  // Obtém o UID do usuário logado (usado para filtrar os planos)
   const usuarioLogado = useMemo(
-    () =>
-      JSON.parse(localStorage.getItem("usuarioLogado")) || { uid: "abc12345" }, // UID de teste
+    () => JSON.parse(localStorage.getItem("usuarioLogado")) || {},
     []
   );
 
-  /**
-   * Função para buscar os planos de aula DUA do usuário logado.
-   */
+  // --- NAVEGAÇÃO INTELIGENTE (RESOLVE O LOOP) ---
+  const handleVoltar = () => {
+    const perfil = (usuarioLogado.perfil || "").toLowerCase().trim();
+    const painelMap = {
+      professor: "/painel-professor",
+      aee: "/painel-aee",
+      gestao: "/painel-gestao",
+      diretor: "/painel-gestao",
+      seme: "/painel-seme",
+      desenvolvedor: "/painel-dev",
+    };
+    navigate(painelMap[perfil] || "/login");
+  };
+
+  // --- CARREGAMENTO DOS PLANOS ---
   const fetchPlanos = async () => {
     if (!usuarioLogado.uid) return;
-
     setCarregando(true);
     try {
       const planosRef = collection(db, "planosAulaDUA");
 
-      // Cria uma query para buscar apenas os planos criados pelo usuário logado (criadorId é o UID)
+      // Busca apenas os planos que o professor logado criou
       const q = query(
         planosRef,
         where("criadorId", "==", usuarioLogado.uid),
-        orderBy("data", "desc") // Ordena por data da aula mais recente
+        orderBy("data", "desc")
       );
 
-      const querySnapshot = await getDocs(q);
-
-      const planosData = querySnapshot.docs.map((doc) => ({
+      const snapshot = await getDocs(q);
+      const data = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
-        // Formatação simples da data para exibição
+        // Formata a data garantindo que não retroceda um dia (ISO para PT-BR)
         dataAulaFormatada: doc.data().data
-          ? new Date(doc.data().data).toLocaleDateString("pt-BR")
-          : "N/A",
+          ? new Date(doc.data().data + "T12:00:00").toLocaleDateString("pt-BR")
+          : "Data n/d",
       }));
-
-      setPlanos(planosData);
+      setPlanos(data);
     } catch (err) {
-      console.error("Erro ao buscar planos de aula DUA:", err);
-      exibirMensagem("erro", "Erro ao carregar seus planos de aula.");
+      console.error("Erro no Firestore: ", err);
+      exibirMensagem("erro", "Erro ao carregar planos. Verifique a conexão.");
     } finally {
       setCarregando(false);
     }
@@ -110,123 +96,150 @@ export default function VerPlanosAulaDUA() {
     fetchPlanos();
   }, [usuarioLogado.uid]);
 
-  /**
-   * Função para deletar um plano de aula.
-   */
-  const handleDeletePlano = async (planoId, titulo) => {
-    if (
-      window.confirm(
-        `Tem certeza que deseja excluir o plano "${titulo}"? Esta ação é irreversível.`
-      )
-    ) {
-      setCarregando(true);
-      try {
-        await deleteDoc(doc(db, "planosAulaDUA", planoId));
-        exibirMensagem("sucesso", `Plano "${titulo}" excluído com sucesso.`);
-        // Remove da lista localmente
-        setPlanos(planos.filter((p) => p.id !== planoId));
-      } catch (err) {
-        console.error("Erro ao excluir plano:", err);
-        exibirMensagem("erro", `Erro ao excluir o plano: ${err.message}`);
-      } finally {
-        setCarregando(false);
-      }
+  // --- EXCLUSÃO DE PLANO ---
+  const handleDelete = async (id, titulo) => {
+    if (!window.confirm(`Deseja realmente excluir: "${titulo}"?`)) return;
+
+    const backup = [...planos];
+    setPlanos(planos.filter((p) => p.id !== id));
+
+    try {
+      await deleteDoc(doc(db, "planosAulaDUA", id));
+      exibirMensagem("sucesso", "Plano removido com sucesso.");
+    } catch (err) {
+      setPlanos(backup);
+      exibirMensagem("erro", "Falha ao excluir o documento.");
     }
   };
 
-  /**
-   * Função para navegar para o detalhe (Visualizar ou Editar, a depender da sua necessidade)
-   */
-  const handleViewPlano = (planoId) => {
-    // A rota /visualizar-plano-dua/:id deve ser criada no seu router (App.jsx)
-    navigate(`/visualizar-plano-dua/${planoId}`);
-  };
+  // --- FILTRO DE PESQUISA EM TEMPO REAL ---
+  const planosFiltrados = planos.filter(
+    (p) =>
+      p.tituloAula?.toLowerCase().includes(busca.toLowerCase()) ||
+      p.turmaNome?.toLowerCase().includes(busca.toLowerCase()) ||
+      p.conteudoTema?.toLowerCase().includes(busca.toLowerCase())
+  );
 
-  // --- ESTRUTURA JSX DA PÁGINA ---
   return (
-    <div className="container-ver-planos-dua" aria-busy={carregando}>
-      <div className="card-header">
-        <BotaoVoltar />
-        <button
-          className="botao-principal"
-          onClick={() => navigate("/criar-plano-dua")}
-          disabled={carregando}
-        >
-          <FaPlus /> Novo Plano DUA
-        </button>
-      </div>
-
-      <h1 className="titulo-principal">Meus Planos de Aula DUA</h1>
-
-      {erro && <div className="mensagem-erro">{erro}</div>}
-      {mensagemSucesso && (
-        <div className="mensagem-sucesso">{mensagemSucesso}</div>
+    <div className="lista-dua-container">
+      {/* MENSAGENS DE TOAST */}
+      {feedback.msg && (
+        <div className={`toast-msg ${feedback.type}`}>{feedback.msg}</div>
       )}
 
-      {carregando && (
-        <div className="loading-state">
-          <FaSync className="icon-spin" /> Carregando planos...
+      {/* HEADER PREMIUM */}
+      <header className="lista-header">
+        <div className="header-top">
+          <div className="title-group">
+            <button
+              className="btn-back-ghost"
+              onClick={handleVoltar}
+              title="Voltar para o Início"
+            >
+              <FaArrowLeft />
+            </button>
+            <h1 className="page-title">Meus Planejamentos DUA</h1>
+          </div>
+
+          <button
+            className="btn-new-plan"
+            onClick={() => navigate("/criar-plano-dua")}
+          >
+            <FaPlus /> Novo Plano
+          </button>
         </div>
-      )}
 
-      {!carregando && planos.length === 0 && (
-        <div className="empty-state">
-          <p>Você ainda não criou nenhum Plano de Aula DUA. </p>
-          <p>Clique no botão **Novo Plano DUA** para começar!</p>
+        <div className="header-filter">
+          <div className="search-box">
+            <FaSearch className="search-icon" />
+            <input
+              type="text"
+              placeholder="Buscar por título, turma ou tema..."
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+            />
+          </div>
+          <div className="stats-badge">
+            <strong>{planos.length}</strong> <span>Total de Planos</span>
+          </div>
         </div>
-      )}
+      </header>
 
-      {!carregando && planos.length > 0 && (
-        <div className="tabela-container-dua">
-          <table>
-            <thead>
-              <tr>
-                <th>Data da Aula</th>
-                <th>Título da Aula</th>
-                <th>Turma</th>
-                <th>Tema/Conteúdo</th>
-                <th>Duração</th>
-                <th className="acoes-coluna">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {planos.map((plano) => (
-                <tr key={plano.id}>
-                  <td data-label="Data">{plano.dataAulaFormatada}</td>
-                  <td data-label="Título" className="titulo-coluna">
-                    {plano.tituloAula}
-                  </td>
-                  <td data-label="Turma">{plano.turmaNome}</td>
-                  <td data-label="Conteúdo" className="conteudo-coluna">
-                    {plano.conteudoTema}
-                  </td>
-                  <td data-label="Duração">{plano.duracao || "N/I"}</td>
-                  <td data-label="Ações" className="acoes-coluna">
-                    <button
-                      className="acao-view"
-                      onClick={() => handleViewPlano(plano.id)}
-                      title="Visualizar Detalhes"
-                      disabled={carregando}
-                    >
-                      <FaEye />
-                    </button>
-                    <button
-                      className="acao-delete"
-                      onClick={() =>
-                        handleDeletePlano(plano.id, plano.tituloAula)
-                      }
-                      title="Excluir Plano"
-                      disabled={carregando}
-                    >
-                      <FaTrash />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      {/* ÁREA DE CARDS */}
+      <main className="lista-content">
+        {carregando ? (
+          <div className="loading-state">
+            <FaSpinner className="icon-spin" />
+            <p>Sincronizando com a nuvem...</p>
+          </div>
+        ) : planosFiltrados.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-icon">
+              <FaRegFrownOpen />
+            </div>
+            <h3>Nada por aqui...</h3>
+            <p>
+              {busca
+                ? `Nenhum resultado para "${busca}"`
+                : "Comece criando o seu primeiro plano de aula inclusivo."}
+            </p>
+            {!busca && (
+              <button
+                className="btn-secondary"
+                onClick={() => navigate("/criar-plano-dua")}
+              >
+                Criar Agora
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="plans-grid">
+            {planosFiltrados.map((plano) => (
+              <article key={plano.id} className="plan-card">
+                <div className="card-top">
+                  <span className="badge-turma">
+                    <FaChalkboardTeacher /> {plano.turmaNome || "S/ Turma"}
+                  </span>
+                  <span className="badge-date">
+                    <FaCalendarAlt /> {plano.dataAulaFormatada}
+                  </span>
+                </div>
+
+                <div className="card-body">
+                  <h3 className="card-title">{plano.tituloAula}</h3>
+                  <div className="card-theme">
+                    <FaLayerGroup className="theme-icon" />
+                    <p>
+                      {plano.conteudoTema
+                        ? plano.conteudoTema.length > 80
+                          ? plano.conteudoTema.substring(0, 80) + "..."
+                          : plano.conteudoTema
+                        : "Sem descrição definida"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="card-actions">
+                  <button
+                    className="btn-action view"
+                    onClick={() =>
+                      navigate(`/visualizar-plano-dua/${plano.id}`)
+                    }
+                  >
+                    <FaEye /> Abrir
+                  </button>
+                  <button
+                    className="btn-action delete"
+                    onClick={() => handleDelete(plano.id, plano.tituloAula)}
+                  >
+                    <FaTrash />
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </main>
     </div>
   );
 }

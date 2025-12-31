@@ -643,3 +643,112 @@ input[type="text"]:focus {
     width: 100%;
   }
 }
+/* Adições sugeridas para o CSS */
+.pictograma-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.pictograma-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 2px;
+}
+
+.pictograma-item img {
+  width: 28px;
+  height: 28px;
+  margin-bottom: 2px;
+}
+
+.termometro-box {
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+  border-left: 6px solid #ccc;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  height: fit-content;
+}
+
+.termometro-box header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  font-weight: bold;
+}
+
+.badge {
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.8em;
+}
+
+.checkbox-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.checkbox-card.active {
+  background: #e6f7ff;
+  border-color: #1890ff;
+  color: #0050b3;
+}
+
+.area-edicao-final {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  margin-top: 30px;
+}
+
+.btn-export {
+  padding: 8px 15px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+}
+
+.btn-export.reading {
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fcd34d;
+}
+.btn-export.cards {
+  background: #ecfeff;
+  color: #0e7490;
+  border: 1px solid #67e8f9;
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

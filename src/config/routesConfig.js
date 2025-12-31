@@ -48,10 +48,14 @@ const TODOS = [
   PERFIS.ORIENTADOR_PEDAGOGICO,
 ];
 
-// ========== PERMISSÕES POR ROTA (CORREÇÃO APLICADA AQUI!) ==========
+// ========== PERMISSÕES POR ROTA ==========
 export const AUTORIZACAO_ROTAS = {
   // --- Painéis ---
   "/painel-dev": [PERFIS.DESENVOLVEDOR],
+
+  // 🔥🔥🔥 ADICIONE ESTA LINHA AQUI ABAIXO 🔥🔥🔥
+  "/painel-professor": [PERFIS.PROFESSOR, PERFIS.DESENVOLVEDOR],
+
   "/painel-gestao": [
     PERFIS.GESTAO,
     PERFIS.DIRETOR,
@@ -112,13 +116,12 @@ export const AUTORIZACAO_ROTAS = {
   "/observacoes-aluno/:peiId": TODOS,
   "/reavaliacao/:alunoId": TODOS,
 
-  // --- ROTAS DE ADAPTAÇÃO DE CONTEÚDO (CORREÇÃO APLICADA AQUI!) ---
+  // --- ROTAS DE ADAPTAÇÃO DE CONTEÚDO ---
   "/selecionar-aluno-adaptacao": [
     PERFIS.AEE,
     PERFIS.PROFESSOR,
     PERFIS.DESENVOLVEDOR,
   ],
-  // Garante o matchPath para a rota dinâmica do estúdio
   "/adaptar/:alunoId": [PERFIS.AEE, PERFIS.PROFESSOR, PERFIS.DESENVOLVEDOR],
 
   // --- Outras rotas comuns ---

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom"; // Adicionado useLocation
 import { db } from "../firebase";
 import { doc, getDoc } from "firebase/firestore";
@@ -277,6 +277,8 @@ function VisualizarAvaliacaoInteressesPage() {
   const navigate = useNavigate();
   const location = useLocation(); // Adicionado para BotaoVoltar
   const { userId, isAuthReady, currentUser } = useAuth();
+  const anoAtivo = Number(localStorage.getItem("anoExercicio")) || 2025;
+  const escolaAtivaId = localStorage.getItem("escolaId");
 
   const [aluno, setAluno] = useState(null); // Refere-se aos dados completos do aluno
   const [alunoSelecionadoDropdown, setAlunoSelecionadoDropdown] =
@@ -291,6 +293,13 @@ function VisualizarAvaliacaoInteressesPage() {
     carregando: carregandoAlunosFromHook,
     erro: erroAlunosFromHook,
   } = useAlunos();
+
+  // ADICIONE ESTE BLOCO DE FILTRAGEM AQUI:
+  const alunosFiltradosUnidade = useMemo(() => {
+    return (alunosListFromHook || []).filter(
+      (a) => a.escolaId === escolaAtivaId
+    );
+  }, [alunosListFromHook, escolaAtivaId]);
 
   useEffect(() => {
     if (
@@ -449,29 +458,53 @@ function VisualizarAvaliacaoInteressesPage() {
 
   return (
     <AvaliacaoContainer>
-      {" "}
-      {/* Use AvaliacaoContainer como o div principal */}
-      <AvaliacaoHeader>
-        <BackButton onClick={() => navigate(location.state?.from || -1)}>
-          &larr; Voltar
-        </BackButton>
-        <PageTitle>
-          Visualização da Avaliação de Interesses e Gatilhos
-        </PageTitle>
-        <HeaderButtonsGroup>
-          {aluno &&
-            avaliacaoData && ( // Só mostra o botão PDF se tiver aluno e avaliação
-              <PdfButtonContainer
-                onClick={handleGerarPdfAvaliacaoInteresses}
-                role="button"
-                aria-label="Gerar PDF Completo da Avaliação"
-                disabled={gerandoPdf}
-              >
-                <FaFilePdf size={20} color="#f4f4f4" />
-                <TooltipText>Gerar PDF Completo</TooltipText>
-              </PdfButtonContainer>
-            )}
-        </HeaderButtonsGroup>
+      <AvaliacaoHeader
+        style={{
+          position: "relative",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "100px",
+          backgroundColor: "#f9f9f9",
+          padding: "0 20px",
+        }}
+      >
+        {/* Botão Voltar à Esquerda */}
+        <div style={{ position: "absolute", left: "20px" }}>
+          <BackButton onClick={() => navigate(location.state?.from || -1)}>
+            &larr; Voltar
+          </BackButton>
+        </div>
+
+        {/* Título e Ano Centralizados */}
+        <div style={{ textAlign: "center" }}>
+          <PageTitle style={{ margin: 0, fontSize: "1.4em" }}>
+            Interesses e Gatilhos
+          </PageTitle>
+          <p
+            style={{
+              margin: 0,
+              opacity: 0.6,
+              fontWeight: "800",
+              fontSize: "0.9em",
+            }}
+          >
+            Exercício {anoAtivo}
+          </p>
+        </div>
+
+        {/* Botão PDF à Direita */}
+        <div style={{ position: "absolute", right: "20px" }}>
+          {aluno && avaliacaoData && (
+            <PdfButtonContainer
+              onClick={handleGerarPdfAvaliacaoInteresses}
+              disabled={gerandoPdf}
+            >
+              <FaFilePdf size={20} color="#f4f4f4" />
+              <TooltipText>Gerar PDF Completo</TooltipText>
+            </PdfButtonContainer>
+          )}
+        </div>
       </AvaliacaoHeader>
       {erroAlunosFromHook && (
         <div className="mensagem-erro">{erroAlunosFromHook}</div>
@@ -481,7 +514,7 @@ function VisualizarAvaliacaoInteressesPage() {
         <div className="loading-message">Carregando lista de alunos...</div>
       ) : (
         <SelecaoAluno
-          alunos={alunosListFromHook}
+          alunos={alunosFiltradosUnidade} // <-- ESSA É A MUDANÇA (Trocar alunosListFromHook por alunosFiltradosUnidade)
           alunoSelecionado={alunoSelecionadoDropdown?.nome || ""}
           onSelecionar={handleSelecionarAlunoInterno}
           disabled={carregandoGeral}

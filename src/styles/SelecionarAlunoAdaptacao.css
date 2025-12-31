@@ -161,3 +161,70 @@
   border-radius: 6px;
   margin-top: 20px;
 }
+/* Classes Utilitárias "Fake Tailwind" para garantir o visual Elite */
+
+.bg-slate-950\/40 {
+  background-color: rgba(2, 6, 23, 0.4);
+}
+.bg-slate-900\/80 {
+  background-color: rgba(15, 23, 42, 0.8);
+}
+.bg-slate-900\/40 {
+  background-color: rgba(15, 23, 42, 0.4);
+}
+.border-white\/5 {
+  border-color: rgba(255, 255, 255, 0.05);
+}
+.border-white\/10 {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+.bg-white\/5 {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+.text-slate-200 {
+  color: #e2e8f0;
+}
+.text-slate-500 {
+  color: #64748b;
+}
+.backdrop-blur-xl {
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+.backdrop-blur-md {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Fonte Base */
+.font-\[\'Plus_Jakarta_Sans\'\] {
+  font-family: "Plus Jakarta Sans", sans-serif;
+}
+
+/* Scrollbar invisível mas funcional */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+/* No seu index.css ou App.css */
+html,
+body,
+#root {
+  background-color: #020617; /* A mesma cor escura do seu tema */
+  color: #e2e8f0;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden; /* Evita rolagem lateral indesejada */
+}

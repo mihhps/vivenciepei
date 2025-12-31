@@ -12,16 +12,21 @@ function PrivateRoute() {
   const location = useLocation();
   const { userId, user, isAuthReady, isLoadingProfile } = useAuth();
 
-  // --- 1. Exibe um loader enquanto a autenticação e o perfil estão carregando ---
+  // --- 1. Loader ---
   if (!isAuthReady || isLoadingProfile) {
     return (
-      <div className="app-loading">
-        Verificando autenticação e carregando perfil...
+      <div className="h-screen flex items-center justify-center bg-[#020617] text-white">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          <span className="text-sm font-bold tracking-widest uppercase">
+            Carregando Perfil...
+          </span>
+        </div>
       </div>
     );
   }
 
-  // --- 2. Não logado (userId é null) ---
+  // --- 2. Rotas Públicas ---
   const publicRoutes = [
     "/",
     "/login",
@@ -37,23 +42,18 @@ function PrivateRoute() {
     );
   }
 
-  // ##### A CORREÇÃO ESTÁ AQUI #####
-  // Adicionado .trim() para remover espaços em branco do início e do fim do perfil
-  const usuarioPerfil = user?.perfil?.trim().toLowerCase() || "";
+  // --- 3. CORREÇÃO DA SUJEIRA NO PERFIL ---
+  // Remove aspas simples (') ou duplas (") que vieram do JSON mal formatado
+  const usuarioPerfil = user?.perfil
+    ? user.perfil.replace(/['"]+/g, "").trim().toLowerCase()
+    : "";
+
   const usuarioEmail = user?.email?.trim().toLowerCase();
 
-  // --- Linha de depuração adicionada aqui ---
-  console.log(
-    "Perfil:",
-    usuarioPerfil,
-    " | Rota de redirecionamento esperada:",
-    perfilRedirectMap[usuarioPerfil]
-  );
-
-  // --- 3. Superusuário (Desenvolvedor) ---
+  // --- 4. Superusuário ---
   const isSuperUser =
     usuarioEmail === desenvolvedoraEmail.toLowerCase() ||
-    usuarioPerfil === PERFIS.DESENVOLVEDOR.toLowerCase();
+    usuarioPerfil === PERFIS.DESENVOLVEDOR?.toLowerCase(); // Safe check
 
   if (isSuperUser) {
     return publicRoutes.includes(location.pathname) ? (
@@ -63,38 +63,47 @@ function PrivateRoute() {
     );
   }
 
-  // --- 4. Logado tentando acessar rota pública ---
+  // --- 5. Logado tentando acessar rota pública ---
   if (publicRoutes.includes(location.pathname)) {
-    return <Navigate to={perfilRedirectMap[usuarioPerfil] || "/"} replace />;
+    const destino = perfilRedirectMap[usuarioPerfil] || "/";
+    return <Navigate to={destino} replace />;
   }
 
-  // --- 5. Verificação de autorização para a rota atual ---
-  console.log(
-    "[PrivateRoute] Verificando acesso. Perfil:",
-    `'${usuarioPerfil}'`, // Adicionado aspas para ver espaços
-    " | Rota:",
-    location.pathname
-  );
+  // --- 6. Verificação de Permissões ---
 
+  // Tenta encontrar a configuração exata ou parcial da rota
   const rotaBase = Object.keys(AUTORIZACAO_ROTAS).find((base) =>
     matchPath({ path: base, end: false }, location.pathname)
   );
 
   const permissoes = rotaBase ? AUTORIZACAO_ROTAS[rotaBase] : [];
 
-  console.log("[PrivateRoute] Permissões para esta rota:", permissoes);
-
-  if (
-    permissoes.length > 0 &&
-    !permissoes.map((p) => p.toLowerCase()).includes(usuarioPerfil)
-  ) {
+  // DEBUG DETALHADO NO CONSOLE
+  if (permissoes.length === 0) {
     console.warn(
-      `[PrivateRoute] Acesso negado para o perfil '${usuarioPerfil}' na rota '${location.pathname}'. Redirecionando.`
+      `⚠️ AVISO: A rota '${location.pathname}' NÃO está cadastrada em AUTORIZACAO_ROTAS.`
     );
-    return <Navigate to={perfilRedirectMap[usuarioPerfil] || "/"} replace />;
+    console.warn("Isso fará o sistema bloquear o acesso por segurança.");
   }
 
-  // --- 6. Acesso permitido ---
+  // Se a rota tem permissões definidas, verifica se o usuário tem o perfil
+  if (permissoes.length > 0) {
+    const perfilPermitido = permissoes
+      .map((p) => p.replace(/['"]+/g, "").toLowerCase())
+      .includes(usuarioPerfil);
+
+    if (!perfilPermitido) {
+      console.error(
+        `⛔ ACESSO NEGADO. Usuário: '${usuarioPerfil}' | Rota exige: [${permissoes.join(
+          ", "
+        )}]`
+      );
+      const destino = perfilRedirectMap[usuarioPerfil] || "/";
+      return <Navigate to={destino} replace />;
+    }
+  }
+
+  // --- 7. Se passou por tudo, libera ---
   return <Outlet />;
 }
 

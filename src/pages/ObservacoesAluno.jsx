@@ -307,7 +307,11 @@ export default function ObservacoesAluno() {
                   {formatarData(obs.dataCriacao)} - Por:{" "}
                   {obs.nomeCriador || "Desconhecido"}
                   {obs.dataAtualizacao &&
-                    ` (Atualizado: ${formatarData(obs.dataAtualizacao.toDate ? obs.dataAtualizacao.toDate() : obs.dataAtualizacao)})`}
+                    ` (Atualizado: ${formatarData(
+                      obs.dataAtualizacao.toDate
+                        ? obs.dataAtualizacao.toDate()
+                        : obs.dataAtualizacao
+                    )})`}
                 </span>
               </div>
               <p style={styles.observacaoTexto}>{obs.texto}</p>

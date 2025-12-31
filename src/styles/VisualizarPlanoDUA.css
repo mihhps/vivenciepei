@@ -1,527 +1,336 @@
-/* =========================================================================
-   VARIÁVEIS DE COR E ESTILO (DESIGN SOFISTICADO E COESO)
-   ========================================================================= */
-
-:root {
-  /* Cores DUA (Diretrizes CAST) */
-  --cor-representacao: #503d81; /* Roxo Escuro */
-  --fundo-representacao: #f2eefa; /* Roxo Pastel */
-  --cor-acao-expressao: #2a72b0; /* Azul Escuro */
-  --fundo-acao-expressao: #eaf3fb; /* Azul Pastel */
-  --cor-engajamento: #198038; /* Verde Escuro */
-  --fundo-engajamento: #ebf6ee; /* Verde Pastel */
-
-  /* Cores de Recurso e Observação */
-  --cor-recursos: #e67e22; /* Laranja Sólido (Atenção/Lista) */
-  --fundo-recursos: #fef7ec; /* Laranja Claro */
-  --cor-observacoes: #34495e; /* Cinza Escuro (Reflexão/Notas) */
-  --fundo-observacoes: #f4f6f8; /* Cinza Muito Claro */
-
-  /* Cores de Base Ajustadas */
-  --cor-principal-suave: #2c3e50; /* Cinza azulado escuro para títulos */
-  --cor-texto-principal: #343a40;
-  --cor-texto-secundario: #6c757d;
-  --fundo-pagina: #f8f9fa;
-  --sombra-card: 0 5px 15px rgba(0, 0, 0, 0.08);
-  --borda-clara: #e9ecef;
+/* ROOT E TEMA DARK ORIGINAL */
+.plano-view-root {
+  background-color: #020617; /* Mesmo fundo do seu Cadastro de Turma */
+  min-height: 100vh;
+  color: #f1f5f9;
+  font-family: "Plus Jakarta Sans", sans-serif;
 }
 
-/* =========================================================================
-   LAYOUT E ESTILOS GERAIS DA PÁGINA
-   ========================================================================= */
-
-body {
-  background-color: var(--fundo-pagina);
-  font-family: "Inter", "Poppins", "Arial", sans-serif;
-  color: var(--cor-texto-secundario);
+/* NAVBAR ALINHADA */
+.plano-view-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 40px;
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
 }
 
-.container-plano-dua.visualizacao {
-  max-width: 1100px;
-  margin: 40px auto;
-  padding: 35px 45px;
-  background-color: #ffffff;
-  border-radius: 18px;
-  box-shadow: var(--sombra-card);
-  transition: all 0.3s ease;
+.nav-actions-right {
+  display: flex;
+  gap: 15px;
 }
 
-/* Títulos Principais */
-.titulo-principal {
-  font-size: 2.8rem;
-  color: var(--cor-principal-suave);
-  border-bottom: 2px solid var(--borda-clara);
-  padding-bottom: 20px;
-  margin-top: 25px;
-  margin-bottom: 25px;
-  font-weight: 700;
-}
-
-.subtitulo-contexto {
-  font-style: italic;
-  color: var(--cor-texto-secundario);
-  margin-bottom: 45px;
-  font-size: 1.05rem;
-}
-
-/* Títulos das Seções (h2) */
-.secao-detalhe h2 {
-  font-size: 2rem;
-  color: var(--cor-principal-suave);
-  margin-top: 0;
-  margin-bottom: 20px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--borda-clara);
-  font-weight: 600;
-}
-
-/* Estilo de Card para Seções */
-.secao-detalhe {
-  margin-bottom: 45px;
-  padding: 30px;
-  background-color: #ffffff;
+.btn-voltar-premium {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #60a5fa;
+  padding: 10px 20px;
   border-radius: 14px;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
-  border: 1px solid var(--borda-clara);
-}
-
-/* =========================================================================
-   SEÇÃO 1: INFORMAÇÕES GERAIS (Layout de Badges/Tags com ajuste)
-   ========================================================================= */
-
-.detalhes-grid {
-  /* Define o layout principal para 3 colunas */
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px 30px;
-  margin-bottom: 30px;
-}
-
-.detalhes-grid > div {
-  /* Estilo padrão de badge para Turma, Data, Duração */
-  background-color: #f8f9fa;
-  border: 1px solid var(--borda-clara);
-  border-radius: 10px;
-  padding: 15px 20px;
+  cursor: pointer;
   display: flex;
-  flex-direction: column;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  transition: all 0.2s ease;
-}
-
-/* NOVO: Regra para o Tema/Conteúdo */
-.item-conteudo-longo {
-  /* Faz o item ocupar todas as 3 colunas, garantindo o alinhamento dos outros */
-  grid-column: 1 / -1;
-
-  /* Mantém o estilo visual do badge */
-  background-color: #f8f9fa;
-  border: 1px solid var(--borda-clara);
-  border-radius: 10px;
-  padding: 15px 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  display: flex;
-  flex-direction: column;
-}
-
-.detalhes-grid > div:hover,
-.item-conteudo-longo:hover {
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
-}
-
-.detalhes-grid strong,
-.item-conteudo-longo strong {
-  color: var(--cor-principal-suave);
+  align-items: center;
+  gap: 10px;
   font-weight: 700;
-  font-size: 0.95rem;
-  text-transform: uppercase;
-  margin-bottom: 5px;
-  letter-spacing: 0.5px;
+  transition: 0.3s;
 }
 
-.detalhes-grid span.valor,
-.item-conteudo-longo span.valor {
-  color: var(--cor-texto-principal);
-  font-weight: 500;
-  font-size: 1.1rem;
-  line-height: 1.4;
-}
-
-/* Bloco BNCC */
-.bloco-bncc {
-  background-color: #e9f5ff;
-  border-left: 6px solid #4a90e2;
-  padding: 20px;
-  margin: 20px 0 0 0;
-  font-size: 1.05rem;
-  color: var(--cor-texto-principal);
-  border-radius: 8px;
-  line-height: 1.6;
-  font-style: italic;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-}
-
-/* =========================================================================
-   SEÇÃO 3: RECURSOS E OBSERVAÇÕES (SEPARADOS E COLORIDOS)
-   ========================================================================= */
-
-/* Onde o JSX deve ter a classe "secao-recursos-observacoes" */
-.secao-recursos-observacoes {
+.btn-pdf-premium {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 14px;
+  font-weight: 800;
   display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.btn-edit-premium {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid #3b82f6;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* CONTEÚDO CENTRAL */
+.plano-view-content {
+  padding: 40px 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.plano-view-container {
+  width: 100%;
+  max-width: 1100px;
+  display: flex;
+  flex-direction: column;
   gap: 30px;
 }
 
-.bloco-item-recurso,
-.bloco-item-observacao {
-  flex: 1;
-  padding: 25px;
-  border-radius: 14px;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+/* HIERARQUIA DE LOGO */
+.plano-header-identity {
+  text-align: center;
+  margin-bottom: 20px;
 }
 
-/* --- BLOCO RECURSOS (Laranja) --- */
-.bloco-item-recurso {
-  background-color: var(--fundo-recursos);
-  border: 1px solid var(--cor-recursos);
+.plano-logo-img {
+  height: 90px;
+  margin-bottom: 25px;
 }
 
-.bloco-item-recurso h3 {
-  font-size: 1.35rem;
-  color: var(--cor-recursos);
-  font-weight: 700;
-  border-bottom: 2px solid var(--cor-recursos);
-  padding-bottom: 8px;
-  margin-bottom: 15px;
+.ano-exercicio-badge {
+  display: inline-block;
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+  padding: 5px 15px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 2px;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  margin-bottom: 10px;
 }
 
-/* --- BLOCO OBSERVAÇÕES (Cinza Escuro) --- */
-.bloco-item-observacao {
-  background-color: var(--fundo-observacoes);
-  border: 1px solid var(--cor-observacoes);
+.main-doc-title {
+  font-size: 2.2rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -1px;
+  color: #fff;
 }
 
-.bloco-item-observacao h3 {
-  font-size: 1.35rem;
-  color: var(--cor-observacoes);
-  font-weight: 700;
-  border-bottom: 2px solid var(--cor-observacoes);
-  padding-bottom: 8px;
-  margin-bottom: 15px;
-}
-
-/* Estilo do Conteúdo dentro dos blocos coloridos */
-.conteudo-bloco {
-  line-height: 1.7;
-  color: var(--cor-texto-principal);
-  padding: 5px;
-}
-
-/* =========================================================================
-   SEÇÃO 2: DUA (Cores por Princípio)
-   ========================================================================= */
-
-.dua-container-visualizacao {
-  margin-top: 45px;
-}
-
-.dua-principio {
+/* HERO AULA */
+.aula-title-hero {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.03) 0%,
+    rgba(255, 255, 255, 0.01) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.1);
   padding: 30px;
-  margin-bottom: 30px;
-  border-radius: 14px;
-  border: 1px solid transparent;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
-  transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+  border-radius: 24px;
+  text-align: center;
 }
 
-.dua-principio:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+.aula-title-hero label {
+  font-size: 0.7rem;
+  font-weight: 900;
+  color: #60a5fa;
+  letter-spacing: 2px;
 }
 
-.dua-principio h3 {
-  font-size: 1.55rem;
-  margin-top: 0;
-  padding-bottom: 12px;
-  font-weight: 700;
-  border-bottom: 2px solid;
-  opacity: 0.9;
+.aula-title-hero h2 {
+  font-size: 2.8rem;
+  margin-top: 10px;
+  font-weight: 800;
+}
+
+/* META CARDS */
+.meta-info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.meta-info-card {
+  background: rgba(255, 255, 255, 0.03);
+  padding: 20px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.meta-icon {
+  font-size: 1.8rem;
+  color: #3b82f6;
+}
+.meta-data label {
+  font-size: 0.6rem;
+  font-weight: 900;
+  color: #64748b;
+}
+.meta-data strong {
+  display: block;
+  font-size: 1rem;
+  color: #f1f5f9;
+}
+
+/* DUA GRID */
+.dua-pillars-wrapper {
+  margin-top: 20px;
+}
+.dua-section-label {
+  font-size: 0.9rem;
+  font-weight: 900;
+  color: #64748b;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.dua-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 20px;
+}
+
+.dua-pillar-card {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 25px;
+  transition: 0.3s;
+}
+
+.dua-pillar-card:hover {
+  border-color: rgba(59, 130, 246, 0.4);
+  transform: translateY(-5px);
+}
+
+.pillar-header {
+  font-weight: 800;
+  font-size: 1.1rem;
+  margin-bottom: 20px;
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.dua-principio ul {
+.purple .pillar-header {
+  color: #a78bfa;
+}
+.blue .pillar-header {
+  color: #60a5fa;
+}
+.green .pillar-header {
+  color: #34d399;
+}
+
+.pillar-list {
   list-style: none;
-  padding-left: 0;
-  margin-top: 20px;
+  padding: 0;
 }
-
-.dua-principio li {
-  background-color: #ffffff;
-  padding: 15px 20px;
+.pillar-list li {
+  font-size: 0.9rem;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 12px;
   margin-bottom: 10px;
-  border-radius: 8px;
-  border-left: 6px solid;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-  line-height: 1.6;
-  color: var(--cor-texto-principal);
-  transition: all 0.2s ease-in-out;
+  border-left: 3px solid transparent;
 }
 
-.dua-principio li:hover {
-  background-color: #fcfcfc;
-  transform: translateX(8px);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+.purple li {
+  border-left-color: #7c3aed;
+}
+.blue li {
+  border-left-color: #3b82f6;
+}
+.green li {
+  border-left-color: #10b981;
 }
 
-/* --- 1. REPRESENTAÇÃO (Roxo) --- */
-.dua-principio:nth-child(2) {
-  background-color: var(--fundo-representacao);
-  border-color: var(--cor-representacao);
-}
-.dua-principio:nth-child(2) h3 {
-  color: var(--cor-representacao);
-  border-bottom-color: var(--cor-representacao);
-}
-.dua-principio:nth-child(2) li {
-  border-left-color: var(--cor-representacao);
-}
-
-/* --- 2. AÇÃO E EXPRESSÃO (Azul) --- */
-.dua-principio:nth-child(3) {
-  background-color: var(--fundo-acao-expressao);
-  border-color: var(--cor-acao-expressao);
-}
-.dua-principio:nth-child(3) h3 {
-  color: var(--cor-acao-expressao);
-  border-bottom-color: var(--cor-acao-expressao);
-}
-.dua-principio:nth-child(3) li {
-  border-left-color: var(--cor-acao-expressao);
-}
-
-/* --- 3. ENGAJAMENTO (Verde) --- */
-.dua-principio:nth-child(4) {
-  background-color: var(--fundo-engajamento);
-  border-color: var(--cor-engajamento);
-}
-.dua-principio:nth-child(4) h3 {
-  color: var(--cor-engajamento);
-  border-bottom-color: var(--cor-engajamento);
-}
-.dua-principio:nth-child(4) li {
-  border-left-color: var(--cor-engajamento);
-}
-
-/* Estilo para lista vazia */
-.dua-principio li.vazio {
-  background-color: #fff0f0;
-  color: #dc3545;
-  border-left-color: #dc3545;
-  font-style: italic;
-  box-shadow: none;
-  transform: none;
-}
-.dua-principio li.vazio:hover {
-  background-color: #fff0f0;
-}
-
-/* =========================================================================
-   HEADER E BOTÕES MODERNOS
-   ========================================================================= */
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-bottom: 25px;
-  margin-bottom: 35px;
-  border-bottom: 1px solid var(--borda-clara);
-}
-
-.botoes-acao-detalhe {
-  display: flex;
-  gap: 15px;
-}
-
-/* Base de Botões */
-.botao-voltar,
-.botao-secundario,
-.acao-delete {
-  padding: 12px 22px;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  font-size: 1.05rem;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
-}
-
-.botao-voltar {
-  background-color: #7f8c8d;
-  color: white;
-}
-.botao-voltar:hover {
-  background-color: #616e72;
-  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.2);
-}
-
-.botao-secundario {
-  /* Usando o verde de engajamento */
-  background-color: var(--cor-engajamento); /* Verde Escuro */
-  color: white; /* Texto Branco para contraste */
-  /* Remove a sombra se não for a intenção */
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
-}
-
-.botao-secundario:hover:not(:disabled) {
-  /* Escurece um pouco o verde no hover */
-  background-color: #156d31;
-}
-
-.acao-delete {
-  background-color: #e74c3c;
-  color: white;
-}
-.acao-delete:hover:not(:disabled) {
-  background-color: #c0392b;
-}
-
-/* Ícones dos Botões */
-.botao-voltar svg,
-.botao-secundario svg,
-.acao-delete svg {
-  margin-right: 8px;
-  font-size: 1.1em;
-}
-/* =========================================================================
-   ESTILO PERSONALIZADO DO BOTÃO DE EDITAR (AZUL)
-   ========================================================================= */
-
-.botao-editar {
-  /* Usando uma cor de ação/modificação (um azul) */
-  background-color: #3498db;
-  color: white; /* Cor do texto */
-}
-
-.botao-editar:hover:not(:disabled) {
-  /* Escurece no hover */
-  background-color: #2980b9;
-}
-/* =========================================================================
-   ESTADOS (Carregando e Erro)
-   ========================================================================= */
-
-.loading-state,
-.mensagem-erro {
-  text-align: center;
-  padding: 60px;
-  font-size: 1.3rem;
-  border-radius: 14px;
-  margin: 60px auto;
-  box-shadow: var(--sombra-card);
-}
-
-.loading-state {
-  color: #3498db;
-  background-color: #ebf5fb;
-}
-
-.mensagem-erro {
-  color: #e74c3c;
-  background-color: #fdeded;
-  border: 1px solid #e74c3c;
-}
-
-.icon-spin {
+.spin {
   animation: spin 1s linear infinite;
-  margin-right: 12px;
 }
-
 @keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
   100% {
     transform: rotate(360deg);
   }
 }
 
-/* =========================================================================
-   MEDIA QUERIES (RESPONSIVIDADE)
-   ========================================================================= */
-
-@media (max-width: 992px) {
-  .container-plano-dua.visualizacao {
-    margin: 25px;
-    padding: 30px;
-  }
-
-  .detalhes-grid {
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 15px;
-  }
-}
-
-@media (max-width: 768px) {
-  .card-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 15px;
-  }
-
-  .botoes-acao-detalhe {
-    width: 100%;
-    justify-content: space-between;
-    gap: 10px;
-  }
-
-  .botao-secundario,
-  .acao-delete {
-    flex-grow: 1;
-    justify-content: center;
-    padding: 10px 15px;
-    font-size: 0.95rem;
-  }
-
-  .botao-voltar {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .titulo-principal {
-    font-size: 2.2rem;
-  }
-
-  .secao-recursos-observacoes {
-    flex-direction: column;
-    gap: 20px;
-  }
-
-  .secao-detalhe h2 {
-    font-size: 1.6rem;
-  }
-
-  .dua-principio h3 {
-    font-size: 1.35rem;
-  }
-}
-
-@media (max-width: 576px) {
-  .detalhes-grid {
+@media (max-width: 900px) {
+  .meta-info-grid,
+  .dua-grid {
     grid-template-columns: 1fr;
   }
-
-  .container-plano-dua.visualizacao {
-    padding: 20px;
-    margin: 15px;
+  .main-doc-title {
+    font-size: 1.5rem;
   }
+}
+/* Nova Logo Centralizada */
+.plano-logo-img-new {
+  height: 120px; /* Logo maior e imponente */
+  width: auto;
+  margin-bottom: 20px;
+}
 
-  .secao-detalhe {
-    padding: 20px;
+/* Grids de Contexto e Footer */
+.context-visual-grid,
+.footer-visual-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+/* O Estilo de Cartão "Glass" que faltava */
+.glass-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 25px;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card-header-icon {
+  font-size: 0.75rem;
+  font-weight: 900;
+  color: #3b82f6;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.card-header-icon.orange {
+  color: #f97316;
+}
+.card-header-icon.cyan {
+  color: #22d3ee;
+}
+
+.glass-card p {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #cbd5e1;
+}
+
+/* Estilo especial para BNCC */
+.bncc-style {
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.05) 0%,
+    rgba(255, 255, 255, 0.01) 100%
+  );
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+.bncc-style p {
+  font-family: "Mono", monospace;
+  color: #60a5fa;
+  font-weight: 600;
+}
+
+/* Ajustes de espaçamento mobile */
+@media (max-width: 768px) {
+  .context-visual-grid,
+  .footer-visual-grid {
+    grid-template-columns: 1fr;
   }
 }

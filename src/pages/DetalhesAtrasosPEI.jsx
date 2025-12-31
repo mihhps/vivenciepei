@@ -118,10 +118,10 @@ export default function DetalhesAtrasosPEI() {
                         color: aluno.statusPeiGeral.includes("Atrasado")
                           ? "#dc3545" // Vermelho
                           : aluno.statusPeiGeral.includes("Em dia") ||
-                              aluno.statusPeiGeral.includes("Criado") ||
-                              aluno.statusPeiGeral.includes("antes do prazo")
-                            ? "#28a745" // Verde
-                            : "#ffc107", // Amarelo
+                            aluno.statusPeiGeral.includes("Criado") ||
+                            aluno.statusPeiGeral.includes("antes do prazo")
+                          ? "#28a745" // Verde
+                          : "#ffc107", // Amarelo
                       }}
                     >
                       {aluno.statusPeiGeral}
@@ -134,9 +134,9 @@ export default function DetalhesAtrasosPEI() {
                         color: aluno.statusRevisao1.includes("Atrasado")
                           ? "#dc3545"
                           : aluno.statusRevisao1.includes("Em dia") ||
-                              aluno.statusRevisao1.includes("Feita")
-                            ? "#28a745"
-                            : "#ffc107",
+                            aluno.statusRevisao1.includes("Feita")
+                          ? "#28a745"
+                          : "#ffc107",
                       }}
                     >
                       {aluno.statusRevisao1}
@@ -149,9 +149,9 @@ export default function DetalhesAtrasosPEI() {
                         color: aluno.statusRevisao2.includes("Atrasado")
                           ? "#dc3545"
                           : aluno.statusRevisao2.includes("Em dia") ||
-                              aluno.statusRevisao2.includes("Feita")
-                            ? "#28a745"
-                            : "#ffc107",
+                            aluno.statusRevisao2.includes("Feita")
+                          ? "#28a745"
+                          : "#ffc107",
                       }}
                     >
                       {aluno.statusRevisao2}

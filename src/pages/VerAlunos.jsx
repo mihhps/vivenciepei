@@ -16,7 +16,6 @@ import {
   FaSearch,
   FaRocket,
   FaArrowLeft,
-  FaUserGraduate,
   FaSchool,
 } from "react-icons/fa";
 import Loader from "../components/Loader";
@@ -42,54 +41,27 @@ const sugerirProximaTurma = (turmaAtual) => {
   return t;
 };
 
-const calcularIdade = (data) => {
-  if (!data) return "N/A";
-  const hoje = new Date();
-  const nasc = new Date(data);
-  let idade = hoje.getFullYear() - nasc.getFullYear();
-  if (
-    hoje.getMonth() < nasc.getMonth() ||
-    (hoje.getMonth() === nasc.getMonth() && hoje.getDate() < nasc.getDate())
-  )
-    idade--;
-  return idade;
-};
+const ANO_ATUAL = 2025;
+const ANO_PROXIMO = 2026;
 
 export default function VerAlunos() {
   const navigate = useNavigate();
+  // Hook que traz os dados do usuário (incluindo a escola padrão)
   const { userSchoolId, isLoadingUserSchool, canViewAllSchools } =
     useUserSchool();
 
+  // --- ESTADOS ---
   const [alunos, setAlunos] = useState([]);
   const [escolas, setEscolas] = useState([]);
   const [escolaSelecionada, setEscolaSelecionada] = useState(null);
   const [busca, setBusca] = useState("");
-  const [loading, setLoading] = useState(false); // Começa como false para não travar antes do hook
+  const [loading, setLoading] = useState(false);
   const [processandoMigracao, setProcessandoMigracao] = useState(false);
   const [mostrarModalMigracao, setMostrarModalMigracao] = useState(false);
   const [alunosAnterior, setAlunosAnterior] = useState([]);
   const [selecionados, setSelecionados] = useState([]);
 
-  const ANO_ATUAL = 2025;
-  const ANO_PROXIMO = 2026;
-
-  const usuario = useMemo(() => {
-    try {
-      const raw = localStorage.getItem("usuarioLogado") || "{}";
-      const parsed = JSON.parse(raw);
-      if (parsed.perfil) {
-        parsed.perfil = parsed.perfil
-          .replace(/['"]+/g, "")
-          .toLowerCase()
-          .trim();
-      }
-      return parsed;
-    } catch (e) {
-      return {};
-    }
-  }, []);
-
-  // 1. Carregar lista de escolas (necessário para o seletor)
+  // 1. Carregar lista de escolas (para exibir o nome correto no cabeçalho)
   useEffect(() => {
     const carregarEscolas = async () => {
       try {
@@ -102,81 +74,131 @@ export default function VerAlunos() {
     carregarEscolas();
   }, []);
 
-  // 2. Sincronizar escola inicial do hook
+  // 2. SINCRONIZAÇÃO INTELIGENTE (CORREÇÃO PARA PROF COM 2 ESCOLAS)
   useEffect(() => {
-    if (!isLoadingUserSchool && userSchoolId) {
+    // Só roda quando o perfil do usuário terminar de carregar
+    if (isLoadingUserSchool) return;
+
+    // Verifica se já existe uma escolha salva no navegador
+    const escolhaManual = localStorage.getItem("escolaId");
+
+    if (escolhaManual) {
+      // Se o usuário já escolheu uma escola antes, RESPEITA a escolha dele
+      // e ignora a escola padrão que vem do banco.
+      console.log(">>> Usando escola salva no cache:", escolhaManual);
+      setEscolaSelecionada(escolhaManual);
+    } else if (userSchoolId) {
+      // Se não tem nada salvo, usa a escola padrão do professor
+      console.log(">>> Usando escola padrão do perfil:", userSchoolId);
       setEscolaSelecionada(userSchoolId);
     }
   }, [userSchoolId, isLoadingUserSchool]);
 
-  // 3. Carregar Alunos quando uma escola for selecionada
-  const carregarDados = useCallback(async () => {
-    if (!escolaSelecionada) return;
+  // 3. FUNÇÃO DE BUSCA BLINDADA (Filtro Duplo)
+  const carregarDados = useCallback(async (idEscola) => {
+    if (!idEscola) return;
+
+    // Logs para te ajudar a debugar se precisar
+    console.clear();
+    console.log(`🔎 Buscando dados para Escola ID: ${idEscola}`);
 
     setLoading(true);
+
+    // LIMPEZA IMEDIATA: Garante que a tela fique vazia antes de trazer novos dados
+    setAlunos([]);
+    setAlunosAnterior([]);
+
     try {
       const anoVisualizacao =
         Number(localStorage.getItem("anoExercicio")) || ANO_ATUAL;
 
-      const q = query(
-        collection(db, "alunos"),
-        where("escolaId", "==", escolaSelecionada),
-        where("ano", "==", anoVisualizacao),
-        orderBy("nome")
-      );
+      // Buscas em paralelo
+      const [snapAtual, snapMigrar] = await Promise.all([
+        getDocs(
+          query(
+            collection(db, "alunos"),
+            where("escolaId", "==", idEscola),
+            where("ano", "==", anoVisualizacao),
+            orderBy("nome")
+          )
+        ),
+        getDocs(
+          query(
+            collection(db, "alunos"),
+            where("escolaId", "==", idEscola),
+            where("ano", "==", ANO_ATUAL)
+          )
+        ),
+      ]);
 
-      const aSnap = await getDocs(q);
-      setAlunos(aSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      // --- FILTRO DE SEGURANÇA (JavaScript) ---
+      // Garante que nenhum aluno de outra escola apareça, mesmo se o cache do Firebase falhar
+      const listaLimpa = snapAtual.docs
+        .map((d) => ({ id: d.id, ...d.data() }))
+        .filter((aluno) => aluno.escolaId === idEscola);
 
-      // Dados para migração
-      const qMigrar = query(
-        collection(db, "alunos"),
-        where("escolaId", "==", escolaSelecionada),
-        where("ano", "==", ANO_ATUAL)
-      );
-      const mSnap = await getDocs(qMigrar);
-      setAlunosAnterior(mSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      const listaMigrarLimpa = snapMigrar.docs
+        .map((d) => ({ id: d.id, ...d.data() }))
+        .filter((aluno) => aluno.escolaId === idEscola);
+
+      console.log(`✅ ${listaLimpa.length} alunos válidos encontrados.`);
+
+      setAlunos(listaLimpa);
+      setAlunosAnterior(listaMigrarLimpa);
     } catch (e) {
-      console.error(e);
-      toast.error("Erro ao carregar alunos.");
+      console.error("Erro ao carregar dados:", e);
+      toast.error("Erro ao buscar alunos.");
     } finally {
       setLoading(false);
     }
-  }, [escolaSelecionada]);
+  }, []);
 
+  // 4. Monitor de Troca: Quando o ID muda, dispara a busca
   useEffect(() => {
-    carregarDados();
-  }, [carregarDados]);
+    if (escolaSelecionada) {
+      // Salva a escolha para persistir no F5
+      localStorage.setItem("escolaId", escolaSelecionada);
+      carregarDados(escolaSelecionada);
+    }
+  }, [escolaSelecionada, carregarDados]);
 
+  // --- AÇÕES DO USUÁRIO ---
   const handleExcluir = async (id, nome) => {
     if (!window.confirm(`Excluir ${nome}?`)) return;
     try {
       await deleteDoc(doc(db, "alunos", id));
       setAlunos((prev) => prev.filter((a) => a.id !== id));
-      toast.success("Removido.");
+      toast.success("Aluno removido.");
     } catch (e) {
       toast.error("Erro ao excluir.");
     }
   };
 
   const handlePromoverSelecionados = async () => {
-    if (selecionados.length === 0) return;
+    if (selecionados.length === 0) {
+      toast.warn("Selecione ao menos um aluno.");
+      return;
+    }
     setProcessandoMigracao(true);
     try {
       const batch = writeBatch(db);
       selecionados.forEach((id) => {
         const aluno = alunosAnterior.find((a) => a.id === id);
-        batch.update(doc(db, "alunos", id), {
-          turma: sugerirProximaTurma(aluno.turma),
-          ano: ANO_PROXIMO,
-        });
+        if (aluno) {
+          const proximaTurma = sugerirProximaTurma(aluno.turma);
+          batch.update(doc(db, "alunos", id), {
+            turma: proximaTurma,
+            ano: ANO_PROXIMO,
+          });
+        }
       });
       await batch.commit();
-      toast.success("Promovidos!");
+      toast.success(`${selecionados.length} alunos promovidos!`);
       setMostrarModalMigracao(false);
-      carregarDados();
+      setSelecionados([]);
+      carregarDados(escolaSelecionada);
     } catch (e) {
-      toast.error("Erro na promoção.");
+      toast.error("Erro na migração.");
     } finally {
       setProcessandoMigracao(false);
     }
@@ -188,9 +210,6 @@ export default function VerAlunos() {
     );
   }, [alunos, busca]);
 
-  // --- LÓGICA DE RENDERIZAÇÃO CORRIGIDA ---
-
-  // 1. Se o Hook ainda está verificando quem é o usuário, Loader.
   if (isLoadingUserSchool) return <Loader />;
 
   return (
@@ -210,10 +229,12 @@ export default function VerAlunos() {
             <h1 className="text-4xl font-black text-white uppercase italic tracking-tighter">
               Gestão de <span className="text-blue-500">Alunos</span>
             </h1>
+            {/* Exibe o nome da escola baseado no ID selecionado, e não no perfil estático */}
             <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1">
               {escolaSelecionada
                 ? `Unidade: ${
-                    escolas.find((e) => e.id === escolaSelecionada)?.nome
+                    escolas.find((e) => e.id === escolaSelecionada)?.nome ||
+                    "Carregando..."
                   }`
                 : "Selecione uma Unidade"}
             </p>
@@ -238,9 +259,9 @@ export default function VerAlunos() {
         )}
       </header>
 
-      {/* SELETOR PARA DESENVOLVEDOR/GESTAO */}
+      {/* SELETOR DE ESCOLAS (ADMIN/DEV) */}
       {canViewAllSchools && (
-        <div className="flex gap-3 overflow-x-auto pb-6 mb-4 relative z-10">
+        <div className="flex gap-3 overflow-x-auto pb-6 mb-4 relative z-10 custom-scrollbar">
           {escolas.map((e) => (
             <button
               key={e.id}
@@ -250,8 +271,9 @@ export default function VerAlunos() {
                   : "bg-white/5 border-white/10 text-slate-400"
               }`}
               onClick={() => {
-                setBusca("");
+                // Ao clicar, atualizamos o estado. O useEffect lidará com o salvamento.
                 setEscolaSelecionada(e.id);
+                setBusca("");
               }}
             >
               {e.nome}
@@ -260,16 +282,15 @@ export default function VerAlunos() {
         </div>
       )}
 
-      {/* ESTADO: NENHUMA ESCOLA SELECIONADA (Para DEVS recém logados) */}
+      {/* TELA PRINCIPAL */}
       {!escolaSelecionada ? (
         <div className="flex flex-col items-center justify-center py-20 text-center bg-white/[0.02] rounded-[40px] border border-white/5">
           <FaSchool className="text-6xl text-slate-700 mb-6" />
           <h2 className="text-xl font-bold text-slate-400 uppercase tracking-tighter">
-            Aguardando Seleção de Unidade
+            Aguardando Seleção
           </h2>
-          <p className="text-slate-500 text-sm mt-2 max-w-xs">
-            Como você possui acesso administrativo, selecione uma escola acima
-            para visualizar os alunos.
+          <p className="text-slate-500 text-sm mt-2">
+            Escolha uma unidade para visualizar os dados.
           </p>
         </div>
       ) : loading ? (
@@ -283,7 +304,7 @@ export default function VerAlunos() {
             <input
               type="text"
               placeholder="Buscar aluno..."
-              className="w-full bg-white/[0.03] border border-white/10 rounded-3xl py-5 pl-14 pr-6 text-white outline-none"
+              className="w-full bg-white/[0.03] border border-white/10 rounded-3xl py-5 pl-14 pr-6 text-white outline-none focus:border-blue-500/50 transition-all"
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
             />
@@ -291,57 +312,69 @@ export default function VerAlunos() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 relative z-10">
             <AnimatePresence mode="popLayout">
-              {alunosFiltrados.map((aluno) => (
-                <motion.div
-                  layout
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  key={aluno.id}
-                  className="bg-white/[0.03] border border-white/10 rounded-[35px] p-6 group hover:border-blue-500/40 transition-all shadow-xl"
-                >
-                  <div className="flex items-center gap-5 mb-6">
-                    <div className="w-16 h-16 rounded-[22px] bg-slate-800 border border-white/10 flex items-center justify-center text-2xl font-black text-blue-500 overflow-hidden">
-                      {aluno.fotoUrl ? (
-                        <img
-                          src={aluno.fotoUrl}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        aluno.nome?.charAt(0)
-                      )}
+              {alunosFiltrados.length > 0 ? (
+                alunosFiltrados.map((aluno) => (
+                  <motion.div
+                    layout
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    key={aluno.id}
+                    className="bg-white/[0.03] border border-white/10 rounded-[35px] p-6 group hover:border-blue-500/40 transition-all shadow-xl"
+                  >
+                    <div className="flex items-center gap-5 mb-6">
+                      <div className="w-16 h-16 rounded-[22px] bg-slate-800 border border-white/10 flex items-center justify-center text-2xl font-black text-blue-500 overflow-hidden">
+                        {aluno.fotoUrl ? (
+                          <img
+                            src={aluno.fotoUrl}
+                            alt={aluno.nome}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          aluno.nome?.charAt(0)
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-white font-bold truncate">
+                          {aluno.nome}
+                        </h3>
+                        <span className="text-[10px] uppercase font-black tracking-widest text-blue-400 block">
+                          {aluno.turma}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-white font-bold truncate">
-                        {aluno.nome}
-                      </h3>
-                      <span className="text-[10px] uppercase font-black tracking-widest text-blue-400 block">
-                        {aluno.turma}
-                      </span>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => navigate(`/editar-aluno/${aluno.id}`)}
+                        className="flex-1 bg-white/5 hover:bg-blue-600 text-[10px] font-black uppercase py-3.5 rounded-2xl transition-all"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => handleExcluir(aluno.id, aluno.nome)}
+                        className="px-4 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-2xl transition-all"
+                      >
+                        <FaTrashAlt />
+                      </button>
                     </div>
-                  </div>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => navigate(`/editar-aluno/${aluno.id}`)}
-                      className="flex-1 bg-white/5 hover:bg-blue-600 text-[10px] font-black uppercase py-3.5 rounded-2xl transition-all"
-                    >
-                      Editar
-                    </button>
-                    <button
-                      onClick={() => handleExcluir(aluno.id, aluno.nome)}
-                      className="px-4 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-2xl transition-all"
-                    >
-                      <FaTrashAlt />
-                    </button>
-                  </div>
-                </motion.div>
-              ))}
+                  </motion.div>
+                ))
+              ) : (
+                <div className="col-span-full text-center py-10 opacity-60">
+                  <p className="text-slate-400 font-bold">
+                    Nenhum aluno encontrado.
+                  </p>
+                  <p className="text-xs text-slate-600 mt-2">
+                    Esta escola ainda não tem alunos cadastrados.
+                  </p>
+                </div>
+              )}
             </AnimatePresence>
           </div>
         </>
       )}
 
-      {/* MODAL MIGRAÇÃO (Simplificado para brevidade) */}
+      {/* MODAL MIGRAÇÃO */}
       <AnimatePresence>
         {mostrarModalMigracao && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
@@ -352,44 +385,61 @@ export default function VerAlunos() {
               }
             />
             <motion.div
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              className="bg-[#0f172a] border border-white/10 w-full max-w-2xl rounded-[40px] p-10 relative z-10"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="bg-[#0f172a] border border-white/10 w-full max-w-2xl rounded-[40px] p-10 relative z-10 shadow-2xl"
             >
               <h3 className="text-2xl font-black text-white uppercase italic mb-6">
                 Promover Alunos ({ANO_ATUAL} → {ANO_PROXIMO})
               </h3>
               <div className="max-h-[300px] overflow-y-auto space-y-2 mb-8 pr-2 custom-scrollbar">
-                {alunosAnterior.map((a) => (
-                  <label
-                    key={a.id}
-                    className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 cursor-pointer"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selecionados.includes(a.id)}
-                      onChange={() =>
-                        setSelecionados((prev) =>
-                          prev.includes(a.id)
-                            ? prev.filter((i) => i !== a.id)
-                            : [...prev, id]
-                        )
-                      }
-                      className="w-5 h-5 accent-blue-600"
-                    />
-                    <span className="text-sm font-bold text-slate-200">
-                      {a.nome} ({a.turma})
-                    </span>
-                  </label>
-                ))}
+                {alunosAnterior.length > 0 ? (
+                  alunosAnterior.map((a) => (
+                    <label
+                      key={a.id}
+                      className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 transition-all"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selecionados.includes(a.id)}
+                        onChange={() =>
+                          setSelecionados((prev) =>
+                            prev.includes(a.id)
+                              ? prev.filter((i) => i !== a.id)
+                              : [...prev, a.id]
+                          )
+                        }
+                        className="w-5 h-5 accent-blue-600"
+                      />
+                      <span className="text-sm font-bold text-slate-200">
+                        {a.nome}{" "}
+                        <span className="text-blue-400 ml-2">({a.turma})</span>
+                      </span>
+                    </label>
+                  ))
+                ) : (
+                  <p className="text-slate-500 text-center py-4">
+                    Nenhum aluno encontrado para promover.
+                  </p>
+                )}
               </div>
-              <button
-                onClick={handlePromoverSelecionados}
-                disabled={processandoMigracao}
-                className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black uppercase"
-              >
-                {processandoMigracao ? "Processando..." : "Confirmar Promoção"}
-              </button>
+              <div className="flex gap-4">
+                <button
+                  onClick={() => setMostrarModalMigracao(false)}
+                  className="flex-1 py-4 bg-white/5 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handlePromoverSelecionados}
+                  disabled={processandoMigracao || selecionados.length === 0}
+                  className="flex-[2] py-4 bg-blue-600 disabled:bg-slate-700 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-blue-600/20"
+                >
+                  {processandoMigracao
+                    ? "Processando..."
+                    : `Promover ${selecionados.length} Alunos`}
+                </button>
+              </div>
             </motion.div>
           </div>
         )}

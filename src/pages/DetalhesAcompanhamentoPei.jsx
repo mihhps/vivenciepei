@@ -209,9 +209,9 @@ export default function DetalhesAcompanhamentoPei() {
                           color: aluno.statusPeiGeral.includes("Atrasado")
                             ? "#dc3545" // Vermelho
                             : aluno.statusPeiGeral.includes("Em dia") ||
-                                aluno.statusPeiGeral.includes("Criado")
-                              ? "#28a745" // Verde
-                              : "#ffc107", // Amarelo
+                              aluno.statusPeiGeral.includes("Criado")
+                            ? "#28a745" // Verde
+                            : "#ffc107", // Amarelo
                         }}
                       >
                         {aluno.statusPeiGeral}
@@ -224,8 +224,8 @@ export default function DetalhesAcompanhamentoPei() {
                           color: aluno.statusRevisao1.includes("Atrasado")
                             ? "#dc3545"
                             : aluno.statusRevisao1.includes("Concluído")
-                              ? "#28a745"
-                              : "#ffc107",
+                            ? "#28a745"
+                            : "#ffc107",
                         }}
                       >
                         {aluno.statusRevisao1}
@@ -238,8 +238,8 @@ export default function DetalhesAcompanhamentoPei() {
                           color: aluno.statusRevisao2.includes("Atrasado")
                             ? "#dc3545"
                             : aluno.statusRevisao2.includes("Concluído")
-                              ? "#28a745"
-                              : "#ffc107",
+                            ? "#28a745"
+                            : "#ffc107",
                         }}
                       >
                         {aluno.statusRevisao2}

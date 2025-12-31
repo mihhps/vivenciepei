@@ -15,7 +15,6 @@ import { toast, ToastContainer } from "react-toastify";
 
 import "../styles/VerAvaliacoes.css";
 
-// Mapeamento para garantir que o botão voltar leve ao painel correto
 const painelDestinoMapeado = {
   desenvolvedor: "/painel-dev",
   gestao: "/painel-gestao",
@@ -34,31 +33,42 @@ export default function VerAvaliacoes() {
   const [mensagemConfirmacao, setMensagemConfirmacao] = useState(null);
   const navigate = useNavigate();
 
-  // 1. MEMOIZAÇÃO DO USUÁRIO E DEFINIÇÃO DO DESTINO DO BOTÃO VOLTAR
   const usuarioLogado = useMemo(
     () => JSON.parse(localStorage.getItem("usuarioLogado") || "{}"),
     []
   );
+
   const perfil = usuarioLogado.perfil?.toLowerCase()?.trim();
   const anoAtivo = Number(localStorage.getItem("anoExercicio")) || 2025;
+  const escolaAtivaId = localStorage.getItem("escolaId");
 
   const destinoVoltar = useMemo(() => {
     return painelDestinoMapeado[perfil] || "/";
   }, [perfil]);
 
   const carregarDados = useCallback(async () => {
+    if (!escolaAtivaId) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
+      const qIniciais = query(
+        collection(db, "avaliacoesIniciais"),
+        where("ano", "==", anoAtivo),
+        where("escolaId", "==", escolaAtivaId)
+      );
+
+      const qNovas = query(
+        collection(db, "avaliacoes"),
+        where("ano", "==", anoAtivo),
+        where("escolaId", "==", escolaAtivaId)
+      );
+
       const [snapIniciais, snapNovas] = await Promise.all([
-        getDocs(
-          query(
-            collection(db, "avaliacoesIniciais"),
-            where("ano", "==", anoAtivo)
-          )
-        ),
-        getDocs(
-          query(collection(db, "avaliacoes"), where("ano", "==", anoAtivo))
-        ),
+        getDocs(qIniciais),
+        getDocs(qNovas),
       ]);
 
       const listaIniciais = snapIniciais.docs.map((d) => ({
@@ -74,20 +84,28 @@ export default function VerAvaliacoes() {
         ...d.data(),
       }));
 
-      const todasAsAvaliacoes = [...listaIniciais, ...listaNovas];
-      const maisRecentes = {};
+      let todasAsAvaliacoes = [...listaIniciais, ...listaNovas];
 
+      if (perfil === "professor") {
+        const turmasDoProf = usuarioLogado.turmas
+          ? Object.keys(usuarioLogado.turmas).map((t) => t.trim().toLowerCase())
+          : [];
+
+        todasAsAvaliacoes = todasAsAvaliacoes.filter((av) => {
+          const turmaAluno = av.aluno?.turma || av.turma || "";
+          return turmasDoProf.includes(turmaAluno.trim().toLowerCase());
+        });
+      }
+
+      const maisRecentes = {};
       todasAsAvaliacoes.forEach((a) => {
         const alunoId = a.alunoId || a.aluno?.id || "id-desconhecido";
-
         const getDataRef = (item) => {
           if (item.dataCriacao?.toDate) return item.dataCriacao.toDate();
           if (item.inicio) return new Date(item.inicio);
           return new Date(0);
         };
-
         const dataAtual = getDataRef(a);
-
         if (
           !maisRecentes[alunoId] ||
           dataAtual > getDataRef(maisRecentes[alunoId])
@@ -104,12 +122,12 @@ export default function VerAvaliacoes() {
 
       setAvaliacoesPorAluno(listaFinal);
     } catch (error) {
-      console.error("Erro ao carregar dados:", error);
-      toast.error("Erro ao carregar histórico.");
+      console.error("Erro:", error);
+      toast.error("Erro ao carregar dados.");
     } finally {
       setLoading(false);
     }
-  }, [anoAtivo]);
+  }, [anoAtivo, escolaAtivaId, perfil, usuarioLogado.turmas]);
 
   useEffect(() => {
     carregarDados();
@@ -124,10 +142,11 @@ export default function VerAvaliacoes() {
 
   const confirmarExclusao = async () => {
     if (!mensagemConfirmacao) return;
-    const { id, colecao } = mensagemConfirmacao;
     try {
-      await deleteDoc(doc(db, colecao, id));
-      toast.success("Avaliação excluída!");
+      await deleteDoc(
+        doc(db, mensagemConfirmacao.colecao, mensagemConfirmacao.id)
+      );
+      toast.success("Excluído!");
       setMensagemConfirmacao(null);
       await carregarDados();
     } catch (error) {
@@ -135,79 +154,76 @@ export default function VerAvaliacoes() {
     }
   };
 
-  if (loading) {
+  if (loading)
     return (
-      <div
-        className="ver-avaliacoes-container"
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <p style={{ fontWeight: "800", color: "#64748b" }}>
-          Carregando histórico {anoAtivo}...
-        </p>
+      <div className="ver-avaliacoes-container">
+        <p>Carregando...</p>
       </div>
     );
-  }
 
   return (
     <div className="ver-avaliacoes-container">
       <ToastContainer position="bottom-right" />
 
-      <div className="ver-avaliacoes-header-actions">
-        {/* CORREÇÃO: O BotaoVoltar agora usa o destino dinâmico baseado no perfil */}
-        <BotaoVoltar destino={destinoVoltar} />
-
-        <div className="header-title-group">
-          <h1>Avaliações</h1>
-          <p>Exercício {anoAtivo}</p>
+      {/* HEADER CORRIGIDO: Centralização do Título e Ano */}
+      <header
+        style={{
+          position: "relative",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          marginBottom: "40px",
+          minHeight: "80px",
+        }}
+      >
+        {/* Botão posicionado de forma absoluta à esquerda */}
+        <div style={{ position: "absolute", left: 0 }}>
+          <BotaoVoltar destino={destinoVoltar} />
         </div>
 
-        <div style={{ justifySelf: "end" }}></div>
-      </div>
-
-      {mensagemConfirmacao && (
-        <div
-          style={{
-            background: "#fff",
-            padding: "20px",
-            borderRadius: "20px",
-            border: "2px solid #fee2e2",
-            marginBottom: "25px",
-            textAlign: "center",
-            boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
-          }}
-        >
-          <p
+        {/* Grupo do Título Centralizado */}
+        <div style={{ textAlign: "center" }}>
+          <h1
             style={{
-              fontWeight: "700",
+              margin: 0,
+              fontSize: "2.2rem",
+              fontWeight: "800",
               color: "#1e293b",
-              marginBottom: "15px",
             }}
           >
-            Confirmar exclusão da ÚLTIMA avaliação de{" "}
-            {mensagemConfirmacao.aluno?.nome || mensagemConfirmacao.aluno}?
+            Avaliações
+          </h1>
+          <p
+            style={{
+              margin: "5px 0 0 0",
+              opacity: 0.6,
+              fontSize: "1rem",
+              fontWeight: "600",
+            }}
+          >
+            Exercício {anoAtivo}
+          </p>
+        </div>
+      </header>
+
+      {mensagemConfirmacao && (
+        <div className="confirm-box-alert">
+          <p>
+            Confirmar exclusão de{" "}
+            <strong>
+              {mensagemConfirmacao.aluno?.nome || mensagemConfirmacao.aluno}
+            </strong>
+            ?
           </p>
           <div
             style={{ display: "flex", gap: "10px", justifyContent: "center" }}
           >
-            <button
-              className="btn-card btn-excl"
-              onClick={confirmarExclusao}
-              style={{ padding: "10px 25px" }}
-            >
-              Sim, Excluir
+            <button className="btn-card btn-excl" onClick={confirmarExclusao}>
+              Excluir
             </button>
             <button
               className="btn-card"
               onClick={() => setMensagemConfirmacao(null)}
-              style={{
-                background: "#e2e8f0",
-                color: "#475569",
-                padding: "10px 25px",
-              }}
             >
               Cancelar
             </button>
@@ -219,7 +235,7 @@ export default function VerAvaliacoes() {
         <FaSearch className="search-icon" />
         <input
           type="text"
-          placeholder="Pesquisar por nome do aluno..."
+          placeholder="Pesquisar aluno..."
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
         />
@@ -234,6 +250,11 @@ export default function VerAvaliacoes() {
               </div>
               <div className="aluno-nome-txt">
                 {a.aluno?.nome || a.aluno || "Aluno"}
+                <small
+                  style={{ display: "block", fontSize: "0.7rem", opacity: 0.6 }}
+                >
+                  {a.tipo === "inicial" ? "Inicial" : "Reavaliação"}
+                </small>
               </div>
             </div>
 
@@ -242,25 +263,23 @@ export default function VerAvaliacoes() {
                 className="btn-card btn-visu"
                 onClick={() => navigate(`/avaliacao/${a.alunoId}`)}
               >
-                <FaEye /> Visualizar
+                <FaEye /> Ver
               </button>
 
-              {/* Somente Gestão e AEE podem reavaliar ou excluir aqui */}
+              <button
+                className="btn-card btn-reav"
+                onClick={() => navigate(`/reavaliacao/${a.alunoId}`)}
+              >
+                <FaHistory /> Reavaliar
+              </button>
+
               {(perfil === "gestao" || perfil === "aee") && (
-                <>
-                  <button
-                    className="btn-card btn-reav"
-                    onClick={() => navigate(`/reavaliacao/${a.alunoId}`)}
-                  >
-                    <FaHistory /> Reavaliar
-                  </button>
-                  <button
-                    className="btn-card btn-excl"
-                    onClick={() => setMensagemConfirmacao(a)}
-                  >
-                    <FaTrashAlt />
-                  </button>
-                </>
+                <button
+                  className="btn-card btn-excl"
+                  onClick={() => setMensagemConfirmacao(a)}
+                >
+                  <FaTrashAlt />
+                </button>
               )}
             </div>
           </div>
@@ -268,7 +287,7 @@ export default function VerAvaliacoes() {
 
         {filtradas.length === 0 && (
           <div className="empty-state">
-            Nenhuma avaliação encontrada para o exercício {anoAtivo}.
+            Nenhuma avaliação encontrada para {anoAtivo}.
           </div>
         )}
       </div>

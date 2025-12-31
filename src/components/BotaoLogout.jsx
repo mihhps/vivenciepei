@@ -20,7 +20,9 @@ function BotaoLogout() {
   return (
     <div style={estilos.container}>
       <div style={estilos.info}>
-        <div><strong>{usuario.nome?.split(" ")[0]}</strong></div>
+        <div>
+          <strong>{usuario.nome?.split(" ")[0]}</strong>
+        </div>
         <div style={estilos.cargo}>{usuario.cargo}</div>
       </div>
       <button onClick={handleLogout} style={estilos.botao}>

@@ -16,16 +16,24 @@ export default function ComplementarPEI() {
       try {
         const [peisSnap, alunosSnap] = await Promise.all([
           getDocs(collection(db, "peis")),
-          getDocs(collection(db, "alunos"))
+          getDocs(collection(db, "alunos")),
         ]);
 
-        const todosPeis = peisSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        const todosAlunos = alunosSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const todosPeis = peisSnap.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        const todosAlunos = alunosSnap.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
 
-        const turmasPermitidas = usuario?.turmas ? Object.keys(usuario.turmas) : [];
+        const turmasPermitidas = usuario?.turmas
+          ? Object.keys(usuario.turmas)
+          : [];
 
-        const peisFiltrados = todosPeis.filter(pei => {
-          const aluno = todosAlunos.find(a => a.nome === pei.aluno);
+        const peisFiltrados = todosPeis.filter((pei) => {
+          const aluno = todosAlunos.find((a) => a.nome === pei.aluno);
           if (!aluno) return false;
           return turmasPermitidas.includes(aluno.turma);
         });
@@ -79,7 +87,7 @@ const estilos = {
     backgroundColor: "#1d3557",
     minHeight: "100vh",
     padding: "30px",
-    fontFamily: "'Segoe UI', sans-serif"
+    fontFamily: "'Segoe UI', sans-serif",
   },
   card: {
     background: "#fff",
@@ -87,23 +95,23 @@ const estilos = {
     margin: "0 auto",
     padding: "30px",
     borderRadius: "16px",
-    boxShadow: "0 4px 15px rgba(0,0,0,0.1)"
+    boxShadow: "0 4px 15px rgba(0,0,0,0.1)",
   },
   titulo: {
     color: "#1d3557",
     textAlign: "center",
-    marginBottom: "20px"
+    marginBottom: "20px",
   },
   lista: {
     listStyle: "none",
-    padding: 0
+    padding: 0,
   },
   item: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
     borderBottom: "1px solid #ccc",
-    padding: "10px 0"
+    padding: "10px 0",
   },
   botao: {
     backgroundColor: "#e76f51",
@@ -111,14 +119,14 @@ const estilos = {
     border: "none",
     padding: "8px 12px",
     borderRadius: "6px",
-    cursor: "pointer"
+    cursor: "pointer",
   },
   loading: {
     textAlign: "center",
-    color: "#1d3557"
+    color: "#1d3557",
   },
   vazio: {
     textAlign: "center",
-    color: "#999"
-  }
+    color: "#999",
+  },
 };

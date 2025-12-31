@@ -120,7 +120,6 @@ const PlaceholderAvisoModificado = styled.div`
   background: rgba(248, 250, 252, 0.5);
 `;
 
-// ✅ CORREÇÃO 1: Mover para fora do componente para evitar loops de renderização
 const PERFIS_ACESSO_AMPLO = [
   "desenvolvedor",
   "seme",
@@ -170,7 +169,6 @@ export default function VerPEIs() {
     return painelMap[tipo] || "/";
   }, [tipo]);
 
-  // ✅ CORREÇÃO 2: Função de carregamento estabilizada e com filtro de ano
   const carregarDados = useCallback(async () => {
     setCarregando(true);
     setErro(null);
@@ -178,6 +176,14 @@ export default function VerPEIs() {
 
     try {
       const anoAtivo = Number(localStorage.getItem("anoExercicio")) || 2025;
+      const escolaAtivaId = localStorage.getItem("escolaId");
+
+      if (!escolaAtivaId && tipo !== "desenvolvedor") {
+        setErro("Nenhuma unidade escolar selecionada.");
+        setCarregando(false);
+        return;
+      }
+
       let alunosParaExibir = [];
       let peisAgrupados = {};
       let avaliacoesParaExibir = {};
@@ -190,15 +196,26 @@ export default function VerPEIs() {
           usuariosSnapshot,
           avaliacoesSnapshot,
         ] = await Promise.all([
-          getDocs(query(collection(db, "peis"), where("ano", "==", anoAtivo))),
           getDocs(
-            query(collection(db, "alunos"), where("ano", "==", anoAtivo))
+            query(
+              collection(db, "peis"),
+              where("anoLetivo", "==", anoAtivo),
+              where("escolaId", "==", escolaAtivaId)
+            )
+          ),
+          getDocs(
+            query(
+              collection(db, "alunos"),
+              where("ano", "==", anoAtivo),
+              where("escolaId", "==", escolaAtivaId)
+            )
           ),
           getDocs(collection(db, "usuarios")),
           getDocs(
             query(
               collection(db, "avaliacoesIniciais"),
-              where("ano", "==", anoAtivo)
+              where("ano", "==", anoAtivo),
+              where("escolaId", "==", escolaAtivaId)
             )
           ),
         ]);
@@ -223,6 +240,7 @@ export default function VerPEIs() {
           id: doc.id,
           ...doc.data(),
         }));
+
         let peisVisiveis = filtroUsuario
           ? todosPeis.filter((p) => p.criadorId === filtroUsuario)
           : todosPeis;
@@ -240,14 +258,17 @@ export default function VerPEIs() {
         const turmasDoProfessor = userSchoolData?.turmas
           ? Object.keys(userSchoolData.turmas)
           : [];
+
         if (turmasDoProfessor.length > 0) {
           const alunosSnapshot = await getDocs(
             query(
               collection(db, "alunos"),
+              where("escolaId", "==", escolaAtivaId),
               where("turma", "in", turmasDoProfessor),
               where("ano", "==", anoAtivo)
             )
           );
+
           alunosParaExibir = alunosSnapshot.docs.map((doc) => ({
             id: doc.id,
             ...doc.data(),
@@ -261,6 +282,7 @@ export default function VerPEIs() {
                 getDocs(
                   query(
                     collection(db, "avaliacoesIniciais"),
+                    where("escolaId", "==", escolaAtivaId),
                     where(
                       "alunoId",
                       "in",
@@ -285,10 +307,12 @@ export default function VerPEIs() {
           const peisSnapshot = await getDocs(
             query(
               collection(db, "peis"),
+              where("escolaId", "==", escolaAtivaId),
               where("criadorId", "==", usuarioLogado.email),
-              where("ano", "==", anoAtivo)
+              where("anoLetivo", "==", anoAtivo)
             )
           );
+
           const todosPeisDoProfessor = peisSnapshot.docs.map((doc) => ({
             id: doc.id,
             ...doc.data(),
@@ -311,7 +335,6 @@ export default function VerPEIs() {
       setUsuarios(usuariosParaFiltro);
       setPeisPorAluno(peisAgrupados);
 
-      // Gerenciar estado de retorno
       const alunoRetorno = location.state?.voltarPara;
       if (alunoRetorno) {
         setAbaAtiva(alunoRetorno);
@@ -319,7 +342,7 @@ export default function VerPEIs() {
       }
     } catch (erro) {
       console.error("Erro no carregamento:", erro);
-      setErro(`Erro ao carregar dados: ${erro.message}`);
+      setErro(`Erro ao carregar dados.`);
     } finally {
       setCarregando(false);
     }
@@ -354,7 +377,7 @@ export default function VerPEIs() {
     if (!aluno) return;
     const avaliacao = avaliacoesIniciais[aluno.id];
     if (!avaliacao) {
-      alert("Avaliação Inicial não encontrada.");
+      alert("Avaliação Inicial não encontrada para gerar o PDF.");
       return;
     }
     let interesses = null;
@@ -381,10 +404,10 @@ export default function VerPEIs() {
   if (carregando)
     return (
       <div className={styles.fundo}>
-        <div className={styles.card}>
-          <BotaoVoltar destino={destinoPainel} />
-          <p style={{ marginTop: "20px" }}>Carregando...</p>
-        </div>
+        <div
+          className={styles.card}
+          style={{ textAlign: "center", padding: "50px" }}
+        ></div>
       </div>
     );
 
@@ -394,7 +417,12 @@ export default function VerPEIs() {
         <div className={styles.card}>
           <BotaoVoltar destino={destinoPainel} />
           <p
-            style={{ color: "#ef4444", marginTop: "20px", fontWeight: "bold" }}
+            style={{
+              color: "#ef4444",
+              marginTop: "20px",
+              fontWeight: "bold",
+              textAlign: "center",
+            }}
           >
             {erro}
           </p>
@@ -410,6 +438,14 @@ export default function VerPEIs() {
         </div>
 
         <h2 className={styles.titulo}>PEIs por Aluno</h2>
+        <p
+          style={{
+            textAlign: "center",
+            fontSize: "12px",
+            color: "#64748b",
+            marginBottom: "20px",
+          }}
+        ></p>
 
         {PERFIS_ACESSO_AMPLO.includes(tipo) && (
           <div className={styles.filtroContainer}>
@@ -431,7 +467,15 @@ export default function VerPEIs() {
           </div>
         )}
 
-        <div style={{ width: "100%", maxWidth: "450px", marginBottom: "40px" }}>
+        <div
+          style={{
+            width: "100%",
+            maxWidth: "450px",
+            marginBottom: "40px",
+            marginLeft: "auto",
+            marginRight: "auto",
+          }}
+        >
           <SelecaoAluno
             alunos={alunosParaSelecao}
             alunoSelecionado={nomeAlunoAtivo}
@@ -449,8 +493,7 @@ export default function VerPEIs() {
               }}
             />
             <p style={{ fontSize: "1.1rem", fontWeight: "600" }}>
-              Por favor, selecione um aluno no menu acima para gerenciar os
-              PEIs.
+              Selecione um aluno para gerenciar os PEIs desta unidade.
             </p>
           </PlaceholderAvisoModificado>
         ) : (
@@ -503,7 +546,7 @@ export default function VerPEIs() {
 
                   {peis.length === 0 ? (
                     <div className={styles.semDados}>
-                      Nenhum PEI registrado para este aluno neste exercício.
+                      Nenhum PEI registrado para este aluno nesta unidade.
                     </div>
                   ) : (
                     peis.map((pei, idx) => (
@@ -519,7 +562,7 @@ export default function VerPEIs() {
                           <p>
                             <strong>Data da Avaliação:</strong>{" "}
                             {formatarDataSegura(
-                              avaliacoesIniciais[alunoDaAba.id]?.inicio
+                              avaliacoesIniciais[alunoDaAba.id]?.dataCriacao
                             )}
                           </p>
                         </div>
@@ -552,7 +595,7 @@ export default function VerPEIs() {
                               })
                             }
                           >
-                            Acompanhar Metas
+                            Metas
                           </button>
                           <button
                             className={styles.observacoes}
@@ -566,7 +609,7 @@ export default function VerPEIs() {
                               })
                             }
                           >
-                            Observações
+                            Obs
                           </button>
                           <button
                             className={styles.excluir}

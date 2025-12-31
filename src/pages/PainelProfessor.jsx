@@ -4,7 +4,14 @@ import { ToastContainer, toast } from "react-toastify";
 import { getAuth, signOut } from "firebase/auth";
 import { db, storage } from "../firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { doc, updateDoc } from "firebase/firestore";
+import {
+  doc,
+  updateDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore"; // <--- ADICIONADO collection, query...
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FaCamera,
@@ -18,6 +25,7 @@ import {
   FaLightbulb,
   FaRobot,
   FaLayerGroup,
+  FaUsers,
 } from "react-icons/fa";
 
 import { verificarPrazosPEI } from "../src/services/peiStatusChecker";
@@ -87,6 +95,7 @@ export default function PainelProfessor() {
   const carregarDados = useCallback(async () => {
     setCarregandoAvisos(true);
     const userData = localStorage.getItem("usuarioLogado");
+
     if (!userData) {
       navigate("/login");
       return;
@@ -95,13 +104,49 @@ export default function PainelProfessor() {
     setUsuarioLogado(currentUser);
 
     try {
-      const status = await verificarPrazosPEI(
-        Number(anoExercicio),
-        currentUser.id
+      // 1. Verificar se há escola selecionada
+      const escolaId = localStorage.getItem("escolaId");
+      const turmasDoProf = currentUser.turmas
+        ? Object.keys(currentUser.turmas).map((t) => t.trim().toLowerCase())
+        : [];
+
+      if (!escolaId || turmasDoProf.length === 0) {
+        // Se não tem escola ou turmas, não há pendências para mostrar
+        setAvisosPEI(null);
+        return;
+      }
+
+      // 2. Verificar se EXISTEM ALUNOS para este professor nesta escola
+      // Só mostramos o aviso de atraso se houver alunos para criar PEI
+      const qAlunos = query(
+        collection(db, "alunos"),
+        where("escolaId", "==", escolaId)
       );
-      setAvisosPEI(status);
+
+      const alunosSnap = await getDocs(qAlunos);
+
+      // Filtra no JS para garantir compatibilidade com as turmas
+      const temAlunos = alunosSnap.docs.some((doc) => {
+        const dados = doc.data();
+        return (
+          dados.turma && turmasDoProf.includes(dados.turma.trim().toLowerCase())
+        );
+      });
+
+      if (!temAlunos) {
+        // Se não tem alunos, não mostra aviso nenhum, mesmo que a data esteja atrasada
+        console.log("Sem alunos nesta escola. Suprimindo avisos.");
+        setAvisosPEI(null);
+      } else {
+        // Se TEM alunos, aí sim verificamos os prazos
+        const status = await verificarPrazosPEI(
+          Number(anoExercicio),
+          currentUser.id
+        );
+        setAvisosPEI(status);
+      }
     } catch (error) {
-      console.error("Erro ao carregar avisos");
+      console.error("Erro ao carregar avisos/dados:", error);
     } finally {
       setCarregandoAvisos(false);
     }
@@ -237,6 +282,7 @@ export default function PainelProfessor() {
 
       <main className="flex-1 z-10 p-10 max-w-7xl mx-auto w-full">
         <AnimatePresence>
+          {/* SÓ RENDERIZA O AVISO SE AVISOSPEI EXISTIR E ESTIVER ATRASADO */}
           {!carregandoAvisos && avisosPEI?.statusGeral === "Atrasado" && (
             <motion.div
               initial={{ opacity: 0, y: -20 }}
@@ -294,6 +340,12 @@ export default function PainelProfessor() {
           >
             {abaAtiva === "pei" && (
               <>
+                <ActionCard
+                  title="Meus Alunos"
+                  desc="Listagem da Turma"
+                  icon={<FaUsers />}
+                  onClick={() => navigate("/ver-alunos")}
+                />
                 <ActionCard
                   title="Novo PEI"
                   desc="Iniciar documento"

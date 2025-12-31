@@ -425,35 +425,47 @@ export default function CriarPEI() {
       if (["desenvolvedor", "seme"].includes(usuarioLogado.perfil)) {
         alunosQuery = collection(db, "alunos");
         peisQuery = collection(db, "peis");
+        // --- CORREÇÃO: Respeitar Escola Selecionada no Painel ---
       } else if (isAcessoAmplo) {
-        if (!userSchoolId)
-          throw new Error(
-            "ID da escola não encontrado para o perfil de gestão."
-          );
+        const escolaAtivaId = localStorage.getItem("escolaId");
+        // Se houver uma escola selecionada no painel, usa ela. Caso contrário, usa a do hook.
+        const idParaBusca = escolaAtivaId || userSchoolId;
+
+        if (!idParaBusca)
+          throw new Error("Selecione uma escola no painel de controle.");
+
         alunosQuery = query(
           collection(db, "alunos"),
-          where("escolaId", "==", userSchoolId)
+          where("escolaId", "==", idParaBusca),
+          where("ano", "==", anoAtivo) // Garante o ano selecionado
         );
+
         peisQuery = query(
           collection(db, "peis"),
-          where("escolaId", "==", userSchoolId)
+          where("escolaId", "==", idParaBusca),
+          where("anoLetivo", "==", anoAtivo)
         );
       } else if (usuarioLogado.perfil === "professor") {
+        // Para professor, também validamos se a escola onde o aluno está é a escola ativa
+        const escolaAtivaId = localStorage.getItem("escolaId");
         const turmasDoProfessor = userSchoolData?.turmas
           ? Object.keys(userSchoolData.turmas)
           : [];
-        if (turmasDoProfessor.length === 0) {
-          setAlunos([]);
-          return exibirMensagem(
-            "erro",
-            "Nenhuma turma vinculada ao seu perfil de professor."
-          );
-        }
+
         alunosQuery = query(
           collection(db, "alunos"),
+          where("escolaId", "==", escolaAtivaId), // Filtra pela escola do painel
           where("turma", "in", turmasDoProfessor),
-          where("ano", "==", anoAtivo) // ✅ NOVO FILTRO
+          where("ano", "==", anoAtivo)
         );
+
+        peisQuery = query(
+          collection(db, "peis"),
+          where("escolaId", "==", escolaAtivaId),
+          where("criadorId", "==", usuarioLogado.email),
+          where("anoLetivo", "==", anoAtivo)
+        );
+
         peisQuery = query(
           collection(db, "peis"),
           where("criadorId", "==", usuarioLogado.email),
@@ -698,7 +710,8 @@ export default function CriarPEI() {
         cargoCriador: usuarioLogado.cargo || "Desconhecido",
         criadorId: usuarioLogado.email || "",
         criadorPerfil: usuarioLogado.perfil || "",
-        escolaId: alunoSelecionado.escolaId,
+        // CORREÇÃO: Garante que salva com a escola que o aluno pertence de fato
+        escolaId: alunoSelecionado.escolaId || localStorage.getItem("escolaId"),
         anoLetivo: anoAtivo,
       };
       if (!snapExisting.empty) {

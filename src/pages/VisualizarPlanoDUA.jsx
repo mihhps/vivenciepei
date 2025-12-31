@@ -1,323 +1,209 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { doc, getDoc, deleteDoc } from "firebase/firestore";
-import { db } from "../firebase"; // Ajuste o caminho conforme a estrutura real do seu projeto
+import { db } from "../firebase";
+import { doc, getDoc } from "firebase/firestore";
 import {
   FaArrowLeft,
   FaEdit,
-  FaTrash,
+  FaBrain,
+  FaCheckCircle,
+  FaHeart,
+  FaCalendarAlt,
+  FaLayerGroup,
+  FaFilePdf,
   FaSpinner,
-  FaExclamationTriangle,
-  FaDownload,
+  FaTools,
+  FaCommentDots,
+  FaUserCircle,
+  FaBullseye,
 } from "react-icons/fa";
 import "../styles/VisualizarPlanoDUA.css";
-
-// CORREÇÃO 1: Ajuste no caminho de importação da função de geração de PDF
-// *ASSUMINDO que o caminho correto é '../utils/gerarPDFPlanoDUA'*
 import { gerarPDFPlanoDUA } from "../utils/gerarPDFPlanoDUA";
-
-// =========================================================================
-// HOOKS E COMPONENTES AUXILIARES
-// =========================================================================
-
-// Componente placeholder para voltar
-const BotaoVoltar = () => {
-  const navigate = useNavigate();
-  return (
-    <button
-      className="botao-voltar"
-      onClick={() => navigate(-1)}
-      aria-label="Voltar"
-    >
-      <FaArrowLeft /> Voltar para a Lista
-    </button>
-  );
-};
-
-// =========================================================================
-// COMPONENTE PRINCIPAL: VisualizarPlanoDUA
-// =========================================================================
 
 export default function VisualizarPlanoDUA() {
   const { id } = useParams();
   const navigate = useNavigate();
-
   const [plano, setPlano] = useState(null);
-  const [carregando, setCarregando] = useState(true);
-  const [erro, setErro] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [gerandoPDF, setGerandoPDF] = useState(false);
 
-  // A variável dataHoje não é mais usada no subtítulo, mas pode ser útil para outras coisas
-  const dataHoje = useMemo(() => new Date().toLocaleDateString("pt-BR"), []);
-
-  /**
-   * Função para buscar o plano de aula específico pelo ID.
-   */
-  const fetchPlano = async () => {
-    if (!id) {
-      setErro("ID do plano não fornecido.");
-      setCarregando(false);
-      return;
-    }
-
-    setCarregando(true);
-    setErro(null);
-
-    try {
-      const planoRef = doc(db, "planosAulaDUA", id);
-      const docSnap = await getDoc(planoRef);
-
-      if (docSnap.exists()) {
-        const dadosPlano = docSnap.data();
-
-        // Formatação da data da aula
-        const dataAulaFormatada = dadosPlano.data
-          ? new Date(dadosPlano.data).toLocaleDateString("pt-BR")
-          : "N/A";
-
-        // CORREÇÃO 2: Formatação da data de criação (timestamp do Firestore)
-        let dataCriacaoFormatada = "N/A";
-        if (dadosPlano.dataCriacao && dadosPlano.dataCriacao.seconds) {
-          // Converte segundos do timestamp para milissegundos
-          const timestampMs = dadosPlano.dataCriacao.seconds * 1000;
-          dataCriacaoFormatada = new Date(timestampMs).toLocaleDateString(
-            "pt-BR"
-          );
-        }
-
-        setPlano({
-          id: docSnap.id,
-          ...dadosPlano,
-          dataAulaFormatada,
-          dataCriacaoFormatada, // NOVO CAMPO ADICIONADO
-        });
-      } else {
-        setErro("Plano de Aula não encontrado.");
-      }
-    } catch (err) {
-      console.error("Erro ao buscar plano de aula:", err);
-      setErro(`Erro ao carregar os detalhes do plano: ${err.message}`);
-    } finally {
-      setCarregando(false);
-    }
-  };
+  const usuarioLogado = useMemo(
+    () => JSON.parse(localStorage.getItem("usuarioLogado")) || {},
+    []
+  );
 
   useEffect(() => {
-    fetchPlano();
-  }, [id]);
-
-  // --- FUNÇÕES DE AÇÃO ---
-
-  const handleEdit = () => {
-    navigate(`/editar-plano-dua/${id}`);
-  };
-
-  const handleDelete = async () => {
-    if (
-      window.confirm(
-        `Tem certeza que deseja excluir o plano "${plano.tituloAula}"? Esta ação é irreversível.`
-      )
-    ) {
-      setCarregando(true);
+    const fetch = async () => {
       try {
-        await deleteDoc(doc(db, "planosAulaDUA", id));
-        // Após exclusão bem-sucedida, volta para a lista
-        navigate("/ver-planos-dua", {
-          state: { message: "Plano excluído com sucesso!" },
-        });
-      } catch (err) {
-        console.error("Erro ao excluir plano:", err);
-        setErro(`Erro ao excluir o plano: ${err.message}`);
+        const docSnap = await getDoc(doc(db, "planosAulaDUA", id));
+        if (docSnap.exists()) setPlano({ id: docSnap.id, ...docSnap.data() });
+        else navigate("/ver-planos-aula");
+      } catch (error) {
+        console.error(error);
       } finally {
-        setCarregando(false);
+        setLoading(false);
       }
-    }
-  };
+    };
+    fetch();
+  }, [id, navigate]);
 
-  // FUNÇÃO DE DOWNLOAD: Chama a função externa para gerar o PDF
-  const handleDownload = () => {
-    if (plano) {
-      // Passa a data de hoje apenas se for necessária no PDF, senão pode passar dataCriacaoFormatada
-      gerarPDFPlanoDUA(plano, plano.dataCriacaoFormatada);
-    }
-  };
+  if (loading)
+    return <div className="loading-screen-view">Sincronizando...</div>;
+  if (!plano) return null;
 
-  // --- ESTRUTURA JSX DA PÁGINA ---
+  const dataF = plano.data
+    ? new Date(plano.data).toLocaleDateString("pt-BR")
+    : "--/--/----";
+  const nomeProfessor =
+    plano.criadorNome ||
+    plano.nomeCriador ||
+    usuarioLogado.nome ||
+    "Não informado";
 
-  if (carregando) {
-    return (
-      <div className="container-plano-dua">
-        <div className="loading-state">
-          <FaSpinner className="icon-spin" /> Carregando detalhes do Plano...
-        </div>
-      </div>
-    );
-  }
-
-  if (erro) {
-    return (
-      <div className="container-plano-dua">
-        <div className="card-header">
-          <BotaoVoltar />
-        </div>
-        <div className="mensagem-erro">
-          <FaExclamationTriangle /> {erro}
-        </div>
-      </div>
-    );
-  }
-
-  // Se carregou e não deu erro, exibe o plano
   return (
-    <div className="container-plano-dua visualizacao">
-      <div className="card-header">
-        <BotaoVoltar />
-        <div className="botoes-acao-detalhe">
-          {/* BOTÃO DE DOWNLOAD (PDF) - Usa classe 'botao-secundario' (Laranja/Amarelo) */}
+    <div className="plano-view-root">
+      <header className="plano-view-nav no-print">
+        <button
+          onClick={() => navigate("/ver-planos-aula")}
+          className="btn-voltar-premium"
+        >
+          <FaArrowLeft /> Meus Planos
+        </button>
+        <div className="nav-actions-right">
           <button
-            className="botao-secundario"
-            onClick={handleDownload}
-            disabled={carregando}
+            onClick={() => navigate(`/editar-plano-dua/${id}`)}
+            className="btn-edit-premium"
           >
-            <FaDownload /> Baixar PDF
+            <FaEdit /> Editar
           </button>
-
-          {/* BOTÃO DE EDITAR - Usa 'botao-secundario' e a classe única 'botao-editar' (Azul) */}
           <button
-            className="botao-secundario botao-editar"
-            onClick={handleEdit}
-            disabled={carregando}
+            onClick={() => gerarPDFPlanoDUA(plano, dataF)}
+            className="btn-pdf-premium"
+            disabled={gerandoPDF}
           >
-            <FaEdit /> Editar Plano
-          </button>
-
-          <button
-            className="acao-delete"
-            onClick={handleDelete}
-            disabled={carregando}
-          >
-            <FaTrash /> Excluir
+            <FaFilePdf /> Exportar PDF
           </button>
         </div>
-      </div>
-      <h1 className="titulo-principal">{plano.tituloAula}</h1>
+      </header>
 
-      {/* CORREÇÃO 3: Usando a data de criação real (plano.dataCriacaoFormatada) */}
-      <p className="subtitulo-contexto">
-        Criado por: {plano.criadorNome || "N/A"} em
-        {plano.dataCriacaoFormatada || "N/A"}
-      </p>
+      <main className="plano-view-content">
+        <div className="plano-view-container">
+          {/* LOGO E IDENTIDADE */}
+          <section className="plano-header-identity">
+            <img
+              src="/logodua.png"
+              alt="Logo DUA"
+              className="plano-logo-img-new"
+            />
+            <div className="plano-titles-wrapper">
+              <span className="ano-exercicio-badge">
+                EXERCÍCIO {plano.anoLetivo || "2025"}
+              </span>
+              <h1 className="main-doc-title">Planejamento Pedagógico DUA</h1>
+            </div>
+          </section>
 
-      {/* CORREÇÃO ESTRUTURAL 4: Adicionado 'secao-detalhe' ao container DUA para corrigir o estilo do H2 */}
-      <div className="secao-detalhe">
-        <h2>Informações Gerais</h2>
-        {/* Grid com ajuste para Tema/Conteúdo */}
-        <div className="detalhes-grid">
-          <div>
-            <strong>Turma:</strong>{" "}
-            <span className="valor">{plano.turmaNome}</span>
-          </div>
-          <div>
-            <strong>Data da Aula:</strong>{" "}
-            <span className="valor">{plano.dataAulaFormatada}</span>
-          </div>
-          <div>
-            <strong>Duração:</strong>{" "}
-            <span className="valor">{plano.duracao || "N/I"} min</span>
-          </div>
+          {/* TÍTULO HERO */}
+          <section className="aula-title-hero">
+            <label>TÍTULO DA AULA</label>
+            <h2>{plano.tituloAula}</h2>
+          </section>
 
-          {/* Item de conteúdo longo para quebrar a linha */}
-          <div className="item-conteudo-longo">
-            <strong>Tema/Conteúdo:</strong>{" "}
-            <span className="valor">{plano.conteudoTema}</span>
-          </div>
-        </div>
-
-        <div className="detalhes-bloco">
-          <p>
-            <strong>Objetivo Curricular (BNCC):</strong>
-          </p>
-          <blockquote className="bloco-bncc">
-            {plano.objetivoCurricularBNCC}
-          </blockquote>
-        </div>
-      </div>
-
-      {/* CORREÇÃO ESTRUTURAL 4: Adicionado 'secao-detalhe' ao container DUA para corrigir o estilo do H2 */}
-      <div className="secao-detalhe dua-container-visualizacao">
-        <h2>Estratégias de Inclusão (DUA)</h2>
-
-        {/* Princípio 1: Representação */}
-        <div className="dua-principio">
-          <h3>1. Múltiplos Meios de REPRESENTAÇÃO</h3>
-          <ul>
-            {plano.representacao && plano.representacao.length > 0 ? (
-              plano.representacao.map((item, index) => (
-                <li key={index}>{item}</li>
-              ))
-            ) : (
-              <li className="vazio">
-                Nenhuma estratégia de Representação selecionada.
-              </li>
-            )}
-          </ul>
-        </div>
-
-        {/* Princípio 2: Ação e Expressão */}
-        <div className="dua-principio">
-          <h3>2. Múltiplos Meios de AÇÃO E EXPRESSÃO</h3>
-          <ul>
-            {plano.acaoExpressao && plano.acaoExpressao.length > 0 ? (
-              plano.acaoExpressao.map((item, index) => (
-                <li key={index}>{item}</li>
-              ))
-            ) : (
-              <li className="vazio">
-                Nenhuma estratégia de Ação e Expressão selecionada.
-              </li>
-            )}
-          </ul>
-        </div>
-
-        {/* Princípio 3: Engajamento */}
-        <div className="dua-principio">
-          <h3>3. Múltiplos Meios de ENGAJAMENTO</h3>
-          <ul>
-            {plano.engajamento && plano.engajamento.length > 0 ? (
-              plano.engajamento.map((item, index) => (
-                <li key={index}>{item}</li>
-              ))
-            ) : (
-              <li className="vazio">
-                Nenhuma estratégia de Engajamento selecionada.
-              </li>
-            )}
-          </ul>
-        </div>
-      </div>
-
-      {/* 3. MATERIAIS E OBSERVAÇÕES (SEPARADOS E COLORIDOS) */}
-      <div className="secao-detalhe">
-        <h2>Recursos e Observações</h2>
-
-        {/* DIV CRUCIAL PARA SEPARAÇÃO LADO A LADO E CORES */}
-        <div className="secao-recursos-observacoes">
-          {/* Bloco de Recursos - Laranja */}
-          <div className="bloco-item-recurso">
-            <h3>Materiais Necessários:</h3>
-            <div className="conteudo-bloco">
-              {plano.materiais || "Nenhum material listado."}
+          {/* GRID METADADOS PROF/TURMA */}
+          <div className="meta-info-grid">
+            <div className="meta-info-card">
+              <FaUserCircle className="meta-icon" />
+              <div className="meta-data">
+                <label>PROFESSOR(A) RESPONSÁVEL</label>
+                <strong>{nomeProfessor}</strong>
+              </div>
+            </div>
+            <div className="meta-info-card">
+              <FaLayerGroup className="meta-icon" />
+              <div className="meta-data">
+                <label>TURMA</label>
+                <strong>{plano.turmaNome || "Não informada"}</strong>
+              </div>
+            </div>
+            <div className="meta-info-card">
+              <FaCalendarAlt className="meta-icon" />
+              <div className="meta-data">
+                <label>DATA DA AULA</label>
+                <strong>{dataF}</strong>
+              </div>
             </div>
           </div>
 
-          {/* Bloco de Observações - Cinza */}
-          <div className="bloco-item-observacao">
-            <h3>Observações/ Reflexões:</h3>
-            <div className="conteudo-bloco">
-              {plano.observacoes || "Nenhuma observação registrada."}
+          {/* SEÇÃO: CONTEXTO (Tema e BNCC) - CORRIGIDO */}
+          <section className="context-visual-grid">
+            <div className="glass-card context-box">
+              <div className="card-header-icon">
+                <FaLayerGroup /> TEMA E CONTEÚDO
+              </div>
+              <p>{plano.conteudoTema || "Não informado."}</p>
+            </div>
+            <div className="glass-card context-box bncc-style">
+              <div className="card-header-icon">
+                <FaBullseye /> HABILIDADE BNCC
+              </div>
+              <p>{plano.objetivoCurricularBNCC || "Não informada."}</p>
+            </div>
+          </section>
+
+          {/* PILARES DUA */}
+          <div className="dua-pillars-wrapper">
+            <h3 className="dua-section-label">ESTRATÉGIAS DE INCLUSÃO</h3>
+            <div className="dua-grid">
+              <div className="dua-pillar-card purple">
+                <div className="pillar-header">
+                  <FaBrain /> Representação
+                </div>
+                <ul className="pillar-list">
+                  {plano.representacao?.map((it, i) => (
+                    <li key={i}>{it}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="dua-pillar-card blue">
+                <div className="pillar-header">
+                  <FaCheckCircle /> Ação e Expressão
+                </div>
+                <ul className="pillar-list">
+                  {plano.acaoExpressao?.map((it, i) => (
+                    <li key={i}>{it}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="dua-pillar-card green">
+                <div className="pillar-header">
+                  <FaHeart /> Engajamento
+                </div>
+                <ul className="pillar-list">
+                  {plano.engajamento?.map((it, i) => (
+                    <li key={i}>{it}</li>
+                  ))}
+                </ul>
+              </div>
             </div>
           </div>
+
+          {/* RECURSOS E NOTAS - CORRIGIDO */}
+          <footer className="footer-visual-grid">
+            <div className="glass-card footer-item">
+              <div className="card-header-icon orange">
+                <FaTools /> RECURSOS E MATERIAIS
+              </div>
+              <p>{plano.materiais || "Nenhum material listado."}</p>
+            </div>
+            <div className="glass-card footer-item">
+              <div className="card-header-icon cyan">
+                <FaCommentDots /> OBSERVAÇÕES
+              </div>
+              <p>{plano.observacoes || "Nenhuma observação registrada."}</p>
+            </div>
+          </footer>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
