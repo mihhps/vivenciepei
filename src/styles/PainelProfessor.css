@@ -1,177 +1,200 @@
-@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800;900&display=swap");
+/* src/styles/CadastrarUsuario.css */
 
-.painel-page-container {
-  height: 100vh;
-  width: 100vw;
-  background: #0f172a;
-  background-image: radial-gradient(
-    at 0% 0%,
-    rgba(59, 130, 246, 0.15) 0,
-    transparent 50%
-  );
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 20px;
-  overflow: hidden;
-}
-
-.painel-card {
-  background: #ffffff;
-  border-radius: 40px;
-  width: 100%;
-  max-width: 1100px;
-  height: 620px;
-  display: grid;
-  grid-template-columns: 450px 1fr; /* Coluna da logo um pouco mais larga para destaque */
-  box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.5);
-  overflow: hidden;
-}
-
-/* --- LADO ESQUERDO: MARCA --- */
-.brand-section {
-  background: #f8fafc;
+.cad-user-wrapper {
+  min-height: 100vh;
+  background-color: #020617;
+  color: #f8fafc;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 50px;
-  border-right: 1px solid #e2e8f0;
-}
-
-.painel-logo {
-  width: 180px;
-  height: 180px;
-  margin-bottom: 25px;
-  filter: drop-shadow(0 12px 20px rgba(0, 0, 0, 0.1));
-}
-
-.painel-titulo {
-  font-size: 3.2rem;
-  font-weight: 900;
-  color: #1e293b;
-  text-align: center;
-  line-height: 1;
-  letter-spacing: -0.06em;
-}
-
-/* --- LADO DIREITO: OPERACIONAL --- */
-.actions-section {
   padding: 40px;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.cad-bg-glow {
+  position: absolute;
+  top: -10%;
+  right: -5%;
+  width: 700px;
+  height: 700px;
+  background: radial-gradient(
+    circle,
+    rgba(59, 130, 246, 0.05) 0%,
+    transparent 70%
+  );
+  z-index: 1;
+}
+
+.cad-header {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 30px;
+  margin-bottom: 50px;
+  z-index: 10;
+}
+
+.cad-btn-back {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #3b82f6;
+  padding: 15px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.cad-branding {
+  display: flex;
+  align-items: center;
   gap: 20px;
 }
-
-/* PERFIL (FOTO REDONDA) */
-.header-wrapper {
-  background: #ffffff;
-  padding: 15px 20px;
-  border-radius: 20px;
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  border: 1px solid #f1f5f9;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.04);
+.cad-logo-img {
+  height: 60px;
+  filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.3));
 }
 
-.avatar {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%; /* Círculo perfeito */
-  border: 3px solid #3b82f6; /* Borda azul de destaque */
-  object-fit: cover;
-}
-
-.user-name {
-  font-size: 1.1rem;
+.cad-subtitle {
+  font-size: 10px;
   font-weight: 800;
-  color: #1e293b;
-  margin: 0;
-}
-.escola-tag {
-  font-size: 0.8rem;
-  font-weight: 600;
   color: #64748b;
-  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-top: 5px;
 }
 
-/* NAVEGAÇÃO (CORREÇÃO DO TEXTO GRUDADO) */
-.tabs-container {
-  display: flex;
-  background: #f1f5f9;
-  padding: 6px;
-  border-radius: 16px;
-  gap: 8px; /* Espaço entre as abas */
-}
-
-.tab-item {
+.cad-main-content {
   flex: 1;
-  padding: 12px;
-  font-weight: 800;
-  font-size: 0.85rem;
-  border-radius: 12px;
-  border: none;
-  cursor: pointer;
-  color: #64748b;
-  background: transparent;
-  transition: 0.2s;
+  display: flex;
+  justify-content: center;
+  z-index: 10;
 }
 
-.tab-item.active {
-  background: #ffffff;
-  color: #3b82f6;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+.cad-card-glass {
+  background: rgba(15, 23, 42, 0.3);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 40px;
+  padding: 50px;
+  width: 100%;
+  max-width: 900px;
 }
 
-/* GRADE DE BOTÕES */
-.grid-acoes {
+.cad-form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 15px;
-  margin: 10px 0;
+  gap: 40px;
 }
 
-.btn-acao {
-  padding: 22px;
-  background: #ffffff;
-  border: 2px solid #f1f5f9;
-  border-radius: 20px;
-  font-weight: 800;
-  font-size: 1.05rem;
-  color: #334155;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-acao:hover {
-  border-color: #3b82f6;
-  color: #3b82f6;
-  transform: translateY(-3px);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
-}
-
-/* RODAPÉ ESTILIZADO */
-.painel-footer {
-  margin-top: auto;
+.cad-section {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: 25px;
-  border-top: 1px solid #f1f5f9;
+  flex-direction: column;
+  gap: 15px;
+}
+.cad-section.full-width {
+  grid-column: 1 / -1;
 }
 
-.btn-sair {
-  background: #fef2f2;
-  color: #dc2626;
-  padding: 12px 30px;
+.section-label {
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  color: #475569;
+  letter-spacing: 1.5px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.input-group-elite {
+  position: relative;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  transition: 0.3s;
+}
+
+.input-group-elite:focus-within {
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.03);
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.1);
+}
+
+.input-icon {
+  margin-left: 20px;
+  color: #475569;
+  font-size: 0.9rem;
+}
+
+.input-group-elite input,
+.input-group-elite select {
+  width: 100%;
+  padding: 18px 20px;
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 600;
+  outline: none;
+}
+
+.btn-toggle-pass {
+  padding-right: 20px;
+  background: transparent;
+  border: none;
+  color: #475569;
+  cursor: pointer;
+}
+
+/* CHIPS DE ESCOLAS */
+.escola-chip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.cad-chip {
+  padding: 12px 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
+  color: #64748b;
+  font-size: 0.75rem;
   font-weight: 800;
-  border: 1px solid #fee2e2;
   cursor: pointer;
   transition: 0.2s;
 }
 
-.btn-sair:hover {
-  background: #fee2e2;
+.cad-chip.active {
+  background: #3b82f6;
+  color: white;
+  border-color: #60a5fa;
+  box-shadow: 0 10px 20px rgba(59, 130, 246, 0.2);
+}
+
+.btn-cad-submit {
+  grid-column: 1 / -1;
+  margin-top: 20px;
+  background: #3b82f6;
+  color: white;
+  padding: 20px;
+  border: none;
+  border-radius: 20px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  box-shadow: 0 20px 40px rgba(59, 130, 246, 0.2);
+}
+
+.btn-cad-submit:hover {
+  transform: translateY(-3px);
+  background: #2563eb;
 }

@@ -1,144 +1,26 @@
-// src/pages/editaraluno.jsx
-
-import React, { useEffect, useState, useRef } from "react"; // NOVO: useRef
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   doc,
   getDoc,
   updateDoc,
   collection,
-  query,
   getDocs,
+  query,
+  where,
 } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage"; // NOVO: Import do Storage
-import { db, storage } from "../firebase"; // NOVO: Import do objeto storage
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { db, storage } from "../firebase";
+import { motion } from "framer-motion";
+import { FaUpload, FaCamera, FaSave } from "react-icons/fa";
+import { toast, ToastContainer } from "react-toastify";
+
+// Componentes Reutilizáveis
 import BotaoVoltar from "../components/BotaoVoltar";
-import styled from "styled-components";
-import { FaUpload } from "react-icons/fa"; // NOVO: Ícone de upload
+import Loader from "../components/Loader";
+import "react-toastify/dist/ReactToastify.css";
 
-// --- Styled Components ---
-const FormContainer = styled.div`
-  max-width: 500px;
-  margin: 0 auto;
-  background-color: #ffffff;
-  padding: 30px;
-  border-radius: 10px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-`;
-
-const Input = styled.input`
-  width: 100%;
-  padding: 12px 15px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  font-size: 1em;
-  box-sizing: border-box;
-  margin-bottom: 15px;
-
-  &:focus {
-    border-color: #007bff;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-    outline: none;
-  }
-
-  &:disabled {
-    background-color: #f0f0f0;
-    cursor: not-allowed;
-  }
-`;
-
-const Select = styled.select`
-  width: 100%;
-  padding: 12px 15px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  font-size: 1em;
-  background-color: white;
-  box-sizing: border-box;
-  margin-bottom: 15px;
-
-  &:focus {
-    border-color: #007bff;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-    outline: none;
-  }
-
-  &:disabled {
-    background-color: #f0f0f0;
-    cursor: not-allowed;
-  }
-`;
-
-const Label = styled.label`
-  display: block;
-  margin-bottom: 5px;
-  font-weight: bold;
-  color: #333;
-`;
-
-const BotaoSalvar = styled.button`
-  background-color: #4caf50;
-  color: #fff;
-  padding: 12px 20px;
-  border: none;
-  border-radius: 6px;
-  font-size: 16px;
-  cursor: pointer;
-  width: 100%;
-  transition: background-color 0.2s ease;
-
-  &:hover {
-    background-color: #45a049;
-  }
-  &:disabled {
-    background-color: #cccccc;
-    cursor: not-allowed;
-  }
-`;
-
-// NOVOS STYLED COMPONENTS PARA FOTO
-const PhotoWrapper = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 25px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid #eee;
-`;
-
-const PhotoDisplay = styled.img`
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  object-fit: cover;
-  margin-bottom: 15px;
-  border: 4px solid #457b9d; /* Borda para destaque */
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-`;
-
-const UploadButton = styled.button`
-  background-color: #457b9d;
-  color: white;
-  padding: 8px 15px;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.9em;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: background-color 0.2s;
-
-  &:hover {
-    background-color: #386782;
-  }
-  input[type="file"] {
-    display: none;
-  }
-`;
-// --- Fim Styled Components ---
-
-function EditarAluno() {
+export default function EditarAluno() {
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -148,386 +30,307 @@ function EditarAluno() {
   const [turnoExibido, setTurnoExibido] = useState("");
   const [turmasDisponiveis, setTurmasDisponiveis] = useState([]);
 
-  const [carregandoDadosAluno, setCarregandoDadosAluno] = useState(true);
-  const [carregandoTurmas, setCarregandoTurmas] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
-  // NOVO ESTADO: Gerencia a nova foto e a pré-visualização
+  // Estados para Foto
   const [novaFotoArquivo, setNovaFotoArquivo] = useState(null);
   const [fotoPreviewUrl, setFotoPreviewUrl] = useState("");
-  const fileInputRef = useRef(null); // Ref para o input file
+  const fileInputRef = useRef(null);
 
-  // --- Efeito 1: Carregar os dados do Aluno ---
+  // ✅ CAPTURA O ANO SELECIONADO NO SISTEMA
+  const anoAtivo = useMemo(
+    () => Number(localStorage.getItem("anoExercicio")) || 2025,
+    []
+  );
+
+  // --- Efeito 1: Carregar Dados do Aluno ---
   useEffect(() => {
     async function buscarAluno() {
-      setCarregandoDadosAluno(true);
       try {
         const docRef = doc(db, "alunos", id);
         const docSnap = await getDoc(docRef);
 
         if (!docSnap.exists()) {
-          alert("Aluno não encontrado.");
+          toast.error("Aluno não encontrado.");
           navigate("/ver-alunos");
           return;
         }
 
         const data = docSnap.data();
         setAlunoData(data);
-
-        // CARREGA A FOTO EXISTENTE PARA PRÉ-VISUALIZAÇÃO
-        if (data.fotoUrl) {
-          setFotoPreviewUrl(data.fotoUrl);
-        }
-
-        if (data.escolaId) {
-          setEscolaIdDoAluno(data.escolaId);
-        } else {
-          console.warn(
-            "Aluno sem escolaId definido. Não será possível carregar turmas por escola."
-          );
-        }
+        if (data.fotoUrl) setFotoPreviewUrl(data.fotoUrl);
+        if (data.escolaId) setEscolaIdDoAluno(data.escolaId);
       } catch (erro) {
-        console.error("Erro ao buscar aluno:", erro);
-        alert("Erro ao carregar dados do aluno.");
-        navigate("/ver-alunos");
+        toast.error("Erro ao carregar dados.");
       } finally {
-        setCarregandoDadosAluno(false);
+        setLoading(false);
       }
     }
-
     buscarAluno();
   }, [id, navigate]);
 
-  // --- Efeito 2: Carregar Turmas baseadas na Escola do Aluno (após o aluno ser carregado) ---
+  // --- Efeito 2: Carregar Turmas FILTRADAS POR ANO ---
   useEffect(() => {
-    const fetchTurmasDaEscola = async () => {
-      if (!escolaIdDoAluno) {
-        setTurmasDisponiveis([]);
-        setTurmaSelecionadaId("");
-        setTurnoExibido("");
-        return;
-      }
-
-      setCarregandoTurmas(true);
+    const fetchTurmas = async () => {
+      if (!escolaIdDoAluno) return;
       try {
-        const turmasQuery = collection(
-          db,
-          "escolas",
-          escolaIdDoAluno,
-          "turmas"
-        );
-        const turmasSnapshot = await getDocs(turmasQuery);
+        // ✅ FILTRO ADICIONADO: Pega apenas turmas onde o campo 'ano' coincide com o selecionado
+        const turmasRef = collection(db, "escolas", escolaIdDoAluno, "turmas");
+        const q = query(turmasRef, where("ano", "==", anoAtivo));
+
+        const turmasSnapshot = await getDocs(q);
         const turmasData = turmasSnapshot.docs.map((doc) => ({
           id: doc.id,
-          nome: doc.data().nome,
-          turno: doc.data().turno,
+          ...doc.data(),
         }));
+
         setTurmasDisponiveis(
           turmasData.sort((a, b) => a.nome.localeCompare(b.nome))
         );
 
-        if (alunoData && alunoData.turma) {
-          const turmaExistente = turmasData.find(
-            (t) => t.nome === alunoData.turma && t.turno === alunoData.turno
-          );
-          if (turmaExistente) {
-            setTurmaSelecionadaId(turmaExistente.id);
-            setTurnoExibido(turmaExistente.turno);
-          } else {
-            console.warn(
-              `Turma "${alunoData.turma}" (${alunoData.turno}) do aluno NÃO encontrada nas turmas padronizadas da escola.`
-            );
-            setTurmaSelecionadaId("");
-            setTurnoExibido(alunoData.turno || "");
+        // Pré-seleciona a turma se o aluno já estiver em uma deste ano
+        if (alunoData?.turma) {
+          const tExistente = turmasData.find((t) => t.nome === alunoData.turma);
+          if (tExistente) {
+            setTurmaSelecionadaId(tExistente.id);
+            setTurnoExibido(tExistente.turno);
           }
-        } else {
-          setTurmaSelecionadaId("");
-          setTurnoExibido("");
         }
       } catch (error) {
-        console.error("Erro ao buscar turmas da escola:", error);
-        alert("Não foi possível carregar as turmas para a escola do aluno.");
-        setTurmasDisponiveis([]);
-        setTurmaSelecionadaId("");
-        setTurnoExibido("");
-      } finally {
-        setCarregandoTurmas(false);
+        console.error("Erro ao carregar turmas:", error);
+        toast.error("Erro ao carregar turmas deste ano.");
       }
     };
+    if (alunoData) fetchTurmas();
+  }, [escolaIdDoAluno, alunoData, anoAtivo]);
 
-    if (!carregandoDadosAluno) {
-      fetchTurmasDaEscola();
-    }
-  }, [escolaIdDoAluno, carregandoDadosAluno, alunoData]);
-
-  // --- Efeito 3: Atualizar Turno Exibido ao Mudar Turma Selecionada ---
+  // Atualiza o turno automaticamente ao trocar a turma no select
   useEffect(() => {
-    if (turmaSelecionadaId && turmasDisponiveis.length > 0) {
-      const turma = turmasDisponiveis.find((t) => t.id === turmaSelecionadaId);
-      if (turma) {
-        setTurnoExibido(turma.turno);
-      } else {
-        setTurnoExibido("");
-      }
-    } else if (alunoData && !turmaSelecionadaId && !carregandoTurmas) {
-      setTurnoExibido(alunoData.turno || "");
+    const selecionada = turmasDisponiveis.find(
+      (t) => t.id === turmaSelecionadaId
+    );
+    if (selecionada) {
+      setTurnoExibido(selecionada.turno);
     }
-  }, [turmaSelecionadaId, turmasDisponiveis, alunoData, carregandoTurmas]);
+  }, [turmaSelecionadaId, turmasDisponiveis]);
 
-  // --- Funções de Manipulação ---
-  const handleCampoChange = (e) => {
-    const { name, value } = e.target;
-    setAlunoData({ ...alunoData, [name]: value });
-  };
-
-  // NOVO: Manipulador de alteração de foto
   const handleFotoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       setNovaFotoArquivo(file);
-      setFotoPreviewUrl(URL.createObjectURL(file)); // Pré-visualização do novo arquivo
-    } else {
-      setNovaFotoArquivo(null);
-      // Volta para a URL original do banco de dados se o usuário cancelar
-      setFotoPreviewUrl(alunoData.fotoUrl || "");
+      setFotoPreviewUrl(URL.createObjectURL(file));
     }
-  };
-
-  // NOVO: Função para disparar o clique do input file
-  const handleUploadButtonClick = () => {
-    fileInputRef.current.click();
   };
 
   const calcularIdade = (dataNasc) => {
     if (!dataNasc) return "";
     const hoje = new Date();
-    const [ano, mes, dia] = dataNasc.split("-").map(Number);
-    const dataDeNascimento = new Date(ano, mes - 1, dia);
-    let idadeCalculada = hoje.getFullYear() - dataDeNascimento.getFullYear();
-    const m = hoje.getMonth() - dataDeNascimento.getMonth();
-    if (m < 0 || (m === 0 && hoje.getDate() < dataDeNascimento.getDate())) {
-      idadeCalculada--;
-    }
-    return `${idadeCalculada} anos`;
-  };
-
-  const handleNascimentoChange = (e) => {
-    const data = e.target.value;
-    setAlunoData({ ...alunoData, nascimento: data });
+    const nasc = new Date(dataNasc);
+    let idade = hoje.getFullYear() - nasc.getFullYear();
+    if (
+      hoje.getMonth() < nasc.getMonth() ||
+      (hoje.getMonth() === nasc.getMonth() && hoje.getDate() < nasc.getDate())
+    )
+      idade--;
+    return `${idade} anos`;
   };
 
   const salvar = async () => {
     setIsSaving(true);
-    let novaFotoUrl = alunoData.fotoUrl || ""; // Assume a URL existente
+    let finalFotoUrl = alunoData.fotoUrl || "";
+    const turmaObj = turmasDisponiveis.find((t) => t.id === turmaSelecionadaId);
 
-    const turmaSelecionadaObj = turmasDisponiveis.find(
-      (t) => t.id === turmaSelecionadaId
-    );
-
-    if (
-      !alunoData ||
-      !alunoData.nome ||
-      !alunoData.nascimento ||
-      !escolaIdDoAluno ||
-      !turmaSelecionadaObj ||
-      !turnoExibido
-    ) {
-      alert(
-        "Por favor, preencha todos os campos obrigatórios (Nome, Nascimento, Escola, Turma e Turno)."
+    if (!alunoData.nome || !alunoData.nascimento || !turmaObj) {
+      toast.warn(
+        "Preencha todos os campos obrigatórios e selecione uma turma."
       );
       setIsSaving(false);
       return;
     }
 
     try {
-      // 1. Upload da Nova Foto (SE HOUVER)
       if (novaFotoArquivo) {
-        const storageRef = ref(
-          storage,
-          `fotos_alunos/${id}_${Date.now()}_${novaFotoArquivo.name}`
-        );
+        const storageRef = ref(storage, `fotos_alunos/${id}_${Date.now()}`);
         const uploadTask = await uploadBytes(storageRef, novaFotoArquivo);
-        novaFotoUrl = await getDownloadURL(uploadTask.ref);
-        console.log("Nova foto enviada:", novaFotoUrl);
+        finalFotoUrl = await getDownloadURL(uploadTask.ref);
       }
 
-      // 2. Montar Dados para Atualização
       const docRef = doc(db, "alunos", id);
-      const dadosParaAtualizar = {
+      await updateDoc(docRef, {
         ...alunoData,
-        // Garante que o nome da turma e turno sejam salvos
-        turma: turmaSelecionadaObj.nome,
-        turno: turnoExibido,
-        // Adiciona a nova URL da foto (ou a antiga, se o upload não ocorreu)
-        fotoUrl: novaFotoUrl,
-      };
+        turma: turmaObj.nome,
+        turno: turmaObj.turno,
+        fotoUrl: finalFotoUrl,
+        ano: anoAtivo, // Garante que o vínculo permaneça no ano correto
+      });
 
-      // Remove campos que não devem ser salvos diretamente no doc se houver
-      delete dadosParaAtualizar.escolaId;
-
-      // 3. Atualizar Firestore
-      await updateDoc(docRef, dadosParaAtualizar);
-
-      alert("Dados atualizados com sucesso!");
-      navigate("/ver-alunos");
+      toast.success("Perfil atualizado com sucesso!");
+      setTimeout(() => navigate("/ver-alunos"), 1500);
     } catch (erro) {
-      console.error("Erro ao salvar dados do aluno:", erro);
-      alert("Erro ao salvar dados. Verifique o console.");
+      toast.error("Erro ao salvar alterações.");
     } finally {
       setIsSaving(false);
     }
   };
 
-  if (carregandoDadosAluno)
-    return (
-      <p style={{ textAlign: "center", marginTop: 40 }}>
-        Carregando dados do aluno...
-      </p>
-    );
-  if (!alunoData)
-    return (
-      <p style={{ textAlign: "center", marginTop: 40 }}>
-        Erro: Dados do aluno não disponíveis.
-      </p>
-    );
+  if (loading) return <Loader />;
 
   return (
-    <div
-      style={{
-        padding: "40px",
-        backgroundColor: "#f7f7f7",
-        minHeight: "100vh",
-      }}
-    >
-      <BotaoVoltar />
-      <h2 style={{ textAlign: "center", marginBottom: "30px" }}>
-        Editar Aluno: {alunoData.nome}
-      </h2>
+    <div className="min-h-screen bg-[#020617] text-slate-100 p-8 font-['Plus_Jakarta_Sans'] relative overflow-hidden flex flex-col items-center">
+      <ToastContainer theme="dark" position="bottom-right" />
 
-      <FormContainer>
-        {/* --- NOVO BLOCO: VISUALIZAÇÃO E UPLOAD DE FOTO --- */}
-        <PhotoWrapper>
-          <PhotoDisplay
-            src={
-              fotoPreviewUrl || "https://via.placeholder.com/120?text=Sem+Foto"
-            }
-            alt={`Foto de ${alunoData.nome}`}
-          />
-          <UploadButton onClick={handleUploadButtonClick} disabled={isSaving}>
-            <FaUpload /> {novaFotoArquivo ? "Trocar Foto" : "Adicionar Foto"}
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleFotoChange}
-              ref={fileInputRef}
-              disabled={isSaving}
-            />
-          </UploadButton>
-          {novaFotoArquivo && (
-            <p style={{ fontSize: "0.85em", color: "green", marginTop: "5px" }}>
-              Nova foto pronta para ser salva!
+      <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
+
+      <div className="w-full max-w-2xl relative z-10">
+        <header className="flex items-center gap-6 mb-12">
+          <BotaoVoltar />
+          <div>
+            <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter">
+              Editar <span className="text-blue-500 text-glow">Aluno</span>
+            </h2>
+            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1">
+              Editando registros de {anoAtivo}
             </p>
-          )}
-        </PhotoWrapper>
-        {/* --- FIM DO BLOCO FOTO --- */}
+          </div>
+        </header>
 
-        <Label htmlFor="nome">Nome:</Label>
-        <Input
-          id="nome"
-          type="text"
-          name="nome"
-          value={alunoData.nome}
-          onChange={handleCampoChange}
-          disabled={isSaving}
-        />
-
-        <Label htmlFor="nascimento">Data de Nascimento:</Label>
-        <Input
-          id="nascimento"
-          type="date"
-          name="nascimento"
-          value={alunoData.nascimento}
-          onChange={handleNascimentoChange}
-          disabled={isSaving}
-        />
-        {alunoData.nascimento && (
-          <p
-            style={{
-              fontSize: "0.9em",
-              color: "#555",
-              marginTop: "-10px",
-              marginBottom: "15px",
-            }}
-          >
-            <strong>Idade:</strong> {calcularIdade(alunoData.nascimento)}
-          </p>
-        )}
-
-        <Label htmlFor="diagnostico">Diagnóstico:</Label>
-        <Input
-          id="diagnostico"
-          type="text"
-          name="diagnostico"
-          value={alunoData.diagnostico}
-          onChange={handleCampoChange}
-          disabled={isSaving}
-        />
-
-        <Label htmlFor="escolaInput">Escola do Aluno:</Label>
-        <Input
-          id="escolaInput"
-          type="text"
-          value={
-            alunoData.escolaId
-              ? `ID: ${alunoData.escolaId}`
-              : "Escola não definida"
-          }
-          readOnly
-          disabled
-          style={{ backgroundColor: "#e9ecef", cursor: "not-allowed" }}
-        />
-
-        <Label htmlFor="turmaSelect">Turma:</Label>
-        <Select
-          id="turmaSelect"
-          name="turma"
-          value={turmaSelecionadaId}
-          onChange={(e) => setTurmaSelecionadaId(e.target.value)}
-          disabled={!escolaIdDoAluno || carregandoTurmas || isSaving}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white/[0.02] border border-white/10 backdrop-blur-3xl rounded-[40px] p-10 shadow-2xl"
         >
-          <option value="">
-            {!escolaIdDoAluno
-              ? "Escola do aluno não definida"
-              : carregandoTurmas
-              ? "Carregando turmas..."
-              : turmasDisponiveis.length === 0
-              ? "Nenhuma turma cadastrada para esta escola"
-              : "Selecione a Turma"}
-          </option>
-          {turmasDisponiveis.map((turma) => (
-            <option key={turma.id} value={turma.id}>
-              {turma.nome}
-            </option>
-          ))}
-        </Select>
+          {/* FOTO SECTION */}
+          <div className="flex flex-col items-center mb-12">
+            <div className="relative group">
+              <div className="w-32 h-32 rounded-[35px] overflow-hidden border-4 border-blue-600/20 shadow-2xl transition-transform group-hover:scale-105">
+                <img
+                  src={fotoPreviewUrl || "https://via.placeholder.com/150"}
+                  className="w-full h-full object-cover"
+                  alt="Avatar"
+                />
+              </div>
+              <button
+                onClick={() => fileInputRef.current.click()}
+                className="absolute bottom-0 -right-2 bg-blue-600 p-3 rounded-2xl text-white shadow-xl hover:bg-blue-500 transition-all border-4 border-[#020617]"
+              >
+                <FaCamera size={14} />
+              </button>
+              <input
+                type="file"
+                hidden
+                ref={fileInputRef}
+                onChange={handleFotoChange}
+                accept="image/*"
+              />
+            </div>
+          </div>
 
-        <Label htmlFor="turnoInput">Turno:</Label>
-        <Input
-          id="turnoInput"
-          type="text"
-          name="turno"
-          value={turnoExibido}
-          readOnly
-          disabled
-          style={{ backgroundColor: "#f0f0f0", cursor: "not-allowed" }}
-        />
+          <form className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                  Nome Completo
+                </label>
+                <input
+                  type="text"
+                  value={alunoData.nome}
+                  onChange={(e) =>
+                    setAlunoData({ ...alunoData, nome: e.target.value })
+                  }
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white focus:border-blue-500 outline-none transition-all shadow-inner"
+                />
+              </div>
 
-        <BotaoSalvar onClick={salvar} disabled={isSaving}>
-          {isSaving ? "Salvando..." : "Salvar"}
-        </BotaoSalvar>
-      </FormContainer>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                  Data de Nascimento
+                </label>
+                <input
+                  type="date"
+                  value={alunoData.nascimento}
+                  onChange={(e) =>
+                    setAlunoData({ ...alunoData, nascimento: e.target.value })
+                  }
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white focus:border-blue-500 outline-none transition-all"
+                />
+                <span className="text-[10px] text-blue-400 font-bold ml-1 uppercase">
+                  {calcularIdade(alunoData.nascimento)}
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                Diagnóstico
+              </label>
+              <input
+                type="text"
+                value={alunoData.diagnostico}
+                onChange={(e) =>
+                  setAlunoData({ ...alunoData, diagnostico: e.target.value })
+                }
+                className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white focus:border-blue-500 outline-none transition-all"
+                placeholder="Informe o diagnóstico ou observação"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-white/5">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                  Turma ({anoAtivo})
+                </label>
+                <select
+                  value={turmaSelecionadaId}
+                  onChange={(e) => setTurmaSelecionadaId(e.target.value)}
+                  className="w-full bg-slate-900 border border-white/10 rounded-2xl px-5 py-4 text-white focus:border-blue-500 outline-none transition-all cursor-pointer appearance-none"
+                >
+                  <option value="">Selecione a Turma</option>
+                  {turmasDisponiveis.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.nome}
+                    </option>
+                  ))}
+                </select>
+                {turmasDisponiveis.length === 0 && (
+                  <p className="text-[9px] text-amber-500 font-bold uppercase ml-1">
+                    Nenhuma turma de {anoAtivo} nesta escola.
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                  Turno
+                </label>
+                <input
+                  type="text"
+                  value={turnoExibido}
+                  readOnly
+                  className="w-full bg-white/[0.02] border border-white/5 rounded-2xl px-5 py-4 text-slate-500 font-bold outline-none"
+                />
+              </div>
+            </div>
+
+            <motion.button
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+              type="button"
+              onClick={salvar}
+              disabled={isSaving}
+              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-2xl shadow-2xl flex items-center justify-center gap-3 uppercase tracking-widest text-xs mt-8"
+            >
+              {isSaving ? (
+                "Sincronizando..."
+              ) : (
+                <>
+                  <FaSave /> Salvar Alterações
+                </>
+              )}
+            </motion.button>
+          </form>
+        </motion.div>
+      </div>
     </div>
   );
 }
-
-export default EditarAluno;

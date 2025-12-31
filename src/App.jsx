@@ -17,6 +17,7 @@ import EscolaAtual from "./components/EscolaAtual";
 import PrivateRoute from "./components/PrivateRoute";
 import CorrigirTurmas from "./pages/CorrigirTurmas";
 import RelatorioConferencia from "./pages/RelatorioConferencia";
+import FerramentasDados from "./pages/FerramentasDados";
 
 // --- PÁGINAS COM LAZY-LOADING (COMPLETO) ---
 const AcompanhamentoAEE = lazy(() => import("./pages/AcompanhamentoAEE.jsx"));
@@ -185,6 +186,10 @@ function AppContent() {
               <Route path="/corrigir-turmas" element={<CorrigirTurmas />} />
               <Route path="/relatorios-aluno" element={<RelatoriosPage />} />
               <Route path="/ver-alunos" element={<VerAlunos />} />
+              <Route
+                path="/admin/ferramentas-dados"
+                element={<FerramentasDados />}
+              />
 
               {/* --- ROTAS DE AVALIAÇÃO --- */}
               <Route path="/avaliacao-inicial" element={<AvaliacaoInicial />} />

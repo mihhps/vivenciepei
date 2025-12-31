@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { db } from "../firebase";
 import {
   collection,
@@ -7,23 +7,40 @@ import {
   deleteDoc,
   query,
   where,
-  getDoc,
   orderBy,
   writeBatch,
 } from "firebase/firestore";
 import {
-  FaPencilAlt,
   FaTrashAlt,
   FaPlus,
-  FaPuzzlePiece,
   FaSearch,
   FaRocket,
+  FaArrowLeft,
+  FaUserGraduate,
+  FaSchool,
 } from "react-icons/fa";
 import Loader from "../components/Loader";
 import { useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
+import { motion, AnimatePresence } from "framer-motion";
+import { useUserSchool } from "../hooks/useUserSchool";
 
+import "react-toastify/dist/ReactToastify.css";
 import "../styles/VerAlunos.css";
+
+// --- FUNÇÕES AUXILIARES ---
+const sugerirProximaTurma = (turmaAtual) => {
+  if (!turmaAtual) return "";
+  let t = turmaAtual.trim();
+  const match = t.match(/(\d+)º/);
+  if (match) {
+    const numeroAtual = parseInt(match[1]);
+    const proximoNumero = numeroAtual + 1;
+    if (numeroAtual === 9) return t.replace("9º Ano", "1º Ano E.M.");
+    return t.replace(`${numeroAtual}º`, `${proximoNumero}º`);
+  }
+  return t;
+};
 
 const calcularIdade = (data) => {
   if (!data) return "N/A";
@@ -38,142 +55,130 @@ const calcularIdade = (data) => {
   return idade;
 };
 
-const sugerirProximaTurma = (turmaAtual) => {
-  if (!turmaAtual) return "";
-  const turmas = {
-    "Pré I": "Pré II",
-    "Pré II": "1º Ano",
-    "1º Ano": "2º Ano",
-    "2º Ano": "3º Ano",
-    "3º Ano": "4º Ano",
-    "4º Ano": "5º Ano",
-  };
-  for (const [chave, valor] of Object.entries(turmas)) {
-    if (turmaAtual.includes(chave)) return turmaAtual.replace(chave, valor);
-  }
-  return turmaAtual;
-};
-
 export default function VerAlunos() {
   const navigate = useNavigate();
+  const { userSchoolId, isLoadingUserSchool, canViewAllSchools } =
+    useUserSchool();
+
   const [alunos, setAlunos] = useState([]);
   const [escolas, setEscolas] = useState([]);
-  const [escolaSelecionada, setEscolaSelecionada] = useState(
-    localStorage.getItem("ultimaEscolaSelecionada")
-  );
+  const [escolaSelecionada, setEscolaSelecionada] = useState(null);
   const [busca, setBusca] = useState("");
-  const [loading, setLoading] = useState(true);
-
+  const [loading, setLoading] = useState(false); // Começa como false para não travar antes do hook
+  const [processandoMigracao, setProcessandoMigracao] = useState(false);
   const [mostrarModalMigracao, setMostrarModalMigracao] = useState(false);
   const [alunosAnterior, setAlunosAnterior] = useState([]);
   const [selecionados, setSelecionados] = useState([]);
 
   const ANO_ATUAL = 2025;
-  const PROXIMO_ANO = 2026;
+  const ANO_PROXIMO = 2026;
 
-  const usuario = useMemo(
-    () => JSON.parse(localStorage.getItem("usuarioLogado") || "{}"),
-    []
-  );
-
-  // ✅ FUNÇÃO PARA VOLTAR AO PAINEL CORRETO (Quebra o looping)
-  const voltarHome = () => {
-    const perfil = usuario.perfil?.toLowerCase();
-    if (perfil === "professor") {
-      navigate("/painel-professor");
-    } else {
-      navigate("/painel-gestao");
+  const usuario = useMemo(() => {
+    try {
+      const raw = localStorage.getItem("usuarioLogado") || "{}";
+      const parsed = JSON.parse(raw);
+      if (parsed.perfil) {
+        parsed.perfil = parsed.perfil
+          .replace(/['"]+/g, "")
+          .toLowerCase()
+          .trim();
+      }
+      return parsed;
+    } catch (e) {
+      return {};
     }
-  };
+  }, []);
 
+  // 1. Carregar lista de escolas (necessário para o seletor)
+  useEffect(() => {
+    const carregarEscolas = async () => {
+      try {
+        const eSnap = await getDocs(collection(db, "escolas"));
+        setEscolas(eSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      } catch (e) {
+        console.error("Erro escolas:", e);
+      }
+    };
+    carregarEscolas();
+  }, []);
+
+  // 2. Sincronizar escola inicial do hook
+  useEffect(() => {
+    if (!isLoadingUserSchool && userSchoolId) {
+      setEscolaSelecionada(userSchoolId);
+    }
+  }, [userSchoolId, isLoadingUserSchool]);
+
+  // 3. Carregar Alunos quando uma escola for selecionada
   const carregarDados = useCallback(async () => {
+    if (!escolaSelecionada) return;
+
     setLoading(true);
     try {
       const anoVisualizacao =
         Number(localStorage.getItem("anoExercicio")) || ANO_ATUAL;
 
-      const eSnap = await getDocs(collection(db, "escolas"));
-      const eList = eSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      setEscolas(eList);
+      const q = query(
+        collection(db, "alunos"),
+        where("escolaId", "==", escolaSelecionada),
+        where("ano", "==", anoVisualizacao),
+        orderBy("nome")
+      );
 
-      let idParaCarregar = escolaSelecionada;
+      const aSnap = await getDocs(q);
+      setAlunos(aSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
 
-      if (!idParaCarregar) {
-        const perfil = usuario.perfil?.toLowerCase();
-        if (["desenvolvedor", "seme"].includes(perfil)) {
-          idParaCarregar = eList[0]?.id;
-        } else {
-          const uDoc = await getDoc(doc(db, "usuarios", usuario.uid));
-          idParaCarregar = Object.keys(uDoc.data()?.escolas || {})[0];
-        }
-        setEscolaSelecionada(idParaCarregar);
-        localStorage.setItem("ultimaEscolaSelecionada", idParaCarregar);
-      }
-
-      if (idParaCarregar) {
-        const q = query(
-          collection(db, "alunos"),
-          where("escolaId", "==", idParaCarregar),
-          where("ano", "==", anoVisualizacao),
-          orderBy("nome")
-        );
-        const aSnap = await getDocs(q);
-        setAlunos(aSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
-
-        const qMigrar = query(
-          collection(db, "alunos"),
-          where("escolaId", "==", idParaCarregar),
-          where("ano", "==", ANO_ATUAL)
-        );
-        const mSnap = await getDocs(qMigrar);
-        setAlunosAnterior(mSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
-      }
+      // Dados para migração
+      const qMigrar = query(
+        collection(db, "alunos"),
+        where("escolaId", "==", escolaSelecionada),
+        where("ano", "==", ANO_ATUAL)
+      );
+      const mSnap = await getDocs(qMigrar);
+      setAlunosAnterior(mSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
     } catch (e) {
-      console.error("Erro:", e);
-      toast.error("Erro ao carregar dados.");
+      console.error(e);
+      toast.error("Erro ao carregar alunos.");
     } finally {
       setLoading(false);
     }
-  }, [usuario.uid, usuario.perfil, escolaSelecionada]);
+  }, [escolaSelecionada]);
 
   useEffect(() => {
     carregarDados();
   }, [carregarDados]);
 
-  const trocarEscola = (id) => {
-    setEscolaSelecionada(id);
-    localStorage.setItem("ultimaEscolaSelecionada", id);
-  };
-
-  const toggleSelecionar = (id) => {
-    setSelecionados((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
-    );
-  };
-
-  const executarMigracao = async () => {
-    setLoading(true);
-    const batch = writeBatch(db);
-    selecionados.forEach((id) => {
-      const alunoOriginal = alunosAnterior.find((a) => a.id === id);
-      const novaTurma = sugerirProximaTurma(alunoOriginal?.turma);
-      const docRef = doc(db, "alunos", id);
-      batch.update(docRef, {
-        ano: PROXIMO_ANO,
-        turma: novaTurma,
-      });
-    });
-
+  const handleExcluir = async (id, nome) => {
+    if (!window.confirm(`Excluir ${nome}?`)) return;
     try {
+      await deleteDoc(doc(db, "alunos", id));
+      setAlunos((prev) => prev.filter((a) => a.id !== id));
+      toast.success("Removido.");
+    } catch (e) {
+      toast.error("Erro ao excluir.");
+    }
+  };
+
+  const handlePromoverSelecionados = async () => {
+    if (selecionados.length === 0) return;
+    setProcessandoMigracao(true);
+    try {
+      const batch = writeBatch(db);
+      selecionados.forEach((id) => {
+        const aluno = alunosAnterior.find((a) => a.id === id);
+        batch.update(doc(db, "alunos", id), {
+          turma: sugerirProximaTurma(aluno.turma),
+          ano: ANO_PROXIMO,
+        });
+      });
       await batch.commit();
-      toast.success(`${selecionados.length} alunos migrados e avançados!`);
+      toast.success("Promovidos!");
       setMostrarModalMigracao(false);
-      setSelecionados([]);
       carregarDados();
     } catch (e) {
-      toast.error("Erro na migração.");
+      toast.error("Erro na promoção.");
     } finally {
-      setLoading(false);
+      setProcessandoMigracao(false);
     }
   };
 
@@ -183,206 +188,212 @@ export default function VerAlunos() {
     );
   }, [alunos, busca]);
 
-  const handleExcluir = async (id, nome) => {
-    if (!window.confirm(`Excluir o aluno ${nome}?`)) return;
-    try {
-      await deleteDoc(doc(db, "alunos", id));
-      toast.success("Aluno removido.");
-      carregarDados();
-    } catch (e) {
-      toast.error("Erro ao excluir.");
-    }
-  };
+  // --- LÓGICA DE RENDERIZAÇÃO CORRIGIDA ---
 
-  if (loading) return <Loader />;
+  // 1. Se o Hook ainda está verificando quem é o usuário, Loader.
+  if (isLoadingUserSchool) return <Loader />;
 
   return (
-    <div className="ver-alunos-container">
-      <ToastContainer position="bottom-right" />
+    <div className="min-h-screen bg-[#020617] text-slate-100 p-8 font-['Plus_Jakarta_Sans'] relative">
+      <ToastContainer theme="dark" position="bottom-right" />
+      <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
 
-      {/* MODAL DE MIGRAÇÃO */}
-      {mostrarModalMigracao && (
-        <div className="modal-migracao-overlay">
-          <div className="modal-migracao-card">
-            <div className="modal-header">
-              <h3 style={{ margin: 0, color: "#0f172a" }}>
-                Migrar e Avançar de Série
+      <header className="flex flex-wrap items-center justify-between gap-6 mb-12 relative z-10">
+        <div className="flex items-center gap-6">
+          <button
+            onClick={() => navigate(-1)}
+            className="p-3 rounded-2xl bg-white/5 border border-white/10 text-blue-400"
+          >
+            <FaArrowLeft />
+          </button>
+          <div>
+            <h1 className="text-4xl font-black text-white uppercase italic tracking-tighter">
+              Gestão de <span className="text-blue-500">Alunos</span>
+            </h1>
+            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1">
+              {escolaSelecionada
+                ? `Unidade: ${
+                    escolas.find((e) => e.id === escolaSelecionada)?.nome
+                  }`
+                : "Selecione uma Unidade"}
+            </p>
+          </div>
+        </div>
+
+        {escolaSelecionada && (
+          <div className="flex gap-4">
+            <button
+              onClick={() => setMostrarModalMigracao(true)}
+              className="px-6 py-3 bg-white/5 border border-white/10 text-slate-300 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-600 transition-all flex items-center gap-2"
+            >
+              <FaRocket /> Promover
+            </button>
+            <button
+              onClick={() => navigate("/cadastrar-aluno")}
+              className="bg-blue-600 text-white px-6 py-3 rounded-2xl flex items-center gap-2 text-[10px] font-black uppercase tracking-widest shadow-xl shadow-blue-900/20"
+            >
+              <FaPlus /> Novo Aluno
+            </button>
+          </div>
+        )}
+      </header>
+
+      {/* SELETOR PARA DESENVOLVEDOR/GESTAO */}
+      {canViewAllSchools && (
+        <div className="flex gap-3 overflow-x-auto pb-6 mb-4 relative z-10">
+          {escolas.map((e) => (
+            <button
+              key={e.id}
+              className={`px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all whitespace-nowrap ${
+                escolaSelecionada === e.id
+                  ? "bg-blue-600 border-blue-400 text-white"
+                  : "bg-white/5 border-white/10 text-slate-400"
+              }`}
+              onClick={() => {
+                setBusca("");
+                setEscolaSelecionada(e.id);
+              }}
+            >
+              {e.nome}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* ESTADO: NENHUMA ESCOLA SELECIONADA (Para DEVS recém logados) */}
+      {!escolaSelecionada ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center bg-white/[0.02] rounded-[40px] border border-white/5">
+          <FaSchool className="text-6xl text-slate-700 mb-6" />
+          <h2 className="text-xl font-bold text-slate-400 uppercase tracking-tighter">
+            Aguardando Seleção de Unidade
+          </h2>
+          <p className="text-slate-500 text-sm mt-2 max-w-xs">
+            Como você possui acesso administrativo, selecione uma escola acima
+            para visualizar os alunos.
+          </p>
+        </div>
+      ) : loading ? (
+        <div className="flex justify-center py-20">
+          <Loader />
+        </div>
+      ) : (
+        <>
+          <div className="relative max-w-2xl mb-12 z-10">
+            <FaSearch className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-500" />
+            <input
+              type="text"
+              placeholder="Buscar aluno..."
+              className="w-full bg-white/[0.03] border border-white/10 rounded-3xl py-5 pl-14 pr-6 text-white outline-none"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 relative z-10">
+            <AnimatePresence mode="popLayout">
+              {alunosFiltrados.map((aluno) => (
+                <motion.div
+                  layout
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  key={aluno.id}
+                  className="bg-white/[0.03] border border-white/10 rounded-[35px] p-6 group hover:border-blue-500/40 transition-all shadow-xl"
+                >
+                  <div className="flex items-center gap-5 mb-6">
+                    <div className="w-16 h-16 rounded-[22px] bg-slate-800 border border-white/10 flex items-center justify-center text-2xl font-black text-blue-500 overflow-hidden">
+                      {aluno.fotoUrl ? (
+                        <img
+                          src={aluno.fotoUrl}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        aluno.nome?.charAt(0)
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-white font-bold truncate">
+                        {aluno.nome}
+                      </h3>
+                      <span className="text-[10px] uppercase font-black tracking-widest text-blue-400 block">
+                        {aluno.turma}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => navigate(`/editar-aluno/${aluno.id}`)}
+                      className="flex-1 bg-white/5 hover:bg-blue-600 text-[10px] font-black uppercase py-3.5 rounded-2xl transition-all"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      onClick={() => handleExcluir(aluno.id, aluno.nome)}
+                      className="px-4 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-2xl transition-all"
+                    >
+                      <FaTrashAlt />
+                    </button>
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        </>
+      )}
+
+      {/* MODAL MIGRAÇÃO (Simplificado para brevidade) */}
+      <AnimatePresence>
+        {mostrarModalMigracao && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+            <div
+              className="absolute inset-0 bg-black/90 backdrop-blur-md"
+              onClick={() =>
+                !processandoMigracao && setMostrarModalMigracao(false)
+              }
+            />
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              className="bg-[#0f172a] border border-white/10 w-full max-w-2xl rounded-[40px] p-10 relative z-10"
+            >
+              <h3 className="text-2xl font-black text-white uppercase italic mb-6">
+                Promover Alunos ({ANO_ATUAL} → {ANO_PROXIMO})
               </h3>
-              <p style={{ color: "#64748b", fontSize: "0.9rem" }}>
-                Selecione quem continuará na rede em {PROXIMO_ANO}
-              </p>
-            </div>
-            <div className="lista-selecao-migracao">
-              {alunosAnterior.length === 0 ? (
-                <p style={{ padding: "20px", textAlign: "center" }}>
-                  Nenhum aluno de {ANO_ATUAL} encontrado.
-                </p>
-              ) : (
-                alunosAnterior.map((a) => (
-                  <label key={a.id} className="item-selecao">
+              <div className="max-h-[300px] overflow-y-auto space-y-2 mb-8 pr-2 custom-scrollbar">
+                {alunosAnterior.map((a) => (
+                  <label
+                    key={a.id}
+                    className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 cursor-pointer"
+                  >
                     <input
                       type="checkbox"
                       checked={selecionados.includes(a.id)}
-                      onChange={() => toggleSelecionar(a.id)}
+                      onChange={() =>
+                        setSelecionados((prev) =>
+                          prev.includes(a.id)
+                            ? prev.filter((i) => i !== a.id)
+                            : [...prev, id]
+                        )
+                      }
+                      className="w-5 h-5 accent-blue-600"
                     />
-                    <div className="aluno-info-mini">
-                      <strong style={{ color: "#1e293b" }}>{a.nome}</strong>
-                      <span>
-                        {a.turma} →{" "}
-                        <b style={{ color: "#3b82f6" }}>
-                          {sugerirProximaTurma(a.turma)}
-                        </b>
-                      </span>
-                    </div>
+                    <span className="text-sm font-bold text-slate-200">
+                      {a.nome} ({a.turma})
+                    </span>
                   </label>
-                ))
-              )}
-            </div>
-            <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
+                ))}
+              </div>
               <button
-                className="btn-edit"
-                onClick={() => setMostrarModalMigracao(false)}
+                onClick={handlePromoverSelecionados}
+                disabled={processandoMigracao}
+                className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black uppercase"
               >
-                Cancelar
+                {processandoMigracao ? "Processando..." : "Confirmar Promoção"}
               </button>
-              <button
-                className="btn-novo-aluno"
-                style={{ flex: 1, margin: 0 }}
-                onClick={executarMigracao}
-                disabled={selecionados.length === 0}
-              >
-                Confirmar Avanço ({selecionados.length})
-              </button>
-            </div>
+            </motion.div>
           </div>
-        </div>
-      )}
-
-      <div className="ver-alunos-header-actions">
-        <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
-          {/* ✅ BOTÃO CORRIGIDO: Agora chama voltarHome() */}
-          <button
-            className="tab-escola"
-            onClick={voltarHome}
-            style={{ padding: "8px 16px" }}
-          >
-            ← Início
-          </button>
-          <div className="header-title-group">
-            <h1>Alunos Cadastrados</h1>
-            <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
-              <p>
-                Exercício{" "}
-                <strong>
-                  {localStorage.getItem("anoExercicio") || "2025"}
-                </strong>
-              </p>
-              <button
-                className="btn-abrir-migracao"
-                onClick={() => setMostrarModalMigracao(true)}
-              >
-                <FaRocket size={12} /> Migrar e Avançar
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <button
-          className="btn-novo-aluno"
-          onClick={() => navigate("/cadastrar-aluno")}
-        >
-          <FaPlus /> Novo Aluno
-        </button>
-      </div>
-
-      <div className="escolas-tabs-scroll">
-        {escolas.map((e) => (
-          <button
-            key={e.id}
-            className={`tab-escola ${
-              escolaSelecionada === e.id ? "active" : ""
-            }`}
-            onClick={() => trocarEscola(e.id)}
-          >
-            {e.nome}
-          </button>
-        ))}
-      </div>
-
-      <div className="busca-aluno-wrapper">
-        <FaSearch className="search-icon" />
-        <input
-          type="text"
-          placeholder="Pesquisar aluno por nome..."
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-        />
-      </div>
-
-      <div className="alunos-grid">
-        {alunosFiltrados.map((aluno) => (
-          <div key={aluno.id} className="aluno-card-moderno">
-            <div className="aluno-card-top">
-              <div className="aluno-avatar-wrapper">
-                {aluno.fotoUrl ? (
-                  <img src={aluno.fotoUrl} alt={aluno.nome} />
-                ) : (
-                  <div className="avatar-placeholder">
-                    {aluno.nome ? aluno.nome[0] : "?"}
-                  </div>
-                )}
-                {aluno.diagnostico?.toLowerCase().includes("tea") && (
-                  <div className="tea-badge" title="Aluno com TEA">
-                    <FaPuzzlePiece />
-                  </div>
-                )}
-              </div>
-              <div className="aluno-main-info">
-                <h3>{aluno.nome}</h3>
-                <span className="aluno-turma-tag">
-                  {aluno.turma || "Sem Turma"}
-                </span>
-              </div>
-            </div>
-
-            <div className="aluno-card-details">
-              <div className="detail-item">
-                <label>Idade</label>
-                <span>{calcularIdade(aluno.nascimento)} anos</span>
-              </div>
-              <div className="detail-item">
-                <label>Turno</label>
-                <span>{aluno.turno || "N/A"}</span>
-              </div>
-              <div className="detail-item full">
-                <label>Diagnóstico</label>
-                <p>{aluno.diagnostico || "Não informado"}</p>
-              </div>
-            </div>
-
-            <div className="aluno-card-footer">
-              <button
-                className="btn-edit"
-                onClick={() => navigate(`/editar-aluno/${aluno.id}`)}
-              >
-                <FaPencilAlt /> Editar
-              </button>
-              <button
-                className="btn-del"
-                onClick={() => handleExcluir(aluno.id, aluno.nome)}
-              >
-                <FaTrashAlt />
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {alunosFiltrados.length === 0 && (
-        <div style={{ textAlign: "center", padding: "50px", color: "#64748b" }}>
-          <p>Nenhum aluno encontrado para os critérios selecionados.</p>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </div>
   );
 }

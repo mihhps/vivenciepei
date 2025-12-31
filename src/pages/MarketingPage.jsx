@@ -1,604 +1,295 @@
 import React from "react";
 import { Link } from "react-router-dom";
 
-// O código da sua página de aterragem original, agora como um componente separado.
-
-const styles = {
-  body: {
-    fontFamily: '"Inter", sans-serif',
-    color: "#1a202c",
-    backgroundColor: "#f3f4f6",
-  },
+// --- ÍCONES SVG MINIMALISTAS ---
+const Icons = {
+  Collaboration: () => (
+    <svg
+      className="w-6 h-6 text-blue-500"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+      />
+    </svg>
+  ),
+  Time: () => (
+    <svg
+      className="w-6 h-6 text-blue-500"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+      />
+    </svg>
+  ),
+  Vision: () => (
+    <svg
+      className="w-6 h-6 text-blue-500"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+      />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+      />
+    </svg>
+  ),
+  Document: () => (
+    <svg
+      className="w-6 h-6 text-blue-500"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+      />
+    </svg>
+  ),
+  Instagram: () => (
+    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+    </svg>
+  ),
 };
 
-const LandingPage = () => {
+const BENEFICIOS = [
+  {
+    t: "Colaboração e Coerência",
+    d: "Promove a cooperação e unifica o processo da equipe.",
+    i: Icons.Collaboration,
+  },
+  {
+    t: "Otimização do Tempo",
+    d: "Simplifica a elaboração e registro dos planos educacionais.",
+    i: Icons.Time,
+  },
+  {
+    t: "Visão 360º do Aluno",
+    d: "Integra habilidades e interesses para compreensão profunda.",
+    i: Icons.Vision,
+  },
+  {
+    t: "Gestão de Documentos",
+    d: "Geração automática de PDFs e relatórios estruturados.",
+    i: Icons.Document,
+  },
+];
+
+export default function LandingPage() {
   return (
-    <div style={styles.body}>
-      <main className="min-h-screen">
-        {/* Seção Principal */}
-        <section className="relative bg-blue-900 text-white py-16 sm:py-20 overflow-hidden">
-          {/* Padrão de fundo */}
-          <div className="absolute inset-0 z-0 opacity-10">
-            <svg
-              className="h-full w-full"
-              fill="none"
-              viewBox="0 0 100 100"
-              preserveAspectRatio="none"
-            >
-              <defs>
-                <pattern
-                  id="pattern-5c1265f5-f0b5-41f2-851b-f7e52a832e8d"
-                  x="0"
-                  y="0"
-                  width="20"
-                  height="20"
-                  patternUnits="userSpaceOnUse"
-                >
-                  <rect
-                    x="0"
-                    y="0"
-                    width="1"
-                    height="1"
-                    className="text-white fill-current opacity-25"
-                  ></rect>
-                </pattern>
-              </defs>
-              <rect
-                width="100%"
-                height="100%"
-                fill="url(#pattern-5c1265f5-f0b5-41f2-851b-f7e52a832e8d)"
-              ></rect>
-            </svg>
-          </div>
-
-          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
-            <img
-              src="/logo-vivencie.png"
-              alt="Logo da Vivencie PEI"
-              className="mx-auto h-80 w-auto mb-12"
-            />
-
-            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight text-gray-200">
-              Vivencie o Crescimento.
-              <br className="hidden sm:inline" />
+    <div className="bg-[#030712] font-sans text-slate-300 antialiased selection:bg-blue-500/30">
+      {/* 1. HERO */}
+      <section className="relative min-h-screen flex items-center justify-center px-6 overflow-hidden">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-blue-600/10 blur-[120px] pointer-events-none" />
+        <div className="relative z-10 max-w-5xl mx-auto text-center">
+          <img
+            src="/logo-vivencie.png"
+            alt="Vivencie Logo"
+            className="mx-auto h-32 sm:h-44 mb-12 opacity-90 drop-shadow-2xl"
+          />
+          <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-white mb-8 leading-[1.1]">
+            Vivencie o Crescimento. <br />
+            <span className="text-slate-500 italic font-light">
               Vivencie o PEI.
-            </h1>
-            <p className="mt-4 max-w-2xl mx-auto text-lg sm:text-xl font-medium text-blue-200">
-              Uma plataforma completa e intuitiva para elaboração e gestão de
-              Planos Educacionais Individualizados (PEIs), com suporte ao
-              Atendimento Educacional Especializado (AEE), desenvolvida para
-              qualificar a prática pedagógica e promover a aprendizagem de forma
-              equitativa e personalizada.
-            </p>
-            <div className="mt-8 flex justify-center">
-              {/* O BOTÃO AGORA USA O COMPONENTE LINK PARA NAVEGAR PARA A NOVA PÁGINA */}
-              <Link
-                to="/inicio"
-                className="inline-block px-8 py-3 font-semibold text-blue-900 bg-white rounded-full shadow-lg transition-transform transform hover:scale-105 hover:bg-gray-100"
-              >
-                Acessar a Plataforma
-              </Link>
-            </div>
+            </span>
+          </h1>
+          <p className="max-w-2xl mx-auto text-slate-400 text-lg leading-relaxed mb-12">
+            Uma plataforma inteligente para gestão de PEIs e apoio ao AEE, que
+            qualifica a prática pedagógica e garante uma aprendizagem
+            personalizada e equitativa.
+          </p>
+          <div className="flex justify-center">
+            <Link
+              to="/inicio"
+              className="px-10 py-4 bg-blue-600 text-white font-semibold rounded-lg shadow-xl hover:bg-blue-500 transition-all active:scale-95"
+            >
+              Acessar a Plataforma
+            </Link>
           </div>
-        </section>
-        {/* Seção de Benefícios */}
-        <section className="bg-blue-50 py-12 sm:py-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-center text-blue-900">
-              Por que Vivencie PEI?
-            </h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {/* Benefício 1 */}
-              <div className="bg-white p-6 rounded-2xl shadow-md space-y-2 border border-blue-100 text-center">
-                <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-blue-100 p-2">
-                  <img
-                    src="/images/colaboracao.png"
-                    alt="Ícone de colaboração"
-                    className="h-full w-full object-contain"
-                  />
-                </div>
-                <h3 className="font-bold text-lg text-blue-600">
-                  Colaboração e Coerência
-                </h3>
-                <p className="text-sm text-gray-700">
-                  Promove a cooperação, unifica o processo e assegura que toda a
-                  equipe esteja alinhada a um propósito único.
-                </p>
+        </div>
+      </section>
+
+      {/* 2. RECURSOS */}
+      <section className="py-24 max-w-7xl mx-auto px-6 border-t border-white/5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-px bg-white/5 border border-white/5 rounded-3xl overflow-hidden shadow-2xl">
+          {BENEFICIOS.map((item, idx) => (
+            <div
+              key={idx}
+              className="bg-[#030712] p-10 hover:bg-white/[0.02] transition-colors"
+            >
+              <div className="mb-6">
+                <item.i />
               </div>
-              {/* Benefício 2 */}
-              <div className="bg-white p-6 rounded-2xl shadow-md space-y-2 border border-blue-100 text-center">
-                <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-blue-100 p-2">
-                  <img
-                    src="/images/otimizacao.png"
-                    alt="Ícone de otimização de tempo"
-                    className="h-full w-full object-contain"
-                  />
-                </div>
-                <h3 className="font-bold text-lg text-blue-600">
-                  Otimização do Tempo
-                </h3>
-                <p className="text-sm text-gray-700">
-                  Minimiza a necessidade de reuniões e simplifica o processo de
-                  elaboração, edição e registro dos planos.
-                </p>
-              </div>
-              {/* Benefício 3 */}
-              <div className="bg-white p-6 rounded-2xl shadow-md space-y-2 border border-blue-100 text-center">
-                <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-blue-100 p-2">
-                  <img
-                    src="/images/visao.png"
-                    alt="Ícone de visão 360"
-                    className="h-full w-full object-contain"
-                  />
-                </div>
-                <h3 className="font-bold text-lg text-blue-600">
-                  Visão 360º do Aluno
-                </h3>
-                <p className="text-sm text-gray-700">
-                  Integra a avaliação de habilidades, interesses e gatilhos,
-                  oferecendo à equipe uma compreensão ampla e aprofundada do
-                  aluno.
-                </p>
-              </div>
-              {/* Benefício 4 */}
-              <div className="bg-white p-6 rounded-2xl shadow-md space-y-2 border border-blue-100 text-center">
-                <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-blue-100 p-2">
-                  <img
-                    src="/images/documentacao.png"
-                    alt="Ícone de documentação"
-                    className="h-full w-full object-contain"
-                  />
-                </div>
-                <h3 className="font-bold text-lg text-blue-600">
-                  Documentação Simplificada
-                </h3>
-                <p className="text-sm text-gray-700">
-                  Gera de forma automática um documento PDF completo, ideal para
-                  organizar, arquivar e compartilhar.
-                </p>
-              </div>
+              <h3 className="text-white font-bold text-lg mb-3 tracking-tight">
+                {item.t}
+              </h3>
+              <p className="text-slate-500 text-sm leading-relaxed">{item.d}</p>
             </div>
-          </div>
-        </section>
-        {/* Seção de Recursos */}
-        <section className="bg-white py-12 sm:py-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-            <div className="text-center space-y-4">
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-blue-900">
-                Nossa Metodologia em Ação
+          ))}
+        </div>
+      </section>
+
+      {/* 3. IA SECTION */}
+      <section className="py-24 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="relative bg-gradient-to-br from-slate-900 to-black rounded-[2.5rem] p-12 md:p-20 border border-white/10 overflow-hidden group shadow-2xl">
+            <div className="relative z-10 max-w-3xl">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="h-px w-8 bg-blue-500" />
+                <span className="text-blue-500 text-xs font-bold uppercase tracking-widest">
+                  Inteligência Artificial Gemini
+                </span>
+              </div>
+              <h2 className="text-3xl md:text-5xl font-bold text-white mb-8 leading-tight">
+                Eficiência técnica para <br />
+                personalização da jornada.
               </h2>
-              <p className="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto">
-                A Vivencie PEI transforma a elaboração de Planos Educacionais
-                Individualizados em um processo estruturado, simples e
-                eficiente.
+              <p className="text-slate-400 text-lg leading-relaxed mb-10">
+                A tecnologia Gemini atua como um assistente de alto nível,
+                sugerindo estratégias adaptadas às habilidades mapeadas de cada
+                aluno.
               </p>
             </div>
-
-            <div className="grid md:grid-cols-3 gap-8 sm:gap-12">
-              {/* Passo 1: Avaliação */}
-              <div className="text-center space-y-4">
-                <div className="flex justify-center mb-4">
-                  <img
-                    src="/images/avaliacao.png"
-                    alt="Ícone de Avaliação"
-                    className="w-20 h-20"
-                  />
-                </div>
-                <h3 className="font-extrabold text-xl text-blue-900">
-                  1. Avaliação Inicial
-                </h3>
-                <p className="text-sm text-gray-600">
-                  Nossas avaliações foram desenvolvidas com base em metodologias
-                  reconhecidas (Portage, Denver e WISC), garantindo uma análise
-                  completa das habilidades e interesses do aluno, em alinhamento
-                  com a BNCC.
-                </p>
-              </div>
-
-              {/* Passo 2: Criação */}
-              <div className="text-center space-y-4">
-                <div className="flex justify-center mb-4">
-                  <img
-                    src="/images/criacao.png"
-                    alt="Ícone de Criação"
-                    className="w-20 h-20"
-                  />
-                </div>
-                <h3 className="font-extrabold text-xl text-blue-900">
-                  2. Criação Inteligente do PEI
-                </h3>
-                <p className="text-sm text-gray-600">
-                  A plataforma guia a criação do PEI, puxando as habilidades
-                  avaliadas e sugerindo objetivos e estratégias que podem ser
-                  personalizados pelo professor.
-                </p>
-              </div>
-
-              {/* Passo 3: Acompanhamento */}
-              <div className="text-center space-y-4">
-                <div className="flex justify-center mb-4">
-                  <img
-                    src="/images/acompanhamento.png"
-                    alt="Ícone de Acompanhamento"
-                    className="w-20 h-20"
-                  />
-                </div>
-                <h3 className="font-extrabold text-xl text-blue-900">
-                  3. Acompanhamento e Registro
-                </h3>
-                <p className="text-sm text-gray-600">
-                  Registre atividades e observações de forma detalhada e
-                  centralizada, garantindo um histórico completo do
-                  desenvolvimento do aluno.
-                </p>
-              </div>
-            </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* Nova Seção: Visão Estratégica para a Gestão */}
-        <section className="bg-white py-12 sm:py-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-            <div className="text-center space-y-4">
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-blue-900">
-                Visão Estratégica para a Gestão
-              </h2>
-              <p className="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto">
-                A Vivencie PEI oferece uma gestão completa de acompanhamento,
-                permitindo que gestores identifem de forma fácil quem está ou
-                não elaborando os PEIs. Além disso, centraliza toda a
-                documentação do AEE, incluindo anamneses e relatórios, em um
-                único lugar, otimizando o fluxo de trabalho e garantindo que
-                nada se perca.
-              </p>
-            </div>
+      {/* 4. EQUIPE - FOTOS INTERATIVAS */}
+      <section className="py-24 max-w-7xl mx-auto px-6 border-t border-white/5">
+        <div className="text-center mb-20">
+          <h2 className="text-2xl font-bold text-white uppercase tracking-[0.2em] mb-4">
+            Equipe Especialista
+          </h2>
+          <div className="h-1 w-12 bg-blue-600 mx-auto" />
+        </div>
 
-            <div className="grid md:grid-cols-2 gap-8 sm:gap-12">
-              {/* Funcionalidade 1: Acompanhamento de PEIs */}
-              <div className="text-center space-y-4">
-                <div className="flex justify-center mb-4">
-                  <img
-                    src="/images/gestao.png"
-                    alt="Ícone de Gestão"
-                    className="w-20 h-20"
-                  />
-                </div>
-                <h3 className="font-extrabold text-xl text-blue-900">
-                  Gestão e Acompanhamento
-                </h3>
-                <p className="text-sm text-gray-600">
-                  A plataforma oferece uma visão clara e completa, permitindo
-                  que gestores identifiquem de forma rápida e eficiente quem
-                  está ou não fazendo os PEIs, otimizando o fluxo de trabalho e
-                  garantindo que nenhum aluno seja esquecido.
-                </p>
-              </div>
-
-              {/* Funcionalidade 2: Centralização de Documentos */}
-              <div className="text-center space-y-4">
-                <div className="flex justify-center mb-4">
-                  <img
-                    src="/images/arquivo.png"
-                    alt="Ícone de Documentação"
-                    className="w-20 h-20"
-                  />
-                </div>
-                <h3 className="font-extrabold text-xl text-blue-900">
-                  Documentação Centralizada
-                </h3>
-                <p className="text-sm text-gray-600">
-                  Facilita a documentação do Atendimento Educacional
-                  Especializado (AEE), concentrando anamneses, relatórios,
-                  laudos e demais documentos importantes em um único lugar,
-                  tornando o acesso e a consulta mais ágeis e organizados.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-        {/* Nova Seção: Inteligência Artificial (IA) */}
-        <section className="bg-blue-50 py-12 sm:py-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-            <div className="text-center space-y-4">
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-blue-900">
-                Com a IA, não apenas fica mais fácil, fica melhor.
-              </h2>
-              <p className="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto">
-                Com a IA Gemini integrada, a Vivencie PEI auxilia professores a
-                otimizar seu tempo e a personalizar a jornada de aprendizado de
-                cada aluno, tornando o processo mais eficiente e focado.
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-8 sm:gap-12">
-              {/* Funcionalidade 1: Criação de PEIs com IA */}
-              <div className="text-center space-y-4">
-                <div className="flex justify-center mb-4">
-                  <img
-                    src="/images/ia-pei.png" // Certifique-se de ter essa imagem no seu projeto
-                    alt="Ícone de IA criando PEI"
-                    className="w-20 h-20"
-                  />
-                </div>
-                <h3 className="font-extrabold text-xl text-blue-900">
-                  Criação de PEIs com IA
-                </h3>
-                <p className="text-sm text-gray-600">
-                  O Gemini otimiza a criação do Plano Educacional
-                  Individualizado (PEI) ao sugerir estratégias e atividades
-                  adaptadas às habilidades do aluno, com base em sua avaliação
-                  inicial. Isso torna o processo mais rápido e eficiente,
-                  permitindo que o professor personalize e refine as sugestões
-                  para garantir um plano perfeitamente alinhado às necessidades
-                  do estudante.
-                </p>
-              </div>
-
-              {/* Funcionalidade 2: Aulas Dinâmicas e Personalizadas */}
-              <div className="text-center space-y-4">
-                <div className="flex justify-center mb-4">
-                  <img
-                    src="/images/ia-aula.png" // Certifique-se de ter essa imagem no seu projeto
-                    alt="Ícone de IA criando aulas"
-                    className="w-20 h-20"
-                  />
-                </div>
-                <h3 className="font-extrabold text-xl text-blue-900">
-                  Aulas Dinâmicas e Personalizadas
-                </h3>
-                <p className="text-sm text-gray-600">
-                  A IA agiliza a criação de aulas e atividades, usando a
-                  Avaliação Inicial do aluno para gerar propostas
-                  personalizadas. Isso otimiza o tempo do professor, que pode
-                  adaptar facilmente as sugestões para a sala de aula,
-                  garantindo um aprendizado mais eficaz.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-        {/* Nova Seção: Acompanhamento de PEIs para a Equipe e Gestores */}
-        <section className="bg-white py-12 sm:py-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-            <div className="text-center space-y-4">
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-blue-900">
-                Colaboração e Acompanhamento: Uma Visão Unificada.
-              </h2>
-              <p className="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto">
-                Nossas ferramentas de acompanhamento e gestão facilitam a
-                colaboração entre todos os envolvidos, garantindo alinhamento
-                contínuo com o desenvolvimento individual de cada aluno.
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-8 sm:gap-12">
-              {/* Funcionalidade 1: Acompanhamento da Equipe */}
-              <div className="text-center space-y-4">
-                <div className="flex justify-center mb-4">
-                  <img
-                    src="/images/acompanhamento-equipe.png" // Certifique-se de ter essa imagem no seu projeto
-                    alt="Ícone de Acompanhamento da Equipe"
-                    className="w-20 h-20"
-                  />
-                </div>
-                <h3 className="font-extrabold text-xl text-blue-900">
-                  Página de Acompanhamento do AEE
-                </h3>
-                <p className="text-sm text-gray-600">
-                  A elaboração do Plano de Atendimento Educacional Especializado
-                  (AEE) tornou-se mais eficiente e estratégica com o apoio da
-                  inteligência artificial Gemini. A ferramenta permite a geração
-                  de sugestões de atividades personalizadas, de forma ágil e
-                  precisa, garantindo um planejamento pedagógico mais alinhado
-                  às habilidades e necessidades específicas de cada aluno.
-                </p>
-              </div>
-
-              {/* Funcionalidade 2: Acompanhamento da Gestão */}
-              <div className="text-center space-y-4">
-                <div className="flex justify-center mb-4">
-                  <img
-                    src="/images/acompanhamento-gestao.png" // Certifique-se de ter essa imagem no seu projeto
-                    alt="Ícone de Acompanhamento da Gestão"
-                    className="w-20 h-20"
-                  />
-                </div>
-                <h3 className="font-extrabold text-xl text-blue-900">
-                  Página de Acompanhamento da Gestão
-                </h3>
-                <p className="text-sm text-gray-600">
-                  Através da página de Acompanhamento da Gestão, os gestores têm
-                  uma visão centralizada do Planejamento Individual do
-                  atendimento do AEE, podendo analisar cada atendimento
-                  realizado, acompanhar as habilidades desenvolvidas e registrar
-                  feedbacks diretamente para o profissional do Atendimento
-                  Educacional Especializado. Essa funcionalidade facilita a
-                  identificação de gargalos, promove uma comunicação mais
-                  eficiente e fortalece a atuação estratégica da gestão escolar.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-        {/* Seção Quem Somos */}
-        <section className="bg-blue-50 py-12 sm:py-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-            <div className="text-center space-y-4">
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-blue-900">
-                Quem Somos
-              </h2>
-              <p className="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto">
-                Idealizada e desenvolvida por uma equipe apaixonada pela
-                educação, a Vivencie PEI tem como missão simplificar o caminho
-                para um ensino verdadeiramente inclusivo e eficaz.
-              </p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {/* Membro 1: Michelle Pollheim */}
-              <div className="bg-white p-6 rounded-2xl shadow-md space-y-4 text-center border border-blue-100">
-                <div className="flex justify-center mb-4">
-                  <img
-                    src="/images/michelle-pollheim.png"
-                    alt="Foto de Michelle Pollheim"
-                    className="h-36 w-36 rounded-full object-cover"
-                  />
-                </div>
-                <h3 className="font-extrabold text-xl text-blue-900">
-                  Michelle Pollheim
-                </h3>
-                <p className="text-sm text-blue-600 font-bold">
-                  Criadora e Orientadora Pedagógica
-                </p>
-                <p className="text-sm text-gray-700">
-                  Com ampla vivência nas necessidades práticas das escolas,
-                  Michelle assegura que a plataforma seja desenvolvida com
-                  equilíbrio entre sensibilidade e eficácia. É pedagoga e possui
-                  pós-graduação em Gestão Escolar.
-                </p>
-              </div>
-              {/* Membro 2: Shirlei Manske */}
-              <div className="bg-white p-6 rounded-2xl shadow-md space-y-4 text-center border border-blue-100">
-                <div className="flex justify-center mb-4">
-                  <img
-                    src="/images/shirlei-manske.png"
-                    alt="Foto de Shirlei Manske"
-                    className="h-36 w-36 rounded-full object-cover"
-                  />
-                </div>
-                <h3 className="font-extrabold text-xl text-blue-900">
-                  Shirlei Manske
-                </h3>
-                <p className="text-sm text-blue-600 font-bold">
-                  Especialista em AEE
-                </p>
-                <p className="text-sm text-gray-700">
-                  Com sua experiência no Atendimento Educacional Especializado,
-                  Shirlei trouxe a visão prática de quem está na linha de
-                  frente, assegurando que a plataforma atenda de forma real às
-                  demandas na elaboração do PEI.
-                </p>
-              </div>
-              {/* Membro 3: Késsia Janara Mafra da Silva */}
-              <div className="bg-white p-6 rounded-2xl shadow-md space-y-4 text-center border border-blue-100">
-                <div className="flex justify-center mb-4">
-                  <img
-                    src="/images/kessia-mafra.png"
-                    alt="Foto de Késsia Janara Mafra da Silva"
-                    className="h-36 w-36 rounded-full object-cover"
-                  />
-                </div>
-                <h3 className="font-extrabold text-xl text-blue-900">
-                  Késsia Janara Mafra da Silva
-                </h3>
-                <p className="text-sm text-blue-600 font-bold">
-                  Suporte em Avaliações e Educação Especial
-                </p>
-                <p className="text-sm text-gray-700">
-                  Késsia foi fundamental no suporte às avaliações e em tudo que
-                  envolve a Educação Especial, assegurando que a plataforma
-                  atendesse às especificidades dessa área.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Seção Agendar Demonstração */}
-        <section className="bg-white py-12 sm:py-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
-            <img
-              src="/images/calendario.png"
-              alt="Ícone de Calendário"
-              className="w-20 h-20 mx-auto mb-4"
-            />
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-blue-900">
-              Agende uma Demonstração
-            </h2>
-            <p className="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto">
-              Deseja transformar a forma como sua escola gerencia o PEI? Agende
-              uma conversa com nossa equipe e experimente a Vivencie PEI em
-              ação.
-            </p>
-            <div className="mt-8 flex justify-center">
-              <a
-                href="mailto:contato@vivenciepei.com.br?subject=Agendar%20Demonstração"
-                className="inline-block px-8 py-3 font-semibold text-white bg-blue-600 rounded-full shadow-lg transition-transform transform hover:scale-105 hover:bg-blue-700"
-              >
-                Agendar Agora
-              </a>
-            </div>
-          </div>
-        </section>
-
-        {/* Seção de Contato */}
-        <section className="bg-blue-900 text-white py-12 sm:py-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-white">
-              Entre em Contato
-            </h2>
-            <p className="max-w-2xl mx-auto text-lg text-blue-200">
-              Gostaria de mais informações ou tem alguma dúvida sobre a Vivencie
-              PEI? Entre em contato com a nossa equipe.
-            </p>
-            <div className="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-8 mt-8">
-              {/* Email */}
-              <div className="flex items-center space-x-2">
+        <div className="grid md:grid-cols-3 gap-16">
+          {[
+            {
+              n: "Michelle Pollheim",
+              c: "Criadora e Orientadora Pedagógica",
+              i: "/images/michelle-pollheim.png",
+              d: "Pedagoga com pós-graduação em Gestão Escolar. Assegura o equilíbrio entre sensibilidade e eficácia prática.",
+            },
+            {
+              n: "Shirlei Manske",
+              c: "Especialista em AEE",
+              i: "/images/shirlei-manske.png",
+              d: "Traz a visão técnica do Atendimento Educacional Especializado, focando nas demandas da linha de frente.",
+            },
+            {
+              n: "Késsia Janara Mafra",
+              c: "Suporte e Educação Especial",
+              i: "/images/kessia-mafra.png",
+              d: "Psicopedagoga, com ampla vivência em Educação Especial, atuando de forma fundamental no suporte técnico às avaliações e no atendimento às especificidades pedagógicas dessa modalidade.",
+            },
+          ].map((m, i) => (
+            <div
+              key={i}
+              className="group text-center flex flex-col items-center"
+            >
+              <div className="relative mb-8 overflow-hidden rounded-full">
                 <img
-                  src="/images/email.png"
-                  alt="Ícone de Email"
-                  className="w-6 h-6"
+                  src={m.i}
+                  alt={m.n}
+                  className="w-44 h-44 object-cover grayscale group-hover:grayscale-0 group-hover:scale-110 transition-all duration-500 border-4 border-white/5 shadow-2xl"
                 />
-                <a
-                  href="mailto:contato@vivenciepei.com.br"
-                  className="text-lg text-blue-100 hover:underline"
-                >
-                  contato@vivenciepei.com.br
-                </a>
               </div>
-
-              {/* WhatsApp */}
-              <div className="flex items-center space-x-2">
-                <img
-                  src="/images/whatsapp.png"
-                  alt="Ícone do WhatsApp"
-                  className="w-6 h-6"
-                />
-                <a
-                  href="https://wa.me/5547989192375?text=Olá,%20gostaria%20de%20saber%20mais%20sobre%20a%20Vivencie%20PEI."
-                  className="text-lg text-blue-100 hover:underline"
-                >
-                  WhatsApp
-                </a>
-              </div>
-
-              {/* Telefone */}
-              <div className="flex items-center space-x-2">
-                <img
-                  src="/images/telefone.png"
-                  alt="Ícone de Telefone"
-                  className="w-7 h-7"
-                />
-                <a
-                  href="tel:+5547989192375"
-                  className="text-lg text-blue-100 hover:underline"
-                >
-                  (47) 98919-2375
-                </a>
-              </div>
+              <h3 className="text-xl font-bold text-white mb-1 group-hover:text-blue-400 transition-colors">
+                {m.n}
+              </h3>
+              <p className="text-blue-500 text-xs font-bold uppercase tracking-wider mb-4">
+                {m.c}
+              </p>
+              <p className="text-slate-500 text-xs leading-relaxed max-w-[260px] italic">
+                "{m.d}"
+              </p>
             </div>
-          </div>
-        </section>
-      </main>
+          ))}
+        </div>
+      </section>
 
-      <footer className="bg-blue-900 text-white py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-4">
-          <p className="text-blue-300">
-            &copy; 2025 Vivencie PEI. Todos os direitos reservados.
+      {/* 5. FOOTER COM LINKS DIRETOS */}
+      <footer className="py-24 bg-black border-t border-white/5 px-6">
+        <div className="max-w-5xl mx-auto flex flex-col items-center text-center">
+          <h2 className="text-3xl font-bold text-white mb-12">
+            Vamos conversar?
+          </h2>
+
+          <div className="grid sm:grid-cols-3 gap-8 w-full py-12 border-y border-white/5 text-slate-500 text-xs tracking-widest uppercase">
+            {/* EMAIL */}
+            <a
+              href="mailto:contato@vivenciepei.com.br"
+              className="flex flex-col gap-2 group"
+            >
+              <span className="text-white/30 group-hover:text-blue-500 transition-colors italic">
+                Email Institucional
+              </span>
+              <span className="text-slate-300 group-hover:text-white">
+                contato@vivenciepei.com.br
+              </span>
+            </a>
+
+            {/* WHATSAPP */}
+            <a
+              href="https://wa.me/5547989192375?text=Olá,%20gostaria%20de%20saber%20mais%20sobre%20a%20Vivencie%20PEI."
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col gap-2 group"
+            >
+              <span className="text-white/30 group-hover:text-green-500 transition-colors italic">
+                WhatsApp Suporte
+              </span>
+              <span className="text-slate-300 group-hover:text-white">
+                (47) 98919-2375
+              </span>
+            </a>
+
+            {/* INSTAGRAM */}
+            <a
+              href="https://www.instagram.com/vivenciepei/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col gap-2 group items-center"
+            >
+              <span className="text-white/30 group-hover:text-pink-500 transition-colors italic uppercase">
+                Instagram
+              </span>
+              <span className="text-slate-300 group-hover:text-white flex items-center gap-2">
+                <Icons.Instagram /> @vivenciepei
+              </span>
+            </a>
+          </div>
+
+          <p className="text-white/20 text-[10px] tracking-[0.4em] mt-12 uppercase">
+            © 2025 Vivencie PEI — Tecnologia para o ensino inclusivo
           </p>
         </div>
       </footer>
     </div>
   );
-};
-
-export default LandingPage;
+}

@@ -1,130 +1,183 @@
-/* BLINDAGEM DO TEMA BRANCO */
-.painel-admin-white-theme.painel-page-container {
-  background-color: #f1f5f9 !important;
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800;900&display=swap");
+
+:root {
+  --bg-deep: #020617;
+  --glass-bg: rgba(255, 255, 255, 0.02);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --accent-blue: #3b82f6;
+  --accent-amber: #f59e0b;
+  --accent-red: #ef4444;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+}
+
+/* --- RESET E FUNDO --- */
+* {
+  box-sizing: border-box;
+}
+
+.min-h-screen {
+  background-color: var(--bg-deep);
+  background-image: radial-gradient(
+      at 0% 0%,
+      rgba(59, 130, 246, 0.12) 0,
+      transparent 50%
+    ),
+    radial-gradient(at 100% 100%, rgba(99, 102, 241, 0.08) 0, transparent 50%);
   font-family: "Plus Jakarta Sans", sans-serif;
 }
 
-.painel-admin-white-theme .painel-card {
-  background: #ffffff !important;
-  display: flex;
-  width: 100%;
-  max-width: 1100px;
-  border-radius: 40px;
-  overflow: hidden;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
-  min-height: 700px;
+/* --- HEADER: BRANDING SECTION (CORREÇÃO DA LOGO E NOME) --- */
+header {
+  background: rgba(2, 6, 23, 0.7) !important;
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border-bottom: 1px solid var(--glass-border);
 }
 
-.painel-admin-white-theme .brand-section {
-  flex: 0.7;
-  background-color: #f8fafc;
+.brand-main {
+  font-size: 1.6rem;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: -1.5px;
+  margin: 0;
+  font-style: italic;
+  line-height: 1;
+}
+
+.brand-accent {
+  color: var(--accent-blue);
+  text-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+}
+
+.drop-shadow-2xl {
+  filter: drop-shadow(0 0 15px rgba(59, 130, 246, 0.4));
+}
+
+.dev-panel-badge {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 40px;
-  border-right: 1px solid #f1f5f9;
+  gap: 6px;
+  font-size: 9px;
+  font-weight: 900;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-top: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 3px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--glass-border);
+  width: fit-content;
 }
 
-.painel-admin-white-theme .painel-logo {
-  width: 140px;
-  margin-bottom: 20px;
-}
-
-.painel-admin-white-theme .painel-titulo {
-  color: #0f172a;
-  font-size: 2.2rem;
-  font-weight: 800;
-  line-height: 1.1;
-  text-align: center;
-}
-
-.painel-admin-white-theme .actions-section {
-  flex: 2;
-  padding: 40px 60px;
-  background: white !important;
-  display: flex;
-  flex-direction: column;
-}
-
-.painel-admin-white-theme .tabs-container {
-  display: flex;
-  gap: 10px;
-  margin: 20px 0 30px 0;
-  border-bottom: 2px solid #f1f5f9;
-  padding-bottom: 10px;
-}
-
-.painel-admin-white-theme .tab-item {
-  background: none;
+/* --- SELETOR DE EXERCÍCIO --- */
+select {
+  appearance: none;
+  background: transparent;
   border: none;
-  padding: 10px 15px;
-  font-weight: 700;
-  color: #94a3b8;
+  color: white;
+  font-family: inherit;
+  font-weight: 900;
   cursor: pointer;
 }
 
-.painel-admin-white-theme .tab-item.active {
-  color: #3b82f6;
-  border-bottom: 2px solid #3b82f6;
-}
-
-.painel-admin-white-theme .grid-acoes {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 15px;
-}
-
-.painel-admin-white-theme .btn-acao {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  padding: 20px;
-  border-radius: 20px;
-  font-weight: 700;
-  color: #1e293b;
-  cursor: pointer;
-  transition: all 0.2s;
-  text-align: center;
-}
-
-.painel-admin-white-theme .btn-acao:hover {
-  border-color: #3b82f6;
-  background: #f0f9ff;
-}
-
-.painel-admin-white-theme .btn-manutencao,
-.painel-admin-white-theme .btn-migrar-global {
-  padding: 15px;
-  border-radius: 15px;
-  border: none;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.painel-admin-white-theme .btn-migrar-global {
-  background: #059669;
+select option {
+  background: #0f172a;
   color: white;
 }
 
-.painel-admin-white-theme .painel-footer {
-  margin-top: auto;
-  padding-top: 30px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+/* --- CARDS DE AÇÃO --- */
+.grid {
+  perspective: 1000px;
 }
 
-.painel-admin-white-theme .btn-sair {
-  background: #fef2f2;
-  color: #ef4444;
-  border: none;
+button.flex.flex-col {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(10px);
+}
+
+button.flex.flex-col:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(59, 130, 246, 0.5) !important;
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+  transform: translateY(-5px);
+}
+
+button.flex.flex-col:hover svg {
+  color: var(--accent-blue);
+  filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.5));
+}
+
+/* Cores específicas para Variantes de Manutenção */
+button.bg-amber-500\/5 {
+  background: rgba(245, 158, 11, 0.03) !important;
+  border-color: rgba(245, 158, 11, 0.2) !important;
+}
+button.bg-amber-500\/5:hover {
+  border-color: rgba(245, 158, 11, 0.5) !important;
+  color: var(--accent-amber) !important;
+}
+
+button.bg-red-500\/5 {
+  background: rgba(239, 68, 68, 0.03) !important;
+  border-color: rgba(239, 68, 68, 0.2) !important;
+}
+button.bg-red-500\/5:hover {
+  border-color: rgba(239, 68, 68, 0.5) !important;
+  color: var(--accent-red) !important;
+}
+
+/* --- ABAS (TABS) --- */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* --- RODAPÉ E SAIR --- */
+footer {
+  background: rgba(2, 6, 23, 0.4) !important;
+  backdrop-filter: blur(10px);
+  border-top: 1px solid var(--glass-border);
+}
+
+.btn-sair-estilizado {
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: var(--accent-red);
   padding: 10px 20px;
-  border-radius: 12px;
-  font-weight: 700;
-  cursor: pointer;
+  border-radius: 14px;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-sair-estilizado:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: var(--accent-red);
+  transform: translateY(-2px);
+}
+
+/* SCROLLBAR CUSTOMIZADA */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-blue);
 }

@@ -9,14 +9,24 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  FaArrowLeft,
+  FaChalkboardTeacher,
+  FaCheckCircle,
+  FaSearch,
+  FaSave,
+  FaUserCircle,
+  FaBook,
+  FaTimes,
+} from "react-icons/fa";
 import Loader from "../components/Loader";
 import { useUserSchool } from "../hooks/useUserSchool";
 import { useNavigate } from "react-router-dom";
 
+import "react-toastify/dist/ReactToastify.css";
 import "./VincularProfessoresTurmas.css";
 
-// Lista exata de cargos e disciplinas
 const LISTA_CARGOS = [
   "Professor Regente",
   "Professor de Suporte",
@@ -34,9 +44,6 @@ const LISTA_CARGOS = [
   "Comunicação e Linguagem",
 ];
 
-const normalizarTurma = (turma) =>
-  typeof turma === "string" ? turma.trim().toUpperCase() : "";
-
 export default function VincularProfessoresTurmas() {
   const navigate = useNavigate();
   const [profissionais, setProfissionais] = useState([]);
@@ -46,58 +53,73 @@ export default function VincularProfessoresTurmas() {
   const [cargosSelecionados, setCargosSelecionados] = useState([]);
   const [carregandoDados, setCarregandoDados] = useState(true);
   const [busca, setBusca] = useState("");
+  const [mostrarModalCargos, setMostrarModalCargos] = useState(false);
 
-  const { userSchoolData, isLoadingUserSchool, userSchoolId } = useUserSchool();
+  const { isLoadingUserSchool, userSchoolId } = useUserSchool();
   const anoAtivo = Number(localStorage.getItem("anoExercicio")) || 2025;
+  const usuarioLogado = useMemo(
+    () => JSON.parse(localStorage.getItem("usuarioLogado") || "{}"),
+    []
+  );
 
-  // ✅ FUNÇÃO PARA VOLTAR SEM LOOPING
+  // ✅ NAVEGAÇÃO ANTI-LOOPING
   const handleVoltar = useCallback(() => {
-    const perfil = userSchoolData?.perfil?.toLowerCase() || "";
-    if (perfil.includes("professor")) {
-      navigate("/painel-professor");
-    } else {
-      navigate("/painel-gestao");
-    }
-  }, [navigate, userSchoolData]);
+    const perfil = (usuarioLogado.perfil || "").toLowerCase().trim();
+    const painelMap = {
+      desenvolvedor: "/painel-dev",
+      seme: "/painel-seme",
+      gestao: "/painel-gestao",
+      diretor: "/painel-gestao",
+      professor: "/painel-professor",
+      aee: "/painel-aee",
+    };
+    navigate(painelMap[perfil] || "/login");
+  }, [navigate, usuarioLogado]);
 
+  // ✅ FILTRO CRÍTICO: Só traz quem tem anoAtivo === anoAtivo do sistema
   const carregarProfissionais = useCallback(async () => {
     setCarregandoDados(true);
     try {
       const q = query(
         collection(db, "usuarios"),
-        where("anoAtivo", "==", anoAtivo)
+        where("anoAtivo", "==", anoAtivo) // Se for 2026, só traz quem foi migrado para 2026
       );
+
       const snap = await getDocs(q);
-      setProfissionais(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      const lista = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+      // Filtra apenas perfis docentes/apoio
+      const filtrados = lista.filter(
+        (p) =>
+          p.perfil?.toLowerCase().includes("prof") ||
+          p.perfil?.toLowerCase().includes("aee") ||
+          p.cargo?.toLowerCase().includes("prof")
+      );
+      setProfissionais(
+        filtrados.sort((a, b) => (a.nome || "").localeCompare(b.nome || ""))
+      );
     } catch (err) {
-      toast.error("Erro ao carregar profissionais.");
+      toast.error("Erro ao carregar profissionais de " + anoAtivo);
     } finally {
       setCarregandoDados(false);
     }
   }, [anoAtivo]);
 
   useEffect(() => {
-    if (!isLoadingUserSchool && userSchoolData) carregarProfissionais();
-  }, [isLoadingUserSchool, userSchoolData, carregarProfissionais]);
+    if (!isLoadingUserSchool) carregarProfissionais();
+  }, [isLoadingUserSchool, carregarProfissionais]);
 
   const selecionarProf = async (prof) => {
     setSelecionado(prof);
-
-    const cargoBanco = (prof.cargo || "").toLowerCase();
-    const perfilBanco = (prof.perfil || "").toLowerCase();
-    const infoCombinada = `${cargoBanco} ${perfilBanco}`;
-
-    const encontrados = LISTA_CARGOS.filter((itemLista) => {
-      const itemMin = itemLista.toLowerCase();
-      return infoCombinada.includes(itemMin) || itemMin.includes(infoCombinada);
-    });
-
-    if (encontrados.length === 0 && perfilBanco === "professor") {
-      encontrados.push("Professor Regente");
-    }
-
+    const infoCombinada = `${prof.cargo || ""} ${
+      prof.perfil || ""
+    }`.toLowerCase();
+    const encontrados = LISTA_CARGOS.filter((c) =>
+      infoCombinada.includes(c.toLowerCase())
+    );
     setCargosSelecionados(encontrados);
 
+    // Carrega turmas da escola ativa no ano ativo
     const escolaId = Object.keys(prof.escolas || {})[0] || userSchoolId;
     if (escolaId) {
       const qT = query(
@@ -105,48 +127,26 @@ export default function VincularProfessoresTurmas() {
         where("ano", "==", anoAtivo)
       );
       const snapT = await getDocs(qT);
-      setTurmas(snapT.docs.map((d) => normalizarTurma(d.data().nome)).sort());
+      setTurmas(snapT.docs.map((d) => d.data().nome).sort());
     }
-
-    const campoTurmasAno = `turmas_${anoAtivo}`;
-    setVincTurmas(prof[campoTurmasAno] || {});
-  };
-
-  const toggleCargo = (cargo) => {
-    setCargosSelecionados((prev) =>
-      prev.includes(cargo) ? prev.filter((c) => c !== cargo) : [...prev, cargo]
-    );
-  };
-
-  const toggleTurma = (turma) => {
-    setVincTurmas((prev) => {
-      const novo = { ...prev };
-      novo[turma] ? delete novo[turma] : (novo[turma] = true);
-      return novo;
-    });
+    setVincTurmas(prof[`turmas_${anoAtivo}`] || {});
   };
 
   const salvar = async () => {
-    if (cargosSelecionados.length === 0) {
-      return toast.warning("Selecione ao menos um cargo/disciplina.");
-    }
-
     try {
       setCarregandoDados(true);
-      const campoTurmasAno = `turmas_${anoAtivo}`;
       const perfilFinal = cargosSelecionados.join(", ");
-
       await updateDoc(doc(db, "usuarios", selecionado.id), {
-        [campoTurmasAno]: vincTurmas,
-        perfil: perfilFinal,
-        cargo: perfilFinal,
+        [`turmas_${anoAtivo}`]: vincTurmas,
+        perfil: perfilFinal || selecionado.perfil,
+        cargo: perfilFinal || selecionado.cargo,
+        anoAtivo: anoAtivo, // Garante a permanência no ano correto
       });
-
-      toast.success(`Dados de ${selecionado.nome} atualizados com sucesso!`);
+      toast.success("Vínculos atualizados para " + anoAtivo);
       carregarProfissionais();
       setSelecionado(null);
     } catch (e) {
-      toast.error("Erro ao salvar alterações.");
+      toast.error("Erro ao salvar.");
     } finally {
       setCarregandoDados(false);
     }
@@ -155,172 +155,185 @@ export default function VincularProfessoresTurmas() {
   if (isLoadingUserSchool || carregandoDados) return <Loader />;
 
   return (
-    <div className="vinculacao-page-container">
-      <ToastContainer position="bottom-right" />
-      <div className="vinculacao-main-card">
-        <div className="prof-sidebar">
-          <div className="sidebar-header">
-            <button className="btn-voltar-minimal" onClick={handleVoltar}>
-              ← Início
-            </button>
-            <h3 style={{ marginTop: "10px" }}>Profissionais {anoAtivo}</h3>
+    <div className="vinc-page-wrapper">
+      <ToastContainer theme="dark" position="bottom-right" />
+
+      {/* MODAL DE DISCIPLINAS */}
+      <AnimatePresence>
+        {mostrarModalCargos && (
+          <div className="vinc-modal-overlay">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="vinc-modal-card"
+            >
+              <div className="vinc-modal-header">
+                <h3>Selecionar Disciplinas</h3>
+                <button onClick={() => setMostrarModalCargos(false)}>
+                  <FaTimes />
+                </button>
+              </div>
+              <div className="vinc-modal-grid">
+                {LISTA_CARGOS.map((cargo) => (
+                  <button
+                    key={cargo}
+                    onClick={() =>
+                      setCargosSelecionados((prev) =>
+                        prev.includes(cargo)
+                          ? prev.filter((c) => c !== cargo)
+                          : [...prev, cargo]
+                      )
+                    }
+                    className={`vinc-modal-chip ${
+                      cargosSelecionados.includes(cargo) ? "active" : ""
+                    }`}
+                  >
+                    {cargo}{" "}
+                    {cargosSelecionados.includes(cargo) && <FaCheckCircle />}
+                  </button>
+                ))}
+              </div>
+              <button
+                className="vinc-modal-save"
+                onClick={() => setMostrarModalCargos(false)}
+              >
+                Concluir Seleção
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <header className="vinc-header">
+        <div className="vinc-header-left">
+          <button onClick={handleVoltar} className="vinc-btn-back">
+            <FaArrowLeft />
+          </button>
+          <div className="vinc-title-group">
+            <h1>
+              Vínculo <span className="blue-highlight">Docente</span>
+            </h1>
+            <p>Exercício — {anoAtivo}</p>
+          </div>
+        </div>
+      </header>
+
+      <main className="vinc-main-container">
+        <aside className="vinc-sidebar">
+          <div className="vinc-search-area">
+            <FaSearch className="vinc-search-icon" />
             <input
               type="text"
-              placeholder="Buscar por nome..."
+              placeholder="Buscar profissional..."
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
             />
           </div>
-          <div className="prof-list-scroll">
+          <div className="vinc-prof-list">
             {profissionais
               .filter((p) =>
                 p.nome?.toLowerCase().includes(busca.toLowerCase())
               )
-              .map((prof) => (
-                <div
-                  key={prof.id}
-                  className={`prof-item-card ${
-                    selecionado?.id === prof.id ? "active" : ""
+              .map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => selecionarProf(p)}
+                  className={`vinc-prof-card ${
+                    selecionado?.id === p.id ? "active" : ""
                   }`}
-                  onClick={() => selecionarProf(prof)}
                 >
-                  <span className="prof-name">{prof.nome}</span>
-                  <span className="prof-perfil-badge">
-                    {prof.perfil || prof.cargo}
-                  </span>
-                </div>
+                  <p className="vinc-prof-name">{p.nome}</p>
+                  <p className="vinc-prof-role">{p.perfil || "Sem Cargo"}</p>
+                </button>
               ))}
           </div>
-        </div>
+        </aside>
 
-        <div className="vinculo-content">
-          {selecionado ? (
-            <div className="editor-container">
-              <div className="header-edicao">
-                <h2>Configuração de Atuação</h2>
-                <p>
-                  Profissional: <strong>{selecionado.nome}</strong>
-                </p>
-              </div>
-
-              <div
-                className="cargo-selection-area"
-                style={{
-                  background: "#f0f9ff",
-                  padding: "20px",
-                  borderRadius: "20px",
-                  border: "1px solid #bae6fd",
-                  marginBottom: "25px",
-                }}
+        <section className="vinc-editor-area">
+          <AnimatePresence mode="wait">
+            {selecionado ? (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                key={selecionado.id}
               >
-                <label
-                  style={{
-                    fontWeight: "800",
-                    fontSize: "0.8rem",
-                    color: "#0369a1",
-                    display: "block",
-                    marginBottom: "15px",
-                  }}
-                >
-                  DISCIPLINAS E CARGOS (Múltipla Seleção):
-                </label>
-
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns:
-                      "repeat(auto-fill, minmax(200px, 1fr))",
-                    gap: "10px",
-                  }}
-                >
-                  {LISTA_CARGOS.map((cargo) => (
-                    <label
-                      key={cargo}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "10px",
-                        fontSize: "0.75rem",
-                        fontWeight: "700",
-                        cursor: "pointer",
-                        padding: "12px",
-                        background: cargosSelecionados.includes(cargo)
-                          ? "#3b82f6"
-                          : "#fff",
-                        color: cargosSelecionados.includes(cargo)
-                          ? "#fff"
-                          : "#475569",
-                        borderRadius: "12px",
-                        border: "1px solid #e2e8f0",
-                        transition: "0.2s",
-                        boxShadow: cargosSelecionados.includes(cargo)
-                          ? "0 4px 6px -1px rgba(59, 130, 246, 0.3)"
-                          : "none",
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={cargosSelecionados.includes(cargo)}
-                        onChange={() => toggleCargo(cargo)}
-                        style={{ cursor: "pointer" }}
-                      />
-                      {cargo}
-                    </label>
-                  ))}
+                <div className="vinc-editor-header">
+                  <div className="vinc-user-icon">
+                    <FaUserCircle />
+                  </div>
+                  <div>
+                    <span>Perfil Profissional</span>
+                    <h2>{selecionado.nome}</h2>
+                  </div>
                 </div>
-              </div>
 
-              <label
-                style={{
-                  fontWeight: "800",
-                  fontSize: "0.8rem",
-                  color: "#475569",
-                  display: "block",
-                  marginBottom: "10px",
-                }}
-              >
-                VINCULAR ÀS TURMAS DE {anoAtivo}:
-              </label>
-              <div className="turmas-selection-grid">
-                {turmas.length > 0 ? (
-                  turmas.map((turma) => (
-                    <label
-                      key={turma}
-                      className={`turma-checkbox-card ${
-                        vincTurmas[turma] ? "checked" : ""
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={!!vincTurmas[turma]}
-                        onChange={() => toggleTurma(turma)}
-                      />
-                      <span>{turma}</span>
-                    </label>
-                  ))
-                ) : (
-                  <p style={{ color: "#94a3b8", fontSize: "0.8rem" }}>
-                    Nenhuma turma oficial encontrada para {anoAtivo}.
-                  </p>
-                )}
-              </div>
+                <div className="vinc-section">
+                  <label>Disciplinas e Atuação</label>
+                  <div
+                    className="vinc-discipline-trigger"
+                    onClick={() => setMostrarModalCargos(true)}
+                  >
+                    <div className="vinc-trigger-info">
+                      <FaBook className="text-blue-500" />
+                      <div>
+                        <strong>
+                          {cargosSelecionados.length > 0
+                            ? cargosSelecionados.join(", ")
+                            : "Nenhuma disciplina selecionada"}
+                        </strong>
+                        <p>Clique para editar as áreas de atuação</p>
+                      </div>
+                    </div>
+                    <span className="vinc-trigger-badge">
+                      {cargosSelecionados.length}
+                    </span>
+                  </div>
+                </div>
 
-              <button className="btn-salvar-vinculo" onClick={salvar}>
-                Confirmar Atuação em {anoAtivo}
-              </button>
-            </div>
-          ) : (
-            <div className="empty-state">
-              <img
-                src="/logo-vivencie.png"
-                alt="Logo"
-                className="bg-logo-fade"
-              />
-              <p>Selecione um profissional para gerenciar cargos e turmas.</p>
-            </div>
-          )}
-        </div>
-      </div>
+                <div className="vinc-section">
+                  <label>Turmas de {anoAtivo}</label>
+                  <div className="vinc-turma-grid">
+                    {turmas.length > 0 ? (
+                      turmas.map((t) => (
+                        <button
+                          key={t}
+                          onClick={() =>
+                            setVincTurmas((prev) => {
+                              const n = { ...prev };
+                              n[t] ? delete n[t] : (n[t] = true);
+                              return n;
+                            })
+                          }
+                          className={`vinc-turma-btn ${
+                            vincTurmas[t] ? "active" : ""
+                          }`}
+                        >
+                          {t} {vincTurmas[t] && <FaCheckCircle />}
+                        </button>
+                      ))
+                    ) : (
+                      <p className="vinc-empty-txt">
+                        Nenhuma turma encontrada para {anoAtivo}.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <button onClick={salvar} className="vinc-save-btn">
+                  <FaSave /> Confirmar Vínculos
+                </button>
+              </motion.div>
+            ) : (
+              <div className="vinc-placeholder">
+                <FaChalkboardTeacher size={100} />
+                <p>Selecione um profissional habilitado para {anoAtivo}</p>
+              </div>
+            )}
+          </AnimatePresence>
+        </section>
+      </main>
     </div>
   );
 }
